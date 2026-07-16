@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "keywords:intake": "node scripts/build-keyword-research.mjs"
+    "keywords:intake": "node scripts/build-keyword-research.mjs",
+    "research:ingest": "node scripts/ingest-last30days.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
