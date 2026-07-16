@@ -1,0 +1,3 @@
+# JSON object with approved affiliate URLs. Keep this value in Cloudflare secrets.
+# Example only; never commit real tracking URLs.
+AFFILIATE_LINKS_JSON={"airalo":"https://example.com/airalo","holafly":"https://example.com/holafly"}
