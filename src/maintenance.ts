@@ -50,7 +50,7 @@ function authorized(request: Request, env: Env): Response | null {
 
 async function readBody(request: Request): Promise<Record<string, unknown> | null> {
   try {
-    const value = await request.json<unknown>();
+    const value: unknown = await request.json();
     return value && typeof value === 'object' && !Array.isArray(value)
       ? value as Record<string, unknown>
       : null;
@@ -155,7 +155,7 @@ async function enqueueDue(env: Env): Promise<Response> {
     WHERE is_due=1
   `).run();
 
-  return json({ ok: true, enqueued: Number(result.meta.changes || 0) });
+  return json({ ok: true, enqueued: Number(result.meta?.changes || 0) });
 }
 
 async function claimTask(request: Request, env: Env): Promise<Response> {
