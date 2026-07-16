@@ -25,7 +25,37 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - 38 blueprint consolidati;
 - 4 pagine fondamentali pubblicabili;
 - 12 pagine bloccate in revisione fino alla verifica dei dati commerciali;
-- workflow di deploy manuale.
+- workflow di deploy manuale;
+- registro fonti, claim verificabili e coda di manutenzione AI;
+- API protetta per agenti di aggiornamento e controllo.
+
+## Macchina AI-driven
+
+L'AI non pubblica articoli in autonomia. Opera su un ciclo controllato:
+
+```text
+fonti ufficiali
+  -> coda di manutenzione
+  -> estrazione di claim verificabili
+  -> rilevazione di cambiamenti e conflitti
+  -> revisione editoriale
+  -> pubblicazione controllata
+```
+
+La migrazione `0007_ai_maintenance.sql` introduce:
+
+- `source_registry` per provenienza, fiducia e freschezza delle fonti;
+- `claim_verifications` per prezzo, durata, dati, hotspot, fair use, rete, attivazione e altre affermazioni datate;
+- `maintenance_queue` per task consumabili da n8n, GitHub Actions o agenti dedicati;
+- una vista delle fonti scadute e un bootstrap dei provider ufficiali.
+
+L'API di manutenzione richiede un secret separato:
+
+```bash
+npx wrangler secret put MAINTENANCE_TOKEN
+```
+
+Vedi `docs/AI-MAINTENANCE.md`.
 
 ## Ricerca keyword
 
@@ -87,6 +117,7 @@ Vedi `docs/AFFILIATE-SETUP.md`.
 0004_catalog.sql
 0005_published_pages.sql
 0006_review_queue.sql
+0007_ai_maintenance.sql
 ```
 
 ## Quality gate
@@ -99,11 +130,14 @@ draft → review → published → archived
 
 Una pagina destinazione o provider resta in `review` finché non contiene dati verificati su prezzo, durata, dati, hotspot, fair use, rete, attivazione e fonte ufficiale.
 
+L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere direttamente una pagina a `published`.
+
 ## Documentazione
 
 - `docs/EDITORIAL-SYSTEM.md`
 - `docs/AFFILIATE-SETUP.md`
 - `docs/DEPLOY-CLOUDFLARE.md`
+- `docs/AI-MAINTENANCE.md`
 
 ## Nota
 
