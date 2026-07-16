@@ -6,23 +6,105 @@ Sito editoriale italiano dedicato alle eSIM da viaggio: destinazioni, compatibil
 
 Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migliore esim`, `airalo recensioni` e `holafly come funziona`, offrendo risposte verificabili e collegamenti affiliate dichiarati.
 
-## Stato
+## Stack
 
-Bootstrap del progetto in corso.
+- Cloudflare Workers
+- Cloudflare D1
+- TypeScript senza framework applicativo
+- GitHub Actions
+- Google Tag Manager predisposto, da attivare con CMP e consenso
 
-## Principi
+## Stato MVP
 
-- Cloudflare Workers + D1
-- SEO/AEO con risposte dirette e fonti verificabili
-- nessuna generazione di pagine thin
-- prezzi, copertura e condizioni pubblicati solo con fonte e data di controllo
-- link affiliate conservati come secret Cloudflare, mai nel repository
-- tracking minimale e rispettoso della privacy
+- motore Worker completo;
+- routing SEO, sitemap, robots e dati strutturati;
+- schema D1 per pagine, provider, destinazioni, piani e click;
+- tracking minimale senza IP o user agent;
+- redirect provider con affiliate link conservati come secret;
+- 1.623 keyword analizzate;
+- 38 blueprint consolidati;
+- 4 pagine fondamentali pubblicabili;
+- 12 pagine bloccate in revisione fino alla verifica dei dati commerciali;
+- workflow di deploy manuale.
 
 ## Ricerca keyword
 
 Sorgente: Google Keyword Planner, Italia/italiano, periodo 1 luglio 2025 – 30 giugno 2026.
 
-Foglio di lavoro:
+Foglio originale:
 
 https://docs.google.com/spreadsheets/d/1fah6iZW5WNWD-MIA3EJnwK3hRHUMrkbC1PANy1hgEVQ/edit
+
+Analisi e page map:
+
+```text
+research/keyword-planner/
+```
+
+## Avvio locale
+
+```bash
+npm install
+npm run db:migrate:local
+npm run dev
+```
+
+## Configurazione
+
+Aggiornare `wrangler.jsonc`:
+
+```text
+SITE_NAME
+SITE_URL
+GTM_ID
+AFFILIATE_MODE
+D1 database_id
+```
+
+La modalità iniziale è:
+
+```text
+AFFILIATE_MODE=disabled
+```
+
+I link portano ai siti ufficiali senza remunerazione.
+
+Dopo l'approvazione di programmi affiliate ufficiali:
+
+```text
+AFFILIATE_MODE=enabled
+AFFILIATE_LINKS_JSON=<secret Cloudflare>
+```
+
+Vedi `docs/AFFILIATE-SETUP.md`.
+
+## Migrazioni
+
+```text
+0001_init.sql
+0002_blueprints_tier1.sql
+0003_blueprints_tier2_3.sql
+0004_catalog.sql
+0005_published_pages.sql
+0006_review_queue.sql
+```
+
+## Quality gate
+
+Le pagine commerciali non vengono pubblicate automaticamente. Gli stati sono:
+
+```text
+draft → review → published → archived
+```
+
+Una pagina destinazione o provider resta in `review` finché non contiene dati verificati su prezzo, durata, dati, hotspot, fair use, rete, attivazione e fonte ufficiale.
+
+## Documentazione
+
+- `docs/EDITORIAL-SYSTEM.md`
+- `docs/AFFILIATE-SETUP.md`
+- `docs/DEPLOY-CLOUDFLARE.md`
+
+## Nota
+
+Il brand di lavoro è **Senza Roaming**. La disponibilità di un eventuale dominio deve essere confermata dal registrar prima di modificare `SITE_URL`.
