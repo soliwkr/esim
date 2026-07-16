@@ -29,6 +29,8 @@ jobs:
           name: typecheck-log
           path: typecheck.log
           if-no-files-found: error
+      - name: Validate D1 migrations
+        run: npm run db:migrate:local
 
   deploy:
     if: github.event_name == 'workflow_dispatch'
