@@ -12,7 +12,7 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - Cloudflare D1
 - TypeScript senza framework applicativo
 - GitHub Actions
-- Google Tag Manager caricato soltanto dopo consenso
+- Google Tag Manager predisposto, da attivare con CMP e consenso
 
 ## Stato MVP
 
@@ -82,8 +82,11 @@ Vedi `docs/AFFILIATE-SETUP.md`.
 
 ```text
 0001_init.sql
-0002_page_blueprints.sql
-0003_seed_catalog_and_pages.sql
+0002_blueprints_tier1.sql
+0003_blueprints_tier2_3.sql
+0004_catalog.sql
+0005_published_pages.sql
+0006_review_queue.sql
 ```
 
 ## Quality gate
