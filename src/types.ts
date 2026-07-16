@@ -5,6 +5,7 @@ export interface Env {
   GTM_ID: string;
   AFFILIATE_MODE?: string;
   AFFILIATE_LINKS_JSON?: string;
+  MAINTENANCE_TOKEN?: string;
 }
 
 export type ContentBlock =
