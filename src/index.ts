@@ -3,6 +3,7 @@ import { siteBase } from './utils';
 import { article, favicon, home, listing, sitemap, staticPage } from './pages';
 import { redirectProvider } from './redirect';
 import { maintenanceApi } from './maintenance';
+import { recentDemandApi } from './research-router';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -18,6 +19,7 @@ export default {
       if (path === 'favicon.svg') return favicon();
       if (path === 'robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /api/maintenance/\nSitemap: ${siteBase(env)}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain;charset=UTF-8', 'cache-control': 'public,max-age=3600' } });
       if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled' });
+      if (path.startsWith('api/maintenance/research-')) return recentDemandApi(request, env, path);
       if (path.startsWith('api/maintenance/')) return maintenanceApi(request, env, path);
       if (path.startsWith('go/')) return redirectProvider(env, request, path.slice(3));
       return article(env, path);
