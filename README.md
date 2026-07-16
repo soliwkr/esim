@@ -27,7 +27,8 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - 12 pagine bloccate in revisione fino alla verifica dei dati commerciali;
 - workflow di deploy manuale;
 - registro fonti, claim verificabili e coda di manutenzione AI;
-- API protetta per agenti di aggiornamento e controllo.
+- API protetta per agenti di aggiornamento e controllo;
+- radar della domanda recente alimentabile da export JSON `last30days`.
 
 ## Macchina AI-driven
 
@@ -56,6 +57,33 @@ npx wrangler secret put MAINTENANCE_TOKEN
 ```
 
 Vedi `docs/AI-MAINTENANCE.md`.
+
+## Radar della domanda recente
+
+La migrazione `0008_recent_demand_radar.sql` mantiene separati:
+
+```text
+segnali della community -> opportunità editoriali
+fonti ufficiali         -> claim commerciali verificati
+```
+
+L'export JSON versionato di `last30days` può alimentare:
+
+- domande ricorrenti;
+- lamentele e problemi percepiti;
+- confronti tra provider;
+- raccomandazioni cercate;
+- temi emergenti e content gap.
+
+Il radar non aggiorna prezzi, copertura, rete, hotspot o fair use. Ogni import crea soltanto segnali e un task di revisione editoriale.
+
+```bash
+export SENZA_ROAMING_MAINTENANCE_URL="https://senzaroaming.it"
+export MAINTENANCE_TOKEN="..."
+npm run research:ingest -- research.json
+```
+
+Vedi `docs/RECENT-DEMAND-RADAR.md`.
 
 ## Ricerca keyword
 
@@ -118,6 +146,7 @@ Vedi `docs/AFFILIATE-SETUP.md`.
 0005_published_pages.sql
 0006_review_queue.sql
 0007_ai_maintenance.sql
+0008_recent_demand_radar.sql
 ```
 
 ## Quality gate
@@ -138,6 +167,7 @@ L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere 
 - `docs/AFFILIATE-SETUP.md`
 - `docs/DEPLOY-CLOUDFLARE.md`
 - `docs/AI-MAINTENANCE.md`
+- `docs/RECENT-DEMAND-RADAR.md`
 
 ## Nota
 
