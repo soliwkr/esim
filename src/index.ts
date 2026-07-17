@@ -12,7 +12,7 @@ import { editorialAtomicClaimsApi } from './editorial-claim-atomic';
 import { pageReadinessApi } from './page-readiness';
 import { editorialDraftApi } from './editorial-draft';
 import { groundedEditorialDraftApi } from './editorial-draft-grounded';
-import { controlRoomApi, controlRoomPage } from './control-room';
+import { controlRoomApi, controlRoomPage } from './control-room-v2';
 
 export { Last30DaysContainer } from './last30days-container';
 export { RecentDemandWorkflow } from './recent-demand-workflow';
