@@ -89,5 +89,12 @@ export function favicon(): Response {
 }
 
 export function notFound(env: Env): Response {
-  return layout(env, { title: `Pagina non trovata | ${env.SITE_NAME}`, description: 'La pagina richiesta non esiste.', canonicalPath: '/404', noindex: true, content: '<main class="article"><div class="eyebrow">404</div><h1>Questa pagina non è partita.</h1><p class="lead">Torna alle destinazioni o alle guide principali.</p></main>' });
+  return layout(env, {
+    title: `Pagina non trovata | ${env.SITE_NAME}`,
+    description: 'La pagina richiesta non esiste.',
+    canonicalPath: '/404',
+    noindex: true,
+    status: 404,
+    content: '<main class="article"><div class="eyebrow">404</div><h1>Questa pagina non è partita.</h1><p class="lead">Torna alle destinazioni o alle guide principali.</p></main>'
+  });
 }
