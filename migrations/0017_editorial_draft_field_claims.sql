@@ -40,3 +40,36 @@ WHEN NOT EXISTS (
 BEGIN
   SELECT RAISE(ABORT, 'verified_bundle_claim_required');
 END;
+
+-- The first renderer version did not persist provenance for top-level fields.
+-- Legacy drafts remain auditable and previewable, but cannot be approved.
+CREATE TRIGGER IF NOT EXISTS trg_legacy_editorial_draft_not_approvable
+BEFORE UPDATE OF status ON editorial_review_drafts
+WHEN NEW.status='approved' AND NEW.prompt_version<>'editorial-page-draft-v2'
+BEGIN
+  SELECT RAISE(ABORT, 'legacy_draft_requires_grounded_regeneration');
+END;
+
+-- A v2 draft can be approved only when every factual top-level field has at
+-- least one persisted claim mapping.
+CREATE TRIGGER IF NOT EXISTS trg_grounded_editorial_draft_requires_field_provenance
+BEFORE UPDATE OF status ON editorial_review_drafts
+WHEN NEW.status='approved' AND NEW.prompt_version='editorial-page-draft-v2'
+  AND EXISTS (
+    SELECT 1
+    FROM (
+      SELECT 'title' AS field_name
+      UNION ALL SELECT 'meta_description'
+      UNION ALL SELECT 'h1'
+      UNION ALL SELECT 'direct_answer'
+      UNION ALL SELECT 'intro'
+    ) required
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM editorial_review_draft_field_claims m
+      WHERE m.draft_id=NEW.id AND m.field_name=required.field_name
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'draft_field_provenance_incomplete');
+END;
