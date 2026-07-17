@@ -6,6 +6,12 @@
   "observability": {
     "enabled": true
   },
+  "secrets": {
+    "required": [
+      "MAINTENANCE_TOKEN",
+      "AI_GATEWAY_TOKEN"
+    ]
+  },
   "vars": {
     "SITE_NAME": "Senza Roaming",
     "SITE_URL": "https://senzaroaming.it",
