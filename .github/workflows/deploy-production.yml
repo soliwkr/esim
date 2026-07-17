@@ -1,6 +1,20 @@
 name: Deploy Senza Roaming
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "migrations/**"
+      - "containers/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "wrangler.jsonc"
+      - "wrangler.production.jsonc"
+      - "Dockerfile"
+      - ".github/workflows/deploy-production.yml"
   workflow_dispatch:
     inputs:
       site_url:
@@ -17,7 +31,7 @@ permissions:
 
 env:
   CLOUDFLARE_ACCOUNT_ID: 60496826f56a093a72602bfae074fdcf
-  SENZA_ROAMING_SITE_URL: ${{ inputs.site_url }}
+  SENZA_ROAMING_SITE_URL: ${{ inputs.site_url || 'https://senzaroaming.it' }}
 
 jobs:
   deploy:
@@ -109,6 +123,8 @@ jobs:
           {
             echo "## Senza Roaming deployed"
             echo
+            echo "- Trigger: $GITHUB_EVENT_NAME"
+            echo "- Commit: $GITHUB_SHA"
             echo "- Worker: senza-roaming"
             echo "- D1: senza-roaming"
             echo "- Container: Last30DaysContainer"
@@ -117,7 +133,5 @@ jobs:
             echo "- Canonical URL: $SENZA_ROAMING_SITE_URL"
             echo "- AI Gateway: senza-roaming-ai"
             echo "- Vertex project: soliwkr"
-            echo "- Vertex status: independent from the recent-demand container"
-            echo
-            echo "After the first Container deploy, allow several minutes for provisioning before calling the runner health endpoint."
+            echo "- Publication automation: disabled"
           } >> "$GITHUB_STEP_SUMMARY"
