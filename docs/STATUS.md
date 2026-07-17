@@ -9,116 +9,156 @@ Questo documento fotografa lo stato reale di Senza Roaming. Va aggiornato quando
 | Area | Stato | Nota |
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
-| Dominio `www` | Da verificare | redirect 308 implementato e unito; serve conferma dopo il deploy più recente |
+| Dominio `www` | Da verificare | redirect 308 implementato e distribuito; manca l'ultima verifica canonica |
 | Worker | Operativo | health pubblico positivo |
-| D1 | Operativo | migrazioni `0001`–`0008` applicabili via deploy |
+| D1 | Operativo | migrazioni versionate fino a `0014_atomic_editorial_claims.sql` |
 | API manutenzione | Operativa | protetta da `MAINTENANCE_TOKEN` |
-| Container last30days | Operativo | health restituisce Python 3.12.13 e commit upstream fissato |
-| Workflow recent-demand | Operativo a livello di enqueue | prima istanza accettata; completamento e ingest da verificare |
-| AI Gateway | Configurato | token presente nel Worker |
-| Vertex AI | Bloccato esternamente | Google restituisce `BILLING_DISABLED` finché il billing account non viene riattivato |
+| Container last30days | Operativo | Python 3.12.13 e commit upstream fissato |
+| Workflow recent-demand | Operativo | prima istanza completata end-to-end e persistita in D1 |
+| Quality gate recent-demand | Operativo | 1 segnale `eligible`, 2 `filtered` nel primo run |
+| AI Gateway | Operativo | Cloudflare AI Gateway raggiunge Vertex AI |
+| Vertex AI | Operativo | smoke `SENZA_ROAMING_AI_OK` con `gemini-3.1-flash-lite` |
+| Motore brief | Operativo | primo brief strutturato creato, prioritizzato, accettato e convertito |
+| Verifica claim | Operativa | claim generali e atomici, task, fonti, esiti e audit persistiti |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
-| Analytics | Non configurata | GTM predisposto, CMP/GA4/GSC ancora da collegare |
-| Dashboard privata | Non costruita | API di base già disponibili |
-| Contenuti | Parziali | pagine fondamentali disponibili; pagine commerciali restano soggette a verifica |
+| Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
+| Dashboard privata | Non costruita | backend disponibile in larga parte |
+| Contenuti | In preparazione | nessuna pagina generata automaticamente; primo evidence set disponibile |
 
 ## Verifiche completate
 
-### Worker e dominio
+### Worker, Container e Workflow
 
-Health pubblico osservato:
-
-```json
-{
-  "ok": true,
-  "site": "Senza Roaming",
-  "affiliateMode": "disabled",
-  "maintenanceApi": "enabled",
-  "aiGateway": "enabled"
-}
-```
-
-### Container
-
-Health osservato:
-
-```json
-{
-  "ok": true,
-  "service": "last30days-runner",
-  "upstreamCommit": "249c7a4c040558a903d6838dee31012980d4946d",
-  "python": "3.12.13"
-}
-```
-
-### Prima ricerca manuale
-
-Istanza accettata:
+Il Worker e il Container rispondono correttamente. La prima istanza recent-demand:
 
 ```text
 manual-20260717084113-0bc853bc
 ```
 
-Stato iniziale osservato:
+ha concluso con stato `complete`.
+
+Output osservato:
+
+```text
+query completate: 1
+segnali ricevuti: 3
+segnali inseriti: 3
+errori: 0
+```
+
+La qualità del primo run è stata classificata così:
+
+```text
+totale: 3
+eligible: 1
+filtered: 2
+awaiting review: 1
+```
+
+I due risultati fuori dalla finestra recente sono conservati per audit ma esclusi dall'intelligence editoriale.
+
+### Vertex AI
+
+Il percorso è operativo:
+
+```text
+Worker
+→ Cloudflare AI Gateway
+→ Google Vertex AI
+→ gemini-3.1-flash-lite
+```
+
+Smoke osservato:
 
 ```json
 {
-  "status": "queued",
-  "error": null,
-  "output": null,
-  "rollback": null
+  "ok": true,
+  "provider": "google-vertex-ai",
+  "projectId": "soliwkr",
+  "location": "global",
+  "model": "gemini-3.1-flash-lite",
+  "response": "SENZA_ROAMING_AI_OK"
 }
 ```
 
-Resta da verificare:
+### Primo ciclo editoriale controllato
 
-- stato finale dell'istanza;
-- eventuali errori di esecuzione;
-- numero di segnali importati in D1;
-- task editoriale creato dal Workflow.
-
-### 404 e scanner
-
-Le richieste verso file inesistenti restituiscono correttamente:
+Il primo segnale idoneo ha prodotto il brief:
 
 ```text
-HTTP/2 404
-cache-control: no-store
-x-robots-tag: noindex, nofollow
-x-content-type-options: nosniff
-referrer-policy: strict-origin-when-cross-origin
+eSIM in Cina: funzionano davvero senza VPN?
 ```
 
-## Blocchi esterni
+Punteggi osservati:
 
-### Google Cloud Billing
+```text
+Opportunity Score: 85
+Evidence Score:    54
+Priority Score:    63
+Priority Band:     medium
+```
 
-Il percorso Worker → Cloudflare AI Gateway → Vertex AI è stato raggiunto correttamente. Google ha risposto con `403 BILLING_DISABLED`.
+Il brief è stato:
 
-Non risultano necessarie modifiche a:
+1. accettato da una persona;
+2. convertito in requisiti di verifica;
+3. scomposto in claim atomici per provider e documento;
+4. collegato a fonti ufficiali;
+5. chiuso senza pubblicazione automatica.
 
-- Cloudflare AI Gateway;
-- service account Vertex;
-- provider key BYOK;
-- secret Worker;
-- modello configurato.
+### Primo evidence set atomico
 
-A riattivazione completata, ripetere soltanto il test `/api/maintenance/ai-smoke`.
+Stato finale:
+
+```text
+claim atomici: 6
+verified:       5
+insufficient:   1
+pending:        0
+```
+
+Claim verificati:
+
+- Airalo dichiara routing attraverso gateway fuori dalla Cina continentale;
+- Airalo dichiara che non serve una VPN aggiuntiva;
+- Nomad dichiara che non serve una VPN aggiuntiva;
+- la FAQ generale Holafly dichiara che non offre un servizio VPN incorporato;
+- la pagina prodotto globale Holafly dichiara una VPN integrata automaticamente per i viaggi in Cina.
+
+Claim insufficiente:
+
+- la pagina prodotto Holafly specifica per la Cina, nella versione italiana osservata, non esponeva in modo sufficiente la stessa dichiarazione.
+
+Le due dichiarazioni Holafly restano separate per `documentType` e non vengono fuse in una falsa conclusione unica.
+
+## Vincoli dimostrati
+
+- Un segnale community non diventa una prova commerciale.
+- Un requisito generale non può diventare un fatto verificato.
+- Un claim atomico richiede soggetto, campo, affermazione e fonte compatibile.
+- D1 impedisce esiti fattuali senza `source_id` e `claim_verification_id`.
+- Una fonte deve riferirsi allo stesso soggetto del claim.
+- Il riuso della stessa URL non duplica il record fonte.
+- Nessun endpoint del ciclo crea o pubblica automaticamente una pagina.
 
 ## Rischi aperti
 
-1. Mancanza di una vista semplice sullo stato finale delle istanze Workflow.
-2. Mancanza di una dashboard privata per radar, fonti, claim e coda editoriale.
-3. Assenza di Search Console e analytics: il progetto non misura ancora domanda organica reale o conversioni.
-4. Le pagine commerciali non devono uscire dalla revisione senza fonti ufficiali aggiornate.
-5. Il repository pubblico non deve contenere token, link affiliate segreti o credenziali.
+1. Il redirect `www → apex` deve ancora essere verificato definitivamente in produzione.
+2. Manca una Dashboard privata per radar, brief, claim, fonti e task.
+3. Manca un health aggregato consultabile da un unico endpoint o pannello.
+4. Manca un audit log unificato oltre agli audit specifici dei singoli moduli.
+5. Le verifiche attuali descrivono dichiarazioni ufficiali dei provider; non equivalgono sempre a test indipendenti sul campo.
+6. Le fonti hanno scadenze diverse e devono rientrare automaticamente nella coda di refresh.
+7. Search Console e analytics non sono ancora disponibili.
+8. Il repository pubblico non deve contenere token, link affiliate segreti o credenziali.
 
 ## Prossimo checkpoint
 
-Il prossimo checkpoint tecnico è raggiunto quando:
+Il prossimo checkpoint è raggiunto quando:
 
-- il redirect `www → apex` è verificato in produzione;
-- la prima istanza recent-demand ha uno stato finale noto;
-- i segnali importati sono leggibili;
-- esiste un endpoint o una vista per seguire i run;
-- il test Vertex viene ripetuto dopo la riattivazione del billing.
+- esiste un **Page Readiness Gate** che aggrega claim verificati, insufficienti, in conflitto e scaduti;
+- l'output distingue chiaramente dichiarazioni del provider e test first-party;
+- una pagina può essere creata soltanto in stato `review`;
+- la pagina conserva la provenienza claim → fonte → sezione;
+- nessun claim insufficiente o scaduto viene trasformato in affermazione assertiva;
+- la Dashboard MVP può leggere readiness, task, brief e fonti senza accesso diretto a D1.
