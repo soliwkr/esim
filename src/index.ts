@@ -11,6 +11,7 @@ import { editorialClaimsApi } from './editorial-claims';
 import { editorialAtomicClaimsApi } from './editorial-claim-atomic';
 import { pageReadinessApi } from './page-readiness';
 import { editorialDraftApi } from './editorial-draft';
+import { groundedEditorialDraftApi } from './editorial-draft-grounded';
 
 export { Last30DaysContainer } from './last30days-container';
 export { RecentDemandWorkflow } from './recent-demand-workflow';
@@ -60,6 +61,10 @@ export default {
       if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled', aiGateway: env.AI_GATEWAY_TOKEN ? 'enabled' : 'disabled', recentDemandWorkflow: env.RECENT_DEMAND_WORKFLOW ? 'enabled' : 'disabled' });
       if (path === 'api/maintenance/ai-smoke') return aiGatewaySmoke(request, env);
       if (path.startsWith('api/maintenance/page-readiness')) return pageReadinessApi(request, env, path);
+      if (
+        path === 'api/maintenance/editorial-draft-generate'
+        || path === 'api/maintenance/editorial-draft-grounding'
+      ) return groundedEditorialDraftApi(request, env, path);
       if (path.startsWith('api/maintenance/editorial-draft')) return editorialDraftApi(request, env, path);
       if (
         path === 'api/maintenance/editorial-claim-decompose'
