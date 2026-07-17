@@ -1,6 +1,10 @@
 node_modules/
 .wrangler/
 .dev.vars
+.dev.vars.*
 .env
+.env.*
+src/worker-configuration.d.ts
+wrangler.production.jsonc
 .DS_Store
 *.log

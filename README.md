@@ -10,7 +10,11 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 
 - Cloudflare Workers
 - Cloudflare D1
+- Cloudflare Containers
+- Cloudflare Workflows
+- Cloudflare AI Gateway con Vertex AI BYOK
 - TypeScript senza framework applicativo
+- Python 3.12 nel runner di ricerca
 - GitHub Actions
 - Google Tag Manager predisposto, da attivare con CMP e consenso
 
@@ -28,7 +32,7 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - workflow di deploy manuale;
 - registro fonti, claim verificabili e coda di manutenzione AI;
 - API protetta per agenti di aggiornamento e controllo;
-- radar della domanda recente alimentabile da export JSON `last30days`.
+- radar della domanda recente eseguito su Container e pianificato con Workflows.
 
 ## Macchina AI-driven
 
@@ -47,7 +51,7 @@ La migrazione `0007_ai_maintenance.sql` introduce:
 
 - `source_registry` per provenienza, fiducia e freschezza delle fonti;
 - `claim_verifications` per prezzo, durata, dati, hotspot, fair use, rete, attivazione e altre affermazioni datate;
-- `maintenance_queue` per task consumabili da n8n, GitHub Actions o agenti dedicati;
+- `maintenance_queue` per task consumabili da Workflows, GitHub Actions o agenti dedicati;
 - una vista delle fonti scadute e un bootstrap dei provider ufficiali.
 
 L'API di manutenzione richiede un secret separato:
@@ -67,7 +71,9 @@ segnali della community -> opportunità editoriali
 fonti ufficiali         -> claim commerciali verificati
 ```
 
-L'export JSON versionato di `last30days` può alimentare:
+Il radar usa un'immagine Python 3.12 con una versione fissata di `last30days`. Cloudflare Workflows avvia il Container soltanto quando serve, importa l'export JSON versionato in D1 e apre un task di revisione editoriale.
+
+Rileva:
 
 - domande ricorrenti;
 - lamentele e problemi percepiti;
@@ -75,12 +81,15 @@ L'export JSON versionato di `last30days` può alimentare:
 - raccomandazioni cercate;
 - temi emergenti e content gap.
 
-Il radar non aggiorna prezzi, copertura, rete, hotspot o fair use. Ogni import crea soltanto segnali e un task di revisione editoriale.
+Non aggiorna prezzi, copertura, rete, hotspot o fair use. I segnali sociali non diventano claim commerciali.
 
-```bash
-export SENZA_ROAMING_MAINTENANCE_URL="https://senzaroaming.it"
-export MAINTENANCE_TOKEN="..."
-npm run research:ingest -- research.json
+Endpoint protetti principali:
+
+```text
+GET  /api/maintenance/research-runner-health
+POST /api/maintenance/research-run
+GET  /api/maintenance/research-signals
+POST /api/maintenance/research-signal-action
 ```
 
 Vedi `docs/RECENT-DEMAND-RADAR.md`.
@@ -103,21 +112,14 @@ research/keyword-planner/
 
 ```bash
 npm install
+npm run types
 npm run db:migrate:local
 npm run dev
 ```
 
+Per sviluppare o distribuire il Container deve essere disponibile Docker.
+
 ## Configurazione
-
-Aggiornare `wrangler.jsonc`:
-
-```text
-SITE_NAME
-SITE_URL
-GTM_ID
-AFFILIATE_MODE
-D1 database_id
-```
 
 La modalità iniziale è:
 
@@ -168,7 +170,8 @@ L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere 
 - `docs/DEPLOY-CLOUDFLARE.md`
 - `docs/AI-MAINTENANCE.md`
 - `docs/RECENT-DEMAND-RADAR.md`
+- `docs/CLOUDFLARE-VERTEX-SETUP.md`
 
-## Nota
+## Dominio
 
-Il brand di lavoro è **Senza Roaming**. La disponibilità di un eventuale dominio deve essere confermata dal registrar prima di modificare `SITE_URL`.
+Il dominio operativo è **senzaroaming.it**. Finché l'attivazione dei nameserver non è completata, il Worker resta collaudabile tramite `workers.dev`.

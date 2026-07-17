@@ -6,6 +6,9 @@ import { maintenanceApi } from './maintenance';
 import { recentDemandApi } from './research-router';
 import { aiGatewaySmoke } from './ai';
 
+export { Last30DaysContainer } from './last30days-container';
+export { RecentDemandWorkflow } from './recent-demand-workflow';
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -19,7 +22,7 @@ export default {
       if (path === 'sitemap.xml') return sitemap(env);
       if (path === 'favicon.svg') return favicon();
       if (path === 'robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /api/maintenance/\nSitemap: ${siteBase(env)}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain;charset=UTF-8', 'cache-control': 'public,max-age=3600' } });
-      if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled', aiGateway: env.AI_GATEWAY_TOKEN ? 'enabled' : 'disabled' });
+      if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled', aiGateway: env.AI_GATEWAY_TOKEN ? 'enabled' : 'disabled', recentDemandWorkflow: env.RECENT_DEMAND_WORKFLOW ? 'enabled' : 'disabled' });
       if (path === 'api/maintenance/ai-smoke') return aiGatewaySmoke(request, env);
       if (path.startsWith('api/maintenance/research-')) return recentDemandApi(request, env, path);
       if (path.startsWith('api/maintenance/')) return maintenanceApi(request, env, path);

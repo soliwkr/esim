@@ -1,5 +1,18 @@
+import type { Last30DaysContainer } from './last30days-container';
+
+export type WorkflowInstanceRef = {
+  id: string;
+  status(): Promise<unknown>;
+};
+
+export type WorkflowBinding = {
+  create(options?: { id?: string; params?: unknown }): Promise<WorkflowInstanceRef>;
+};
+
 export interface Env {
   DB: D1Database;
+  LAST30DAYS_CONTAINER: DurableObjectNamespace<Last30DaysContainer>;
+  RECENT_DEMAND_WORKFLOW: WorkflowBinding;
   SITE_NAME: string;
   SITE_URL: string;
   GTM_ID: string;

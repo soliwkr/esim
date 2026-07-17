@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "senza-roaming",
   "main": "src/index.ts",
-  "compatibility_date": "2026-07-01",
+  "compatibility_date": "2026-07-17",
   "observability": {
     "enabled": true
   },
@@ -30,6 +30,40 @@
       "database_name": "senza-roaming",
       "database_id": "REPLACE_WITH_D1_DATABASE_ID",
       "migrations_dir": "migrations"
+    }
+  ],
+  "containers": [
+    {
+      "class_name": "Last30DaysContainer",
+      "image": "./containers/last30days/Dockerfile",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LAST30DAYS_CONTAINER",
+        "class_name": "Last30DaysContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Last30DaysContainer"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "senza-roaming-recent-demand",
+      "binding": "RECENT_DEMAND_WORKFLOW",
+      "class_name": "RecentDemandWorkflow",
+      "schedules": [
+        "0 5 * * MON",
+        "0 5 * * THU"
+      ]
     }
   ]
 }

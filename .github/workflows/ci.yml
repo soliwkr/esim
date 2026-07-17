@@ -1,4 +1,4 @@
-name: CI and Cloudflare deploy
+name: CI
 
 on:
   push:
@@ -9,19 +9,31 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Cloudflare binding types
+        run: npm run types
+
       - name: Typecheck
         shell: bash
         run: |
           set -o pipefail
           npm run typecheck 2>&1 | tee typecheck.log
+
       - name: Upload typecheck log on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -29,23 +41,27 @@ jobs:
           name: typecheck-log
           path: typecheck.log
           if-no-files-found: error
+
       - name: Validate D1 migrations
         run: npm run db:migrate:local
 
-  deploy:
-    if: github.event_name == 'workflow_dispatch'
-    needs: check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install
-      - run: npm run db:migrate:remote
-      - run: npm run deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Build last30days container
+        run: docker build --platform linux/amd64 -t senza-roaming-last30days:ci containers/last30days
+
+      - name: Smoke-test container image
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id="$(docker run -d -p 18080:8080 senza-roaming-last30days:ci)"
+          trap 'docker logs "$container_id" || true; docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:18080/health > /tmp/container-health.json; then
+              cat /tmp/container-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Container did not become healthy in time."
+          exit 1
