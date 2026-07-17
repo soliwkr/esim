@@ -118,6 +118,38 @@ jobs:
           npx wrangler containers images list
           npx wrangler workflows list
 
+      - name: Verify live Control Room v3
+        shell: bash
+        run: |
+          set -euo pipefail
+          page_url="$SENZA_ROAMING_SITE_URL/control-room"
+          script_url="$SENZA_ROAMING_SITE_URL/control-room.js?v=3"
+          health_url="$SENZA_ROAMING_SITE_URL/api/health"
+
+          for attempt in $(seq 1 36); do
+            echo "Live smoke attempt $attempt/36"
+            if curl --fail --silent --show-error --max-time 20 "$health_url" -o /tmp/health.json \
+              && grep -q '"controlRoomVersion":3' /tmp/health.json \
+              && curl --fail --silent --show-error --max-time 20 "$page_url" -o /tmp/control-room.html \
+              && grep -q 'Control Room <span class="version">v3</span>' /tmp/control-room.html \
+              && grep -q 'src="/control-room.js?v=3"' /tmp/control-room.html \
+              && curl --fail --silent --show-error --max-time 20 "$script_url" -o /tmp/control-room.js \
+              && node --check /tmp/control-room.js; then
+              echo "Control Room v3 is live and the served JavaScript is syntactically valid."
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Control Room v3 did not become healthy."
+          echo "--- health ---"
+          cat /tmp/health.json 2>/dev/null || true
+          echo "--- page head ---"
+          head -c 1000 /tmp/control-room.html 2>/dev/null || true
+          echo "--- script head ---"
+          head -c 1000 /tmp/control-room.js 2>/dev/null || true
+          exit 1
+
       - name: Deployment summary
         run: |
           {
@@ -131,6 +163,7 @@ jobs:
             echo "- Workflow: senza-roaming-recent-demand"
             echo "- Schedule: Monday and Thursday at 05:00 UTC"
             echo "- Canonical URL: $SENZA_ROAMING_SITE_URL"
+            echo "- Control Room: v3 live-smoke verified"
             echo "- AI Gateway: senza-roaming-ai"
             echo "- Vertex project: soliwkr"
             echo "- Publication automation: disabled"
