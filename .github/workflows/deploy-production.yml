@@ -1,0 +1,106 @@
+name: Deploy Senza Roaming
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: Canonical site URL
+        required: true
+        default: https://senzaroaming.it
+
+concurrency:
+  group: deploy-senza-roaming
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: 60496826f56a093a72602bfae074fdcf
+  SENZA_ROAMING_SITE_URL: ${{ inputs.site_url }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check deploy token
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          }
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Find or create D1 database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-list.json
+
+          if ! node - <<'NODE'
+          const fs = require('node:fs');
+          const payload = JSON.parse(fs.readFileSync('/tmp/d1-list.json', 'utf8'));
+          const rows = Array.isArray(payload) ? payload : payload.result || payload.databases || [];
+          process.exit(rows.some((item) => item && item.name === 'senza-roaming') ? 0 : 1);
+          NODE
+          then
+            npx wrangler d1 create senza-roaming --jurisdiction eu
+            npx wrangler d1 list --json > /tmp/d1-list.json
+          fi
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const payload = JSON.parse(fs.readFileSync('/tmp/d1-list.json', 'utf8'));
+          const rows = Array.isArray(payload) ? payload : payload.result || payload.databases || [];
+          const db = rows.find((item) => item && item.name === 'senza-roaming');
+          const id = db && (db.uuid || db.id || db.database_id);
+          if (!id) throw new Error('Could not resolve the senza-roaming D1 database ID.');
+          fs.appendFileSync(process.env.GITHUB_ENV, `D1_DATABASE_ID=${id}\n`);
+          console.log(`Using D1 database ${db.name} (${id}).`);
+          NODE
+
+      - name: Generate production config
+        run: node scripts/build-production-config.mjs
+
+      - name: Apply D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler d1 migrations apply DB --remote --config wrangler.production.jsonc
+
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy --config wrangler.production.jsonc
+
+      - name: Deployment summary
+        run: |
+          {
+            echo "## Senza Roaming deployed"
+            echo
+            echo "- D1: senza-roaming"
+            echo "- Canonical URL: $SENZA_ROAMING_SITE_URL"
+            echo "- AI Gateway: senza-roaming-ai"
+            echo "- Vertex project: soliwkr"
+            echo "- Vertex location: global"
+            echo "- Vertex model: gemini-3.1-flash-lite"
+            echo
+            echo "Add MAINTENANCE_TOKEN and AI_GATEWAY_TOKEN as encrypted Worker secrets in the Cloudflare dashboard before running the AI smoke endpoint."
+          } >> "$GITHUB_STEP_SUMMARY"
