@@ -13,11 +13,36 @@ function looksLikeFileProbe(path: string): boolean {
   return /(^|\/)\.|(^|\/)[^/]+\.(?:bak|config|env|ini|js|json|log|map|php|properties|py|sql|txt|ya?ml)$/i.test(path);
 }
 
+function canonicalHostRedirect(url: URL, env: Env): Response | null {
+  let canonical: URL;
+  try {
+    canonical = new URL(siteBase(env));
+  } catch {
+    return null;
+  }
+
+  if (url.hostname !== `www.${canonical.hostname}`) return null;
+
+  const target = new URL(url.toString());
+  target.protocol = canonical.protocol;
+  target.host = canonical.host;
+
+  return new Response(null, {
+    status: 308,
+    headers: {
+      location: target.toString(),
+      'cache-control': 'public,max-age=86400'
+    }
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.replace(/^\/+|\/+$/g, '');
     try {
+      const hostRedirect = canonicalHostRedirect(url, env);
+      if (hostRedirect) return hostRedirect;
       if (path === '') return home(env);
       if (path === 'destinazioni') return listing(env, 'destination');
       if (path === 'guide') return listing(env, 'guide');
