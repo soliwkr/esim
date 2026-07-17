@@ -1,8 +1,33 @@
 # Senza Roaming — Roadmap
 
-Questa è la roadmap canonica del progetto `soliwkr/esim`. Descrive ciò che deve essere costruito e rilasciato per portare Senza Roaming da infrastruttura funzionante a proprietà editoriale, SEO e affiliate governabile.
+Questa è la roadmap canonica del progetto `soliwkr/esim`. Descrive l'ordine con cui Senza Roaming passa da infrastruttura funzionante a proprietà editoriale, SEO e affiliate governabile.
 
 Ultimo aggiornamento: **17 luglio 2026**.
+
+## Come leggere i documenti
+
+La roadmap non è l'inventario completo delle capacità.
+
+- [`ROADMAP.md`](ROADMAP.md) — **quando** costruiamo e rilasciamo ogni blocco;
+- [`docs/CAPABILITY-MAP.md`](docs/CAPABILITY-MAP.md) — **quali layer** compongono il sistema e dove vivono;
+- [`docs/SKILL-REGISTRY.md`](docs/SKILL-REGISTRY.md) — **quali skill, repository e servizi** vengono adottati, condivisi, differiti o usati soltanto come riferimento;
+- [`docs/STATUS.md`](docs/STATUS.md) — fotografia dello stato reale;
+- [`docs/NEXT.md`](docs/NEXT.md) — prossime azioni eseguibili.
+
+## Layer coperti
+
+```text
+L0  Governance, sicurezza e controllo
+L1  Runtime, orchestrazione e dati
+L2  Evidence, ricerca e trend
+L3  AI intelligence controllata
+L4  Operazioni editoriali
+L5  Contenuto e product experience
+L6  SEO, AEO e GEO
+L7  Analytics, metriche ed esperimenti
+L8  Monetizzazione
+L9  Dashboard e integrazione studio
+```
 
 ## Principi non negoziabili
 
@@ -12,10 +37,11 @@ Ultimo aggiornamento: **17 luglio 2026**.
 4. Ogni automazione deve essere osservabile, idempotente e protetta.
 5. Il repository è la memoria canonica; la chat non è il database del progetto.
 6. Senza Roaming resta un execution project autonomo. Il futuro Command Center dello studio potrà governarlo tramite API, senza assorbirne dati e logica specifici.
+7. Una skill viene adottata soltanto se migliora una decisione, produce output strutturato e ha ownership e criterio di successo.
 
 ## Milestone M0 — Fondazioni tecniche
 
-**Stato: sostanzialmente completato**
+**Stato: completato, salvo ultima verifica canonica `www`**
 
 - [x] Worker pubblico su Cloudflare.
 - [x] D1 con migrazioni versionate.
@@ -26,62 +52,80 @@ Ultimo aggiornamento: **17 luglio 2026**.
 - [x] Endpoint protetti di manutenzione.
 - [x] Risposte 404 reali e noindex per file inesistenti e scanner.
 - [x] Redirect canonico `www → apex` implementato nel codice.
-- [ ] Verificare in produzione il redirect `www → senzaroaming.it` dopo l'ultimo deploy.
-- [ ] Verificare l'esito completo della prima istanza Workflow e i segnali importati.
+- [x] Prima istanza Workflow completata end-to-end.
+- [x] Primo importo di segnali verificato in D1.
+- [ ] Verificare in produzione il `308` da `www.senzaroaming.it` al dominio principale.
 
-**Criterio di uscita:** dominio canonico stabile, Worker sano, Container sano, Workflow completato e almeno un run osservabile end-to-end.
+**Layer:** L0, L1, base L2.  
+**Criterio di uscita:** dominio canonico stabile, Worker sano, Container sano e almeno un run osservabile end-to-end.
 
-## Milestone M1 — Memoria operativa e osservabilità
+## Milestone M1 — Memoria operativa, qualità e osservabilità
 
-**Stato: in corso**
+**Stato: quasi completato**
 
-- [x] `ROADMAP.md`.
-- [x] `docs/STATUS.md`.
-- [x] `docs/ARCHITECTURE.md`.
-- [x] `docs/DECISIONS.md`.
-- [x] `docs/NEXT.md`.
-- [ ] Endpoint per leggere lo stato di una singola istanza di ricerca.
-- [ ] Storico sintetico dei run con durata, esito, numero di segnali ed errore.
+- [x] Roadmap, status, architettura, decisioni e prossime azioni.
+- [x] Capability Map e Skill Registry.
+- [x] Endpoint per lo stato di una singola istanza di ricerca.
+- [x] Storico sintetico dei run con esito, segnali ed errore.
+- [x] Quality gate recent-demand con `eligible`, `filtered` e override umano.
+- [x] Riepilogo qualità pronto per dashboard.
 - [ ] Log degli errori recenti consultabile senza aprire più pannelli Cloudflare.
 - [ ] Health aggregato di Worker, D1, Workflow, Container e AI Gateway.
+- [ ] Audit log unificato delle azioni umane e automatiche.
 
-**Criterio di uscita:** lo stato del sistema è comprensibile da una singola interfaccia o risposta API.
+**Layer:** L0, L1, L2.  
+**Skill attivate:** `last30days`, Evidence Collector, Reality Checker, Security Engineer.  
+**Criterio di uscita:** stato e qualità del sistema comprensibili da una singola interfaccia o risposta API.
 
-## Milestone M2 — Dashboard operativa del progetto
+## Milestone M2 — Motore AI editoriale controllato
 
-**Stato: pianificato**
+**Stato: implementato, in validazione di produzione**
+
+- [x] Cloudflare AI Gateway configurato.
+- [x] Vertex AI BYOK configurato.
+- [x] Google Cloud Billing riattivato.
+- [x] Smoke test `SENZA_ROAMING_AI_OK` riuscito.
+- [x] Input limitato ai segnali `eligible`.
+- [x] Output JSON strutturato e validato.
+- [x] Clustering dei segnali recenti.
+- [x] Opportunity Score v1.
+- [x] Evidence Score deterministico v1.
+- [x] Brief editoriali persistiti in D1.
+- [x] Provenienza segnale → brief.
+- [x] Idempotenza delle analisi.
+- [x] Stati di revisione del brief.
+- [ ] Verificare il primo brief reale in produzione.
+- [ ] Deduplicazione semantica rispetto a brief e pagine storiche.
+- [ ] Generazione automatica dei task di verifica mancanti.
+- [ ] Conversione controllata brief → task editoriale.
+- [ ] Gate umano obbligatorio prima di qualsiasi pagina pubblicabile.
+
+**Layer:** L2, L3, L4.  
+**Skill attivate:** customer research, content strategy, AI SEO, Evidence Collector, Reality Checker.  
+**Criterio di uscita:** l'AI trasforma segnali in brief e task verificabili senza poter pubblicare autonomamente.
+
+## Milestone M3 — Dashboard operativa del progetto
+
+**Stato: pianificato; backend già in larga parte disponibile**
 
 Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 
 - [ ] Accesso privato tramite Cloudflare Access o autenticazione equivalente.
-- [ ] Panoramica infrastruttura e run recenti.
-- [ ] Radar della domanda con filtri e azioni.
-- [ ] Coda editoriale per stato.
+- [ ] Panoramica infrastruttura e health aggregato.
+- [ ] Storico run e diagnosi errori.
+- [ ] Radar della domanda con filtri `eligible` e `filtered`.
+- [ ] Revisione e azioni sui segnali.
+- [ ] Coda dei brief AI con Opportunity ed Evidence Score.
+- [ ] Accettazione, scarto e conversione dei brief.
 - [ ] Registro fonti e claim scaduti.
 - [ ] Avvio manuale di ricerche e controlli senza `curl`.
 - [ ] Anteprima dei contenuti prima della pubblicazione.
 - [ ] Audit log delle azioni umane e automatiche.
 - [ ] API stabili esportabili verso il futuro Control Plane dello studio.
 
-**Criterio di uscita:** le operazioni quotidiane del progetto non richiedono terminale o accesso diretto a D1.
-
-## Milestone M3 — Motore AI controllato
-
-**Stato: bloccato parzialmente da Google Cloud Billing**
-
-- [x] Cloudflare AI Gateway configurato.
-- [x] Vertex AI BYOK configurato.
-- [x] Endpoint `/api/maintenance/ai-smoke` distribuito.
-- [ ] Riattivazione dell'account di fatturazione Google Cloud.
-- [ ] Smoke test con risposta `SENZA_ROAMING_AI_OK`.
-- [ ] Clustering dei segnali recenti.
-- [ ] Deduplicazione semantica.
-- [ ] Opportunity Score spiegabile.
-- [ ] Generazione di brief editoriali strutturati.
-- [ ] Creazione di task di verifica per claim mancanti.
-- [ ] Gate umano obbligatorio prima della pubblicazione.
-
-**Criterio di uscita:** l'AI trasforma segnali in brief e task verificabili senza poter pubblicare autonomamente.
+**Layer:** L0, L4, L9.  
+**Skill attivate:** Security Engineer, Experiment Tracker, workflow operations.  
+**Criterio di uscita:** le operazioni quotidiane non richiedono terminale o accesso diretto a D1.
 
 ## Milestone M4 — Primo catalogo pubblicabile
 
@@ -92,11 +136,15 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 - [ ] Completare le prime destinazioni ad alta intenzione.
 - [ ] Pubblicare guide su compatibilità, installazione e attivazione.
 - [ ] Pubblicare confronti provider supportati da fonti.
+- [ ] Convertire i brief accettati in pagine o aggiornamenti in `review`.
 - [ ] Migliorare navigazione mobile, gerarchia e internal linking.
 - [ ] Consolidare tono editoriale, design system e componenti.
 - [ ] Testare schema markup, sitemap, canonical e pagina 404.
+- [ ] Introdurre checklist editoriali per customer research, copywriting, schema e AI SEO.
 
-**Criterio di uscita:** esiste un nucleo di contenuti utile, verificato e navigabile, non una collezione di template vuoti.
+**Layer:** L4, L5, L6.  
+**Skill attivate:** product marketing, copywriting, content strategy, schema, programmatic SEO con quality gate.  
+**Criterio di uscita:** nucleo di contenuti utile, verificato e navigabile, non una collezione di template vuoti.
 
 ## Milestone M5 — Misurazione e indicizzazione
 
@@ -110,23 +158,33 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 - [ ] Eventi canonici per click, CTA e passaggi ai provider.
 - [ ] Definizioni uniche delle metriche.
 - [ ] Report su query, landing page, CTR e indicizzazione.
+- [ ] Registro esperimenti con ipotesi, metrica, finestra e decisione.
+- [ ] CRO soltanto su traffico e conversioni osservabili.
 
-**Criterio di uscita:** possiamo misurare domanda, scoperta, comportamento e qualità tecnica senza ambiguità sulle metriche.
+**Layer:** L6, L7.  
+**Skill attivate:** analytics, CRO, Experiment Tracker.  
+**Riferimento adottato:** principi metrici di Full Funnel AI Analytics, senza warehouse prematuro.  
+**Criterio di uscita:** domanda, scoperta, comportamento e qualità tecnica misurabili senza ambiguità.
 
-## Milestone M6 — Intelligence SEO condivisa
+## Milestone M6 — Intelligence SEO e trend condivisa
 
 **Stato: decisione architetturale presa, implementazione separata**
 
-- [ ] OpenSEO distribuito come servizio dello studio, non incorporato nel Worker di Senza Roaming.
+- [ ] OpenSEO distribuito come servizio dello studio, non incorporato nel Worker.
 - [ ] Progetto OpenSEO dedicato a Senza Roaming.
 - [ ] Cloudflare Access.
 - [ ] Search Console collegata.
-- [ ] Budget e consumo DataForSEO attribuiti per progetto.
+- [ ] Budget DataForSEO attribuito per progetto.
 - [ ] Rank tracking e competitor set iniziale.
-- [ ] Audit periodici e trasferimento delle opportunità nella coda di Senza Roaming.
-- [ ] Valutare Trends MCP come segnale di momentum e stagionalità.
+- [ ] Audit periodici e trasferimento delle opportunità nella coda del progetto.
+- [ ] Trends MCP come segnale di momentum e stagionalità.
+- [ ] Audit periodico `claude-seo` come ispettore esterno.
+- [ ] Opportunity Score v2 con GSC, trend, SERP e conversioni.
 
-**Criterio di uscita:** Senza Roaming riceve intelligence SEO e trend da servizi condivisi senza diventare un monolite.
+**Layer:** L2, L6, L9.  
+**Servizi:** OpenSEO, Trends MCP, Search Console, DataForSEO.  
+**Playbook:** SEO audit, AI SEO, schema, Reality Checker.  
+**Criterio di uscita:** il progetto riceve intelligence condivisa senza diventare un monolite.
 
 ## Milestone M7 — Monetizzazione controllata
 
@@ -140,31 +198,47 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 - [ ] Tracking click privacy-first.
 - [ ] Attribuzione per pagina, destinazione, provider e posizione CTA.
 - [ ] Monitoraggio di link rotti, programmi sospesi e condizioni cambiate.
+- [ ] Revenue Score solo dopo dati sufficienti.
 
-**Criterio di uscita:** il progetto monetizza senza compromettere indipendenza editoriale, privacy o accuratezza.
+**Layer:** L7, L8.  
+**Skill attivate:** product marketing, copywriting, CRO, analytics.  
+**Criterio di uscita:** monetizzazione senza compromettere indipendenza editoriale, privacy o accuratezza.
 
 ## Milestone M8 — Crescita e manutenzione continua
 
 **Stato: futuro**
 
 - [ ] Ciclo settimanale della domanda recente.
-- [ ] Controllo giornaliero o periodico delle fonti scadute.
+- [ ] Controllo periodico delle fonti scadute.
 - [ ] Discovery mensile di nuovi cluster.
 - [ ] Aggiornamento delle pagine che perdono visibilità.
 - [ ] Priorità basata su Opportunity, Trust e Revenue Score.
+- [ ] Audit tecnico, editoriale e GEO ricorrente.
 - [ ] Espansione internazionale solo dopo stabilità del modello italiano.
 - [ ] Contratto API con il futuro Command Center dello studio.
+- [ ] Valutare warehouse e attribuzione avanzata soltanto a scala reale.
 
-**Criterio di uscita:** la crescita è guidata da dati, fonti e risultati, non da produzione indiscriminata di pagine.
+**Layer:** tutti, con particolare peso su L6–L9.  
+**Criterio di uscita:** crescita guidata da dati, fonti e risultati, non da produzione indiscriminata.
 
 ## Ordine operativo attuale
 
-1. Verificare redirect `www` in produzione.
-2. Verificare esito e output del primo Workflow.
-3. Aggiungere osservabilità dei run.
-4. Costruire Dashboard MVP del progetto.
-5. Ripetere AI smoke quando GCP riattiva la fatturazione.
-6. Costruire il primo blocco di contenuti verificati.
-7. Collegare Search Console, consenso e analytics.
-8. Integrare intelligence SEO condivisa.
-9. Attivare affiliazioni solo dopo quality gate e misurazione.
+1. distribuire e verificare il primo brief AI reale;
+2. verificare definitivamente il redirect `www → apex`;
+3. completare health aggregato e audit log;
+4. costruire Dashboard MVP del progetto;
+5. convertire il primo brief accettato in task editoriale;
+6. costruire il primo blocco di contenuti verificati;
+7. collegare Search Console, consenso e analytics;
+8. attivare OpenSEO e trend intelligence condivisi;
+9. attivare affiliazioni soltanto dopo quality gate e misurazione.
+
+## Regola di aggiornamento
+
+Ogni nuova idea deve aggiornare il documento corretto:
+
+- cambia l'ordine o il rilascio → `ROADMAP.md`;
+- aggiunge o modifica un layer → `docs/CAPABILITY-MAP.md`;
+- introduce una skill, un repository o un servizio → `docs/SKILL-REGISTRY.md`;
+- cambia una scelta architetturale → `docs/DECISIONS.md`;
+- cambia ciò che è realmente operativo → `docs/STATUS.md`.
