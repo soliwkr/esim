@@ -33,11 +33,12 @@ L9  Dashboard e integrazione studio
 
 1. L'AI non pubblica direttamente.
 2. Community e trend generano opportunità editoriali, non claim commerciali.
-3. Prezzi, copertura, rete, hotspot, fair use, durata e attivazione richiedono fonti ufficiali e data di verifica.
-4. Ogni automazione deve essere osservabile, idempotente e protetta.
-5. Il repository è la memoria canonica; la chat non è il database del progetto.
-6. Senza Roaming resta un execution project autonomo. Il futuro Command Center dello studio potrà governarlo tramite API, senza assorbirne dati e logica specifici.
-7. Una skill viene adottata soltanto se migliora una decisione, produce output strutturato e ha ownership e criterio di successo.
+3. Prezzi, copertura, rete, hotspot, fair use, durata, attivazione, routing e accesso richiedono fonti identificabili e data di verifica.
+4. Un requisito generale non è un claim verificato: i claim fattuali devono essere atomici e riferiti a un soggetto preciso.
+5. Ogni automazione deve essere osservabile, idempotente e protetta.
+6. Il repository è la memoria canonica; la chat non è il database del progetto.
+7. Senza Roaming resta un execution project autonomo. Il futuro Command Center dello studio potrà governarlo tramite API, senza assorbirne dati e logica specifici.
+8. Una skill viene adottata soltanto se migliora una decisione, produce output strutturato e ha ownership e criterio di successo.
 
 ## Milestone M0 — Fondazioni tecniche
 
@@ -51,9 +52,9 @@ L9  Dashboard e integrazione studio
 - [x] Cloudflare Workflow per il radar della domanda.
 - [x] Endpoint protetti di manutenzione.
 - [x] Risposte 404 reali e noindex per file inesistenti e scanner.
-- [x] Redirect canonico `www → apex` implementato nel codice.
+- [x] Redirect canonico `www → apex` implementato e distribuito.
 - [x] Prima istanza Workflow completata end-to-end.
-- [x] Primo importo di segnali verificato in D1.
+- [x] Primo import di segnali verificato in D1.
 - [ ] Verificare in produzione il `308` da `www.senzaroaming.it` al dominio principale.
 
 **Layer:** L0, L1, base L2.  
@@ -69,6 +70,7 @@ L9  Dashboard e integrazione studio
 - [x] Storico sintetico dei run con esito, segnali ed errore.
 - [x] Quality gate recent-demand con `eligible`, `filtered` e override umano.
 - [x] Riepilogo qualità pronto per dashboard.
+- [x] Audit specifico di run, brief, claim e verifiche.
 - [ ] Log degli errori recenti consultabile senza aprire più pannelli Cloudflare.
 - [ ] Health aggregato di Worker, D1, Workflow, Container e AI Gateway.
 - [ ] Audit log unificato delle azioni umane e automatiche.
@@ -79,7 +81,7 @@ L9  Dashboard e integrazione studio
 
 ## Milestone M2 — Motore AI editoriale controllato
 
-**Stato: implementato, in validazione di produzione**
+**Stato: nucleo completato e verificato in produzione**
 
 - [x] Cloudflare AI Gateway configurato.
 - [x] Vertex AI BYOK configurato.
@@ -90,21 +92,47 @@ L9  Dashboard e integrazione studio
 - [x] Clustering dei segnali recenti.
 - [x] Opportunity Score v1.
 - [x] Evidence Score deterministico v1.
+- [x] Priority Score deterministico v1.
 - [x] Brief editoriali persistiti in D1.
 - [x] Provenienza segnale → brief.
 - [x] Idempotenza delle analisi.
 - [x] Stati di revisione del brief.
-- [ ] Verificare il primo brief reale in produzione.
+- [x] Primo brief reale verificato in produzione.
+- [x] Accettazione umana prima della conversione.
+- [x] Conversione brief → requisiti di verifica.
+- [x] Generazione automatica dei task `verify_claims`.
+- [x] Decomposizione requisiti → claim atomici per soggetto.
+- [x] Matching tra soggetto del claim e soggetto della fonte.
+- [x] Esiti `verified`, `contradicted`, `insufficient`, `dismissed`.
+- [x] Primo evidence set con 5 claim verificati e 1 insufficiente.
+- [x] Nessuna pubblicazione automatica.
 - [ ] Deduplicazione semantica rispetto a brief e pagine storiche.
-- [ ] Generazione automatica dei task di verifica mancanti.
-- [ ] Conversione controllata brief → task editoriale.
-- [ ] Gate umano obbligatorio prima di qualsiasi pagina pubblicabile.
+- [ ] Trust Score che distingua dichiarazioni ufficiali, test first-party e corroborazione indipendente.
 
 **Layer:** L2, L3, L4.  
 **Skill attivate:** customer research, content strategy, AI SEO, Evidence Collector, Reality Checker.  
-**Criterio di uscita:** l'AI trasforma segnali in brief e task verificabili senza poter pubblicare autonomamente.
+**Criterio di uscita:** raggiunto per il nucleo v1; l'AI trasforma segnali in brief e task verificabili senza poter pubblicare autonomamente.
 
-## Milestone M3 — Dashboard operativa del progetto
+## Milestone M3 — Page Readiness ed evidence bundle
+
+**Stato: prossimo blocco**
+
+- [ ] Aggregare claim verificati, insufficienti, in conflitto e scaduti.
+- [ ] Distinguere dichiarazioni del provider e test first-party.
+- [ ] Calcolare `readyForReviewDraft` separatamente da `readyForPublication`.
+- [ ] Produrre un evidence bundle versionato per brief o pagina.
+- [ ] Collegare ogni sezione proposta ai claim e alle fonti utilizzate.
+- [ ] Bloccare frasi assertive basate su claim insufficienti o scaduti.
+- [ ] Preservare conflitti documentali con scope differenti.
+- [ ] Creare o aggiornare pagine soltanto in stato `review`.
+- [ ] Garantire idempotenza sulla stessa versione dell'evidence bundle.
+- [ ] Creare il primo draft `esim-cina-senza-vpn` in revisione.
+
+**Layer:** L2, L3, L4, L5.  
+**Skill attivate:** Evidence Collector, Reality Checker, content strategy, copywriting controllato.  
+**Criterio di uscita:** un evidence set verificato può diventare un draft revisionabile, ma non una pagina pubblicata.
+
+## Milestone M4 — Dashboard operativa del progetto
 
 **Stato: pianificato; backend già in larga parte disponibile**
 
@@ -115,9 +143,11 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 - [ ] Storico run e diagnosi errori.
 - [ ] Radar della domanda con filtri `eligible` e `filtered`.
 - [ ] Revisione e azioni sui segnali.
-- [ ] Coda dei brief AI con Opportunity ed Evidence Score.
+- [ ] Coda dei brief AI con Opportunity, Evidence e Priority Score.
 - [ ] Accettazione, scarto e conversione dei brief.
-- [ ] Registro fonti e claim scaduti.
+- [ ] Claim generali, claim atomici e relativi task.
+- [ ] Registro fonti, claim insufficienti, conflitti e scadenze.
+- [ ] Page Readiness ed evidence bundle.
 - [ ] Avvio manuale di ricerche e controlli senza `curl`.
 - [ ] Anteprima dei contenuti prima della pubblicazione.
 - [ ] Audit log delle azioni umane e automatiche.
@@ -127,7 +157,7 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 **Skill attivate:** Security Engineer, Experiment Tracker, workflow operations.  
 **Criterio di uscita:** le operazioni quotidiane non richiedono terminale o accesso diretto a D1.
 
-## Milestone M4 — Primo catalogo pubblicabile
+## Milestone M5 — Primo catalogo pubblicabile
 
 **Stato: preparazione**
 
@@ -136,7 +166,7 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 - [ ] Completare le prime destinazioni ad alta intenzione.
 - [ ] Pubblicare guide su compatibilità, installazione e attivazione.
 - [ ] Pubblicare confronti provider supportati da fonti.
-- [ ] Convertire i brief accettati in pagine o aggiornamenti in `review`.
+- [ ] Convertire i draft approvati in pagine pubblicabili.
 - [ ] Migliorare navigazione mobile, gerarchia e internal linking.
 - [ ] Consolidare tono editoriale, design system e componenti.
 - [ ] Testare schema markup, sitemap, canonical e pagina 404.
@@ -146,7 +176,7 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 **Skill attivate:** product marketing, copywriting, content strategy, schema, programmatic SEO con quality gate.  
 **Criterio di uscita:** nucleo di contenuti utile, verificato e navigabile, non una collezione di template vuoti.
 
-## Milestone M5 — Misurazione e indicizzazione
+## Milestone M6 — Misurazione e indicizzazione
 
 **Stato: pianificato**
 
@@ -166,7 +196,7 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 **Riferimento adottato:** principi metrici di Full Funnel AI Analytics, senza warehouse prematuro.  
 **Criterio di uscita:** domanda, scoperta, comportamento e qualità tecnica misurabili senza ambiguità.
 
-## Milestone M6 — Intelligence SEO e trend condivisa
+## Milestone M7 — Intelligence SEO e trend condivisa
 
 **Stato: decisione architetturale presa, implementazione separata**
 
@@ -186,7 +216,7 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 **Playbook:** SEO audit, AI SEO, schema, Reality Checker.  
 **Criterio di uscita:** il progetto riceve intelligence condivisa senza diventare un monolite.
 
-## Milestone M7 — Monetizzazione controllata
+## Milestone M8 — Monetizzazione controllata
 
 **Stato: non avviato**
 
@@ -204,7 +234,7 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 **Skill attivate:** product marketing, copywriting, CRO, analytics.  
 **Criterio di uscita:** monetizzazione senza compromettere indipendenza editoriale, privacy o accuratezza.
 
-## Milestone M8 — Crescita e manutenzione continua
+## Milestone M9 — Crescita e manutenzione continua
 
 **Stato: futuro**
 
@@ -223,11 +253,11 @@ Dashboard specifica di Senza Roaming, non Command Center generale dello studio.
 
 ## Ordine operativo attuale
 
-1. distribuire e verificare il primo brief AI reale;
-2. verificare definitivamente il redirect `www → apex`;
-3. completare health aggregato e audit log;
-4. costruire Dashboard MVP del progetto;
-5. convertire il primo brief accettato in task editoriale;
+1. verificare definitivamente il redirect `www → apex`;
+2. implementare Page Readiness ed evidence bundle;
+3. creare il primo draft esclusivamente in stato `review`;
+4. completare health aggregato e audit log;
+5. costruire la Dashboard MVP del progetto;
 6. costruire il primo blocco di contenuti verificati;
 7. collegare Search Console, consenso e analytics;
 8. attivare OpenSEO e trend intelligence condivisi;
