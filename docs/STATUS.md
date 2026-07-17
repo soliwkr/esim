@@ -2,86 +2,30 @@
 
 Data di riferimento: **17 luglio 2026**.
 
-Questo documento fotografa lo stato reale di Senza Roaming. Va aggiornato quando cambia un fatto operativo, non quando cambia soltanto un'intenzione.
+Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
 ## Stato sintetico
 
 | Area | Stato | Nota |
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
-| Dominio `www` | Da verificare | redirect 308 implementato e distribuito; manca l'ultima verifica canonica |
-| Worker | Operativo | health pubblico positivo |
-| D1 | Operativo | migrazioni versionate fino a `0014_atomic_editorial_claims.sql` |
-| API manutenzione | Operativa | protetta da `MAINTENANCE_TOKEN` |
-| Container last30days | Operativo | Python 3.12.13 e commit upstream fissato |
-| Workflow recent-demand | Operativo | prima istanza completata end-to-end e persistita in D1 |
-| Quality gate recent-demand | Operativo | 1 segnale `eligible`, 2 `filtered` nel primo run |
-| AI Gateway | Operativo | Cloudflare AI Gateway raggiunge Vertex AI |
-| Vertex AI | Operativo | smoke `SENZA_ROAMING_AI_OK` con `gemini-3.1-flash-lite` |
-| Motore brief | Operativo | primo brief strutturato creato, prioritizzato, accettato e convertito |
-| Verifica claim | Operativa | claim generali e atomici, task, fonti, esiti e audit persistiti |
+| Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
+| Worker e D1 | Operativi | migrazioni versionate fino a `0017_editorial_draft_field_claims.sql` |
+| API manutenzione | Operativa | accesso riservato |
+| Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
+| Quality gate ricerca | Operativo | segnali `eligible` e `filtered` separati |
+| AI Gateway e Vertex AI | Operativi | `gemini-3.1-flash-lite` raggiunto attraverso AI Gateway |
+| Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
+| Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
+| Page Readiness | Operativo | primo evidence bundle: score 77, draft sì, pubblicazione no |
+| Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
+| Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
+| Dashboard privata | Implementata, da testare in produzione | Control Room MVP nella PR corrente |
+| Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
-| Dashboard privata | Non costruita | backend disponibile in larga parte |
-| Contenuti | In preparazione | nessuna pagina generata automaticamente; primo evidence set disponibile |
 
-## Verifiche completate
-
-### Worker, Container e Workflow
-
-Il Worker e il Container rispondono correttamente. La prima istanza recent-demand:
-
-```text
-manual-20260717084113-0bc853bc
-```
-
-ha concluso con stato `complete`.
-
-Output osservato:
-
-```text
-query completate: 1
-segnali ricevuti: 3
-segnali inseriti: 3
-errori: 0
-```
-
-La qualità del primo run è stata classificata così:
-
-```text
-totale: 3
-eligible: 1
-filtered: 2
-awaiting review: 1
-```
-
-I due risultati fuori dalla finestra recente sono conservati per audit ma esclusi dall'intelligence editoriale.
-
-### Vertex AI
-
-Il percorso è operativo:
-
-```text
-Worker
-→ Cloudflare AI Gateway
-→ Google Vertex AI
-→ gemini-3.1-flash-lite
-```
-
-Smoke osservato:
-
-```json
-{
-  "ok": true,
-  "provider": "google-vertex-ai",
-  "projectId": "soliwkr",
-  "location": "global",
-  "model": "gemini-3.1-flash-lite",
-  "response": "SENZA_ROAMING_AI_OK"
-}
-```
-
-### Primo ciclo editoriale controllato
+## Primo ciclo editoriale controllato
 
 Il primo segnale idoneo ha prodotto il brief:
 
@@ -89,7 +33,7 @@ Il primo segnale idoneo ha prodotto il brief:
 eSIM in Cina: funzionano davvero senza VPN?
 ```
 
-Punteggi osservati:
+Punteggi:
 
 ```text
 Opportunity Score: 85
@@ -98,17 +42,25 @@ Priority Score:    63
 Priority Band:     medium
 ```
 
-Il brief è stato:
+Il ciclo completato è:
 
-1. accettato da una persona;
-2. convertito in requisiti di verifica;
-3. scomposto in claim atomici per provider e documento;
-4. collegato a fonti ufficiali;
-5. chiuso senza pubblicazione automatica.
+```text
+recent demand
+→ brief AI
+→ accettazione umana
+→ requisiti generali
+→ claim atomici
+→ fonti ufficiali
+→ esiti verificati
+→ Page Readiness
+→ evidence bundle
+→ draft v2 grounded
+→ approvazione editoriale
+```
 
-### Primo evidence set atomico
+Nessuno di questi passaggi ha pubblicato la pagina.
 
-Stato finale:
+## Evidence set Cina
 
 ```text
 claim atomici: 6
@@ -122,43 +74,86 @@ Claim verificati:
 - Airalo dichiara routing attraverso gateway fuori dalla Cina continentale;
 - Airalo dichiara che non serve una VPN aggiuntiva;
 - Nomad dichiara che non serve una VPN aggiuntiva;
-- la FAQ generale Holafly dichiara che non offre un servizio VPN incorporato;
-- la pagina prodotto globale Holafly dichiara una VPN integrata automaticamente per i viaggi in Cina.
+- una FAQ generale Holafly dichiara che non offre un servizio VPN incorporato;
+- una pagina prodotto globale Holafly dichiara una VPN integrata automaticamente per i viaggi in Cina.
 
-Claim insufficiente:
+Il claim riferito alla pagina Holafly specifica per la Cina resta `insufficient`.
 
-- la pagina prodotto Holafly specifica per la Cina, nella versione italiana osservata, non esponeva in modo sufficiente la stessa dichiarazione.
+Le due formulazioni Holafly restano separate per documento e scope.
 
-Le due dichiarazioni Holafly restano separate per `documentType` e non vengono fuse in una falsa conclusione unica.
+## Page Readiness e draft
+
+Evidence bundle `1`:
+
+```text
+readiness score:        77
+review draft eligible:  true
+publication eligible:   false
+verified:               5
+insufficient:           1
+conflicts:              1
+first-party tests:      0
+```
+
+Draft finale corrente:
+
+```text
+id:                     2
+version:                2
+renderer:               editorial-page-draft-v2
+status:                 approved
+materialized page:      review
+used claim IDs:         4, 5, 6, 8, 9
+excluded claim IDs:     7
+```
+
+La bozza v1 è `superseded`. Il renderer v2 salva la provenienza di title, meta description, H1, direct answer, intro, sezioni e FAQ.
+
+La pagina pubblica continua a restituire `404` con `noindex, nofollow`.
 
 ## Vincoli dimostrati
 
 - Un segnale community non diventa una prova commerciale.
 - Un requisito generale non può diventare un fatto verificato.
 - Un claim atomico richiede soggetto, campo, affermazione e fonte compatibile.
-- D1 impedisce esiti fattuali senza `source_id` e `claim_verification_id`.
-- Una fonte deve riferirsi allo stesso soggetto del claim.
-- Il riuso della stessa URL non duplica il record fonte.
-- Nessun endpoint del ciclo crea o pubblica automaticamente una pagina.
+- Un claim insufficiente non alimenta frasi fattuali.
+- Le dichiarazioni dei provider restano attribuite e non diventano test indipendenti.
+- Il brief AI originale non viene usato come fonte nel renderer v2.
+- Un draft approvato non cambia automaticamente `pages.status` da `review` a `published`.
+- D1 blocca la pubblicazione quando i gate non sono soddisfatti.
+
+## Control Room MVP
+
+La prima dashboard include:
+
+- snapshot aggregato;
+- run recenti e segnali;
+- brief, Priority Score e stato della pipeline;
+- claim atomici, fonti, scadenze e task;
+- evidence bundle e Page Readiness;
+- draft e renderer;
+- queue e audit recente;
+- azioni operative senza accesso diretto a D1.
+
+La shell è `noindex` e non incorpora dati. L'accesso ai dati usa la sessione operativa del browser. Non esiste un pulsante di pubblicazione.
 
 ## Rischi aperti
 
-1. Il redirect `www → apex` deve ancora essere verificato definitivamente in produzione.
-2. Manca una Dashboard privata per radar, brief, claim, fonti e task.
-3. Manca un health aggregato consultabile da un unico endpoint o pannello.
-4. Manca un audit log unificato oltre agli audit specifici dei singoli moduli.
-5. Le verifiche attuali descrivono dichiarazioni ufficiali dei provider; non equivalgono sempre a test indipendenti sul campo.
-6. Le fonti hanno scadenze diverse e devono rientrare automaticamente nella coda di refresh.
-7. Search Console e analytics non sono ancora disponibili.
-8. Il repository pubblico non deve contenere token, link affiliate segreti o credenziali.
+1. La Control Room deve essere distribuita e verificata in produzione.
+2. Cloudflare Access deve diventare il perimetro esterno della dashboard.
+3. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
+4. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+5. Serve un health aggregato che includa anche controlli runtime di Container, Workflow e AI Gateway.
+6. Search Console, CMP e analytics non sono ancora disponibili.
+7. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
-- esiste un **Page Readiness Gate** che aggrega claim verificati, insufficienti, in conflitto e scaduti;
-- l'output distingue chiaramente dichiarazioni del provider e test first-party;
-- una pagina può essere creata soltanto in stato `review`;
-- la pagina conserva la provenienza claim → fonte → sezione;
-- nessun claim insufficiente o scaduto viene trasformato in affermazione assertiva;
-- la Dashboard MVP può leggere readiness, task, brief e fonti senza accesso diretto a D1.
+- `/control-room` è operativo in produzione;
+- lo snapshot aggregato restituisce i conteggi reali;
+- ricerca, readiness, draft e verifica claim sono eseguibili dalla UI;
+- la dashboard è protetta anche da Cloudflare Access;
+- nessuna azione della dashboard può pubblicare una pagina;
+- `docs/NEXT.md` e la roadmap descrivono il flusso operativo corrente.

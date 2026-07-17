@@ -12,6 +12,7 @@ import { editorialAtomicClaimsApi } from './editorial-claim-atomic';
 import { pageReadinessApi } from './page-readiness';
 import { editorialDraftApi } from './editorial-draft';
 import { groundedEditorialDraftApi } from './editorial-draft-grounded';
+import { controlRoomApi, controlRoomPage } from './control-room';
 
 export { Last30DaysContainer } from './last30days-container';
 export { RecentDemandWorkflow } from './recent-demand-workflow';
@@ -55,11 +56,13 @@ export default {
       if (path === 'guide') return listing(env, 'guide');
       if (path === 'confronti') return listing(env, 'comparison');
       if (path === 'privacy' || path === 'trasparenza' || path === 'metodo') return staticPage(env, path);
+      if (path === 'control-room') return controlRoomPage(env);
       if (path === 'sitemap.xml') return sitemap(env);
       if (path === 'favicon.svg') return favicon();
-      if (path === 'robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /api/maintenance/\nSitemap: ${siteBase(env)}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain;charset=UTF-8', 'cache-control': 'public,max-age=3600' } });
+      if (path === 'robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /control-room\nDisallow: /api/maintenance/\nSitemap: ${siteBase(env)}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain;charset=UTF-8', 'cache-control': 'public,max-age=3600' } });
       if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled', aiGateway: env.AI_GATEWAY_TOKEN ? 'enabled' : 'disabled', recentDemandWorkflow: env.RECENT_DEMAND_WORKFLOW ? 'enabled' : 'disabled' });
       if (path === 'api/maintenance/ai-smoke') return aiGatewaySmoke(request, env);
+      if (path === 'api/maintenance/control-room') return controlRoomApi(request, env);
       if (path.startsWith('api/maintenance/page-readiness')) return pageReadinessApi(request, env, path);
       if (
         path === 'api/maintenance/editorial-draft-generate'
