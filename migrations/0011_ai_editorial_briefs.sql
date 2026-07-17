@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS editorial_briefs (
   opportunity_score INTEGER NOT NULL CHECK(opportunity_score BETWEEN 0 AND 100),
   evidence_score INTEGER NOT NULL CHECK(evidence_score BETWEEN 0 AND 100),
   quality_flags_json TEXT NOT NULL DEFAULT '[]',
+  risks_json TEXT NOT NULL DEFAULT '[]',
   required_verifications_json TEXT NOT NULL DEFAULT '[]',
   outline_json TEXT NOT NULL DEFAULT '[]',
   status TEXT NOT NULL DEFAULT 'proposed' CHECK(status IN ('proposed','accepted','dismissed','converted')),
