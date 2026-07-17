@@ -7,6 +7,7 @@ export type WorkflowInstanceRef = {
 
 export type WorkflowBinding = {
   create(options?: { id?: string; params?: unknown }): Promise<WorkflowInstanceRef>;
+  get(id: string): Promise<WorkflowInstanceRef>;
 };
 
 export interface Env {
