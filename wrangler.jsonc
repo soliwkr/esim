@@ -8,9 +8,15 @@
   },
   "vars": {
     "SITE_NAME": "Senza Roaming",
-    "SITE_URL": "https://example.com",
+    "SITE_URL": "https://senzaroaming.it",
     "GTM_ID": "",
-    "AFFILIATE_MODE": "disabled"
+    "AFFILIATE_MODE": "disabled",
+    "CLOUDFLARE_ACCOUNT_ID": "60496826f56a093a72602bfae074fdcf",
+    "AI_GATEWAY_ID": "senza-roaming-ai",
+    "GOOGLE_VERTEX_PROJECT_ID": "soliwkr",
+    "GOOGLE_VERTEX_PROJECT_NUMBER": "739710211590",
+    "GOOGLE_VERTEX_LOCATION": "global",
+    "GOOGLE_VERTEX_MODEL": "gemini-3.1-flash-lite"
   },
   "d1_databases": [
     {
