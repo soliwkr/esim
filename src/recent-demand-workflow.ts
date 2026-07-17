@@ -80,7 +80,7 @@ async function parseJson(response: Response): Promise<unknown> {
   }
 }
 
-export class RecentDemandWorkflow extends WorkflowEntrypoint<Env> {
+export class RecentDemandWorkflow extends WorkflowEntrypoint<Env, RecentDemandParams> {
   async run(event: WorkflowEvent<RecentDemandParams>, step: WorkflowStep) {
     const supplied = sanitizeSpecs(event.payload?.queries);
     const queries = supplied.length ? supplied : scheduledQueries(event.schedule?.cron);
