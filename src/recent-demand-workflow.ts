@@ -19,6 +19,13 @@ export type RecentDemandParams = {
   reason?: string;
 };
 
+type WorkflowResearchResult = {
+  query: string;
+  mode: 'research' | 'discovery';
+  sources: string[] | null;
+  ingestJson: string;
+};
+
 const MONDAY_QUERIES: ResearchQuerySpec[] = [
   {
     query: 'eSIM viaggio problemi',
@@ -84,7 +91,7 @@ export class RecentDemandWorkflow extends WorkflowEntrypoint<Env, RecentDemandPa
   async run(event: WorkflowEvent<RecentDemandParams>, step: WorkflowStep) {
     const supplied = sanitizeSpecs(event.payload?.queries);
     const queries = supplied.length ? supplied : scheduledQueries(event.schedule?.cron);
-    const results: unknown[] = [];
+    const results: WorkflowResearchResult[] = [];
 
     for (const [index, spec] of queries.entries()) {
       const result = await step.do(
@@ -120,8 +127,8 @@ export class RecentDemandWorkflow extends WorkflowEntrypoint<Env, RecentDemandPa
             query: spec.query,
             mode: spec.mode || 'research',
             sources: spec.sources || null,
-            ingest
-          };
+            ingestJson: JSON.stringify(ingest)
+          } satisfies WorkflowResearchResult;
         }
       );
       results.push(result);
