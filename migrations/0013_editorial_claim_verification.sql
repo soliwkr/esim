@@ -76,11 +76,11 @@ BEGIN
         WHEN NEW.status IN ('processing','pending','cancelled') THEN CURRENT_TIMESTAMP
         ELSE updated_at
       END
-  WHERE id = CAST(substr(NEW.entity_key, 18) AS INTEGER);
+  WHERE id = CAST(substr(NEW.entity_key, 17) AS INTEGER);
 
   INSERT INTO editorial_claim_events(candidate_id,action,actor,details_json)
   SELECT
-    CAST(substr(NEW.entity_key, 18) AS INTEGER),
+    CAST(substr(NEW.entity_key, 17) AS INTEGER),
     CASE
       WHEN NEW.status='processing' THEN 'processing'
       WHEN NEW.status='pending' THEN 'reopened'
@@ -91,6 +91,6 @@ BEGIN
   WHERE NEW.status IN ('processing','pending','cancelled')
     AND EXISTS(
       SELECT 1 FROM editorial_claim_candidates
-      WHERE id=CAST(substr(NEW.entity_key, 18) AS INTEGER)
+      WHERE id=CAST(substr(NEW.entity_key, 17) AS INTEGER)
     );
 END;
