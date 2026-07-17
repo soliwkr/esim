@@ -1,5 +1,10 @@
 import type { Env } from './types';
-import { ingestResearch, listResearchSignals, updateResearchSignals } from './research';
+import { ingestResearch } from './research';
+import {
+  getResearchQualitySummary,
+  listQualifiedResearchSignals,
+  updateQualifiedResearchSignals
+} from './research-quality';
 import {
   getResearchRunStatus,
   listResearchRuns,
@@ -81,6 +86,9 @@ export async function recentDemandApi(request: Request, env: Env, path: string):
   if (request.method === 'GET' && path === 'api/maintenance/research-run-status') {
     return getResearchRunStatus(request, env);
   }
+  if (request.method === 'GET' && path === 'api/maintenance/research-quality-summary') {
+    return getResearchQualitySummary(request, env);
+  }
   if (request.method === 'POST' && path === 'api/maintenance/research-run') {
     return startWorkflow(request, env);
   }
@@ -88,10 +96,10 @@ export async function recentDemandApi(request: Request, env: Env, path: string):
     return ingestResearch(request, env);
   }
   if (request.method === 'GET' && path === 'api/maintenance/research-signals') {
-    return listResearchSignals(request, env);
+    return listQualifiedResearchSignals(request, env);
   }
   if (request.method === 'POST' && path === 'api/maintenance/research-signal-action') {
-    return updateResearchSignals(request, env);
+    return updateQualifiedResearchSignals(request, env);
   }
 
   return json({ ok: false, error: 'research_route_not_found' }, 404);
