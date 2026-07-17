@@ -34,6 +34,16 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - API protetta per agenti di aggiornamento e controllo;
 - radar della domanda recente eseguito su Container e pianificato con Workflows.
 
+## Memoria canonica del progetto
+
+La chat non è il database del progetto. Stato, decisioni e lavoro futuro vivono nel repository:
+
+- [`ROADMAP.md`](ROADMAP.md) — milestone, ordine di lavoro e criteri di uscita;
+- [`docs/STATUS.md`](docs/STATUS.md) — fotografia dello stato reale;
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — componenti, flussi e confini;
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisioni architetturali;
+- [`docs/NEXT.md`](docs/NEXT.md) — prossime azioni eseguibili.
+
 ## Macchina AI-driven
 
 L'AI non pubblica articoli in autonomia. Opera su un ciclo controllato:
@@ -165,6 +175,11 @@ L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere 
 
 ## Documentazione
 
+- `ROADMAP.md`
+- `docs/STATUS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DECISIONS.md`
+- `docs/NEXT.md`
 - `docs/EDITORIAL-SYSTEM.md`
 - `docs/AFFILIATE-SETUP.md`
 - `docs/DEPLOY-CLOUDFLARE.md`
@@ -174,4 +189,4 @@ L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere 
 
 ## Dominio
 
-Il dominio operativo è **senzaroaming.it**. Finché l'attivazione dei nameserver non è completata, il Worker resta collaudabile tramite `workers.dev`.
+Il dominio operativo e canonico è **https://senzaroaming.it**. Il redirect permanente da `www.senzaroaming.it` al dominio principale è implementato nel codice e deve essere verificato dopo il deploy più recente.
