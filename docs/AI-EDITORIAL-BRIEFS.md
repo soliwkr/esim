@@ -11,6 +11,7 @@ research_signals eligible
   -> JSON strutturato
   -> ai_editorial_runs
   -> editorial_briefs
+  -> priority score deterministico
   -> maintenance_queue editorial_review
   -> decisione umana
 ```
@@ -32,6 +33,8 @@ L'AI non pubblica pagine, non modifica claim verificati e non considera Reddit o
 - tipo di asset e intento di ricerca;
 - opportunity score prodotto dal modello;
 - evidence score deterministico calcolato dal Worker;
+- priority score operativo calcolato senza AI;
+- spiegazione versionata della formula e delle penalità;
 - rischi e quality flag;
 - verifiche ufficiali richieste;
 - scaletta;
@@ -64,6 +67,20 @@ GET /api/maintenance/editorial-briefs?status=proposed&limit=30
 
 Stati ammessi: `proposed`, `accepted`, `dismissed`, `converted`, `all`.
 
+### Elenca priorità calibrate
+
+```http
+GET /api/maintenance/editorial-priorities?status=proposed&limit=30
+```
+
+La risposta separa:
+
+- `opportunityScore` — potenziale editoriale proposto dal modello;
+- `evidenceScore` — solidità deterministica dell'evidenza;
+- `priorityScore` — urgenza operativa usata dalla coda;
+- `priorityBand` — `high`, `medium` o `low`;
+- `scoreExplanation` — formula, pesi e penalità applicate.
+
 ### Decisione umana
 
 ```http
@@ -82,7 +99,11 @@ Un brief deve essere `accepted` prima di diventare `converted`. Nessuno dei due 
 
 ## Scoring
 
-`opportunityScore` valuta il potenziale editoriale sulla base della domanda osservata.
+### Opportunity Score
+
+`opportunityScore` valuta il potenziale editoriale sulla base della domanda osservata. È un giudizio del modello e non viene usato da solo per ordinare il lavoro.
+
+### Evidence Score
 
 `evidenceScore` viene calcolato nel Worker usando:
 
@@ -92,7 +113,22 @@ Un brief deve essere `accepted` prima di diventare `converted`. Nessuno dei due 
 - diversità delle fonti;
 - penalità per contenuto promozionale.
 
-I due valori restano separati: un tema può essere interessante ma sostenuto da evidenza debole.
+### Priority Score
+
+La formula `priority-v1` è deterministica:
+
+```text
+55% opportunityScore
++ 45% evidenceScore
+- 8  se non corroborato
+- 8  se a bassa rilevanza
+- 12 se promozionale o sponsorizzato
+- 6  se marcato weak_evidence
+```
+
+Il risultato viene limitato tra 0 e 100. D1 applica il calcolo anche a brief creati da versioni applicative precedenti e riallinea la priorità della `maintenance_queue`.
+
+I tre valori restano separati: un tema può essere interessante, sostenuto da evidenza debole e quindi avere priorità operativa media anziché alta.
 
 ## Output strutturato
 
