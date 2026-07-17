@@ -75,6 +75,23 @@ BEGIN
   SELECT RAISE(ABORT, 'approved_evidence_bundle_required');
 END;
 
+-- A direct INSERT cannot bypass the publication gate after a draft exists.
+CREATE TRIGGER IF NOT EXISTS trg_editorial_draft_page_never_published_insert
+BEFORE INSERT ON pages
+WHEN NEW.status='published'
+  AND NEW.slug IN (SELECT page_slug FROM editorial_review_drafts)
+  AND NOT EXISTS (
+    SELECT 1 FROM page_evidence_bundles b
+    JOIN editorial_review_drafts d ON d.evidence_bundle_id=b.id
+    WHERE d.page_slug=NEW.slug
+      AND d.status='approved'
+      AND b.review_status='approved_for_publication'
+      AND b.ready_for_publication=1
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'publication_gate_not_satisfied');
+END;
+
 -- A draft-backed page can become published only after both the draft and bundle gates pass.
 CREATE TRIGGER IF NOT EXISTS trg_editorial_draft_page_never_published_update
 BEFORE UPDATE OF status ON pages
