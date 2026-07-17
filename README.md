@@ -33,7 +33,10 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - registro fonti, claim verificabili e coda di manutenzione AI;
 - API protetta per agenti di aggiornamento e controllo;
 - radar della domanda recente eseguito su Container e pianificato con Workflows;
-- storico D1 e stato live delle istanze recent-demand.
+- storico D1 e stato live delle istanze recent-demand;
+- quality gate che separa segnali recenti da risultati fuori finestra;
+- Cloudflare AI Gateway → Vertex AI → Gemini verificato in produzione;
+- brief editoriali AI strutturati, idempotenti e soggetti a revisione umana.
 
 ## Memoria canonica del progetto
 
@@ -84,7 +87,7 @@ fonti ufficiali         -> claim commerciali verificati
 
 Il radar usa un'immagine Python 3.12 con una versione fissata di `last30days`. Cloudflare Workflows avvia il Container soltanto quando serve, importa l'export JSON versionato in D1 e apre un task di revisione editoriale.
 
-La migrazione `0009_recent_demand_observability.sql` aggiunge lo storico compatto delle istanze Workflow per dashboard e diagnosi.
+La migrazione `0009_recent_demand_observability.sql` aggiunge lo storico compatto delle istanze Workflow. La migrazione `0010_research_signal_quality.sql` applica il gate di freschezza ed evidenza.
 
 Rileva:
 
@@ -103,11 +106,37 @@ GET  /api/maintenance/research-runner-health
 POST /api/maintenance/research-run
 GET  /api/maintenance/research-run-status?instanceId=<id>
 GET  /api/maintenance/research-runs?limit=30
+GET  /api/maintenance/research-quality-summary
 GET  /api/maintenance/research-signals
 POST /api/maintenance/research-signal-action
 ```
 
-Vedi `docs/RECENT-DEMAND-RADAR.md`.
+Vedi `docs/RECENT-DEMAND-RADAR.md` e `docs/RESEARCH-SIGNAL-QUALITY.md`.
+
+## Brief editoriali con Vertex AI
+
+La migrazione `0011_ai_editorial_briefs.sql` aggiunge un livello separato tra il radar e la produzione dei contenuti:
+
+```text
+segnali eligible
+  -> Vertex AI con output JSON strutturato
+  -> opportunity score + evidence score
+  -> brief proposto
+  -> maintenance_queue editorial_review
+  -> decisione umana
+```
+
+Endpoint protetti:
+
+```text
+POST /api/maintenance/editorial-analyze
+GET  /api/maintenance/editorial-briefs?status=proposed&limit=30
+POST /api/maintenance/editorial-brief-action
+```
+
+La stessa selezione di segnali è idempotente per limitare costi e duplicati. Un brief non può pubblicare una pagina né verificare un claim commerciale.
+
+Vedi `docs/AI-EDITORIAL-BRIEFS.md`.
 
 ## Ricerca keyword
 
@@ -165,6 +194,8 @@ Vedi `docs/AFFILIATE-SETUP.md`.
 0007_ai_maintenance.sql
 0008_recent_demand_radar.sql
 0009_recent_demand_observability.sql
+0010_research_signal_quality.sql
+0011_ai_editorial_briefs.sql
 ```
 
 ## Quality gate
@@ -177,7 +208,7 @@ draft → review → published → archived
 
 Una pagina destinazione o provider resta in `review` finché non contiene dati verificati su prezzo, durata, dati, hotspot, fair use, rete, attivazione e fonte ufficiale.
 
-L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere direttamente una pagina a `published`.
+L'AI può creare brief e task di revisione, ma non può promuovere direttamente una pagina a `published`.
 
 ## Documentazione
 
@@ -191,8 +222,10 @@ L'AI può creare o aggiornare claim e task di revisione, ma non può promuovere 
 - `docs/DEPLOY-CLOUDFLARE.md`
 - `docs/AI-MAINTENANCE.md`
 - `docs/RECENT-DEMAND-RADAR.md`
+- `docs/RESEARCH-SIGNAL-QUALITY.md`
+- `docs/AI-EDITORIAL-BRIEFS.md`
 - `docs/CLOUDFLARE-VERTEX-SETUP.md`
 
 ## Dominio
 
-Il dominio operativo e canonico è **https://senzaroaming.it**. Il redirect permanente da `www.senzaroaming.it` al dominio principale è implementato nel codice e deve essere verificato dopo il deploy più recente.
+Il dominio operativo e canonico è **https://senzaroaming.it**. `www.senzaroaming.it` viene reindirizzato permanentemente al dominio principale.
