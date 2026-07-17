@@ -32,7 +32,8 @@ Intercettare ricerche ad alta intenzione come `esim giappone`, `esim usa`, `migl
 - workflow di deploy manuale;
 - registro fonti, claim verificabili e coda di manutenzione AI;
 - API protetta per agenti di aggiornamento e controllo;
-- radar della domanda recente eseguito su Container e pianificato con Workflows.
+- radar della domanda recente eseguito su Container e pianificato con Workflows;
+- storico D1 e stato live delle istanze recent-demand.
 
 ## Memoria canonica del progetto
 
@@ -83,6 +84,8 @@ fonti ufficiali         -> claim commerciali verificati
 
 Il radar usa un'immagine Python 3.12 con una versione fissata di `last30days`. Cloudflare Workflows avvia il Container soltanto quando serve, importa l'export JSON versionato in D1 e apre un task di revisione editoriale.
 
+La migrazione `0009_recent_demand_observability.sql` aggiunge lo storico compatto delle istanze Workflow per dashboard e diagnosi.
+
 Rileva:
 
 - domande ricorrenti;
@@ -98,6 +101,8 @@ Endpoint protetti principali:
 ```text
 GET  /api/maintenance/research-runner-health
 POST /api/maintenance/research-run
+GET  /api/maintenance/research-run-status?instanceId=<id>
+GET  /api/maintenance/research-runs?limit=30
 GET  /api/maintenance/research-signals
 POST /api/maintenance/research-signal-action
 ```
@@ -159,6 +164,7 @@ Vedi `docs/AFFILIATE-SETUP.md`.
 0006_review_queue.sql
 0007_ai_maintenance.sql
 0008_recent_demand_radar.sql
+0009_recent_demand_observability.sql
 ```
 
 ## Quality gate
