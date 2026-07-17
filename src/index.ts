@@ -1,6 +1,6 @@
 import type { Env } from './types';
 import { siteBase } from './utils';
-import { article, favicon, home, listing, sitemap, staticPage } from './pages';
+import { article, favicon, home, listing, notFound, sitemap, staticPage } from './pages';
 import { redirectProvider } from './redirect';
 import { maintenanceApi } from './maintenance';
 import { recentDemandApi } from './research-router';
@@ -8,6 +8,10 @@ import { aiGatewaySmoke } from './ai';
 
 export { Last30DaysContainer } from './last30days-container';
 export { RecentDemandWorkflow } from './recent-demand-workflow';
+
+function looksLikeFileProbe(path: string): boolean {
+  return /(^|\/)\.|(^|\/)[^/]+\.(?:bak|config|env|ini|js|json|log|map|php|properties|py|sql|txt|ya?ml)$/i.test(path);
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -27,6 +31,7 @@ export default {
       if (path.startsWith('api/maintenance/research-')) return recentDemandApi(request, env, path);
       if (path.startsWith('api/maintenance/')) return maintenanceApi(request, env, path);
       if (path.startsWith('go/')) return redirectProvider(env, request, path.slice(3));
+      if (looksLikeFileProbe(path)) return notFound(env);
       return article(env, path);
     } catch (error) {
       console.error(error);
