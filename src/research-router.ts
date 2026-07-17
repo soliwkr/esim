@@ -1,5 +1,11 @@
 import type { Env } from './types';
 import { ingestResearch, listResearchSignals, updateResearchSignals } from './research';
+import {
+  getResearchRunStatus,
+  listResearchRuns,
+  markRunFailed,
+  recordQueuedRun
+} from './research-runs';
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
@@ -38,20 +44,26 @@ async function startWorkflow(request: Request, env: Env): Promise<Response> {
     return json({ ok: false, error: 'queries_must_contain_1_to_6_items' }, 400);
   }
 
-  const instance = await env.RECENT_DEMAND_WORKFLOW.create({
-    id: `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${crypto.randomUUID().slice(0, 8)}`,
-    params: {
-      queries,
-      reason: typeof body.reason === 'string' ? body.reason.slice(0, 200) : 'manual_recent_demand'
-    }
-  });
+  const instanceId = `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${crypto.randomUUID().slice(0, 8)}`;
+  const reason = typeof body.reason === 'string' ? body.reason.slice(0, 200) : 'manual_recent_demand';
+  await recordQueuedRun(env, instanceId, queries, reason);
 
-  return json({
-    ok: true,
-    workflow: 'senza-roaming-recent-demand',
-    instanceId: instance.id,
-    status: await instance.status()
-  }, 202);
+  try {
+    const instance = await env.RECENT_DEMAND_WORKFLOW.create({
+      id: instanceId,
+      params: { queries, reason }
+    });
+
+    return json({
+      ok: true,
+      workflow: 'senza-roaming-recent-demand',
+      instanceId: instance.id,
+      status: await instance.status()
+    }, 202);
+  } catch (error) {
+    await markRunFailed(env, instanceId, error);
+    return json({ ok: false, error: 'workflow_create_failed', instanceId }, 502);
+  }
 }
 
 export async function recentDemandApi(request: Request, env: Env, path: string): Promise<Response> {
@@ -62,6 +74,12 @@ export async function recentDemandApi(request: Request, env: Env, path: string):
 
   if (request.method === 'GET' && path === 'api/maintenance/research-runner-health') {
     return runnerHealth(env);
+  }
+  if (request.method === 'GET' && path === 'api/maintenance/research-runs') {
+    return listResearchRuns(request, env);
+  }
+  if (request.method === 'GET' && path === 'api/maintenance/research-run-status') {
+    return getResearchRunStatus(request, env);
   }
   if (request.method === 'POST' && path === 'api/maintenance/research-run') {
     return startWorkflow(request, env);
