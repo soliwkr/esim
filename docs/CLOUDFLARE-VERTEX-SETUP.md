@@ -2,36 +2,40 @@
 
 Senza Roaming usa Cloudflare AI Gateway come punto unico di accesso ai modelli Google Vertex AI. La chiave Google non deve essere salvata nel repository, nelle GitHub Actions o nelle variabili pubbliche del Worker.
 
+## Configurazione attuale
+
+```text
+Cloudflare account ID: 60496826f56a093a72602bfae074fdcf
+AI Gateway ID: senza-roaming-ai
+Gateway authentication: enabled
+BYOK alias: default
+Google Cloud Project ID: soliwkr
+Google Cloud Project Number: 739710211590
+Service account: senza-roaming-vertex@soliwkr.iam.gserviceaccount.com
+Vertex location: global
+Vertex model: gemini-3.1-flash-lite
+```
+
+`739710211590` è il Project Number. Negli URL Vertex AI deve essere usato il Project ID `soliwkr`.
+
 ## Architettura
 
 ```text
 GitHub Actions
   -> verifica TypeScript e migrazioni
-  -> deploy Worker e Container con Wrangler
+  -> crea o riusa D1
+  -> deploy Worker con Wrangler
 
 Cloudflare Worker / Container
   -> cf-aig-authorization
   -> Cloudflare AI Gateway
   -> credenziali Vertex AI conservate con BYOK
-  -> modello Gemini configurabile
+  -> Gemini 3.1 Flash-Lite
 ```
-
-## Valori non segreti
-
-Configurare nel Worker o nel runner:
-
-```text
-AI_GATEWAY_ID=senza-roaming-ai
-GOOGLE_VERTEX_PROJECT=<project-id>
-GOOGLE_VERTEX_LOCATION=<region>
-GOOGLE_VERTEX_MODEL=<model-id>
-```
-
-Il modello deve restare configurabile. Non inserirlo direttamente nella logica applicativa, perché gli endpoint Vertex AI hanno un ciclo di vita e possono essere sostituiti.
 
 ## Secret Cloudflare
 
-Configurare nel Worker e nel runner:
+Configurare come secret cifrati del Worker e, in seguito, del runner:
 
 ```text
 AI_GATEWAY_TOKEN
@@ -40,27 +44,28 @@ MAINTENANCE_TOKEN
 
 `AI_GATEWAY_TOKEN` autentica la richiesta verso AI Gateway tramite l'header `cf-aig-authorization`.
 
+Non inserire questi valori nel repository. La pipeline di deploy richiede soltanto il token Cloudflare dedicato al deploy.
+
 ## BYOK Vertex AI
 
-Nel pannello Cloudflare:
+Configurazione completata nel pannello Cloudflare:
 
 ```text
 AI
 -> AI Gateway
 -> senza-roaming-ai
 -> Provider Keys
--> Add API Key
 -> Google Vertex AI
+-> alias default
+-> regione global
 ```
 
-Caricare il JSON di un service account Google dedicato e selezionare la regione. Il service account dovrebbe avere solo il ruolo necessario all'inferenza Vertex AI, normalmente `Vertex AI User` (`roles/aiplatform.user`).
-
-La credenziale Google resta nello Secrets Store di Cloudflare. Le applicazioni inviano soltanto il token AI Gateway.
+Il service account Google dedicato dispone del ruolo operativo Vertex AI necessario. La credenziale resta nello Secrets Store di Cloudflare. Le applicazioni inviano soltanto il token AI Gateway.
 
 ## Endpoint provider-native
 
 ```text
-https://gateway.ai.cloudflare.com/v1/<account-id>/senza-roaming-ai/google-vertex-ai/v1/projects/<project-id>/locations/<region>/publishers/google/models/<model-id>:generateContent
+https://gateway.ai.cloudflare.com/v1/60496826f56a093a72602bfae074fdcf/senza-roaming-ai/google-vertex-ai/v1/projects/soliwkr/locations/global/publishers/google/models/gemini-3.1-flash-lite:generateContent
 ```
 
 Header:
@@ -70,9 +75,11 @@ cf-aig-authorization: Bearer <AI_GATEWAY_TOKEN>
 Content-Type: application/json
 ```
 
+L'alias `default` non richiede l'header `cf-aig-byok-alias`.
+
 ## GitHub Actions
 
-Salvare esclusivamente in:
+Salvare in:
 
 ```text
 Repository
@@ -81,53 +88,62 @@ Repository
 -> Actions
 ```
 
-Secrets richiesti:
+Unico secret richiesto per il primo deploy:
 
 ```text
 CLOUDFLARE_API_TOKEN
-CLOUDFLARE_ACCOUNT_ID
 ```
 
-Variables consigliate:
+L'account ID è un valore non segreto già impostato nella pipeline. `AI_GATEWAY_TOKEN`, `MAINTENANCE_TOKEN` e il JSON del service account non devono essere aggiunti a GitHub.
+
+Il workflow manuale `.github/workflows/deploy-production.yml`:
+
+1. esegue il typecheck;
+2. cerca il database D1 `senza-roaming`;
+3. lo crea in giurisdizione UE se non esiste;
+4. genera una configurazione Wrangler temporanea;
+5. applica tutte le migrazioni remote;
+6. distribuisce il Worker.
+
+## Secret del Worker dopo il primo deploy
+
+Nel pannello Cloudflare:
 
 ```text
-CLOUDFLARE_D1_DATABASE_ID
-SENZA_ROAMING_SITE_URL
-GOOGLE_VERTEX_PROJECT
-GOOGLE_VERTEX_LOCATION
-GOOGLE_VERTEX_MODEL
-AI_GATEWAY_ID
+Workers & Pages
+-> senza-roaming
+-> Settings
+-> Variables and Secrets
 ```
 
-La chiave del service account Vertex non deve essere aggiunta a GitHub: viene conservata direttamente da Cloudflare AI Gateway BYOK.
-
-## Sequenza di attivazione
-
-1. Attendere che la zona `senzaroaming.it` diventi attiva.
-2. Creare il gateway `senza-roaming-ai`.
-3. Creare un service account Google dedicato e assegnare `roles/aiplatform.user`.
-4. Caricare il JSON del service account in AI Gateway BYOK.
-5. Generare un token autenticato per AI Gateway.
-6. Creare D1 e R2.
-7. Inserire i soli secret di deploy in GitHub Actions.
-8. Applicare le migrazioni remote.
-9. Distribuire prima su `workers.dev`.
-10. Collegare la route del dominio dopo il test di salute.
-
-## Modelli
-
-Usare due classi di modello, entrambe configurabili:
+Aggiungere come valori cifrati:
 
 ```text
-FAST_MODEL
-- classificazione segnali
-- deduplicazione semantica
-- estrazione di domande e lamentele
-
-DEEP_MODEL
-- content brief
-- confronto tra cluster
-- revisione editoriale assistita
+MAINTENANCE_TOKEN=<valore casuale lungo>
+AI_GATEWAY_TOKEN=<token del gateway già salvato>
 ```
 
-Non usare il modello per certificare prezzi, fair use, hotspot, copertura o condizioni commerciali. Questi dati devono continuare a provenire da fonti ufficiali e da `claim_verifications`.
+## Test del Gateway
+
+Dopo aver configurato entrambi i secret:
+
+```http
+POST /api/maintenance/ai-smoke
+Authorization: Bearer <MAINTENANCE_TOKEN>
+```
+
+Il test invia un prompt fisso e disabilita la raccolta del payload tramite `cf-aig-collect-log-payload: false`. Una risposta valida contiene:
+
+```json
+{
+  "ok": true,
+  "provider": "google-vertex-ai",
+  "projectId": "soliwkr",
+  "location": "global",
+  "model": "gemini-3.1-flash-lite"
+}
+```
+
+## Quality gate
+
+Il modello può classificare segnali, estrarre domande, produrre brief e assistere la revisione. Non può certificare prezzi, fair use, hotspot, copertura o condizioni commerciali. Questi dati devono continuare a provenire da fonti ufficiali e da `claim_verifications`.

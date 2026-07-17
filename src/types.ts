@@ -6,6 +6,13 @@ export interface Env {
   AFFILIATE_MODE?: string;
   AFFILIATE_LINKS_JSON?: string;
   MAINTENANCE_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  AI_GATEWAY_ID?: string;
+  AI_GATEWAY_TOKEN?: string;
+  GOOGLE_VERTEX_PROJECT_ID?: string;
+  GOOGLE_VERTEX_PROJECT_NUMBER?: string;
+  GOOGLE_VERTEX_LOCATION?: string;
+  GOOGLE_VERTEX_MODEL?: string;
 }
 
 export type ContentBlock =
