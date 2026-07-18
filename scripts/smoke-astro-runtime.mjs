@@ -74,15 +74,22 @@ await verifyBuildContract();
 
 const wrangler = spawn(
   process.execPath,
-  ['node_modules/wrangler/bin/wrangler.js', 'dev', '--config', configPath, '--persist-to', '.wrangler/state', '--port', String(port), '--ip', '127.0.0.1'],
+  [
+    'node_modules/wrangler/bin/wrangler.js',
+    'dev',
+    '--config', configPath,
+    '--persist-to', '.wrangler/state',
+    '--port', String(port),
+    '--ip', '127.0.0.1',
+    '--var', `CF_ACCESS_TEAM_DOMAIN:${access.issuer}`,
+    '--var', `CF_ACCESS_AUD:${access.audience}`,
+    '--var', `CF_ACCESS_TEST_JWKS:${access.jwks}`
+  ],
   {
     env: {
       ...process.env,
       MAINTENANCE_TOKEN: maintenanceToken,
       AI_GATEWAY_TOKEN: 'runtime-smoke-ai-token',
-      CF_ACCESS_TEAM_DOMAIN: access.issuer,
-      CF_ACCESS_AUD: access.audience,
-      CF_ACCESS_TEST_JWKS: access.jwks,
       ASTRO_TELEMETRY_DISABLED: '1'
     },
     detached: process.platform !== 'win32',
