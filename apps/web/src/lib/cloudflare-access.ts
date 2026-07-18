@@ -56,6 +56,12 @@ function decodeBase64Url(value: string): Uint8Array {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))
 }
 
+function toArrayBuffer(value: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(value.byteLength)
+  new Uint8Array(buffer).set(value)
+  return buffer
+}
+
 function parseJsonPart<T>(value: string): T {
   return JSON.parse(new TextDecoder().decode(decodeBase64Url(value))) as T
 }
@@ -109,8 +115,8 @@ async function verifySignature(signingInput: string, signature: Uint8Array, key:
   return crypto.subtle.verify(
     { name: "RSASSA-PKCS1-v1_5" },
     cryptoKey,
-    signature,
-    new TextEncoder().encode(signingInput),
+    toArrayBuffer(signature),
+    toArrayBuffer(new TextEncoder().encode(signingInput)),
   )
 }
 
