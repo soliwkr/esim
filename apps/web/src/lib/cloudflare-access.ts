@@ -20,8 +20,14 @@ type AccessJwtPayload = {
   email?: string
 }
 
+type AccessJwk = JsonWebKey & {
+  alg?: string
+  kid?: string
+  use?: string
+}
+
 type JwkSet = {
-  keys: JsonWebKey[]
+  keys: AccessJwk[]
 }
 
 const jwksCache = new Map<string, { expiresAt: number; value: JwkSet }>()
@@ -86,13 +92,13 @@ async function loadJwks(env: AccessEnv, issuer: string): Promise<JwkSet> {
   })
   if (!response.ok) throw new Error("access_jwks_unavailable")
 
-  const value = await response.json<JwkSet>()
+  const value = await response.json() as JwkSet
   if (!Array.isArray(value.keys) || value.keys.length === 0) throw new Error("access_jwks_invalid")
   jwksCache.set(issuer, { expiresAt: Date.now() + JWKS_CACHE_MS, value })
   return value
 }
 
-async function verifySignature(signingInput: string, signature: Uint8Array, key: JsonWebKey): Promise<boolean> {
+async function verifySignature(signingInput: string, signature: Uint8Array, key: AccessJwk): Promise<boolean> {
   const cryptoKey = await crypto.subtle.importKey(
     "jwk",
     key,
