@@ -131,3 +131,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** una riorganizzazione completa del repository insieme al cambio di framework aumenterebbe il rischio senza migliorare direttamente il prodotto.
 
 **Conseguenza:** prima si dimostrano Astro, Cloudflare, binding, Workflow, Container e tre viste Control Room. La ristrutturazione completa in monorepo viene valutata dopo il primo rilascio stabile.
+
+## ADR-014 — Un solo Worker con custom Astro entrypoint
+
+**Stato:** accettata per la frontend foundation
+
+**Decisione:** compilare `apps/web/src/worker.ts` come entrypoint Cloudflare reale. L'entrypoint delega la route di fondazione ad Astro, inoltra le route restanti al router backend esistente ed esporta nello stesso modulo `RecentDemandWorkflow` e `Last30DaysContainer`.
+
+**Razionale:** la build e lo smoke `workerd` dimostrano che Astro, React, API, D1, Workflow e Container possono convivere senza separare il deploy e senza riscrivere il backend.
+
+**Conseguenza:** la separazione in due Worker non viene introdotta. L'espansione delle route Astro resta progressiva e ogni passaggio deve conservare i publication guardrail e gli smoke runtime.

@@ -1,4 +1,7 @@
 node_modules/
+apps/web/.astro/
+apps/web/dist/
+apps/web/node_modules/
 .wrangler/
 .dev.vars
 .dev.vars.*

@@ -1,8 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "senza-roaming",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-07-17",
+  "main": "apps/web/src/worker.ts",
+  "compatibility_date": "2026-07-18",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "./apps/web/dist/client",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/astro-foundation",
+      "/astro-foundation/*"
+    ]
+  },
   "observability": {
     "enabled": true
   },
