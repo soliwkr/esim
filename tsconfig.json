@@ -8,7 +8,11 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["apps/web/src/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "apps/web/src/**/*.ts", "apps/web/src/**/*.tsx"]
 }

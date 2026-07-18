@@ -1,0 +1,26 @@
+---
+import { ControlRoomApp } from "@/components/control-room/ControlRoomApp"
+import "@/styles/globals.css"
+
+Astro.response.headers.set("Cache-Control", "no-store")
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow")
+Astro.response.headers.set("X-Content-Type-Options", "nosniff")
+Astro.response.headers.set("Referrer-Policy", "no-referrer")
+Astro.response.headers.set(
+  "Content-Security-Policy",
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+)
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <title>Control Room · Senza Roaming</title>
+  </head>
+  <body>
+    <ControlRoomApp client:load />
+  </body>
+</html>

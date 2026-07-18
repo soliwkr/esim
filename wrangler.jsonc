@@ -11,7 +11,9 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/astro-foundation",
-      "/astro-foundation/*"
+      "/astro-foundation/*",
+      "/control-room-foundation",
+      "/control-room-foundation/*"
     ]
   },
   "observability": {

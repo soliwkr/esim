@@ -136,17 +136,19 @@ L9  Dashboard e integrazione studio
 - [ ] Dimostrare deploy automatico e smoke live.
 - [x] Conservare un solo Worker: lo spike non ha dimostrato la necessità di separarlo.
 
-La fondazione è isolata nella PR `feat/astro-frontend-foundation` e non è collegata al traffico pubblico finché la PR non viene revisionata e unita.
+La fondazione Astro è stata unita con la PR #26. L'espansione della Control Room resta incrementale e non viene collegata al traffico pubblico dalle pull request.
 
 ### M4.2 — Scelta UI comprovata
 
-- [ ] Implementare overview/health campione.
-- [ ] Implementare tabella claim con filtri e azione.
-- [ ] Implementare revisione draft con preview.
+- [x] Installare e versionare shadcn/ui dentro `apps/web`.
+- [x] Implementare overview/health campione in sola lettura.
+- [x] Implementare tabella claim con filtro, selezione e dettaglio in sola lettura.
+- [x] Implementare preview dei metadati draft esposti dallo snapshot.
 - [ ] Confrontare shadcn/ui e Mantine.
 - [ ] Misurare codice custom, accessibilità, mobile, tema, bundle e manutenzione.
-- [ ] Adottare un dashboard block o starter ispezionato.
-- [ ] Registrare la decisione definitiva in ADR.
+- [x] Verificare hydration, stati applicativi, tastiera e viewport mobile con smoke browser.
+- [ ] Adottare un dashboard block o starter ispezionato per la migrazione completa.
+- [ ] Registrare una decisione comparativa definitiva in ADR.
 
 ### M4.3 — Migrazione Control Room
 

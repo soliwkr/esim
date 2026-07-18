@@ -65,9 +65,9 @@ Da scrivere nel progetto:
 
 ### UI kit
 
-Il candidato principale è **shadcn/ui**, usando componenti e blocchi esistenti invece di ricostruire una libreria interna.
+La Control Room UI foundation usa **shadcn/ui**, con componenti installati e versionati invece di ricostruire una libreria interna.
 
-Prima dell'adozione definitiva viene eseguito uno spike controllato contro **Mantine**.
+Il confronto contro **Mantine** non è stato eseguito in questa fase. Resta un'attività separata soltanto se serve una decisione comparativa definitiva.
 
 Lo spike implementa le stesse tre viste:
 
@@ -144,12 +144,21 @@ La trasformazione in monorepo più profonda viene considerata solo dopo il primo
 - [x] verificare che non esistano route di pubblicazione;
 - [x] mantenere la demo non pubblica e la PR non mergiata.
 
-### F1b — Spike UI successivo
+### F1b — Control Room UI foundation
 
-- confrontare shadcn/ui e Mantine sulle tre viste campione;
-- produrre una decisione misurata e una demo non pubblica.
+- [x] installare shadcn/ui con componenti sorgente versionati;
+- [x] creare una shell dashboard responsive in una sola island React;
+- [x] leggere soltanto health e snapshot protetto;
+- [x] mostrare overview, claim e draft preview in sola lettura;
+- [x] coprire hydration, stati applicativi, tastiera e mobile con smoke browser;
+- [x] mantenere la demo noindex e fuori dal deploy pubblico della PR.
 
-Il confronto UI è intenzionalmente escluso dalla frontend foundation.
+### F1c — Valutazione comparativa eventuale
+
+- confrontare shadcn/ui e Mantine soltanto in una fase separata;
+- produrre misure su accessibilità, bundle e manutenzione prima di una decisione comparativa.
+
+Il confronto Mantine è intenzionalmente escluso dalla UI foundation.
 
 ### F2 — Design foundation
 
@@ -213,11 +222,12 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 
 ### Spike UI successivo
 
-- tre viste Control Room realizzate con entrambi i candidati o con prova sufficiente a scartarne uno;
-- decisione UI registrata in `docs/DECISIONS.md`;
-- volume di codice custom e bundle confrontati;
+- componenti shadcn/ui installati e versionati nel repository;
+- tre viste Control Room read-only alimentate dallo snapshot protetto;
+- sessione, hydration, stati applicativi, tastiera e mobile coperti da smoke;
+- eventuale confronto Mantine dichiarato separatamente, senza attribuirgli risultati non prodotti;
 - nessuna stringa HTML monolitica, `innerHTML` o listener manuale nella nuova UI;
-- piano di migrazione stimato e PR dello spike non collegata al traffico pubblico.
+- PR della foundation non collegata al traffico pubblico.
 
 ## Cosa non facciamo adesso
 

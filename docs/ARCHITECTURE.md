@@ -22,8 +22,8 @@ Astro su Cloudflare
       └── shell Control Room
               │
               ▼
-        React island privata
-              ├── query e mutation tipizzate
+React island privata
+              ├── query tipizzate; mutation solo in fasi autorizzate
               ├── tabelle, form e dialog
               └── nessun accesso diretto a D1
 
@@ -59,7 +59,7 @@ Astro è responsabile di:
 
 React è usato soltanto dove esiste interattività applicativa complessa, inizialmente la Control Room.
 
-È responsabile di:
+Nell'architettura target è responsabile di:
 
 - stato della sessione operativa;
 - query, mutation, loading, error e retry;
@@ -74,7 +74,7 @@ Il sito pubblico non diventa una SPA generale.
 
 I componenti generici non vengono riscritti da zero.
 
-La UI deve usare un kit e blocchi comprovati. Il candidato principale è shadcn/ui; Mantine viene confrontato nello spike. La decisione definitiva è registrata dopo una prova misurata.
+La UI foundation usa shadcn/ui con primitive Radix e componenti sorgente versionati in `apps/web/src/components/ui`. Il confronto Mantine non è stato eseguito in questa fase; un'eventuale decisione comparativa resta separata.
 
 Non sono ammessi nella nuova UI:
 
@@ -240,6 +240,7 @@ richiesta Cloudflare
         ▼
 apps/web/src/worker.ts
         ├── /astro-foundation → @astrojs/cloudflare/handler
+        ├── /control-room-foundation → @astrojs/cloudflare/handler
         └── tutte le altre route → src/index.ts
                                   ├── API e health
                                   ├── sito e Control Room legacy
@@ -247,7 +248,9 @@ apps/web/src/worker.ts
                                   └── publication guardrails
 ```
 
-La delega limitata evita di migrare prematuramente il sito o la Control Room. `/astro-foundation` è una pagina di prova `noindex,nofollow`; non espone dati editoriali e non introduce mutation.
+La delega limitata evita di migrare prematuramente il sito o la Control Room legacy. `/astro-foundation` resta una pagina di prova; `/control-room-foundation` monta una sola island React privata/noindex. La island usa `/api/health` e lo snapshot protetto `GET /api/maintenance/control-room`, senza mutation o accesso diretto a D1.
+
+Il token di manutenzione non attraversa il rendering Astro: viene recuperato dopo hydration dal meccanismo transitorio `sessionStorage`, resta fuori da HTML, URL e log, ed è trasmesso soltanto nell'header `Authorization`. In assenza di sessione la UI non richiede dati protetti.
 
 ## Confine con il futuro Command Center dello studio
 
@@ -294,7 +297,7 @@ GitHub Actions esegue:
 7. deploy Worker, Workflow, Container e asset;
 8. smoke test live di pagine, client e API essenziali.
 
-In pull request, lo smoke runtime usa il bundle generato dall'adapter e avvia `wrangler dev` dentro `workerd`. L'avvio risolve D1, asset, Workflow e Container nello stesso runtime; richieste HTTP reali verificano la pagina Astro, `/api/health` e l'assenza di endpoint di pubblicazione.
+In pull request, lo smoke runtime usa il bundle generato dall'adapter e avvia `wrangler dev` dentro `workerd`. L'avvio risolve D1, asset, Workflow e Container nello stesso runtime; richieste HTTP reali verificano le route Astro, `/api/health`, lo snapshot autenticato e l'assenza di endpoint di pubblicazione. Uno smoke Chromium separato verifica hydration, sessione bloccata, stati loading/error/empty, tastiera, Sheet e viewport mobile usando fixture esplicitamente separate dai controlli sullo snapshot runtime reale.
 
 Il deploy automatico parte per modifiche operative unite in `main`; le modifiche ai soli documenti non devono distribuire produzione.
 

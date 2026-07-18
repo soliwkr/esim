@@ -22,8 +22,9 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
 | Control Room legacy | Transitoria | v3 con client separato e smoke live; verifica browser da chiudere |
-| Frontend foundation | Implementata, non distribuita | `apps/web`, React island e custom entrypoint nello stesso bundle Worker |
-| Frontend target | Decisione presa | confronto UI e Control Room completa restano fasi successive |
+| Frontend foundation | Unita con PR #26 | `apps/web`, React island e custom entrypoint nello stesso bundle Worker |
+| Control Room UI foundation | Implementata su feature branch | shadcn/ui, una island React e snapshot protetto in sola lettura |
+| Frontend target | Incrementale | confronto Mantine e migrazione operativa completa non eseguiti |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -160,13 +161,13 @@ Worker esistente
 └── execution plane, API e binding
 ```
 
-Il candidato principale per la UI è shadcn/ui usando componenti e dashboard block esistenti. Mantine viene confrontato nello spike sulle stesse tre viste.
+La fondazione della nuova Control Room usa shadcn/ui con sorgenti versionati nel repository. Il confronto con Mantine non è stato eseguito in questa fase e non viene presentato come prova comparativa.
 
 Il piano completo vive in `docs/FRONTEND-PLAN.md`.
 
 ## Astro frontend foundation
 
-La branch `feat/astro-frontend-foundation` aggiunge una fondazione non pubblica e mantiene un solo execution plane:
+La PR #26 ha aggiunto la fondazione Astro e mantiene un solo execution plane:
 
 ```text
 apps/web/src/worker.ts
@@ -178,13 +179,25 @@ apps/web/src/worker.ts
 
 Il bundle generato conserva D1, secret, AI Gateway/Vertex e i binding esistenti. Lo smoke CI avvia il bundle in `workerd`, richiede realmente la pagina Astro e `/api/health`, verifica Workflow e Container e conferma che le route di pubblicazione candidate restituiscano `404`.
 
-La pagina di fondazione è `noindex,nofollow`. Nessun deploy pubblico è stato eseguito e la Control Room completa non fa parte di questa fase.
+La pagina di fondazione è `noindex,nofollow`. La PR della successiva UI foundation non esegue deploy pubblico e la Control Room completa non fa parte di questa fase.
+
+## Control Room UI foundation
+
+La branch `feat/control-room-ui-foundation` aggiunge una sola nuova route Astro, `/control-room-foundation`, con header e meta `noindex,nofollow`, `no-store` e una CSP limitata allo stesso origin.
+
+La pagina monta una sola island React. I componenti shadcn/ui `Button`, `Card`, `Badge`, `Input`, `Select`, `Table`, `Alert`, `Skeleton`, `Sheet` e `Sonner` sono installati e versionati sotto `apps/web/src/components/ui`.
+
+La sessione riusa `srMaintenanceToken` in `sessionStorage`. Il token viene letto soltanto dopo l'hydration, inviato nell'header `Authorization` e non serializzato da Astro. Senza sessione la UI resta bloccata e non interroga lo snapshot.
+
+La dashboard legge esclusivamente `/api/health` e `GET /api/maintenance/control-room`. Mostra health, metriche, claim filtrabili con dettaglio laterale e metadati dell'ultimo draft. Non contiene mutation, accesso browser a D1, route o pulsanti di pubblicazione. Il backend e i gate editoriali restano invariati.
+
+Gli smoke distinguono lo snapshot reale del runtime dalle fixture dichiarate in `tests/fixtures`: il runtime reale verifica autenticazione e forma del contratto; le fixture coprono deterministicamente hydration, loading, error, empty, tastiera, mobile e pannelli read-only.
 
 ## Rischi aperti
 
 1. La Control Room v3 deve essere verificata realmente nel browser.
-2. La fondazione Astro deve essere revisionata e restare non distribuita finché la PR non viene unita intenzionalmente.
-3. Il kit UI deve essere scelto con uno spike misurato, non per preferenza estetica.
+2. La UI foundation deve essere revisionata in una PR draft senza preview o deploy pubblico.
+3. shadcn/ui è installato per questa fondazione; un eventuale confronto Mantine resta non eseguito.
 4. Cloudflare Access deve diventare il perimetro esterno della dashboard.
 5. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
 6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
@@ -197,10 +210,10 @@ La pagina di fondazione è `noindex,nofollow`. Nessun deploy pubblico è stato e
 Il prossimo checkpoint è raggiunto quando:
 
 - Control Room v3 è verificata nel browser;
-- `apps/web` Astro esiste;
-- React island e custom Worker entrypoint funzionano con i binding esistenti;
-- tre viste campione sono implementate;
-- shadcn/ui e Mantine sono confrontati;
-- la decisione UI definitiva è registrata;
+- la PR draft della UI foundation è revisionata;
+- la singola React island e il custom Worker entrypoint funzionano con i binding esistenti;
+- overview, claim e draft preview read-only sono coperti da smoke browser e runtime;
+- sessione bloccata, noindex e assenza di mutation sono verificati;
+- il confronto Mantine resta separato e non blocca la revisione di questa fondazione;
 - nessuna nuova UI artigianale viene aggiunta;
 - nessun gate editoriale o di pubblicazione regredisce.

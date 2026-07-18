@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "maintenanceApi": "enabled",
+  "recentDemandWorkflow": "enabled",
+  "last30DaysContainer": "enabled",
+  "aiGateway": "enabled",
+  "affiliateMode": "disabled"
+}

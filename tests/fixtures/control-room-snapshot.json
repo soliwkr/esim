@@ -1,0 +1,86 @@
+{
+  "ok": true,
+  "generatedAt": "2026-07-18T08:00:00.000Z",
+  "capabilities": {
+    "worker": true,
+    "d1": true,
+    "maintenanceApi": true,
+    "aiGateway": true,
+    "vertex": true,
+    "recentDemandWorkflow": true,
+    "publicationAutomation": false
+  },
+  "overview": {
+    "claims_pending": 1,
+    "claims_verified": 1,
+    "claims_insufficient": 0,
+    "drafts_review": 1
+  },
+  "claims": [
+    {
+      "id": 101,
+      "brief_id": 11,
+      "subject_type": "provider",
+      "subject_key": "fixture-provider",
+      "field_name": "hotspot",
+      "claim_text": "Il piano di test include la condivisione dati.",
+      "verification_question": "Il tethering è incluso?",
+      "status": "verified",
+      "evidence": "Pagina ufficiale conservata come fixture di test.",
+      "notes": "Fixture esplicitamente separata dal runtime reale.",
+      "source_kind": "official_provider",
+      "source_label": "Fonte ufficiale fixture",
+      "source_url": "https://example.test/provider",
+      "trust_level": 5,
+      "verification_status": "verified",
+      "confidence": 1,
+      "checked_at": "2026-07-18T07:00:00.000Z",
+      "valid_until": "2026-08-18T07:00:00.000Z",
+      "task_status": "completed",
+      "required_source_kinds": ["official_provider"],
+      "value": true
+    },
+    {
+      "id": 102,
+      "brief_id": 11,
+      "subject_type": "provider",
+      "subject_key": "fixture-provider",
+      "field_name": "speed",
+      "claim_text": "La velocità dichiarata è ancora da verificare.",
+      "verification_question": "Quale velocità è dichiarata?",
+      "status": "pending",
+      "evidence": null,
+      "notes": null,
+      "source_kind": null,
+      "source_label": null,
+      "source_url": null,
+      "trust_level": null,
+      "verification_status": null,
+      "confidence": null,
+      "checked_at": null,
+      "valid_until": null,
+      "task_status": "pending",
+      "required_source_kinds": ["official_provider"],
+      "value": null
+    }
+  ],
+  "drafts": [
+    {
+      "id": 201,
+      "evidence_bundle_id": 31,
+      "version": 2,
+      "page_slug": "fixture-destination",
+      "page_type": "destination",
+      "prompt_version": "grounded-v1",
+      "status": "review",
+      "title": "Fixture: guida di destinazione",
+      "h1": "Guida fixture per la Control Room",
+      "used_claim_ids": [101],
+      "excluded_claim_ids": [102],
+      "generated_by": "fixture",
+      "review_notes": null,
+      "error_message": null,
+      "updated_at": "2026-07-18T07:30:00.000Z"
+    }
+  ]
+}

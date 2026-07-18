@@ -5,7 +5,10 @@ export { Last30DaysContainer } from '../../../src/last30days-container';
 export { RecentDemandWorkflow } from '../../../src/recent-demand-workflow';
 
 function isAstroRequest(pathname: string): boolean {
-  return pathname === '/astro-foundation' || pathname.startsWith('/astro-foundation/');
+  return pathname === '/astro-foundation'
+    || pathname.startsWith('/astro-foundation/')
+    || pathname === '/control-room-foundation'
+    || pathname.startsWith('/control-room-foundation/');
 }
 
 export default {

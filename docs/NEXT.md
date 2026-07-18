@@ -24,19 +24,20 @@ Il deploy automatico deve fallire quando il client live non è sintatticamente v
 
 Non aggiungere nuove funzioni importanti alla dashboard artigianale.
 
-### 2. Revisionare la fondazione Astro
+### 2. Revisionare la Control Room UI foundation
 
-La PR `feat/astro-frontend-foundation` contiene la fondazione Astro senza spostare il backend esistente.
+La branch `feat/control-room-ui-foundation` contiene shadcn/ui e la nuova route read-only senza spostare o modificare il backend esistente.
 
 Prima del merge verificare:
 
-- CI runtime verde dentro `workerd`;
-- pagina Astro e `/api/health` nello stesso Worker;
+- CI runtime e browser verde dentro `workerd` e Chromium;
+- route `/control-room-foundation`, snapshot protetto e `/api/health` nello stesso Worker;
 - export di Workflow e Container nel bundle generato;
-- assenza di route di pubblicazione;
+- sessione bloccata senza token e assenza di mutation o route di pubblicazione;
+- loading, error, empty, tastiera e mobile coperti;
 - nessun deploy pubblico dalla PR.
 
-### 3. Confrontare due approcci UI
+### 3. Valutare separatamente l'eventuale confronto UI
 
 Candidato principale:
 
@@ -53,11 +54,13 @@ Mantine
 + React island completa
 ```
 
-Implementare tre viste campione:
+La UI foundation shadcn è implementata. Un confronto Mantine, se ancora utile, deve essere una fase separata e non va retrodatato come svolto.
+
+Le tre viste disponibili come base misurabile sono:
 
 1. overview e health;
-2. tabella claim con filtri e azione;
-3. revisione draft con preview.
+2. tabella claim con filtro e dettaglio read-only;
+3. metadati draft con preview read-only.
 
 Misurare codice custom, velocità, accessibilità, mobile, tema, bundle e manutenzione.
 
@@ -142,10 +145,10 @@ Fino alla conclusione dello spike:
 - [ ] Control Room v3 verificata realmente nel browser;
 - [x] `apps/web` Astro creato;
 - [x] integrazione con Worker, binding, Workflow e Container dimostrata in CI;
-- [ ] tre viste campione implementate;
+- [x] tre viste campione read-only implementate;
 - [ ] shadcn/ui e Mantine confrontati con criteri misurabili;
-- [ ] UI kit scelto e ADR registrata;
-- [ ] nessun nuovo HTML/JS artigianale aggiunto;
+- [x] shadcn/ui installato e versionato per la fondazione;
+- [x] nessun nuovo HTML/JS applicativo artigianale aggiunto;
 - [ ] nessuna regressione dei gate editoriali e di pubblicazione;
 - [ ] piano di migrazione della Control Room pronto per l'esecuzione.
 
