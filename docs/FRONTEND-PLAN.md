@@ -136,13 +136,20 @@ La trasformazione in monorepo più profonda viene considerata solo dopo il primo
 - nessuna nuova funzione importante nella dashboard HTML manuale;
 - nessuna nuova pagina pubblica costruita con template string nel Worker.
 
-### F1 — Spike architetturale
+### F1a — Frontend foundation
 
-- creare `apps/web` con Astro, React e Cloudflare;
-- collegare il custom Worker entrypoint;
-- verificare binding, Workflow, Container e API;
+- [x] creare `apps/web` con Astro, React e Cloudflare;
+- [x] collegare il custom Worker entrypoint;
+- [x] verificare binding, Workflow, Container e API in `workerd`;
+- [x] verificare che non esistano route di pubblicazione;
+- [x] mantenere la demo non pubblica e la PR non mergiata.
+
+### F1b — Spike UI successivo
+
 - confrontare shadcn/ui e Mantine sulle tre viste campione;
 - produrre una decisione misurata e una demo non pubblica.
+
+Il confronto UI è intenzionalmente escluso dalla frontend foundation.
 
 ### F2 — Design foundation
 
@@ -196,9 +203,16 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 
 ## Definition of Done dello spike
 
-- Astro gira in `workerd` con i binding reali o equivalenti;
+### Frontend foundation
+
+- Astro gira in `workerd` con i binding equivalenti;
 - API esistenti raggiungibili senza regressioni;
-- Workflow e Container continuano a essere esportati e distribuiti;
+- Workflow e Container continuano a essere esportati nello stesso bundle;
+- smoke runtime reali coprono pagina Astro, `/api/health` e route di pubblicazione assenti;
+- nessun deploy pubblico e nessuna modifica diretta a `main`.
+
+### Spike UI successivo
+
 - tre viste Control Room realizzate con entrambi i candidati o con prova sufficiente a scartarne uno;
 - decisione UI registrata in `docs/DECISIONS.md`;
 - volume di codice custom e bundle confrontati;

@@ -230,6 +230,25 @@ Lo spike deve dimostrare che il singolo deploy mantiene:
 
 Due Worker separati vengono adottati soltanto se il modello singolo crea rischi o accoppiamento non accettabili.
 
+### Fondazione implementata
+
+Il custom entrypoint reale è `apps/web/src/worker.ts`. Astro compila quel file come default export del Worker e conserva come named export `RecentDemandWorkflow` e `Last30DaysContainer`.
+
+```text
+richiesta Cloudflare
+        │
+        ▼
+apps/web/src/worker.ts
+        ├── /astro-foundation → @astrojs/cloudflare/handler
+        └── tutte le altre route → src/index.ts
+                                  ├── API e health
+                                  ├── sito e Control Room legacy
+                                  ├── redirect provider
+                                  └── publication guardrails
+```
+
+La delega limitata evita di migrare prematuramente il sito o la Control Room. `/astro-foundation` è una pagina di prova `noindex,nofollow`; non espone dati editoriali e non introduce mutation.
+
 ## Confine con il futuro Command Center dello studio
 
 Il futuro Command Center è un control plane multi-progetto. Non deve incorporare il database o la logica editoriale di Senza Roaming.
@@ -274,6 +293,8 @@ GitHub Actions esegue:
 6. build e smoke test del Container;
 7. deploy Worker, Workflow, Container e asset;
 8. smoke test live di pagine, client e API essenziali.
+
+In pull request, lo smoke runtime usa il bundle generato dall'adapter e avvia `wrangler dev` dentro `workerd`. L'avvio risolve D1, asset, Workflow e Container nello stesso runtime; richieste HTTP reali verificano la pagina Astro, `/api/health` e l'assenza di endpoint di pubblicazione.
 
 Il deploy automatico parte per modifiche operative unite in `main`; le modifiche ai soli documenti non devono distribuire produzione.
 

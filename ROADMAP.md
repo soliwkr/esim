@@ -128,13 +128,15 @@ L9  Dashboard e integrazione studio
 
 ### M4.1 — Spike Astro e Cloudflare
 
-- [ ] Creare `apps/web` con Astro.
-- [ ] Aggiungere adapter Cloudflare e React integration.
-- [ ] Dimostrare custom Worker entrypoint.
-- [ ] Conservare API, D1, Workflow e Container nello stesso execution plane.
-- [ ] Verificare sviluppo e preview dentro `workerd`.
+- [x] Creare `apps/web` con Astro.
+- [x] Aggiungere adapter Cloudflare e React integration.
+- [x] Dimostrare custom Worker entrypoint.
+- [x] Conservare API, D1, Workflow e Container nello stesso execution plane.
+- [x] Verificare build e smoke runtime dentro `workerd` in CI.
 - [ ] Dimostrare deploy automatico e smoke live.
-- [ ] Valutare due Worker soltanto in presenza di un problema dimostrato.
+- [x] Conservare un solo Worker: lo spike non ha dimostrato la necessità di separarlo.
+
+La fondazione è isolata nella PR `feat/astro-frontend-foundation` e non è collegata al traffico pubblico finché la PR non viene revisionata e unita.
 
 ### M4.2 — Scelta UI comprovata
 

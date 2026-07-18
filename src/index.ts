@@ -61,7 +61,7 @@ export default {
       if (path === 'sitemap.xml') return sitemap(env);
       if (path === 'favicon.svg') return favicon();
       if (path === 'robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /control-room\nDisallow: /api/maintenance/\nSitemap: ${siteBase(env)}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain;charset=UTF-8', 'cache-control': 'public,max-age=3600' } });
-      if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled', aiGateway: env.AI_GATEWAY_TOKEN ? 'enabled' : 'disabled', recentDemandWorkflow: env.RECENT_DEMAND_WORKFLOW ? 'enabled' : 'disabled', controlRoomVersion: 3 });
+      if (path === 'api/health') return Response.json({ ok: true, site: env.SITE_NAME, affiliateMode: env.AFFILIATE_MODE || 'disabled', maintenanceApi: env.MAINTENANCE_TOKEN ? 'enabled' : 'disabled', aiGateway: env.AI_GATEWAY_TOKEN ? 'enabled' : 'disabled', recentDemandWorkflow: env.RECENT_DEMAND_WORKFLOW ? 'enabled' : 'disabled', last30DaysContainer: env.LAST30DAYS_CONTAINER ? 'enabled' : 'disabled', controlRoomVersion: 3 });
       if (path === 'api/maintenance/ai-smoke') return aiGatewaySmoke(request, env);
       if (path === 'api/maintenance/control-room') return controlRoomApi(request, env);
       if (path.startsWith('api/maintenance/page-readiness')) return pageReadinessApi(request, env, path);

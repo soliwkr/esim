@@ -12,6 +12,7 @@ export type WorkflowBinding = {
 
 export interface Env {
   DB: D1Database;
+  ASSETS: Fetcher;
   LAST30DAYS_CONTAINER: DurableObjectNamespace<Last30DaysContainer>;
   RECENT_DEMAND_WORKFLOW: WorkflowBinding;
   SITE_NAME: string;

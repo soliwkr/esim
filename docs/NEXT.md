@@ -24,18 +24,17 @@ Il deploy automatico deve fallire quando il client live non è sintatticamente v
 
 Non aggiungere nuove funzioni importanti alla dashboard artigianale.
 
-### 2. Avviare lo spike Astro
+### 2. Revisionare la fondazione Astro
 
-Creare `apps/web` senza spostare il backend esistente.
+La PR `feat/astro-frontend-foundation` contiene la fondazione Astro senza spostare il backend esistente.
 
-Lo spike deve dimostrare:
+Prima del merge verificare:
 
-- Astro con adapter Cloudflare;
-- React come singola island per la Control Room;
-- custom Worker entrypoint compatibile con API, D1, Workflow e Container;
-- sviluppo locale dentro `workerd`;
-- deploy automatico senza regressioni;
-- route pubbliche e API sullo stesso dominio, salvo prova contraria.
+- CI runtime verde dentro `workerd`;
+- pagina Astro e `/api/health` nello stesso Worker;
+- export di Workflow e Container nel bundle generato;
+- assenza di route di pubblicazione;
+- nessun deploy pubblico dalla PR.
 
 ### 3. Confrontare due approcci UI
 
@@ -134,12 +133,15 @@ Fino alla conclusione dello spike:
 - deploy automatico per modifiche operative su `main`;
 - decisione di migrare il frontend verso Astro + React island;
 - piano frontend documentato.
+- `apps/web` con Astro, React e adapter Cloudflare;
+- custom Worker entrypoint unico con fallback al backend esistente;
+- smoke runtime per pagina Astro, health, Workflow, Container e assenza di route di pubblicazione.
 
 ## Definition of Done del prossimo checkpoint
 
 - [ ] Control Room v3 verificata realmente nel browser;
-- [ ] `apps/web` Astro creato;
-- [ ] integrazione con Worker, binding, Workflow e Container dimostrata;
+- [x] `apps/web` Astro creato;
+- [x] integrazione con Worker, binding, Workflow e Container dimostrata in CI;
 - [ ] tre viste campione implementate;
 - [ ] shadcn/ui e Mantine confrontati con criteri misurabili;
 - [ ] UI kit scelto e ADR registrata;

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "src/**"
+      - "apps/web/**"
       - "migrations/**"
       - "containers/**"
       - "scripts/**"
@@ -105,10 +106,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.production.jsonc
 
+      - name: Build Astro and custom Worker entrypoint
+        env:
+          ASTRO_WRANGLER_CONFIG: ../../wrangler.production.jsonc
+        run: npm run build
+
       - name: Deploy Worker, Container and Workflow
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler deploy --config wrangler.production.jsonc
+        run: npx wrangler deploy --config apps/web/dist/server/wrangler.json
 
       - name: Verify Cloudflare resources
         env:

@@ -22,7 +22,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
 | Control Room legacy | Transitoria | v3 con client separato e smoke live; verifica browser da chiudere |
-| Frontend target | Decisione presa | Astro + React island; spike UI da avviare |
+| Frontend foundation | Implementata, non distribuita | `apps/web`, React island e custom entrypoint nello stesso bundle Worker |
+| Frontend target | Decisione presa | confronto UI e Control Room completa restano fasi successive |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -163,10 +164,26 @@ Il candidato principale per la UI è shadcn/ui usando componenti e dashboard blo
 
 Il piano completo vive in `docs/FRONTEND-PLAN.md`.
 
+## Astro frontend foundation
+
+La branch `feat/astro-frontend-foundation` aggiunge una fondazione non pubblica e mantiene un solo execution plane:
+
+```text
+apps/web/src/worker.ts
+├── /astro-foundation → handler Astro
+├── API, pagine legacy e redirect → router backend esistente
+├── export RecentDemandWorkflow
+└── export Last30DaysContainer
+```
+
+Il bundle generato conserva D1, secret, AI Gateway/Vertex e i binding esistenti. Lo smoke CI avvia il bundle in `workerd`, richiede realmente la pagina Astro e `/api/health`, verifica Workflow e Container e conferma che le route di pubblicazione candidate restituiscano `404`.
+
+La pagina di fondazione è `noindex,nofollow`. Nessun deploy pubblico è stato eseguito e la Control Room completa non fa parte di questa fase.
+
 ## Rischi aperti
 
 1. La Control Room v3 deve essere verificata realmente nel browser.
-2. L'integrazione Astro con custom Worker entrypoint, Workflow e Container deve essere dimostrata.
+2. La fondazione Astro deve essere revisionata e restare non distribuita finché la PR non viene unita intenzionalmente.
 3. Il kit UI deve essere scelto con uno spike misurato, non per preferenza estetica.
 4. Cloudflare Access deve diventare il perimetro esterno della dashboard.
 5. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
