@@ -1,38 +1,105 @@
 # Architettura di Senza Roaming
 
+Data di riferimento: **18 luglio 2026**.
+
 ## Scopo
 
 Senza Roaming è un execution project autonomo: pubblica contenuti, conserva fonti e claim, raccoglie segnali di domanda, governa una coda editoriale e misura il passaggio verso i provider.
 
 Non è il sistema operativo dell'intero studio e non deve diventarlo.
 
-## Componenti principali
+## Architettura target
 
 ```text
 Utente / crawler
       │
       ▼
-Cloudflare Worker
-      ├── pagine pubbliche SEO/AEO
-      ├── sitemap, robots, canonical e 404
+Astro su Cloudflare
+      ├── sito pubblico content-first
+      ├── layout, navigazione e SEO
+      ├── pagine statiche e on-demand
+      ├── asset compilati
+      └── shell Control Room
+              │
+              ▼
+        React island privata
+              ├── query e mutation tipizzate
+              ├── tabelle, form e dialog
+              └── nessun accesso diretto a D1
+
+Custom Cloudflare Worker entrypoint
+      ├── handler Astro
+      ├── API protette di manutenzione
       ├── redirect provider
-      └── API protette di manutenzione
-              │
-              ├── D1
-              │    ├── pagine e catalogo
-              │    ├── fonti e claim
-              │    ├── maintenance queue
-              │    └── research runs e signals
-              │
-              ├── Cloudflare Workflows
-              │    └── orchestrazione dei run
-              │
-              ├── Cloudflare Container
-              │    └── last30days runner
-              │
-              └── Cloudflare AI Gateway
-                   └── Vertex AI BYOK
+      ├── D1
+      ├── Cloudflare Workflows
+      ├── Cloudflare Container
+      └── Cloudflare AI Gateway
+              └── Vertex AI BYOK
 ```
+
+La migrazione al frontend Astro non riscrive il backend. Claim, evidence bundle, queue, Workflow, Container, AI e gate editoriali restano l'execution plane canonico.
+
+## Responsabilità del frontend
+
+### Astro
+
+Astro è responsabile di:
+
+- HTML pubblico e layout;
+- routing delle pagine;
+- navigazione;
+- metadata, canonical e schema;
+- sitemap, robots e 404;
+- rendering statico o on-demand;
+- composizione delle isole interattive;
+- caricamento minimo di JavaScript.
+
+### React island
+
+React è usato soltanto dove esiste interattività applicativa complessa, inizialmente la Control Room.
+
+È responsabile di:
+
+- stato della sessione operativa;
+- query, mutation, loading, error e retry;
+- tabelle, filtri e form;
+- preview e decisioni editoriali;
+- notifiche e conferme;
+- accessibilità dei flussi interattivi.
+
+Il sito pubblico non diventa una SPA generale.
+
+### Componenti UI
+
+I componenti generici non vengono riscritti da zero.
+
+La UI deve usare un kit e blocchi comprovati. Il candidato principale è shadcn/ui; Mantine viene confrontato nello spike. La decisione definitiva è registrata dopo una prova misurata.
+
+Non sono ammessi nella nuova UI:
+
+- template string HTML monolitiche;
+- rendering applicativo con `innerHTML`;
+- listener manuali per ogni pulsante;
+- form validation artigianale;
+- componenti base duplicati senza necessità di dominio.
+
+## Backend ed execution plane
+
+Il Worker e i binding esistenti restano responsabili di:
+
+- API protette;
+- D1 e migrazioni;
+- claim, fonti e verifiche;
+- maintenance queue;
+- research runs e signals;
+- evidence bundle e Page Readiness;
+- draft e stati editoriali;
+- Workflows e Container;
+- AI Gateway e Vertex;
+- publication guardrails.
+
+Astro e React non modificano direttamente D1 dal browser.
 
 ## Separazione delle fonti
 
@@ -49,9 +116,10 @@ Sono utilizzabili per claim commerciali datati:
 - copertura dichiarata;
 - attivazione;
 - compatibilità;
+- routing;
 - termini del provider.
 
-Ogni claim deve avere almeno fonte, data di verifica, stato e collegamento alla pagina interessata.
+Ogni claim deve avere fonte, data di verifica, stato e collegamento alla pagina interessata.
 
 ### Community, trend e ricerca recente
 
@@ -63,7 +131,7 @@ Sono utilizzabili per:
 - confronti cercati;
 - content gap;
 - priorità editoriali;
-- segnali di momentum o stagionalità.
+- momentum o stagionalità.
 
 Non possono aggiornare direttamente un claim commerciale.
 
@@ -91,52 +159,80 @@ research_signals + task editoriale
 revisione umana / AI controllata
 ```
 
-## Flusso AI
+## Flusso editoriale
 
 ```text
-segnali e dati strutturati
-        │
-        ▼
-Cloudflare AI Gateway
-        │
-        ▼
-Vertex AI
-        │
-        ├── clustering
-        ├── deduplicazione
-        ├── scoring spiegabile
-        └── brief e task
-                │
-                ▼
-          revisione umana
-                │
-                ▼
-          pubblicazione controllata
+segnali eligible
+      │
+      ▼
+brief AI strutturato
+      │
+      ▼
+accettazione umana
+      │
+      ▼
+claim atomici + fonti
+      │
+      ▼
+Page Readiness + evidence bundle
+      │
+      ▼
+draft grounded in review
+      │
+      ▼
+revisione umana
+      │
+      ▼
+publication gate separato
 ```
 
 L'AI non possiede un percorso diretto per promuovere una pagina a `published`.
 
 ## Dashboard del progetto
 
-La dashboard di Senza Roaming è specifica del dominio eSIM e deve gestire:
+La Control Room è specifica del dominio eSIM e deve gestire:
 
 - run del radar;
 - segnali;
 - coda editoriale;
-- fonti;
-- claim;
-- pagine;
-- anteprime;
-- errori;
+- brief;
+- fonti e claim;
+- readiness;
+- draft e preview;
+- errori e health;
 - operazioni manuali del Workflow.
 
 Deve essere costruita sopra API stabili e protette, evitando accesso diretto del browser a D1.
 
+La Control Room HTML manuale è legacy transitoria. La versione definitiva è una React island dentro Astro.
+
+## Strategia di integrazione Cloudflare
+
+La forma preferita usa un custom Worker entrypoint:
+
+```text
+custom entrypoint
+├── route API esistenti
+├── export Workflow e Container
+└── handler Astro per pagine e asset
+```
+
+Lo spike deve dimostrare che il singolo deploy mantiene:
+
+- binding D1 e secret;
+- Workflow e Container;
+- API;
+- migrazioni;
+- route pubbliche;
+- deploy automatico;
+- smoke test live;
+- guardrail editoriali.
+
+Due Worker separati vengono adottati soltanto se il modello singolo crea rischi o accoppiamento non accettabili.
+
 ## Confine con il futuro Command Center dello studio
 
 Il futuro Command Center è un control plane multi-progetto. Non deve incorporare il database o la logica editoriale di Senza Roaming.
-
-Il modello previsto è:
 
 ```text
 Command Center dello studio
@@ -150,40 +246,21 @@ Command Center dello studio
 Senza Roaming execution plane
 ```
 
-Il contratto futuro dovrà esporre soltanto dati e azioni necessari, per esempio:
-
-- health sintetico;
-- conteggi per stato;
-- run recenti;
-- task bloccati;
-- opportunità principali;
-- fonti scadute;
-- trigger di operazioni autorizzate.
-
 ## Confine con OpenSEO
 
 OpenSEO è un servizio specialistico condiviso dello studio e non va fuso nel Worker di Senza Roaming.
 
-OpenSEO può fornire:
-
-- keyword research;
-- SERP e competitor intelligence;
-- rank tracking;
-- backlink;
-- audit tecnici;
-- AI visibility;
-- dati Search Console.
-
-Senza Roaming deve ricevere risultati normalizzati o task, non dipendere dall'intera codebase di OpenSEO.
+Senza Roaming riceve risultati normalizzati o task, non dipende dall'intera codebase di OpenSEO.
 
 ## Sicurezza
 
-- `MAINTENANCE_TOKEN` protegge le API operative.
+- `MAINTENANCE_TOKEN` protegge le API operative durante la fase transitoria.
 - `AI_GATEWAY_TOKEN` protegge il percorso AI.
-- I link affiliate e le credenziali restano secret Cloudflare.
-- La dashboard privata deve usare Cloudflare Access o autenticazione equivalente.
-- Nessun token, service account JSON o dato sensibile deve essere versionato.
-- Le risposte di errore non devono esporre secret o payload completi di provider esterni.
+- Cloudflare Access deve proteggere la Control Room definitiva.
+- Link affiliate e credenziali restano secret Cloudflare.
+- Nessun token o dato sensibile viene versionato o inserito negli URL.
+- Le risposte di errore non espongono secret o payload completi di provider esterni.
+- Il frontend non contiene funzioni di pubblicazione automatica.
 
 ## Deployment
 
@@ -192,10 +269,13 @@ GitHub Actions esegue:
 1. installazione dipendenze;
 2. generazione tipi Cloudflare;
 3. typecheck;
-4. migrazioni D1;
-5. build e smoke test del Container;
-6. deploy Worker, Workflow e Container;
-7. controlli post-deploy disponibili nel workflow.
+4. build Astro e frontend;
+5. migrazioni D1;
+6. build e smoke test del Container;
+7. deploy Worker, Workflow, Container e asset;
+8. smoke test live di pagine, client e API essenziali.
+
+Il deploy automatico parte per modifiche operative unite in `main`; le modifiche ai soli documenti non devono distribuire produzione.
 
 ## Principio di evoluzione
 
@@ -206,4 +286,5 @@ Aggiungere un componente solo quando:
 3. produce dati strutturati e verificabili;
 4. è osservabile;
 5. può fallire senza pubblicare informazioni scorrette;
-6. non duplica una capacità già disponibile nello studio.
+6. non duplica una capacità già disponibile;
+7. non ricostruisce artigianalmente un componente generico già risolto.
