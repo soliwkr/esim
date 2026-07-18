@@ -1,0 +1,35 @@
+{
+  "name": "@senza-roaming/web-spike",
+  "version": "0.0.0-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "build": "astro build",
+    "preview:worker": "wrangler dev ./dist/_worker.js/index.js --local --config wrangler.spike.jsonc",
+    "typecheck": "astro check && tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "latest",
+    "@astrojs/react": "latest",
+    "@mantine/core": "latest",
+    "@mantine/hooks": "latest",
+    "@tanstack/react-query": "latest",
+    "@tanstack/react-table": "latest",
+    "astro": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwind-merge": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "^5.8.3",
+    "wrangler": "latest"
+  }
+}

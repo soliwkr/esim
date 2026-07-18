@@ -11,7 +11,11 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "keywords:intake": "node scripts/build-keyword-research.mjs",
-    "research:ingest": "node scripts/ingest-last30days.mjs"
+    "research:ingest": "node scripts/ingest-last30days.mjs",
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "web:typecheck": "npm --prefix apps/web run typecheck",
+    "web:smoke": "npm --prefix apps/web run smoke"
   },
   "dependencies": {
     "@cloudflare/containers": "^0.3.7"

@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "senza-roaming-astro-spike-local",
+  "main": "./dist/_worker.js/index.js",
+  "compatibility_date": "2026-07-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "SITE_NAME": "Senza Roaming Astro Spike",
+    "SITE_URL": "http://127.0.0.1:8787",
+    "GTM_ID": "",
+    "AFFILIATE_MODE": "disabled"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "senza-roaming", "database_id": "local-spike", "migrations_dir": "../../migrations" }
+  ],
+  "containers": [
+    { "class_name": "Last30DaysContainer", "image": "../../containers/last30days/Dockerfile", "max_instances": 1 }
+  ],
+  "durable_objects": { "bindings": [{ "name": "LAST30DAYS_CONTAINER", "class_name": "Last30DaysContainer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Last30DaysContainer"] }],
+  "workflows": [{ "name": "senza-roaming-recent-demand-spike", "binding": "RECENT_DEMAND_WORKFLOW", "class_name": "RecentDemandWorkflow" }]
+}

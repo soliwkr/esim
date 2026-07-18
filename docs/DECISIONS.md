@@ -131,3 +131,14 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** una riorganizzazione completa del repository insieme al cambio di framework aumenterebbe il rischio senza migliorare direttamente il prodotto.
 
 **Conseguenza:** prima si dimostrano Astro, Cloudflare, binding, Workflow, Container e tre viste Control Room. La ristrutturazione completa in monorepo viene valutata dopo il primo rilascio stabile.
+
+
+## ADR-014 — Raccomandazione spike UI Control Room
+
+**Stato:** proposta dallo spike; da confermare prima della migrazione definitiva
+
+**Decisione:** adottare shadcn/ui come base della Control Room Astro, usando componenti e dashboard block esistenti, con React limitato alla island operativa. Mantine resta il confronto documentato ma non è raccomandato come default.
+
+**Razionale:** lo spike in `apps/web` mostra che shadcn/ui mantiene il runtime più vicino al modello content-first di Astro, facilita branding tramite token CSS e componenti ispezionabili, e riduce il rischio di importare un framework UI più pesante nell'isola privata. Mantine offre componenti applicativi maturi e form comodi, ma introduce più dipendenze runtime e un provider tematico più invasivo.
+
+**Conseguenza:** la migrazione della Control Room deve partire da dashboard block shadcn/ui ispezionati, TanStack Query/Table, React Hook Form e Zod. Mantine può essere rivalutato solo se un flusso reale dimostra un vantaggio netto su accessibilità, form handling o velocità senza penalizzare bundle e manutenzione. Nessuna route di pubblicazione viene introdotta dal frontend.
