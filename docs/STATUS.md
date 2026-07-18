@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **17 luglio 2026**.
+Data di riferimento: **18 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -12,6 +12,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
 | Worker e D1 | Operativi | migrazioni versionate fino a `0017_editorial_draft_field_claims.sql` |
 | API manutenzione | Operativa | accesso riservato |
+| Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate ricerca | Operativo | segnali `eligible` e `filtered` separati |
 | AI Gateway e Vertex AI | Operativi | `gemini-3.1-flash-lite` raggiunto attraverso AI Gateway |
@@ -20,7 +21,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Page Readiness | Operativo | primo evidence bundle: score 77, draft sì, pubblicazione no |
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
-| Dashboard privata | Implementata, da testare in produzione | Control Room MVP nella PR corrente |
+| Control Room legacy | Transitoria | v3 con client separato e smoke live; verifica browser da chiudere |
+| Frontend target | Decisione presa | Astro + React island; spike UI da avviare |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -122,38 +124,66 @@ La pagina pubblica continua a restituire `404` con `noindex, nofollow`.
 - Un draft approvato non cambia automaticamente `pages.status` da `review` a `published`.
 - D1 blocca la pubblicazione quando i gate non sono soddisfatti.
 
-## Control Room MVP
+## Control Room legacy
 
-La prima dashboard include:
+La dashboard manuale ha dimostrato le API e il flusso operativo, ma non è la base definitiva.
 
-- snapshot aggregato;
-- run recenti e segnali;
-- brief, Priority Score e stato della pipeline;
-- claim atomici, fonti, scadenze e task;
-- evidence bundle e Page Readiness;
-- draft e renderer;
-- queue e audit recente;
-- azioni operative senza accesso diretto a D1.
+Problema osservato:
 
-La shell è `noindex` e non incorpora dati. L'accesso ai dati usa la sessione operativa del browser. Non esiste un pulsante di pubblicazione.
+```text
+Worker
+→ stringa HTML
+→ CSS incorporato
+→ JavaScript browser incorporato
+→ listener e DOM manuali
+```
+
+Questo approccio ha prodotto fragilità non giustificata. La v3 resta disponibile solo come soluzione transitoria e per bugfix critici.
+
+Nessuna nuova funzione importante deve essere aggiunta alla Control Room legacy.
+
+## Frontend target
+
+La direzione approvata è:
+
+```text
+Astro
+├── sito pubblico
+├── layout, SEO e pagine
+└── shell Control Room
+
+React island
+└── Control Room interattiva
+
+Worker esistente
+└── execution plane, API e binding
+```
+
+Il candidato principale per la UI è shadcn/ui usando componenti e dashboard block esistenti. Mantine viene confrontato nello spike sulle stesse tre viste.
+
+Il piano completo vive in `docs/FRONTEND-PLAN.md`.
 
 ## Rischi aperti
 
-1. La Control Room deve essere distribuita e verificata in produzione.
-2. Cloudflare Access deve diventare il perimetro esterno della dashboard.
-3. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
-4. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-5. Serve un health aggregato che includa anche controlli runtime di Container, Workflow e AI Gateway.
-6. Search Console, CMP e analytics non sono ancora disponibili.
-7. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La Control Room v3 deve essere verificata realmente nel browser.
+2. L'integrazione Astro con custom Worker entrypoint, Workflow e Container deve essere dimostrata.
+3. Il kit UI deve essere scelto con uno spike misurato, non per preferenza estetica.
+4. Cloudflare Access deve diventare il perimetro esterno della dashboard.
+5. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
+6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+7. Serve un health aggregato che includa runtime di Container, Workflow e AI Gateway.
+8. Search Console, CMP e analytics non sono ancora disponibili.
+9. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
-- `/control-room` è operativo in produzione;
-- lo snapshot aggregato restituisce i conteggi reali;
-- ricerca, readiness, draft e verifica claim sono eseguibili dalla UI;
-- la dashboard è protetta anche da Cloudflare Access;
-- nessuna azione della dashboard può pubblicare una pagina;
-- `docs/NEXT.md` e la roadmap descrivono il flusso operativo corrente.
+- Control Room v3 è verificata nel browser;
+- `apps/web` Astro esiste;
+- React island e custom Worker entrypoint funzionano con i binding esistenti;
+- tre viste campione sono implementate;
+- shadcn/ui e Mantine sono confrontati;
+- la decisione UI definitiva è registrata;
+- nessuna nuova UI artigianale viene aggiunta;
+- nessun gate editoriale o di pubblicazione regredisce.

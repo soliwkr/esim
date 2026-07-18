@@ -60,7 +60,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Razionale:** infrastruttura, costi, alert, roadmap e servizi condivisi devono essere visibili su più proprietà senza trasformare un singolo sito nel sistema operativo dello studio.
 
-**Conseguenza:** questa chat e questa fase restano concentrate sul completamento di Senza Roaming. La governance dello studio sarà trattata in un cantiere separato.
+**Conseguenza:** questa fase resta concentrata sul completamento di Senza Roaming. La governance dello studio sarà trattata in un cantiere separato.
 
 ## ADR-007 — OpenSEO come servizio condiviso
 
@@ -101,3 +101,33 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** la monetizzazione non deve precedere accuratezza e trasparenza.
 
 **Conseguenza:** l'attivazione avviene tramite configurazione esplicita e può essere disabilitata senza modificare contenuti o routing pubblico.
+
+## ADR-011 — Astro come frontend principale
+
+**Stato:** accettata come direzione; integrazione da validare nello spike
+
+**Decisione:** usare Astro come livello frontend del sito pubblico e come shell della Control Room. Usare React soltanto per isole con interattività applicativa complessa.
+
+**Razionale:** Senza Roaming è principalmente una proprietà editoriale content-first, ma possiede una dashboard privata che richiede stato, form, tabelle e mutation. Astro evita di trasformare l'intero sito in una SPA e consente di caricare React soltanto dove serve.
+
+**Conseguenza:** il Worker non deve più generare nuove interfacce tramite stringhe HTML, CSS e JavaScript. Il backend esistente resta invariato e viene integrato tramite custom Worker entrypoint o, solo se necessario, tramite un confine di deploy separato.
+
+## ADR-012 — Componenti comprovati prima del codice custom
+
+**Stato:** accettata
+
+**Decisione:** non costruire da zero componenti generici, dashboard shell, gestione form, tabelle, dialog, toast, focus e stati applicativi già risolti da librerie mature.
+
+**Razionale:** il valore specifico del progetto vive nei flussi editoriali, nei contratti e nei guardrail, non nella riscrittura di primitive UI.
+
+**Conseguenza:** shadcn/ui è il candidato principale e Mantine il confronto dello spike. La scelta definitiva viene registrata con dati su codice custom, accessibilità, velocità, mobile, bundle, branding e manutenzione. Le nuove funzionalità della Control Room legacy sono congelate fino alla decisione.
+
+## ADR-013 — Migrazione frontend incrementale
+
+**Stato:** accettata
+
+**Decisione:** aggiungere inizialmente `apps/web` senza spostare o riscrivere subito il backend esistente.
+
+**Razionale:** una riorganizzazione completa del repository insieme al cambio di framework aumenterebbe il rischio senza migliorare direttamente il prodotto.
+
+**Conseguenza:** prima si dimostrano Astro, Cloudflare, binding, Workflow, Container e tre viste Control Room. La ristrutturazione completa in monorepo viene valutata dopo il primo rilascio stabile.
