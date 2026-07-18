@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 
 const port = Number(process.env.RUNTIME_SMOKE_PORT || 8788);
 const origin = `http://127.0.0.1:${port}`;
@@ -60,8 +61,8 @@ async function expectNotFound(path) {
 await verifyBuildContract();
 
 const wrangler = spawn(
-  process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['wrangler', 'dev', '--config', configPath, '--port', String(port), '--ip', '127.0.0.1'],
+  process.execPath,
+  ['node_modules/wrangler/bin/wrangler.js', 'dev', '--config', configPath, '--port', String(port), '--ip', '127.0.0.1'],
   {
     env: {
       ...process.env,
@@ -69,12 +70,38 @@ const wrangler = spawn(
       AI_GATEWAY_TOKEN: 'runtime-smoke-ai-token',
       ASTRO_TELEMETRY_DISABLED: '1'
     },
+    detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe']
   }
 );
 
 wrangler.stdout.on('data', record);
 wrangler.stderr.on('data', record);
+
+function signalWrangler(signal) {
+  if (wrangler.exitCode !== null || !wrangler.pid) return;
+  if (process.platform === 'win32') {
+    wrangler.kill(signal);
+  } else {
+    process.kill(-wrangler.pid, signal);
+  }
+}
+
+async function stopWrangler() {
+  if (wrangler.exitCode !== null) return;
+  const exited = once(wrangler, 'exit');
+  signalWrangler('SIGTERM');
+  const graceful = await Promise.race([
+    exited.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5_000))
+  ]);
+  if (graceful) return;
+  signalWrangler('SIGKILL');
+  await Promise.race([
+    once(wrangler, 'exit'),
+    new Promise((resolve) => setTimeout(resolve, 5_000))
+  ]);
+}
 
 try {
   await waitForRuntime(wrangler);
@@ -104,5 +131,5 @@ try {
   console.error(logs.join('').slice(-12_000));
   process.exitCode = 1;
 } finally {
-  wrangler.kill('SIGTERM');
+  await stopWrangler();
 }
