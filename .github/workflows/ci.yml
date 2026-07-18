@@ -73,7 +73,18 @@ jobs:
           exit 1
 
       - name: Smoke-test Astro and backend in workerd
-        run: npm run smoke:runtime
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run smoke:runtime 2>&1 | tee runtime-smoke.log
+
+      - name: Upload runtime smoke log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-smoke-log
+          path: runtime-smoke.log
+          if-no-files-found: error
 
       - name: Smoke-test Control Room hydration and interaction
         run: npm run smoke:ui
