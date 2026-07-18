@@ -6,7 +6,7 @@ Frontend Astro di Senza Roaming e fondazione della nuova Control Room.
 
 `apps/web/src/worker.ts` è il custom entrypoint del singolo Worker Cloudflare. Delega ad Astro soltanto `/astro-foundation` e `/control-room-foundation`; tutte le altre richieste continuano a usare il router backend in `src/index.ts`. Lo stesso modulo conserva gli export `RecentDemandWorkflow` e `Last30DaysContainer`.
 
-La nuova Control Room è disponibile soltanto come route `noindex,nofollow` e `no-store`. Non viene distribuita pubblicamente dalle pull request.
+La nuova Control Room è `noindex,nofollow` e `no-store`. La route `/control-room-foundation` è inoltre fail-closed: prima di delegare ad Astro, il Worker richiede e valida il JWT `Cf-Access-Jwt-Assertion` emesso dall'applicazione Cloudflare Access configurata per quel path.
 
 ## UI foundation
 
@@ -24,9 +24,11 @@ La island implementa:
 
 Non implementa mutation, azioni editoriali, accesso diretto a D1 o capacità di pubblicazione.
 
-## Sessione e dati
+## Access e sessione
 
-La fondazione riusa il meccanismo transitorio della Control Room legacy: il maintenance token resta in `sessionStorage` con chiave `srMaintenanceToken` e viene inviato soltanto nell'header `Authorization`. Astro non riceve il token come prop e non lo inserisce in HTML o URL. Senza token la island non chiama lo snapshot protetto.
+Cloudflare Access è il perimetro esterno. Il Worker verifica firma RS256, issuer, audience e validità temporale del JWT usando le chiavi pubbliche del team domain. Se `CF_ACCESS_TEAM_DOMAIN` o `CF_ACCESS_AUD` mancano, la route risponde `503`; se il JWT manca o non è valido, risponde `403`.
+
+Dopo Access, la fondazione riusa il meccanismo transitorio della Control Room legacy: il maintenance token resta in `sessionStorage` con chiave `srMaintenanceToken` e viene inviato soltanto nell'header `Authorization`. Astro non riceve il token come prop e non lo inserisce in HTML o URL. Senza token la island non chiama lo snapshot protetto.
 
 I soli endpoint letti sono:
 
@@ -34,6 +36,8 @@ I soli endpoint letti sono:
 - `GET /api/maintenance/control-room`.
 
 Tutti i dati reali arrivano dalle API del Worker; il browser non accede a D1.
+
+La configurazione operativa completa vive in [`docs/CONTROL-ROOM-ACCESS.md`](../../docs/CONTROL-ROOM-ACCESS.md).
 
 ## Verifica locale
 
@@ -46,4 +50,4 @@ npm run smoke:runtime
 npm run smoke:ui
 ```
 
-`smoke:runtime` verifica il bundle reale in `workerd`, gli export, le route Astro, health, snapshot autenticato e le route di pubblicazione assenti. `smoke:ui` usa Chromium sullo stesso runtime: controlla una lettura reale dello snapshot e usa fixture dichiarate in `tests/fixtures` soltanto per gli stati e le interazioni deterministiche.
+Gli smoke generano una coppia RSA effimera e un JWT Access di test; nessuna chiave di test viene versionata. `smoke:runtime` verifica il bundle reale in `workerd`, il fail-closed anonimo, la firma JWT, gli export, health, snapshot autenticato e route di pubblicazione assenti. `smoke:ui` usa Chromium dietro lo stesso guard e copre hydration, loading, error, empty, tastiera, mobile e pannelli read-only.
