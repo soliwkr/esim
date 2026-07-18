@@ -68,7 +68,7 @@ await verifyBuildContract();
 
 const wrangler = spawn(
   process.execPath,
-  ['node_modules/wrangler/bin/wrangler.js', 'dev', '--config', configPath, '--port', String(port), '--ip', '127.0.0.1'],
+  ['node_modules/wrangler/bin/wrangler.js', 'dev', '--config', configPath, '--persist-to', '.wrangler/state', '--port', String(port), '--ip', '127.0.0.1'],
   {
     env: {
       ...process.env,

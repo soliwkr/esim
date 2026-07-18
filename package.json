@@ -14,7 +14,7 @@
     "deploy": "npm run build && wrangler deploy --config apps/web/dist/server/wrangler.json",
     "typecheck": "astro check --root apps/web && tsc --noEmit",
     "types": "wrangler types src/worker-configuration.d.ts",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "keywords:intake": "node scripts/build-keyword-research.mjs",
     "research:ingest": "node scripts/ingest-last30days.mjs"
