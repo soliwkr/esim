@@ -17,9 +17,11 @@ function record(chunk) {
 }
 
 async function verifyBuildContract() {
-  const [configRaw, entry] = await Promise.all([
+  const [configRaw, entry, backendRouter, customEntrypoint] = await Promise.all([
     readFile(configPath, 'utf8'),
-    readFile(entryPath, 'utf8')
+    readFile(entryPath, 'utf8'),
+    readFile('src/index.ts', 'utf8'),
+    readFile('apps/web/src/worker.ts', 'utf8')
   ]);
   const config = JSON.parse(configRaw);
 
@@ -27,6 +29,7 @@ async function verifyBuildContract() {
   assert.equal(config.workflows?.[0]?.class_name, 'RecentDemandWorkflow');
   assert.equal(config.containers?.[0]?.class_name, 'Last30DaysContainer');
   assert.match(entry, /export \{ Last30DaysContainer, RecentDemandWorkflow,/);
+  assert.doesNotMatch(`${backendRouter}\n${customEntrypoint}`, /['"`]\/?api\/publish(?:\/|['"`])/);
 }
 
 async function waitForRuntime(child, timeoutMs = 180_000) {
@@ -123,7 +126,6 @@ try {
 
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
-  await expectNotFound('/api/publish');
 
   console.log('Astro/Cloudflare runtime smoke passed.');
 } catch (error) {
