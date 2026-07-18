@@ -1,101 +1,120 @@
 # Prossime azioni
 
-Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`.
+Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; la migrazione frontend vive in `docs/FRONTEND-PLAN.md`.
 
-Ultimo aggiornamento: **17 luglio 2026**.
+Ultimo aggiornamento: **18 luglio 2026**.
 
 ## Now
 
-### 1. Distribuire la Control Room MVP
+### 1. Chiudere la verifica della Control Room v3
 
-Avviare manualmente il workflow di produzione su `main` dopo il merge della PR.
+La Control Room legacy resta una soluzione transitoria.
 
-Verificare:
+Verificare in produzione:
 
 ```text
 /control-room
-→ HTTP 200
-→ cache-control: no-store
-→ x-robots-tag: noindex, nofollow
+→ badge v3 visibile
+→ client JavaScript caricato
+→ apertura sessione funzionante
+→ snapshot reale caricato
 ```
 
-Lo snapshot iniziale deve mostrare almeno:
+Il deploy automatico deve fallire quando il client live non è sintatticamente valido.
+
+Non aggiungere nuove funzioni importanti alla dashboard artigianale.
+
+### 2. Avviare lo spike Astro
+
+Creare `apps/web` senza spostare il backend esistente.
+
+Lo spike deve dimostrare:
+
+- Astro con adapter Cloudflare;
+- React come singola island per la Control Room;
+- custom Worker entrypoint compatibile con API, D1, Workflow e Container;
+- sviluppo locale dentro `workerd`;
+- deploy automatico senza regressioni;
+- route pubbliche e API sullo stesso dominio, salvo prova contraria.
+
+### 3. Confrontare due approcci UI
+
+Candidato principale:
 
 ```text
-5 claim verified
-1 claim insufficient
-1 draft approved
-1 pagina review
-0 pagine published
+shadcn/ui
++ componenti e dashboard block esistenti
++ Tailwind
 ```
 
-### 2. Testare le azioni principali dalla UI
-
-Dalla Control Room verificare, senza usare accesso diretto a D1:
-
-- refresh dello snapshot;
-- avvio manuale di una ricerca recent-demand;
-- lettura di brief, claim, bundle, draft e queue;
-- apertura della preview privata;
-- registrazione controllata di un esito claim;
-- generazione e decisione editoriale su un draft.
-
-Non testare alcuna pubblicazione: la dashboard non deve offrire questa funzione.
-
-### 3. Aggiungere Cloudflare Access
-
-Proteggere `/control-room` con una policy Access dedicata.
-
-Obiettivo:
+Confronto:
 
 ```text
-Cloudflare Access
-→ shell Control Room
-→ sessione operativa browser
-→ API di manutenzione
+Mantine
++ React island completa
 ```
 
-La sessione applicativa resta un secondo livello; non deve comparire negli URL o nel repository.
+Implementare tre viste campione:
 
-### 4. Completare l'health aggregato runtime
+1. overview e health;
+2. tabella claim con filtri e azione;
+3. revisione draft con preview.
 
-Lo snapshot corrente legge D1 e configurazione. Il passo successivo deve verificare anche:
+Misurare codice custom, velocità, accessibilità, mobile, tema, bundle e manutenzione.
+
+### 4. Registrare la decisione UI
+
+Dopo lo spike:
+
+- aggiornare `docs/DECISIONS.md`;
+- scegliere il kit e lo starter/dashboard block;
+- fissare versioni e dipendenze;
+- definire token visivi minimi;
+- evitare un design system proprietario costruito da zero.
+
+### 5. Migrare la Control Room
+
+Ordine operativo:
 
 ```text
-Worker
-D1
-Container
-Workflow
-AI Gateway / Vertex
-queue
-fonti scadute
-errori recenti
+overview
+→ radar e brief
+→ claim e fonti
+→ readiness
+→ draft e preview
+→ queue e audit
 ```
 
-Ogni componente deve avere stato `ok`, `warning` o `error`, più ultima verifica e dettaglio sintetico.
+La UI legacy viene rimossa soltanto dopo parità funzionale, test browser e verifica end-to-end.
 
-### 5. Automatizzare il refresh delle fonti scadute
+### 6. Proteggere la nuova Control Room
 
-Le verifiche hanno `validUntil` differenti. Alla scadenza:
+Aggiungere Cloudflare Access prima di considerare completata la dashboard operativa.
 
-```text
-fonte due
-→ task refresh_source
-→ nuova verifica
-→ nuovo evidence bundle
-→ draft precedente eventualmente stale
-```
+La sessione applicativa resta un secondo livello. Nessun token deve comparire in URL, HTML generato o repository.
 
-Nessun refresh deve modificare automaticamente una pagina pubblicata.
+### 7. Migrare il sito pubblico ad Astro
 
-### 6. Preparare il primo blocco Tier 1
+Dopo la Control Room:
 
-Dopo la verifica della dashboard:
+- home e layout;
+- navigazione e pagine statiche;
+- listing;
+- pagina articolo;
+- schema, canonical, sitemap e 404;
+- migrazione progressiva senza cambiare gli stati editoriali.
 
-- definire le prime pagine ad alta utilità;
-- creare evidence set separati;
-- usare lo stesso percorso claim → readiness → review;
-- mantenere affiliazioni disabilitate finché il sistema editoriale non è stabile.
+La pagina `esim-cina-senza-vpn` resta `review` e pubblicamente invisibile.
+
+## Freeze immediato
+
+Fino alla conclusione dello spike:
+
+- niente nuove pagine tramite template string nel Worker;
+- niente nuovi componenti generici scritti a mano;
+- niente ampliamenti sostanziali della Control Room legacy;
+- backend, claim, evidence bundle e gate restano invariati;
+- nessuna pubblicazione automatica.
 
 ## Completato
 
@@ -112,9 +131,23 @@ Dopo la verifica della dashboard:
 - renderer v2 con provenienza campo → claim;
 - draft `2` approvato editorialmente;
 - pagina ancora in `review` e pubblicamente `404 noindex`;
-- Control Room MVP implementata nella PR corrente.
+- deploy automatico per modifiche operative su `main`;
+- decisione di migrare il frontend verso Astro + React island;
+- piano frontend documentato.
 
-## Dopo la Control Room
+## Definition of Done del prossimo checkpoint
+
+- [ ] Control Room v3 verificata realmente nel browser;
+- [ ] `apps/web` Astro creato;
+- [ ] integrazione con Worker, binding, Workflow e Container dimostrata;
+- [ ] tre viste campione implementate;
+- [ ] shadcn/ui e Mantine confrontati con criteri misurabili;
+- [ ] UI kit scelto e ADR registrata;
+- [ ] nessun nuovo HTML/JS artigianale aggiunto;
+- [ ] nessuna regressione dei gate editoriali e di pubblicazione;
+- [ ] piano di migrazione della Control Room pronto per l'esecuzione.
+
+## Dopo il frontend
 
 1. Search Console e sitemap operative;
 2. CMP, GTM e GA4;
@@ -123,14 +156,3 @@ Dopo la verifica della dashboard:
 5. trend e stagionalità;
 6. affiliazioni controllate;
 7. funzioni multi-progetto dello studio.
-
-## Definition of Done del checkpoint attuale
-
-- [ ] PR Control Room unita;
-- [ ] deploy di produzione completato;
-- [ ] `/control-room` verificata nel browser;
-- [ ] snapshot aggregato verificato sui dati reali;
-- [ ] almeno una azione UI testata end-to-end;
-- [ ] Cloudflare Access configurato;
-- [x] nessuna funzione di pubblicazione presente;
-- [x] `docs/STATUS.md` aggiornato con il draft v2 approvato.
