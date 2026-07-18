@@ -17,11 +17,12 @@ function record(chunk) {
 }
 
 async function verifyBuildContract() {
-  const [configRaw, entry, backendRouter, customEntrypoint] = await Promise.all([
+  const [configRaw, entry, backendRouter, customEntrypoint, controlRoomIsland] = await Promise.all([
     readFile(configPath, 'utf8'),
     readFile(entryPath, 'utf8'),
     readFile('src/index.ts', 'utf8'),
-    readFile('apps/web/src/worker.ts', 'utf8')
+    readFile('apps/web/src/worker.ts', 'utf8'),
+    readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8')
   ]);
   const config = JSON.parse(configRaw);
 
@@ -30,6 +31,8 @@ async function verifyBuildContract() {
   assert.equal(config.containers?.[0]?.class_name, 'Last30DaysContainer');
   assert.match(entry, /export \{ Last30DaysContainer, RecentDemandWorkflow,/);
   assert.doesNotMatch(`${backendRouter}\n${customEntrypoint}`, /['"`]\/?api\/publish(?:\/|['"`])/);
+  assert.doesNotMatch(controlRoomIsland, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
+  assert.ok(config.assets?.run_worker_first?.includes('/control-room-foundation'));
 }
 
 async function waitForRuntime(child, timeoutMs = 180_000) {
@@ -116,6 +119,14 @@ try {
   assert.match(page, /<astro-island/);
   assert.match(page, /noindex,nofollow/);
 
+  const controlRoomResponse = await fetch(`${origin}/control-room-foundation`);
+  const controlRoomPage = await controlRoomResponse.text();
+  assert.equal(controlRoomResponse.status, 200);
+  assert.match(controlRoomResponse.headers.get('x-robots-tag') || '', /noindex/);
+  assert.match(controlRoomResponse.headers.get('cache-control') || '', /no-store/);
+  assert.equal((controlRoomPage.match(/<astro-island/g) || []).length, 1);
+  assert.doesNotMatch(controlRoomPage, new RegExp(maintenanceToken));
+
   const healthResponse = await fetch(`${origin}/api/health`);
   const health = await healthResponse.json();
   assert.equal(healthResponse.status, 200);
@@ -123,6 +134,17 @@ try {
   assert.equal(health.recentDemandWorkflow, 'enabled');
   assert.equal(health.last30DaysContainer, 'enabled');
   assert.equal(health.affiliateMode, 'disabled');
+
+  const anonymousSnapshot = await fetch(`${origin}/api/maintenance/control-room`);
+  assert.equal(anonymousSnapshot.status, 401);
+  const snapshotResponse = await fetch(`${origin}/api/maintenance/control-room`, {
+    headers: { authorization: `Bearer ${maintenanceToken}` }
+  });
+  const snapshot = await snapshotResponse.json();
+  assert.equal(snapshotResponse.status, 200);
+  assert.equal(snapshot.ok, true);
+  assert.ok(Array.isArray(snapshot.claims));
+  assert.ok(Array.isArray(snapshot.drafts));
 
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');

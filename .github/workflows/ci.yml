@@ -23,7 +23,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Install browser for UI smoke tests
+        run: npx playwright install --with-deps chromium
 
       - name: Generate Cloudflare binding types
         run: npm run types
@@ -71,3 +74,6 @@ jobs:
 
       - name: Smoke-test Astro and backend in workerd
         run: npm run smoke:runtime
+
+      - name: Smoke-test Control Room hydration and interaction
+        run: npm run smoke:ui

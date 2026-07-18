@@ -141,3 +141,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** la build e lo smoke `workerd` dimostrano che Astro, React, API, D1, Workflow e Container possono convivere senza separare il deploy e senza riscrivere il backend.
 
 **Conseguenza:** la separazione in due Worker non viene introdotta. L'espansione delle route Astro resta progressiva e ogni passaggio deve conservare i publication guardrail e gli smoke runtime.
+
+## ADR-015 — shadcn/ui per la fondazione read-only della Control Room
+
+**Stato:** accettata per la UI foundation
+
+**Decisione:** installare shadcn/ui direttamente in `apps/web`, versionando i sorgenti dei componenti e usando una sola island React dentro la shell Astro. La prima route legge soltanto `/api/health` e `GET /api/maintenance/control-room`.
+
+**Razionale:** la fase richiede una dashboard accessibile e responsive senza estendere la UI legacy o ricostruire primitive generiche. Il sorgente locale di shadcn mantiene visibili dipendenze e comportamento, mentre Astro limita JavaScript alla sola superficie applicativa.
+
+**Conseguenza:** questa decisione autorizza shadcn/ui per la fondazione corrente, ma non dichiara svolto un confronto con Mantine. Mutation, flussi operativi, Cloudflare Access e migrazione completa restano fasi successive. Nessun componente della fondazione può accedere direttamente a D1 o introdurre capacità di pubblicazione.
