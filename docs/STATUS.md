@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **18 luglio 2026**.
+Data di riferimento: **21 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -11,7 +11,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
 | Worker e D1 | Operativi | migrazioni versionate fino a `0017_editorial_draft_field_claims.sql` |
-| API manutenzione | Operativa | accesso riservato |
+| API manutenzione | Operativa | accesso riservato con `MAINTENANCE_TOKEN` |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate ricerca | Operativo | segnali `eligible` e `filtered` separati |
@@ -21,11 +21,11 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Page Readiness | Operativo | primo evidence bundle: score 77, draft sì, pubblicazione no |
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
-| Control Room legacy | Transitoria | v3 con client separato e smoke live; verifica browser da chiudere |
-| Frontend foundation | Unita con PR #26 | `apps/web`, React island e custom entrypoint nello stesso bundle Worker |
-| Control Room UI foundation | Unita con PR #27 | shadcn/ui, una island React e snapshot protetto in sola lettura |
-| Cloudflare Access guard | Implementato su feature branch | JWT validato nell'origine; configurazione Access e secret ancora da completare |
-| Frontend target | Incrementale | migrazione operativa completa non eseguita |
+| Control Room legacy | Transitoria | v3 con client separato e smoke live |
+| Frontend foundation | Operativa | `apps/web`, React island e custom entrypoint nello stesso bundle Worker |
+| Control Room UI foundation | Operativa in sola lettura | shadcn/ui, una island React e snapshot reale |
+| Cloudflare Access | Operativo e verificato | policy utente, service token CI e validazione JWT nell'origine |
+| Sessione server-side Control Room | PR #31 in verifica | proxy GET-only implementato; live smoke e accesso manuale senza secondo token ancora da verificare |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -131,8 +131,6 @@ La pagina pubblica continua a restituire `404` con `noindex, nofollow`.
 
 La dashboard manuale ha dimostrato le API e il flusso operativo, ma non è la base definitiva.
 
-Problema osservato:
-
 ```text
 Worker
 → stringa HTML
@@ -141,7 +139,7 @@ Worker
 → listener e DOM manuali
 ```
 
-Questo approccio ha prodotto fragilità non giustificata. La v3 resta disponibile solo come soluzione transitoria e per bugfix critici.
+Questo approccio ha prodotto fragilità non giustificata. La v3 resta disponibile soltanto come fallback transitorio e per bugfix critici.
 
 Nessuna nuova funzione importante deve essere aggiunta alla Control Room legacy.
 
@@ -158,78 +156,103 @@ Astro
 React island
 └── Control Room interattiva
 
-Worker esistente
-└── execution plane, API e binding
+Custom Worker entrypoint
+├── Access guard
+├── proxy read-only per la sessione browser
+├── API e binding esistenti
+└── Workflow e Container
 ```
 
-La fondazione della nuova Control Room usa shadcn/ui con sorgenti versionati nel repository. Il confronto con Mantine non è stato eseguito in questa fase e non viene presentato come prova comparativa.
-
-Il piano completo vive in `docs/FRONTEND-PLAN.md`.
+Astro e React non accedono direttamente a D1. La fondazione usa shadcn/ui con sorgenti versionati nel repository. Il confronto con Mantine non è stato eseguito e non viene presentato come prova comparativa.
 
 ## Astro frontend foundation
 
-La PR #26 ha aggiunto la fondazione Astro e mantiene un solo execution plane:
+Il custom entrypoint reale è `apps/web/src/worker.ts`:
 
 ```text
 apps/web/src/worker.ts
 ├── /astro-foundation → handler Astro
-├── /control-room-foundation → Access guard → handler Astro
+├── /control-room-foundation* → Access guard
+│   ├── pagina → handler Astro
+│   └── /api/snapshot → proxy read-only verso l'API esistente
 ├── API, pagine legacy e redirect → router backend esistente
 ├── export RecentDemandWorkflow
 └── export Last30DaysContainer
 ```
 
-Il bundle generato conserva D1, secret, AI Gateway/Vertex e i binding esistenti. Gli smoke CI avviano il bundle in `workerd`, verificano le route Astro e `/api/health`, controllano Workflow e Container e confermano che le route di pubblicazione candidate restituiscano `404`.
+Il bundle conserva D1, secret, AI Gateway/Vertex e binding esistenti. Gli smoke CI avviano il bundle in `workerd`, verificano route Astro, Access, `/api/health`, API snapshot e assenza di route di pubblicazione.
 
 ## Control Room UI foundation
 
-La PR #27 ha aggiunto `/control-room-foundation` con header e meta `noindex,nofollow`, `no-store` e una CSP limitata allo stesso origin.
+La route `/control-room-foundation` usa header e meta `noindex,nofollow`, `no-store` e CSP same-origin. La pagina monta una sola island React e mostra health, metriche, claim filtrabili con dettaglio laterale e metadati dell'ultimo draft.
 
-La pagina monta una sola island React. I componenti shadcn/ui `Button`, `Card`, `Badge`, `Input`, `Select`, `Table`, `Alert`, `Skeleton`, `Sheet` e `Sonner` sono installati e versionati sotto `apps/web/src/components/ui`.
+In produzione al momento dell'apertura della PR #31, il meccanismo transitorio richiede ancora il maintenance token nel browser. La PR #31 sostituisce questo flusso con caricamento automatico tramite `GET /control-room-foundation/api/snapshot`.
 
-La sessione riusa `srMaintenanceToken` in `sessionStorage`. Il token viene letto soltanto dopo l'hydration, inviato nell'header `Authorization` e non serializzato da Astro. Senza sessione la UI resta bloccata e non interroga lo snapshot.
+La nuova implementazione prevista:
 
-La dashboard legge esclusivamente `/api/health` e `GET /api/maintenance/control-room`. Mostra health, metriche, claim filtrabili con dettaglio laterale e metadati dell'ultimo draft. Non contiene mutation, accesso browser a D1, route o pulsanti di pubblicazione. Il backend e i gate editoriali restano invariati.
+- non serializza il maintenance token;
+- non usa `sessionStorage`;
+- non invia `Authorization` dal browser;
+- conserva l'API originale per agenti e consumer legacy;
+- resta totalmente read-only;
+- non introduce mutation o pubblicazione.
 
-## Cloudflare Access guard
+## Cloudflare Access
 
-La branch `feat/control-room-access-guard` aggiunge un controllo fail-closed nel custom Worker entrypoint prima del rendering Astro.
+Cloudflare Access protegge realmente `/control-room-foundation*`. Sono stati verificati:
 
-Il guard:
+- login dell'identità operativa;
+- policy deny-by-default;
+- service token CI con policy Service Auth;
+- Worker secrets `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD`;
+- firma RS256, issuer, audience e validità temporale nel Worker;
+- richiesta anonima non autorizzata;
+- richiesta CI autorizzata;
+- shell Astro `200` con `no-store` e `noindex`.
 
-- richiede `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD` come configurazione runtime non versionata;
-- legge il JWT soltanto dall'header `Cf-Access-Jwt-Assertion`;
-- accetta soltanto firme RS256;
-- verifica chiave pubblica, issuer, audience, scadenza, `nbf` e `iat`;
-- restituisce `503` se la configurazione manca;
-- restituisce `403` se il JWT manca o non è valido;
-- non modifica le API di manutenzione né la sessione applicativa.
+Il guard restituisce `503` se la configurazione manca e `403` se il JWT manca o non è valido.
 
-Gli smoke locali usano una coppia RSA effimera e non versionano chiavi. Il workflow di produzione viene predisposto per verificare sia il blocco anonimo sia l'accesso tramite service token. La protezione non è dichiarata operativa finché l'app Access, le policy e i secret descritti in `docs/CONTROL-ROOM-ACCESS.md` non sono configurati e verificati dal live smoke.
+## Sessione server-side in PR #31
+
+La PR #31 introduce un confine BFF minimo dentro il custom entrypoint:
+
+```text
+browser autenticato da Access
+→ GET /control-room-foundation/api/snapshot
+→ validazione JWT nell'origine
+→ Authorization interno con MAINTENANCE_TOKEN
+→ GET /api/maintenance/control-room
+→ risposta read-only no-store/noindex
+```
+
+Il proxy accetta soltanto `GET`, non inoltra header arbitrari del browser e preserva il contratto dell'API esistente.
+
+Questa capacità non è dichiarata operativa finché non passano CI, live smoke e verifica manuale nel browser senza secondo login.
 
 ## Rischi aperti
 
-1. La Control Room v3 deve essere verificata realmente nel browser.
-2. L'app Cloudflare Access e le policy devono essere configurate prima del merge del guard.
-3. Worker secrets e GitHub service-token secrets devono essere presenti senza comparire nel repository.
-4. Il primo deploy del guard deve superare smoke anonimo e autenticato; un fallimento deve lasciare la route fail-closed.
-5. shadcn/ui è installato per questa fondazione; un eventuale confronto Mantine resta non eseguito.
-6. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
-7. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-8. Serve un health aggregato che includa runtime di Container, Workflow e AI Gateway.
-9. Search Console, CMP e analytics non sono ancora disponibili.
-10. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La PR #31 deve superare typecheck, build, `workerd`, Chromium e live smoke.
+2. Il caricamento automatico deve essere verificato manualmente dopo il deploy.
+3. Un errore del proxy deve restare fail-closed e non esporre secret.
+4. L'API originale deve continuare a servire agenti autorizzati senza cambiare contratto.
+5. La Control Room legacy deve restare limitata a fallback e bugfix critici.
+6. shadcn/ui è operativo; l'eventuale confronto Mantine resta non eseguito.
+7. Le verifiche editoriali attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
+8. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+9. Serve un health aggregato che includa runtime di Container, Workflow e AI Gateway.
+10. Search Console, CMP e analytics non sono ancora disponibili.
+11. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
-- l'app Cloudflare Access protegge `/control-room-foundation*`;
-- il Worker valida realmente il JWT Access;
-- richiesta anonima e JWT invalido non raggiungono Astro;
-- service token CI e identità operativa raggiungono la shell;
-- la sessione applicativa continua a proteggere lo snapshot;
+- PR #31 è mergiata con CI verde;
+- pagina e proxy restano protetti da Access;
+- il browser carica lo snapshot senza maintenance token;
+- nessun secret compare in HTML, URL, bundle, storage o request browser;
+- il proxy live restituisce `200`, `no-store`, `noindex` e `publicationAutomation:false`;
+- l'API originale resta protetta e invariata;
 - smoke runtime, Chromium e live sono verdi;
-- Control Room v3 è verificata nel browser;
 - nessun nuovo HTML/JS artigianale viene aggiunto;
 - nessun gate editoriale o di pubblicazione regredisce.
