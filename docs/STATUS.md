@@ -10,50 +10,36 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | migrazioni versionate fino a `0017_editorial_draft_field_claims.sql` |
+| Worker e D1 | Operativi | migrazioni versionate fino a `0017`; PR #36 aggiunge `0018` |
 | API manutenzione | Operativa | accesso riservato e contratto invariato |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
-| Quality gate ricerca | Operativo | segnali `eligible` e `filtered` separati |
+| Quality gate ricerca | Correzione PR #36 in verifica | score zero osservato erroneamente come eligible |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
 | Page Readiness | Operativa | primo evidence bundle: score 77, draft sì, pubblicazione no |
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
-| Control Room legacy | Transitoria | v3 disponibile soltanto come fallback e per bugfix critici |
+| Control Room legacy | Transitoria | fallback e bugfix critici soltanto |
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
-| Cloudflare Access | Operativo e verificato | policy utente, service token CI e validazione JWT nell’origine |
-| Sessione server-side Control Room | Operativa | un solo login e snapshot automatico verificati nel browser reale |
-| Overview e health nuova Control Room | Operative e verificate | PR #32 mergiata; CI, deploy e verifica manuale completati |
-| Radar e brief nuova Control Room | Operativi e verificati | PR #34 mergiata; run, segnali e brief visibili in produzione |
-| Claim, fonti e scadenze | Prossima fase | migrazione read-only sugli oggetti già presenti nello snapshot |
+| Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
+| Sessione server-side Control Room | Operativa | un solo login e snapshot automatico |
+| Overview e health | Operative e verificate | PR #32 |
+| Radar e brief | Operativi e verificati | PR #34 |
+| Claim, fonti e scadenze | Temporaneamente in attesa | riprende dopo la verifica del backfill PR #36 |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
 
 ## Primo ciclo editoriale controllato
 
-Il primo segnale idoneo ha prodotto il brief:
-
-```text
-eSIM in Cina: funzionano davvero senza VPN?
-```
-
-```text
-Opportunity Score: 85
-Evidence Score:    54
-Priority Score:    63
-Priority Band:     medium
-```
-
-Flusso completato:
+Il primo ciclo ha completato:
 
 ```text
 recent demand
 → brief AI
 → accettazione umana
-→ requisiti generali
 → claim atomici
 → fonti ufficiali
 → esiti verificati
@@ -65,7 +51,7 @@ recent demand
 
 Nessuno di questi passaggi ha pubblicato la pagina.
 
-## Evidence set Cina
+Evidence set Cina:
 
 ```text
 claim atomici: 6
@@ -73,10 +59,6 @@ verified:       5
 insufficient:   1
 pending:        0
 ```
-
-Il claim riferito alla pagina Holafly specifica per la Cina resta `insufficient`. Le formulazioni provenienti da documenti diversi restano separate per fonte e scope.
-
-## Page Readiness e draft
 
 Evidence bundle `1`:
 
@@ -98,20 +80,9 @@ version:                2
 renderer:               editorial-page-draft-v2
 status:                 approved
 materialized page:      review
-used claim IDs:         4, 5, 6, 8, 9
-excluded claim IDs:     7
 ```
 
 La pagina pubblica continua a restituire `404` con `noindex, nofollow`.
-
-## Vincoli dimostrati
-
-- Community e trend non diventano prove commerciali.
-- Un requisito generale non diventa un fatto verificato.
-- Un claim insufficiente non alimenta testo fattuale.
-- Le dichiarazioni dei provider restano attribuite.
-- Un draft approvato non diventa automaticamente una pagina pubblicata.
-- Il livello dati conserva i gate di pubblicazione.
 
 ## Control Room definitiva
 
@@ -119,7 +90,7 @@ Architettura operativa:
 
 ```text
 Cloudflare Access
-→ validazione nell’origine
+→ validazione nell'origine
 → shell Astro
 → una React island
 → proxy snapshot read-only
@@ -127,94 +98,94 @@ Cloudflare Access
 → D1 soltanto server-side
 ```
 
-Il browser non accede direttamente a D1 e non conserva credenziali operative. La Control Room legacy resta limitata a fallback e bugfix critici.
+Sono verificati in produzione:
 
-### Sessione server-side verificata
-
-La PR #31 è mergiata e verificata in produzione:
-
-- un solo login visibile;
-- nessun campo token nella UI;
-- nessuna credenziale applicativa nello storage del browser;
-- snapshot reale caricato automaticamente;
-- proxy read-only protetto;
-- API originale invariata per agenti e consumer legacy;
+- sessione con un solo login;
+- nessuna credenziale applicativa nel browser;
+- overview e health;
+- radar, segnali e brief;
+- filtri e dettagli desktop/mobile;
+- contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
-### Overview e health verificate
+## Falso positivo recent-demand osservato
 
-La PR #32 è mergiata, distribuita e verificata nel browser reale:
+La nuova vista radar ha reso visibile un record persistito come idoneo:
 
-- tutte le 19 metriche di overview sono visibili;
-- capability, binding e limiti dei probe hanno semantica esplicita;
-- timestamp e guardrail sono visibili;
-- i payload vengono validati a runtime;
-- un errore parziale non nasconde l’altra risorsa valida;
-- desktop e mobile sono utilizzabili;
-- nessuna mutation, pubblicazione o credenziale browser è stata introdotta.
+```text
+query/topic:       Holafly recent experiences
+titolo:            esperienza a uno spettacolo di Shane Gillis ad Austin
+relevance score:   0
+eligible:          true
+quality flags:     nessuno
+```
 
-L’health corrente descrive soprattutto configurazione e binding. Un health aggregato con probe end-to-end dei servizi esterni non è ancora dichiarato operativo.
+Il record è estraneo al dominio eSIM. La UI ha mostrato correttamente il dato persistito; il difetto è nel quality gate storico.
 
-### Radar e brief verificati
+### Causa
 
-La PR #34 è mergiata nel commit `53f8b8f`, con CI completa verde, deploy e verifica nel browser reale:
+La migrazione `0010_research_signal_quality.sql` applica come condizioni bloccanti soltanto:
 
-- gli ultimi run mostrano query, sistema sorgente, tipo, finestra, risultati, warning e conteggi eligible/filtered;
-- i segnali mostrano topic, provenienza, freshness, relevance score, stato, idoneità e quality flags;
-- il filtro run → segnali usa esclusivamente il `run_id` canonico;
-- i brief mostrano cluster, titolo, slug, intent, punteggi persistiti, bundle, readiness e draft nullable;
-- filtri e Sheet di dettaglio sono utilizzabili;
-- i tre array sono validati a runtime;
-- punteggi, stati, flag e valori `null` non vengono ricalcolati o reinterpretati;
-- lo snapshot non espone un collegamento diretto segnale → brief e la UI non lo inventa;
-- overview, claim preview e draft preview non sono regrediti;
-- nessuna mutation o nuova capacità di pubblicazione è stata introdotta.
+- contenuto oltre la finestra recente;
+- data oltre due giorni nel futuro.
 
-## Prossima fase — Claim, fonti e scadenze
+`low_relevance` era soltanto un flag consultivo. Per questo uno score esattamente pari a zero restava eligible.
 
-La fase successiva usa inizialmente i claim già presenti nello snapshot e i relativi campi di fonte, verifica e validità.
+### PR #36 — Correzione deterministica
 
-Scope iniziale:
+La branch `fix/research-zero-relevance-gate` introduce:
 
-- elenco claim con soggetto, campo, testo, stato e brief collegato;
-- fonte con tipo, etichetta, URL e trust level quando presente;
-- verifica con esito, confidenza, data di controllo e scadenza;
-- evidenza, note, domanda di verifica e source kinds richiesti;
-- stato del task di manutenzione;
-- filtri per stato, fonte, scadenza e brief;
-- dettaglio read-only, empty state, errori, tastiera e mobile;
-- validazione runtime estesa senza cambiare il contratto backend.
+- migrazione `0018_research_zero_relevance_gate.sql`;
+- backfill dei record con `relevance_score <= 0`;
+- preservazione degli override umani già espliciti;
+- flag persistito `zero_relevance`;
+- nuovo trigger D1 per gli inserimenti futuri;
+- conteggi run riallineati;
+- flag API coerente;
+- smoke D1 basato sul falso positivo osservato.
 
-Restano fuori scope:
+Semantica scelta:
 
-- decomposizione, modifica o verifica dei claim;
-- creazione o modifica delle fonti;
-- refresh manuale e mutation della queue;
-- nuovi endpoint o query D1;
-- readiness, draft decisions e pubblicazione.
+```text
+relevance = 0              → filtered
+0 < relevance < 0,35       → eligible + warning consultivo
+relevance = null           → nessun filtro automatico
+manual_quality_override    → decisione umana preservata
+```
+
+La CI ha già verificato con successo migrazione e smoke D1 sulla branch. Restano da completare la suite intera, il merge, il deploy e il controllo del record reale.
+
+## Confini della correzione
+
+La PR #36 non introduce:
+
+- classificatori semantici o LLM;
+- framework esterni di data quality;
+- cancellazione dei segnali;
+- nuovi endpoint;
+- nuovi run del Workflow;
+- modifiche a brief, claim, readiness o draft;
+- mutation o pubblicazione.
 
 ## Rischi aperti
 
-1. Lo snapshot espone soltanto i campi già selezionati dal backend; relazioni non presenti non devono essere ricostruite nel client.
-2. La semantica di scadenza deve distinguere data assente, futura e superata senza cambiare lo stato canonico del claim.
-3. L’health corrente descrive soprattutto configurazione e binding.
-4. L’API originale deve restare compatibile con gli altri consumer autorizzati.
+1. Il backfill remoto deve essere verificato sul segnale reale.
+2. Un relevance score positivo ma errato può ancora richiedere revisione umana o un futuro gate semantico.
+3. Gli strumenti esterni di evaluation richiedono prima un dataset revisionato.
+4. L'health corrente descrive soprattutto configurazione e binding.
 5. La Control Room legacy deve restare congelata.
-6. L’eventuale confronto Mantine resta non eseguito.
-7. Le verifiche editoriali attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
-8. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-9. Search Console, CMP e analytics non sono ancora disponibili.
-10. Il repository pubblico non deve contenere credenziali o dati riservati.
+6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+7. Search Console, CMP e analytics non sono ancora disponibili.
+8. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
-Il prossimo checkpoint è raggiunto quando:
+Il checkpoint quality gate è raggiunto quando:
 
-- claim, fonti e scadenze reali sono leggibili nella nuova Control Room;
-- contratti runtime coprono i campi necessari senza inventare relazioni;
-- stato canonico e stato temporale della scadenza restano distinti;
-- filtri, dettagli, desktop, mobile, tastiera, loading, error ed empty state sono verificati;
-- nessuna richiesta browser diversa da `GET` viene introdotta;
-- overview, radar, brief e draft preview non regrediscono;
-- nessuna mutation o capacità di pubblicazione viene introdotta;
-- backend, D1, Workflow, Container, AI e gate restano invariati.
+- PR #36 è mergiata con CI completa verde;
+- migrazione `0018` è applicata in produzione;
+- il segnale osservato risulta filtered;
+- `zero_relevance` è visibile;
+- i conteggi del run sono corretti;
+- nessun brief o claim viene alterato automaticamente;
+- la migrazione claim/fonti/scadenze può riprendere.
