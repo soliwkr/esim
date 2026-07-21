@@ -6,68 +6,83 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #39 — Page Readiness ed evidence bundle
+### 1. Chiudere la hotfix del contratto warning readiness
 
 Branch:
 
 ```text
-feat/control-room-readiness-evidence
+fix/control-room-readiness-warning-contract
 ```
 
-Obiettivo esclusivo: migrare nella nuova Control Room la lettura degli evidence bundle già presenti nello snapshot protetto.
-
-La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
-
-### 2. Verificare il contratto bundle
-
-Ogni record deve validare esplicitamente:
-
-- ID, brief, page slug e versione;
-- readiness score e review status;
-- `review_draft_eligible` e `publication_eligible`;
-- `ready_for_review_draft` e `ready_for_publication` senza fonderli;
-- conteggi verified, insufficient, contradicted, pending ed expired;
-- conflitti, fonti, soggetti e first-party tests;
-- warning;
-- revisore, reviewed at, created at e updated at.
-
-I quattro gate devono essere `0 | 1`. I conteggi devono essere interi non negativi. Un campo non conforme rende invalido il payload.
-
-Il client non ricalcola score, gate, warning o conteggi.
-
-### 3. Verificare la vista read-only
-
-La vista deve offrire:
-
-- riepilogo readiness per bundle;
-- filtri per review status, draft eligibility, publication eligibility e presenza warning;
-- tabella con score e gate separati;
-- dettaglio accessibile da tastiera;
-- conteggi claim, conflitti e fonti;
-- warning mostrati come persistiti;
-- empty state reale e empty state dei filtri;
-- layout utilizzabile su desktop e mobile.
-
-La UI deve rendere evidente che:
+Contesto osservato nel browser reale:
 
 ```text
-review draft eligible ≠ publication eligible
+Access verificato
+→ shell disponibile
+→ snapshot HTTP disponibile
+→ client: Contratto snapshot non valido
 ```
 
-Un bundle idoneo alla generazione o revisione di un draft non è automaticamente pubblicabile.
+Causa:
 
-### 4. Definition of Done
+```text
+Page Readiness canonico → warnings come oggetti strutturati
+fixture PR #39          → warnings come stringhe
+parser frontend         → richiedeva stringhe
+```
+
+La hotfix resta frontend-only e non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
+
+### 2. Allineare il contratto warning
+
+Ogni warning deve essere un oggetto:
+
+```text
+{
+  code: string non vuota,
+  message?: string,
+  ...metadati persistiti non interpretati dal client
+}
+```
+
+Regole:
+
+- l'array `warnings` è obbligatorio;
+- una stringa legacy non è valida;
+- `code` è obbligatorio e non vuoto;
+- `message`, quando presente, deve essere una stringa;
+- campi aggiuntivi come `claimIds` e `conflicts` vengono preservati;
+- il client non deduce nuovi blocker, score o gate dai warning.
+
+### 3. Correggere vista e fixture
+
+La vista deve:
+
+- mostrare `warning.code`;
+- mostrare `warning.message` quando presente;
+- non renderizzare direttamente oggetti JSON come figli React;
+- continuare a filtrare per presenza o assenza di warning;
+- mantenere i quattro gate e tutti i conteggi invariati.
+
+La fixture deve usare gli stessi warning prodotti da `src/page-readiness.ts`, inclusi:
+
+- `insufficient_claims`;
+- `scoped_source_conflicts`;
+- `no_first_party_test`;
+- `provider_statements_require_attribution`.
+
+### 4. Definition of Done hotfix
 
 Prima del merge devono passare:
 
 - TypeScript strict e build Astro;
 - migrazioni locali e smoke del quality gate invariati;
 - build e smoke del Container invariati;
-- bundle reale dentro `workerd`;
-- smoke Chromium generale della Control Room;
-- smoke Chromium dedicato a claim, fonti e scadenze;
-- smoke Chromium dedicato a readiness ed evidence bundle;
-- filtri, dettaglio, tastiera, mobile, contratto invalido ed empty state;
+- runtime `workerd`;
+- smoke Chromium generale;
+- smoke Chromium claim, fonti e scadenze;
+- smoke Chromium readiness con warning strutturati;
+- regressione per stringa legacy, codice mancante e messaggio non testuale;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna credenziale o accesso diretto a D1;
 - nessuna route o azione di approvazione, generazione o pubblicazione;
@@ -78,17 +93,18 @@ Prima del merge devono passare:
 Dopo il merge:
 
 - aprire `https://senzaroaming.it/control-room-foundation`;
-- verificare la sezione “Evidence bundle e gate”;
+- verificare che lo snapshot sia disponibile;
+- aprire “Evidence bundle e gate”;
 - aprire il bundle reale del primo ciclo editoriale;
 - verificare score 77;
 - verificare draft eligibility positiva e publication eligibility negativa;
-- verificare conteggi, conflitto, warning e zero first-party tests;
+- verificare conteggi, conflitto, warning strutturati e zero first-party tests;
 - controllare desktop e mobile;
 - confermare che non esistano azioni di approvazione, generazione o pubblicazione.
 
 ### 6. Fase successiva
 
-Dopo la verifica reale:
+Soltanto dopo la verifica reale della hotfix:
 
 ```text
 feat/control-room-draft-decisions
@@ -98,6 +114,7 @@ Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation ric
 
 ## Fuori scope immediato
 
+- modifica del formato backend dei warning;
 - valutazione o ricalcolo della readiness;
 - approvazione dell'evidence bundle;
 - generazione draft;
@@ -157,4 +174,4 @@ Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation ric
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation nella fase readiness read-only.
+- nessuna mutation nella hotfix readiness read-only.

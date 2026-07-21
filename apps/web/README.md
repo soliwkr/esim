@@ -45,7 +45,9 @@ La vista readiness usa esclusivamente `evidenceBundles` già presente nello snap
 - `review_draft_eligible` e `ready_for_review_draft`;
 - `publication_eligible` e `ready_for_publication`;
 - conteggi claim, conflitti, fonti, soggetti e test first-party;
-- warning, revisore e timestamp.
+- warning strutturati, revisore e timestamp.
+
+Ogni warning è un oggetto con `code`, `message` opzionale e metadati aggiuntivi opachi come claim o conflitti collegati. Il client valida `code` e `message`, conserva gli altri campi e mostra il contenuto senza trasformarlo in una decisione propria.
 
 Draft eligibility e publication eligibility restano gate distinti. Il client non ricalcola score, conteggi o decisioni.
 
@@ -62,7 +64,7 @@ Il secondo endpoint è un proxy read-only interno al custom Worker entrypoint. A
 
 Il browser non conserva token applicativi e non invia un header di autorizzazione verso l’API di manutenzione. L’API originale resta invariata per agenti e consumer legacy.
 
-`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle e draft. Per i bundle vengono validati anche i quattro gate binari, i conteggi non negativi, i warning e i timestamp nullable.
+`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle e draft. Per i bundle vengono validati anche i quattro gate binari, i conteggi non negativi, i warning strutturati e i timestamp nullable.
 
 Punteggi, stati, quality flags, confidence, gate e valori nullable vengono mostrati come persistiti. Il client non ricalcola Opportunity, Evidence, Priority, Readiness o lo stato canonico dei claim.
 
@@ -90,4 +92,4 @@ Gli smoke generano credenziali Access effimere di test; nessuna chiave viene ver
 - `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array radar/brief, API originale, export, health e route di pubblicazione assenti.
 - `smoke:ui` verifica caricamento generale, overview, radar, brief, claim, readiness e draft, errori parziali, tastiera e mobile.
 - `smoke:claims` verifica contratto claim, cinque filtri, fonte sicura, stato temporale, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
-- `smoke:readiness` verifica contratto bundle, quattro filtri, gate separati, warning, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
+- `smoke:readiness` verifica contratto bundle, warning strutturati, quattro filtri, gate separati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.

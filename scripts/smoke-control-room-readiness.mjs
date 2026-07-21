@@ -23,7 +23,11 @@ const [fixture, healthFixture, componentSource, apiClientSource] = await Promise
 
 assert.doesNotMatch(componentSource, /\bfetch\s*\(|XMLHttpRequest|sessionStorage|localStorage|Authorization|Bearer/i);
 assert.doesNotMatch(componentSource, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
+assert.match(componentSource, /warning\.code/);
+assert.match(componentSource, /warning\.message/);
 assert.match(apiClientSource, /parseEvidenceBundles/);
+assert.match(apiClientSource, /requireEvidenceWarnings/);
+assert.match(apiClientSource, /ControlRoomEvidenceWarning/);
 assert.match(apiClientSource, /evidenceBundles:\s*parseEvidenceBundles/);
 assert.match(apiClientSource, /review_draft_eligible/);
 assert.match(apiClientSource, /publication_eligible/);
@@ -122,6 +126,16 @@ async function choose(page, label, option) {
   await page.getByRole('option', { name: option }).click();
 }
 
+async function expectInvalidSnapshot(browser, snapshot) {
+  const context = await accessContext(browser);
+  const page = await context.newPage();
+  await mockApis(page, snapshot);
+  await page.goto(`${origin}/control-room-foundation`);
+  await page.getByTestId('snapshot-error').waitFor();
+  await page.getByText('Contratto snapshot non valido').waitFor();
+  await context.close();
+}
+
 let browser;
 
 try {
@@ -131,6 +145,9 @@ try {
   const realProxySnapshot = await realProxyResponse.json();
   assert.equal(realProxyResponse.status, 200);
   assert.ok(Array.isArray(realProxySnapshot.evidenceBundles));
+  for (const bundle of realProxySnapshot.evidenceBundles) {
+    assert.ok(Array.isArray(bundle.warnings));
+  }
 
   browser = await chromium.launch({ headless: true });
 
@@ -152,6 +169,7 @@ try {
   await firstRow.getByText('77', { exact: true }).waitFor();
   assert.equal(await firstRow.getByText('Sì', { exact: true }).count(), 1);
   assert.equal(await firstRow.getByText('No', { exact: true }).count(), 1);
+  await firstRow.getByText('4', { exact: true }).waitFor();
 
   const openButton = readiness.getByRole('button', { name: 'Apri evidence bundle 31' });
   await openButton.focus();
@@ -159,8 +177,12 @@ try {
   const dialog = page.getByRole('dialog');
   await dialog.getByText('Evidence bundle #31').waitFor();
   await dialog.getByText('Readiness 77').waitFor();
-  await dialog.getByText('missing_first_party_tests').waitFor();
-  await dialog.getByText('provider_scope_conflict').waitFor();
+  await dialog.getByText('insufficient_claims', { exact: true }).waitFor();
+  await dialog.getByText('scoped_source_conflicts', { exact: true }).waitFor();
+  await dialog.getByText('no_first_party_test', { exact: true }).waitFor();
+  await dialog.getByText('provider_statements_require_attribution', { exact: true }).waitFor();
+  await dialog.getByText('Il bundle contiene dichiarazioni ufficiali dei provider, ma nessun test indipendente sul campo.', { exact: true }).waitFor();
+  await dialog.getByText('Le formulazioni divergenti devono restare separate e attribuite nel draft.', { exact: true }).waitFor();
   await dialog.getByText('Test first-party').waitFor();
   await dialog.getByText('fixture-reviewer').waitFor();
   await page.keyboard.press('Escape');
@@ -187,16 +209,25 @@ try {
   assert.deepEqual(mutationRequests, []);
   await context.close();
 
-  const invalidContext = await accessContext(browser);
-  const invalidPage = await invalidContext.newPage();
-  await mockApis(invalidPage, {
+  await expectInvalidSnapshot(browser, {
     ...fixture,
     evidenceBundles: [{ ...fixture.evidenceBundles[0], publication_eligible: 2 }]
   });
-  await invalidPage.goto(`${origin}/control-room-foundation`);
-  await invalidPage.getByTestId('snapshot-error').waitFor();
-  await invalidPage.getByText('Contratto snapshot non valido').waitFor();
-  await invalidContext.close();
+
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    evidenceBundles: [{ ...fixture.evidenceBundles[0], warnings: ['legacy-warning-string'] }]
+  });
+
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    evidenceBundles: [{ ...fixture.evidenceBundles[0], warnings: [{ message: 'Codice mancante' }] }]
+  });
+
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    evidenceBundles: [{ ...fixture.evidenceBundles[0], warnings: [{ code: 'invalid_message', message: 42 }] }]
+  });
 
   const emptyContext = await accessContext(browser);
   const emptyPage = await emptyContext.newPage();
@@ -210,6 +241,7 @@ try {
   await mockApis(mobilePage);
   await mobilePage.goto(`${origin}/control-room-foundation`);
   await mobilePage.getByText('Evidence bundle e gate').waitFor();
+  await mobilePage.getByRole('button', { name: 'Apri navigation' }).count().catch(() => 0);
   await mobilePage.getByRole('button', { name: 'Apri navigazione' }).focus();
   await mobilePage.keyboard.press('Enter');
   const mobileNavigation = mobilePage.getByRole('dialog').getByRole('navigation', { name: 'Navigazione Control Room' });
@@ -217,7 +249,7 @@ try {
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room readiness, evidence bundle, gate separation and contract smoke passed.');
+  console.log('Control Room readiness, structured warnings, gate separation and contract smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));

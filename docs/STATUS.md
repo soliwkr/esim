@@ -18,7 +18,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
-| Page Readiness | Operativa | primo evidence bundle: score 77, draft sì, pubblicazione no |
+| Page Readiness backend | Operativa | primo evidence bundle: score 77, draft sì, pubblicazione no |
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
 | Control Room legacy | Transitoria | fallback e bugfix critici soltanto |
@@ -28,7 +28,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Overview e health | Operative e verificate | PR #32 |
 | Radar e brief | Operativi e verificati | PR #34 |
 | Claim, fonti e scadenze | Operativi e verificati | PR #37, CI e verifica browser completate |
-| Page Readiness ed evidence bundle UI | PR #39 in verifica | read-only sul contratto snapshot esistente |
+| Page Readiness ed evidence bundle UI | Hotfix in verifica | PR #39 distribuita; contratto warning reale non coperto dalla fixture |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -107,7 +107,7 @@ Sono verificati in produzione:
 - radar, segnali e brief;
 - claim, fonti, verifiche e scadenze;
 - filtri e dettagli desktop/mobile;
-- contratti runtime;
+- contratti runtime delle viste già chiuse;
 - nessuna mutation o capacità di pubblicazione.
 
 ## Quality gate score zero verificato
@@ -145,9 +145,9 @@ Restano invariati backend, query D1, Workflow, Container, AI, queue, readiness, 
 
 ## PR #39 — Page Readiness ed evidence bundle
 
-La PR #39 migra nella nuova Control Room la lettura di `evidenceBundles` già presente nello snapshot.
+La PR #39 ha migrato nella nuova Control Room la lettura di `evidenceBundles` già presente nello snapshot ed è stata mergiata nel commit `4e3e3c9` dopo CI completa verde.
 
-Implementazione in verifica:
+Implementazione:
 
 - tabella bundle con pagina, brief, versione, score e review status;
 - filtri per review status, draft eligibility, publication eligibility e warning;
@@ -155,26 +155,43 @@ Implementazione in verifica:
 - `ready_for_review_draft` separato da `ready_for_publication`;
 - dettaglio con verified, insufficient, contradicted, pending ed expired count;
 - conflitti, fonti, soggetti e test first-party;
-- warning mostrati come persistiti;
 - revisore, reviewed at, created at e updated at;
-- validazione runtime dei quattro gate binari, conteggi non negativi, warning e timestamp;
 - empty state, contratto invalido, tastiera, desktop e mobile;
 - smoke dedicato senza richieste browser diverse da `GET`.
 
-La UI non ricalcola readiness score, conteggi o gate. Un bundle idoneo alla generazione o revisione di un draft non viene presentato come pubblicabile.
+### Incidente di verifica reale
 
-Restano invariati:
+Dopo il deploy, Cloudflare Access e la shell hanno funzionato, ma lo snapshot è stato rifiutato dal client come non conforme.
 
-- query e contratto backend;
-- D1 e migrazioni;
-- Workflow, Container e AI;
-- evaluation e approval della readiness;
-- generazione draft, queue e publication gate.
+Causa verificata:
+
+```text
+backend canonico: warnings = oggetti { code, message, ...metadata }
+fixture PR #39:   warnings = string[]
+parser PR #39:    richiedeva string[]
+```
+
+Il backend, D1, il proxy e il gate Page Readiness non risultano guasti. Il difetto è limitato al contratto e alla fixture frontend.
+
+Hotfix in corso:
+
+```text
+fix/control-room-readiness-warning-contract
+```
+
+La hotfix:
+
+- valida ogni warning come oggetto con `code` obbligatorio e `message` opzionale;
+- preserva metadati aggiuntivi senza interpretarli;
+- mostra codice e messaggio persistiti;
+- usa una fixture aderente al Page Readiness canonico;
+- aggiunge regressioni per stringhe legacy, codice mancante e messaggio non testuale;
+- non modifica backend, query, D1, Workflow, Container, AI o gate editoriali.
 
 ## Rischi aperti
 
-1. La PR #39 deve superare typecheck, build, runtime e i tre smoke Chromium.
-2. La nuova vista deve essere verificata nel browser reale dopo il deploy.
+1. La hotfix warning contract deve superare typecheck, build, runtime e i tre smoke Chromium.
+2. La vista readiness deve essere verificata di nuovo nel browser reale dopo il deploy.
 3. Draft eligibility e publication eligibility devono restare distinti in ogni stato UI.
 4. Score, warning e conteggi non devono essere reinterpretati dal client.
 5. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
@@ -188,11 +205,12 @@ Restano invariati:
 
 Il prossimo checkpoint è raggiunto quando:
 
-- PR #39 è mergiata con CI completa verde;
+- la hotfix è mergiata con CI completa verde;
+- lo snapshot reale non viene più rifiutato;
 - gli evidence bundle reali sono visibili;
 - score 77, draft eligibility positiva e publication eligibility negativa sono leggibili nel bundle reale;
-- conteggi, conflitto, warning e first-party tests sono visibili;
-- payload bundle non validi vengono rifiutati;
+- conteggi, conflitto, warning strutturati e zero first-party tests sono visibili;
+- warning bundle non conformi vengono rifiutati;
 - filtri e dettaglio sono utilizzabili da tastiera e su mobile;
 - nessuna richiesta browser diversa da `GET` viene introdotta;
 - overview, radar, brief, claim e draft preview non regrediscono;
