@@ -144,7 +144,7 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 - [x] Overview e health — PR #32 verificata.
 - [x] Radar e brief — PR #34 verificata.
 - [x] Claim, fonti e scadenze — PR #37 verificata.
-- [ ] Page Readiness ed evidence bundle — prossima fase.
+- [ ] Page Readiness ed evidence bundle — **PR #39 in verifica**.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
@@ -163,17 +163,27 @@ La PR #37 è mergiata, distribuita e verificata nel browser reale:
 - nessuna richiesta browser diversa da `GET`;
 - nessuna mutation o capacità di pubblicazione.
 
-#### Page Readiness ed evidence bundle — prossimo scope
+#### Page Readiness ed evidence bundle — scope PR #39
 
 Usare soltanto `evidenceBundles` già presente nello snapshot per mostrare:
 
 - bundle, brief, pagina e versione;
 - readiness score e review status;
 - `review_draft_eligible` e `publication_eligible` separati;
+- `ready_for_review_draft` e `ready_for_publication` separati;
 - conteggi verified, insufficient, contradicted, pending ed expired;
 - conflitti, fonti, soggetti e test first-party;
 - warning, revisore e timestamp;
 - filtri e dettaglio read-only.
+
+Implementazione in verifica:
+
+- contratto runtime completo dei bundle;
+- quattro gate preservati come `0 | 1`;
+- conteggi validati come interi non negativi;
+- score, warning e gate mostrati senza ricalcolo;
+- smoke dedicato desktop, mobile, tastiera, filtri, contratto invalido ed empty state;
+- nessuna richiesta browser diversa da `GET`.
 
 Non include valutazione readiness, approvazione bundle, generazione draft, nuovi endpoint, query D1, mutation o pubblicazione.
 
@@ -237,7 +247,7 @@ Non include valutazione readiness, approvazione bundle, generazione draft, nuovi
 
 ## Ordine operativo attuale
 
-1. migrare Page Readiness ed evidence bundle in sola lettura;
+1. chiudere e verificare PR #39 su Page Readiness ed evidence bundle;
 2. migrare draft, preview e decisioni;
 3. migrare queue e audit;
 4. introdurre azioni operative soltanto con scope espliciti;
