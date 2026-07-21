@@ -143,16 +143,17 @@ try {
   });
 
   await page.goto(`${origin}/control-room-foundation`);
-  await page.getByText('Evidence bundle e gate').waitFor();
-  await page.getByText('2 di 2 bundle visibili').waitFor();
-  await page.getByTestId('readiness-guardrail').getByText('Draft eligibility ≠ publication eligibility').waitFor();
+  const readiness = page.getByTestId('readiness-section');
+  await readiness.getByText('Evidence bundle e gate').waitFor();
+  await readiness.getByText('2 di 2 bundle visibili').waitFor();
+  await readiness.getByTestId('readiness-guardrail').getByText('Draft eligibility ≠ publication eligibility').waitFor();
 
-  const firstRow = page.getByRole('row').filter({ hasText: 'esim-cina-senza-vpn' });
+  const firstRow = readiness.getByRole('row').filter({ hasText: 'esim-cina-senza-vpn' });
   await firstRow.getByText('77', { exact: true }).waitFor();
   assert.equal(await firstRow.getByText('Sì', { exact: true }).count(), 1);
   assert.equal(await firstRow.getByText('No', { exact: true }).count(), 1);
 
-  const openButton = page.getByRole('button', { name: 'Apri evidence bundle 31' });
+  const openButton = readiness.getByRole('button', { name: 'Apri evidence bundle 31' });
   await openButton.focus();
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog');
@@ -165,24 +166,24 @@ try {
   await page.keyboard.press('Escape');
 
   await choose(page, 'Filtra per stato revisione', 'approved_for_draft');
-  await page.getByText('1 di 2 bundle visibili').waitFor();
-  await page.getByText('esim-cina-senza-vpn').waitFor();
+  await readiness.getByText('1 di 2 bundle visibili').waitFor();
+  await readiness.getByText('esim-cina-senza-vpn').waitFor();
 
   await choose(page, 'Filtra per stato revisione', 'Tutti gli stati');
   await choose(page, 'Filtra per idoneità draft', 'Draft non idoneo');
-  await page.getByText('esim-hotspot-tethering').waitFor();
-  assert.equal(await page.getByText('esim-cina-senza-vpn').count(), 0);
+  await readiness.getByText('esim-hotspot-tethering').waitFor();
+  assert.equal(await readiness.getByText('esim-cina-senza-vpn').count(), 0);
 
   await choose(page, 'Filtra per idoneità draft', 'Tutti i gate draft');
   await choose(page, 'Filtra per warning', 'Con warning');
-  await page.getByText('esim-cina-senza-vpn').waitFor();
-  assert.equal(await page.getByText('esim-hotspot-tethering').count(), 0);
+  await readiness.getByText('esim-cina-senza-vpn').waitFor();
+  assert.equal(await readiness.getByText('esim-hotspot-tethering').count(), 0);
 
   await choose(page, 'Filtra per warning', 'Con o senza warning');
   await choose(page, 'Filtra per idoneità pubblicazione', 'Pubblicazione idonea');
-  await page.getByTestId('empty-readiness-filter').waitFor();
+  await readiness.getByTestId('empty-readiness-filter').waitFor();
 
-  assert.equal(await page.getByRole('button', { name: /approv|genera|pubblic/i }).count(), 0);
+  assert.equal(await readiness.getByRole('button', { name: /approv|genera|pubblic/i }).count(), 0);
   assert.deepEqual(mutationRequests, []);
   await context.close();
 
