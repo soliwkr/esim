@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type SubmitEvent } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Activity,
   Database,
   FileText,
   LayoutDashboard,
-  LockKeyhole,
   Menu,
   PanelLeft,
   RefreshCw,
@@ -18,7 +17,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -45,7 +43,6 @@ import {
 } from "@/components/ui/table"
 import { Toaster } from "@/components/ui/sonner"
 import {
-  CONTROL_ROOM_SESSION_KEY,
   ControlRoomRequestError,
   fetchControlRoomSnapshot,
   fetchHealth,
@@ -56,7 +53,7 @@ import {
 } from "@/lib/control-room-api"
 import { cn } from "@/lib/utils"
 
-type ViewState = "checking" | "locked" | "loading" | "ready" | "error"
+type ViewState = "loading" | "ready" | "error"
 
 const navigation = [
   { href: "#overview", label: "Overview", icon: LayoutDashboard },
@@ -144,65 +141,6 @@ function MobileNavigation() {
         <div className="px-4"><Navigation onNavigate={() => setOpen(false)} /></div>
       </SheetContent>
     </Sheet>
-  )
-}
-
-function LockedView({ onUnlock }: { onUnlock: (token: string) => Promise<void> }) {
-  const [submitting, setSubmitting] = useState(false)
-
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = event.currentTarget
-    const value = new FormData(form).get("maintenance-token")
-    const token = typeof value === "string" ? value.trim() : ""
-    if (!token) return
-    setSubmitting(true)
-    try {
-      await onUnlock(token)
-      form.reset()
-    } catch {
-      // The parent renders a sanitized error state and toast.
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <main className="grid min-h-screen place-items-center bg-muted/45 p-5" data-testid="locked-state">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader>
-          <div className="mb-3 grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
-            <LockKeyhole aria-hidden="true" className="size-5" />
-          </div>
-          <CardTitle>Control Room bloccata</CardTitle>
-          <CardDescription>
-            Apri una sessione locale per leggere lo snapshot protetto. Nessun dato viene caricato senza sessione.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="maintenance-token" className="text-sm font-medium">Token di manutenzione</label>
-              <Input
-                id="maintenance-token"
-                name="maintenance-token"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                required
-                aria-describedby="session-note"
-              />
-              <p id="session-note" className="text-xs leading-5 text-muted-foreground">
-                Rimane esclusivamente nella sessione di questo browser.
-              </p>
-            </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Verifica sessione…" : "Apri sessione"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
   )
 }
 
@@ -405,35 +343,31 @@ function DraftPreview({ drafts }: { drafts: ControlRoomDraft[] }) {
 }
 
 export function ControlRoomApp() {
-  const [viewState, setViewState] = useState<ViewState>("checking")
+  const [viewState, setViewState] = useState<ViewState>("loading")
   const [snapshot, setSnapshot] = useState<ControlRoomSnapshot | null>(null)
   const [health, setHealth] = useState<HealthSnapshot | null>(null)
   const [errorMessage, setErrorMessage] = useState("")
-  const tokenRef = useRef("")
 
-  const load = useCallback(async (token: string, persist: boolean) => {
-    tokenRef.current = token
+  const load = useCallback(async () => {
     setViewState("loading")
     setErrorMessage("")
     try {
       const [nextSnapshot, nextHealth] = await Promise.all([
-        fetchControlRoomSnapshot(token),
+        fetchControlRoomSnapshot(),
         fetchHealth(),
       ])
-      if (persist) sessionStorage.setItem(CONTROL_ROOM_SESSION_KEY, token)
       setSnapshot(nextSnapshot)
       setHealth(nextHealth)
       setViewState("ready")
     } catch (error) {
-      const unauthorized = error instanceof ControlRoomRequestError && error.status === 401
-      if (unauthorized) {
-        tokenRef.current = ""
-        sessionStorage.removeItem(CONTROL_ROOM_SESSION_KEY)
-        setViewState("locked")
-      } else {
-        setViewState("error")
-      }
-      const message = error instanceof Error ? error.message : "Errore durante il caricamento"
+      setSnapshot(null)
+      setHealth(null)
+      setViewState("error")
+      const message = error instanceof ControlRoomRequestError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Errore durante il caricamento"
       setErrorMessage(message)
       toast.error(message)
       throw error
@@ -442,42 +376,13 @@ export function ControlRoomApp() {
 
   useEffect(() => {
     document.documentElement.dataset.controlRoomHydrated = "true"
-    const storedToken = sessionStorage.getItem(CONTROL_ROOM_SESSION_KEY)
-    if (!storedToken) {
-      setViewState("locked")
-      return
-    }
-    void load(storedToken, false).catch(() => undefined)
+    void load().catch(() => undefined)
   }, [load])
 
-  async function unlock(token: string) {
-    await load(token, true)
-    toast.success("Sessione aperta")
-  }
-
-  function lock() {
-    tokenRef.current = ""
-    sessionStorage.removeItem(CONTROL_ROOM_SESSION_KEY)
-    setSnapshot(null)
-    setHealth(null)
-    setErrorMessage("")
-    setViewState("locked")
-    toast.info("Sessione bloccata")
-  }
-
   function refresh() {
-    if (!tokenRef.current) return
-    void load(tokenRef.current, false)
+    void load()
       .then(() => toast.success("Snapshot aggiornato"))
       .catch(() => undefined)
-  }
-
-  if (viewState === "checking") {
-    return <main className="grid min-h-screen place-items-center"><Skeleton className="h-56 w-[min(90vw,28rem)]" /></main>
-  }
-
-  if (viewState === "locked") {
-    return <><LockedView onUnlock={unlock} /><Toaster position="top-right" /></>
   }
 
   return (
@@ -491,11 +396,13 @@ export function ControlRoomApp() {
               <p className="truncate text-sm font-semibold">Control Room foundation</p>
               <p className="truncate text-xs text-muted-foreground">Snapshot editoriale in sola lettura</p>
             </div>
-            <Badge variant="outline" className="hidden border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">Sessione attiva</Badge>
+            <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
+              <ShieldCheck aria-hidden="true" className="size-3.5" />
+              Access verificato
+            </Badge>
             <Button variant="outline" size="icon" onClick={refresh} disabled={viewState === "loading"} aria-label="Aggiorna snapshot">
               <RefreshCw aria-hidden="true" className={cn(viewState === "loading" && "animate-spin")} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={lock}><LockKeyhole aria-hidden="true" />Blocca</Button>
           </div>
         </header>
         <main className="space-y-12 p-4 sm:p-6 lg:p-8">
