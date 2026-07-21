@@ -99,6 +99,8 @@ export interface ControlRoomClaim {
   status: string
   evidence: string | null
   notes: string | null
+  created_at: string
+  updated_at: string
   source_kind: string | null
   source_label: string | null
   source_url: string | null
@@ -108,8 +110,8 @@ export interface ControlRoomClaim {
   checked_at: string | null
   valid_until: string | null
   task_status: string | null
-  required_source_kinds?: string[]
-  value?: unknown
+  required_source_kinds: string[]
+  value: unknown
 }
 
 export interface ControlRoomDraft {
@@ -209,6 +211,18 @@ function requireStringArray(object: JsonObject, key: string): string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
     throw new Error(`Campo ${key} non valido`)
   }
+  return value
+}
+
+function requireTimestamp(object: JsonObject, key: string): string {
+  const value = requireString(object, key)
+  if (Number.isNaN(new Date(value).getTime())) throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
+function requireNullableTimestamp(object: JsonObject, key: string): string | null {
+  const value = requireNullableString(object, key)
+  if (value !== null && Number.isNaN(new Date(value).getTime())) throw new Error(`Campo ${key} non valido`)
   return value
 }
 
@@ -340,17 +354,35 @@ function parseBriefs(value: unknown): ControlRoomBrief[] {
 
 function parseClaims(value: unknown): ControlRoomClaim[] {
   if (!Array.isArray(value)) throw new Error("Lista claim non valida")
-  for (const claim of value) {
-    if (
-      !isObject(claim)
-      || !isFiniteNumber(claim.id)
-      || typeof claim.claim_text !== "string"
-      || typeof claim.status !== "string"
-    ) {
-      throw new Error("Claim snapshot non valido")
+
+  return value.map((record) => {
+    if (!isObject(record)) throw new Error("Claim snapshot non valido")
+    return {
+      id: requireNumber(record, "id"),
+      brief_id: requireNullableNumber(record, "brief_id"),
+      subject_type: requireNullableString(record, "subject_type"),
+      subject_key: requireNullableString(record, "subject_key"),
+      field_name: requireNullableString(record, "field_name"),
+      claim_text: requireString(record, "claim_text"),
+      verification_question: requireNullableString(record, "verification_question"),
+      status: requireString(record, "status"),
+      evidence: requireNullableString(record, "evidence"),
+      notes: requireNullableString(record, "notes"),
+      created_at: requireTimestamp(record, "created_at"),
+      updated_at: requireTimestamp(record, "updated_at"),
+      source_kind: requireNullableString(record, "source_kind"),
+      source_label: requireNullableString(record, "source_label"),
+      source_url: requireNullableString(record, "source_url"),
+      trust_level: requireNullableNumber(record, "trust_level"),
+      verification_status: requireNullableString(record, "verification_status"),
+      confidence: requireNullableNumber(record, "confidence"),
+      checked_at: requireNullableTimestamp(record, "checked_at"),
+      valid_until: requireNullableTimestamp(record, "valid_until"),
+      task_status: requireNullableString(record, "task_status"),
+      required_source_kinds: requireStringArray(record, "required_source_kinds"),
+      value: record.value,
     }
-  }
-  return value as ControlRoomClaim[]
+  })
 }
 
 function parseDrafts(value: unknown): ControlRoomDraft[] {
