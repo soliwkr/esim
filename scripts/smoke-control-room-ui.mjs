@@ -197,7 +197,7 @@ try {
   await fixturePage.goto(`${origin}/control-room-foundation`);
   await fixturePage.getByTestId('loading-state').waitFor();
   await fixturePage.getByText('Fonti e coda').waitFor();
-  await fixturePage.getByText('eSIM Cina problemi VPN').waitFor();
+  await fixturePage.getByLabel('Run di ricerca recente').getByText('eSIM Cina problemi VPN').waitFor();
   await fixturePage.getByText('Le eSIM in Cina funzionano davvero senza VPN?').waitFor();
   await fixturePage.getByText('eSIM in Cina: funzionano davvero senza VPN?').waitFor();
   await fixturePage.getByText('Claim dallo snapshot').waitFor();
