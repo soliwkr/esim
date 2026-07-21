@@ -204,7 +204,7 @@ jobs:
               "$page_url" -o /tmp/control-room-foundation.html \
               && grep -qi '^cache-control:.*no-store' /tmp/control-room-foundation.headers \
               && grep -qi '^x-robots-tag:.*noindex' /tmp/control-room-foundation.headers \
-              && grep -q 'Control Room foundation' /tmp/control-room-foundation.html \
+              && grep -q '<title>Control Room · Senza Roaming</title>' /tmp/control-room-foundation.html \
               && grep -q '<astro-island' /tmp/control-room-foundation.html; then
               echo "Cloudflare Access and origin JWT validation are active."
               exit 0
