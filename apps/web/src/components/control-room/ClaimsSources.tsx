@@ -223,13 +223,13 @@ export function ClaimsSources({ claims }: { claims: ControlRoomClaim[] }) {
     <section id="claims" aria-labelledby="claims-title" className="scroll-mt-24 space-y-5">
       <div className="flex flex-col justify-between gap-3 xl:flex-row xl:items-end">
         <div>
-          <p className="text-sm font-medium text-primary">Evidence registry</p>
+          <p className="text-sm font-medium text-primary">Claim dallo snapshot</p>
           <h2 id="claims-title" className="text-2xl font-semibold tracking-tight">Claim, fonti e scadenze</h2>
           <p className="mt-1 text-sm text-muted-foreground">{visibleClaims.length} di {claims.length} claim visibili · sola lettura</p>
         </div>
         <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-5xl xl:grid-cols-5">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger aria-label="Filtra per stato claim"><SelectValue placeholder="Stato" /></SelectTrigger>
+            <SelectTrigger aria-label="Filtra per stato"><SelectValue placeholder="Stato" /></SelectTrigger>
             <SelectContent><SelectItem value="all">Tutti gli stati</SelectItem>{statuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
           </Select>
           <Select value={briefFilter} onValueChange={setBriefFilter}>
