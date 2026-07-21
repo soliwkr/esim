@@ -4,11 +4,13 @@ import {
   FileCheck2,
   FileText,
   LayoutDashboard,
+  ListChecks,
   Menu,
   PanelLeft,
   RadioTower,
   RefreshCw,
   Rows3,
+  ScrollText,
   Search,
   ShieldCheck,
 } from "lucide-react"
@@ -17,6 +19,7 @@ import { toast } from "sonner"
 import { ClaimsSources } from "@/components/control-room/ClaimsSources"
 import { DraftDecisions } from "@/components/control-room/DraftDecisions"
 import { Overview } from "@/components/control-room/Overview"
+import { QueueAudit } from "@/components/control-room/QueueAudit"
 import { RadarBriefs } from "@/components/control-room/RadarBriefs"
 import { ReadinessEvidence } from "@/components/control-room/ReadinessEvidence"
 import { Badge } from "@/components/ui/badge"
@@ -56,6 +59,8 @@ const navigation = [
   { href: "#claims", label: "Claim e fonti", icon: Rows3 },
   { href: "#readiness", label: "Readiness", icon: FileCheck2 },
   { href: "#draft", label: "Draft e decisioni", icon: FileText },
+  { href: "#queue", label: "Queue", icon: ListChecks },
+  { href: "#audit", label: "Audit", icon: ScrollText },
 ]
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
@@ -124,7 +129,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)}
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-72 rounded-xl" />)}
+        {Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-72 rounded-xl" />)}
       </div>
     </div>
   )
@@ -208,7 +213,7 @@ export function ControlRoomApp() {
             <MobileNavigation />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Control Room</p>
-              <p className="truncate text-xs text-muted-foreground">Overview, radar, claim, readiness e draft · sola lettura</p>
+              <p className="truncate text-xs text-muted-foreground">Overview, editoriale, queue e audit · sola lettura</p>
             </div>
             <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
               <ShieldCheck aria-hidden="true" className="size-3.5" />
@@ -250,6 +255,7 @@ export function ControlRoomApp() {
                     bundles={snapshotState.data.evidenceBundles}
                     briefs={snapshotState.data.briefs}
                   />
+                  <QueueAudit queue={snapshotState.data.queue} audit={snapshotState.data.audit} />
                 </>
               )}
             </>
