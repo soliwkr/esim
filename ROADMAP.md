@@ -136,7 +136,7 @@ L9  Dashboard e integrazione studio
 - [x] Dimostrare deploy automatico e smoke live.
 - [x] Conservare un solo Worker.
 
-La fondazione Astro è stata unita con la PR #26. Il deploy reale e gli smoke live sono stati verificati durante le fasi Access e sessione server-side.
+La fondazione Astro è stata unita con la PR #26. Il deploy reale e gli smoke live sono stati verificati durante le fasi Access, sessione server-side e overview operativa.
 
 ### M4.2 — UI foundation
 
@@ -162,8 +162,8 @@ La fondazione Astro è stata unita con la PR #26. Il deploy reale e gli smoke li
 
 Ordine:
 
-- [ ] Overview e health — **PR #32 in verifica**.
-- [ ] Radar e brief.
+- [x] Overview e health — PR #32 mergiata, distribuita e verificata.
+- [ ] Radar e brief — **prossima fase**.
 - [ ] Claim, fonti e scadenze.
 - [ ] Page Readiness ed evidence bundle.
 - [ ] Draft, preview e decisioni.
@@ -171,7 +171,9 @@ Ordine:
 - [ ] Test browser end-to-end delle operazioni autorizzate.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-La fase overview usa i contratti esistenti, mostra tutte le metriche disponibili, valida i payload a runtime e gestisce health e snapshot come risorse indipendenti. Non aggiunge probe esterni, mutation o pubblicazione.
+La fase overview usa i contratti esistenti, mostra tutte le metriche disponibili, valida i payload a runtime e gestisce health e snapshot come risorse indipendenti. CI, deploy e verifica manuale desktop/mobile sono completati.
+
+La fase radar e brief usa inizialmente soltanto `researchRuns`, `signals` e `briefs` già presenti nello snapshot. È read-only e non introduce avvio Workflow, accettazione o conversione dei brief, nuovi endpoint, mutation o pubblicazione.
 
 **Criterio di uscita M4:** le operazioni quotidiane non richiedono terminale; la UI non contiene codice artigianale evitabile e non può pubblicare autonomamente.
 
@@ -255,12 +257,12 @@ La fase overview usa i contratti esistenti, mostra tutte le metriche disponibili
 
 ## Ordine operativo attuale
 
-1. chiudere overview e health della nuova Control Room;
-2. migrare radar e brief;
-3. migrare claim e fonti;
-4. migrare readiness ed evidence bundle;
-5. migrare draft e preview;
-6. migrare queue e audit;
+1. migrare radar e brief in sola lettura;
+2. migrare claim e fonti;
+3. migrare readiness ed evidence bundle;
+4. migrare draft e preview;
+5. migrare queue e audit;
+6. introdurre azioni operative soltanto con scope espliciti e separati;
 7. rimuovere la legacy soltanto dopo parità funzionale;
 8. migrare il sito pubblico ad Astro;
 9. collegare Search Console, consenso e analytics;
