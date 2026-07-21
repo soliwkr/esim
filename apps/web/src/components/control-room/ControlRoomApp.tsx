@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import {
   ClipboardList,
+  FileCheck2,
   FileText,
   LayoutDashboard,
   Menu,
@@ -16,6 +17,7 @@ import { toast } from "sonner"
 import { ClaimsSources } from "@/components/control-room/ClaimsSources"
 import { Overview } from "@/components/control-room/Overview"
 import { RadarBriefs } from "@/components/control-room/RadarBriefs"
+import { ReadinessEvidence } from "@/components/control-room/ReadinessEvidence"
 import { DraftPreview } from "@/components/control-room/ReadOnlySections"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -52,6 +54,7 @@ const navigation = [
   { href: "#signals", label: "Segnali", icon: Search },
   { href: "#briefs", label: "Brief", icon: ClipboardList },
   { href: "#claims", label: "Claim e fonti", icon: Rows3 },
+  { href: "#readiness", label: "Readiness", icon: FileCheck2 },
   { href: "#draft", label: "Draft preview", icon: FileText },
 ]
 
@@ -205,7 +208,7 @@ export function ControlRoomApp() {
             <MobileNavigation />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Control Room</p>
-              <p className="truncate text-xs text-muted-foreground">Overview, radar, brief e claim · sola lettura</p>
+              <p className="truncate text-xs text-muted-foreground">Overview, radar, claim e readiness · sola lettura</p>
             </div>
             <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
               <ShieldCheck aria-hidden="true" className="size-3.5" />
@@ -241,6 +244,7 @@ export function ControlRoomApp() {
                     briefs={snapshotState.data.briefs}
                   />
                   <ClaimsSources claims={snapshotState.data.claims} />
+                  <ReadinessEvidence bundles={snapshotState.data.evidenceBundles} />
                   <DraftPreview drafts={snapshotState.data.drafts} />
                 </>
               )}
