@@ -177,8 +177,8 @@ try {
 
   await choose(page, 'Filtra queue per stato', 'failed');
   await queue.getByText('1 di 4 task visibili').waitFor();
-  assert.equal(await queue.getByRole('button', { name: 'Apri task queue 803' }).count(), 1);
-  assert.equal(await queue.getByRole('button', { name: 'Apri task queue 801' }).count(), 0);
+  await queue.getByRole('row').filter({ hasText: 'editorial_review' }).waitFor();
+  assert.equal(await queue.getByRole('row').filter({ hasText: 'editorial-claim:102' }).count(), 0);
 
   await choose(page, 'Filtra queue per stato', 'Tutti gli stati');
   await choose(page, 'Filtra queue per task type', 'verify_claims');
