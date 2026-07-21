@@ -151,7 +151,7 @@ Ordine:
 3. claim, fonti e scadenze — **completati e verificati con PR #37**;
 4. readiness ed evidence bundle — **completati con PR #39 e hotfix #40**;
 5. draft, preview e decisioni — **completati e verificati con PR #42**;
-6. audit e queue — **prossima fase read-only**;
+6. audit e queue — **PR #44 in verifica**;
 7. azioni operative autorizzate, una per branch.
 
 #### F3.1 — Overview e health
@@ -249,15 +249,42 @@ Non include:
 
 #### F3.6 — Queue e audit
 
-**Stato: prossima fase, inizialmente read-only.**
+**Stato: PR #44 in verifica, read-only.**
 
-La fase deve partire dalla lettura dei contratti reali già presenti nello snapshot e mostrare, soltanto quando esposti:
+Contratti già presenti nello snapshot:
 
-- task type, entity, priorità, stato, due at, tentativi e lock;
-- ultimo errore, payload e timestamp;
-- dominio, azione, attore, entità, dettagli e timestamp degli eventi audit;
-- filtri e dettaglio accessibile;
-- empty state, contratto invalido, desktop, mobile e tastiera.
+##### Queue
+
+- ID task;
+- task type, entity type ed entity key;
+- priorità e stato `pending`, `processing` o `failed`;
+- due at;
+- attempts e max attempts;
+- locked by;
+- last error;
+- payload JSON;
+- created at e updated at.
+
+##### Audit
+
+- domain;
+- action;
+- actor;
+- entity;
+- details JSON;
+- created at.
+
+Vista implementata:
+
+- riepilogo queue esplicitamente limitato ai record restituiti dalla query backend;
+- filtri queue per stato, task type, entity type e condizione;
+- dettaglio task con priorità, tentativi, lock, errore, payload e timestamp;
+- filtri audit per dominio, azione e attore;
+- dettaglio evento con metadati e JSON opaco;
+- empty state, contratto invalido, desktop, mobile e tastiera;
+- nessuna richiesta browser diversa da `GET`.
+
+Limite esplicito: l’audit aggregato non espone un ID evento né un collegamento univoco a una specifica versione draft. La UI non ricostruisce questo linkage.
 
 Separazioni obbligatorie:
 
@@ -268,7 +295,7 @@ completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-La prima iterazione non introduce retry, complete, dismiss, avvio Workflow, mutation o pubblicazione.
+La PR #44 non introduce retry, complete, dismiss, avvio Workflow, mutation, nuovi endpoint, query D1 o pubblicazione.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -304,7 +331,8 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - una fonte ufficiale non viene presentata come test indipendente;
 - draft eligibility non viene presentata come publication eligibility;
 - lo stato del draft non viene presentato come stato della pagina;
-- lo stato della queue non viene presentato come decisione editoriale.
+- lo stato della queue non viene presentato come decisione editoriale;
+- un evento audit non viene presentato come autorizzazione operativa.
 
 ## Definition of Done F3.5
 
@@ -321,6 +349,23 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - [x] nessuna generazione, revisione operativa, mutation, pubblicazione o accesso browser a D1;
 - [x] overview, radar, segnali, brief, claim e readiness non regrediscono;
 - [x] deploy e verifica manuale sono verdi.
+
+## Definition of Done F3.6
+
+- [ ] queue e audit dello snapshot sono visibili;
+- [ ] contratto completo dei campi usati è validato;
+- [ ] stati queue non ammessi vengono rifiutati;
+- [ ] payload e dettagli sono validati come JSON senza reinterpretazione;
+- [ ] riepiloghi queue dichiarano il limite della query restituita;
+- [ ] il gap sull’identità evento e sul linkage draft è dichiarato;
+- [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
+- [ ] tastiera e viewport mobile sono verificati;
+- [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
+- [ ] smoke Chromium generale, claim, readiness, draft e queue/audit sono verdi;
+- [ ] nessuna richiesta browser diversa da `GET`;
+- [ ] nessun retry, complete, dismiss, avvio Workflow, mutation, pubblicazione o accesso browser a D1;
+- [ ] le viste precedenti non regrediscono;
+- [ ] deploy e verifica manuale sono verdi.
 
 ## Cosa non facciamo adesso
 
