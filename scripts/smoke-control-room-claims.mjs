@@ -14,6 +14,27 @@ const accessHeaders = { 'cf-access-jwt-assertion': access.token };
 const snapshotProxyPath = '/control-room-foundation/api/snapshot';
 const logs = [];
 
+async function verifyStaticContract() {
+  const [claimsComponent, controlRoomApiClient] = await Promise.all([
+    readFile('apps/web/src/components/control-room/ClaimsSources.tsx', 'utf8'),
+    readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
+  ]);
+
+  assert.doesNotMatch(claimsComponent, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
+  assert.doesNotMatch(claimsComponent, /\bfetch\s*\(/);
+  assert.doesNotMatch(claimsComponent, /sessionStorage|Authorization|Bearer|env\.DB|\bD1\b/i);
+  assert.match(claimsComponent, /Claim, fonti e scadenze/);
+  assert.match(claimsComponent, /Stato temporale, non stato canonico/);
+  assert.match(claimsComponent, /Fonte ed evidenza restano distinte/);
+  assert.match(claimsComponent, /Filtra per scadenza/);
+  assert.match(controlRoomApiClient, /function parseClaims/);
+  assert.match(controlRoomApiClient, /required_source_kinds: requireStringArray/);
+  assert.match(controlRoomApiClient, /valid_until: requireNullableTimestamp/);
+  assert.match(controlRoomApiClient, /trust_level: requireNullableNumber/);
+}
+
+await verifyStaticContract();
+
 const [fixture, healthFixture] = await Promise.all([
   readFile('tests/fixtures/control-room-snapshot.json', 'utf8').then(JSON.parse),
   readFile('tests/fixtures/control-room-health.json', 'utf8').then(JSON.parse)
