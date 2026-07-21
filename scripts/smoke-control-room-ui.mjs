@@ -216,7 +216,7 @@ try {
   const mobilePage = await mobileContext.newPage();
   await mockReadApis(mobilePage);
   await mobilePage.goto(`${origin}/control-room-foundation`);
-  await mobilePage.getByTestId('control-room-app').waitFor();
+  await mobilePage.locator('html[data-control-room-hydrated="true"]').waitFor();
   await mobilePage.getByRole('button', { name: 'Apri navigazione' }).focus();
   await mobilePage.keyboard.press('Enter');
   await mobilePage.getByRole('dialog').getByRole('navigation', { name: 'Navigazione Control Room' }).waitFor();
