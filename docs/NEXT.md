@@ -6,7 +6,7 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Avviare Page Readiness ed evidence bundle
+### 1. Chiudere la PR #39 — Page Readiness ed evidence bundle
 
 Branch:
 
@@ -18,9 +18,7 @@ Obiettivo esclusivo: migrare nella nuova Control Room la lettura degli evidence 
 
 La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
 
-### 2. Mappare e validare il contratto bundle
-
-Usare soltanto `evidenceBundles` già restituito da `GET /control-room-foundation/api/snapshot`.
+### 2. Verificare il contratto bundle
 
 Ogni record deve validare esplicitamente:
 
@@ -33,9 +31,11 @@ Ogni record deve validare esplicitamente:
 - warning;
 - revisore, reviewed at, created at e updated at.
 
-Un campo non conforme deve rendere invalido il payload. Il client non ricalcola score, gate o conteggi.
+I quattro gate devono essere `0 | 1`. I conteggi devono essere interi non negativi. Un campo non conforme rende invalido il payload.
 
-### 3. Costruire la vista read-only
+Il client non ricalcola score, gate, warning o conteggi.
+
+### 3. Verificare la vista read-only
 
 La vista deve offrire:
 
@@ -54,7 +54,7 @@ La UI deve rendere evidente che:
 review draft eligible ≠ publication eligible
 ```
 
-Un bundle idoneo alla generazione di un draft non è automaticamente pubblicabile.
+Un bundle idoneo alla generazione o revisione di un draft non è automaticamente pubblicabile.
 
 ### 4. Definition of Done
 
@@ -65,11 +65,12 @@ Prima del merge devono passare:
 - build e smoke del Container invariati;
 - bundle reale dentro `workerd`;
 - smoke Chromium generale della Control Room;
+- smoke Chromium dedicato a claim, fonti e scadenze;
 - smoke Chromium dedicato a readiness ed evidence bundle;
 - filtri, dettaglio, tastiera, mobile, contratto invalido ed empty state;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna credenziale o accesso diretto a D1;
-- nessuna route o azione di approvazione o pubblicazione;
+- nessuna route o azione di approvazione, generazione o pubblicazione;
 - nessuna regressione su overview, radar, segnali, brief, claim e draft preview.
 
 ### 5. Verificare il deploy reale
@@ -77,10 +78,11 @@ Prima del merge devono passare:
 Dopo il merge:
 
 - aprire `https://senzaroaming.it/control-room-foundation`;
-- verificare la sezione Page Readiness;
+- verificare la sezione “Evidence bundle e gate”;
 - aprire il bundle reale del primo ciclo editoriale;
-- verificare score 77, draft eligibility positiva e publication eligibility negativa;
-- verificare conteggi, conflitto e warning;
+- verificare score 77;
+- verificare draft eligibility positiva e publication eligibility negativa;
+- verificare conteggi, conflitto, warning e zero first-party tests;
 - controllare desktop e mobile;
 - confermare che non esistano azioni di approvazione, generazione o pubblicazione.
 
@@ -92,7 +94,7 @@ Dopo la verifica reale:
 feat/control-room-draft-decisions
 ```
 
-Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation richiederanno uno scope separato e conferme esplicite; non vengono introdotte automaticamente nella fase readiness.
+Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation richiederanno una branch separata, contratti espliciti e conferme accessibili; non vengono introdotte automaticamente nella fase readiness.
 
 ## Fuori scope immediato
 
