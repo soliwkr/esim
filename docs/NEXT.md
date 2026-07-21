@@ -6,101 +6,90 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Aprire la fase claim, fonti e scadenze
+### 1. Chiudere la PR #36 — Zero relevance gate
 
-Branch prevista:
+Branch:
+
+```text
+fix/research-zero-relevance-gate
+```
+
+Problema osservato in produzione:
+
+```text
+query/topic: Holafly recent experiences
+titolo: esperienza a uno spettacolo di Shane Gillis ad Austin
+relevance_score: 0
+eligible_for_editorial: 1
+```
+
+Il record è un falso positivo. Il gate storico filtrava duramente soltanto date vecchie o future e trattava tutta la bassa rilevanza come warning consultivo.
+
+Correzione autorizzata:
+
+- `relevance_score = 0` diventa condizione bloccante;
+- il record riceve `zero_relevance`;
+- gli oggetti esistenti vengono riallineati con una migrazione D1;
+- gli override umani deliberati restano validi e auditabili;
+- `0 < relevance_score < 0,35` resta consultivo;
+- `relevance_score IS NULL` non viene filtrato automaticamente.
+
+### 2. Verificare migrazione e regressione
+
+Prima del merge devono passare:
+
+- TypeScript strict e build Astro;
+- tutte le migrazioni locali, inclusa `0018_research_zero_relevance_gate.sql`;
+- smoke D1 con il falso positivo osservato;
+- conferma che il record con score `0` sia filtered;
+- conferma che un record con score `0,2` resti eligible;
+- conteggi `eligible_count` e `filtered_count` corretti;
+- Container, `workerd` e Chromium invariati;
+- nessuna regressione su Access, Control Room o publication gate.
+
+### 3. Verificare il backfill in produzione
+
+Dopo il merge e il deploy:
+
+- il segnale #11 non deve più risultare `eligible`;
+- deve apparire tra i segnali filtrati;
+- deve mostrare il flag `zero_relevance`;
+- il run di origine deve avere conteggi riallineati;
+- nessun brief o claim esistente viene modificato automaticamente.
+
+Il backfill corregge eligibility e conteggi. Non cancella record e non annulla decisioni editoriali già persistite.
+
+### 4. Riprendere claim, fonti e scadenze
+
+Subito dopo la verifica della PR #36:
 
 ```text
 feat/control-room-claims-sources
 ```
 
-Obiettivo esclusivo: migrare in sola lettura i claim e i relativi dati di fonte, verifica, scadenza e task già presenti nello snapshot protetto.
+Scope già approvato:
 
-La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
-
-### 2. Mostrare i claim reali
-
-La vista deve mostrare:
-
-- ID e brief collegato;
-- soggetto, campo e testo del claim;
-- domanda di verifica;
-- stato canonico;
-- evidence e note;
-- source kinds richiesti.
-
-La UI non deve trasformare un claim `insufficient`, `pending` o scaduto in un fatto utilizzabile.
-
-### 3. Mostrare le fonti
-
-Per ogni claim, quando presenti:
-
-- tipo di fonte;
-- etichetta;
-- URL;
-- trust level;
-- provenienza distinta dall’evidenza testuale.
-
-Una fonte ufficiale resta una dichiarazione attribuita e non diventa automaticamente un test indipendente.
-
-### 4. Mostrare verifica e scadenza
-
-Mostrare:
-
-- verification status;
-- confidence;
-- checked at;
-- valid until;
+- claim e brief collegato;
+- soggetto, campo, testo e domanda di verifica;
+- stato canonico, evidence e note;
+- tipo di fonte, etichetta, URL e trust level;
+- verification status, confidence, checked at e valid until;
 - task status;
-- stato temporale derivato della data: assente, valida o scaduta.
+- stato temporale della scadenza separato dallo stato canonico;
+- filtri e dettaglio read-only.
 
-Lo stato temporale è soltanto una presentazione della data. Non sostituisce e non riscrive lo stato canonico del claim.
+## Fuori scope della PR #36
 
-### 5. Aggiungere filtri e dettaglio
+- classificatore semantico o LLM nel quality gate;
+- framework esterni di data quality;
+- topic matching euristico generalizzato;
+- avvio Workflow o nuovo run automatico;
+- cancellazione dei segnali filtrati;
+- modifica di brief, claim, readiness o draft;
+- nuovi endpoint;
+- mutation o pubblicazione.
 
-Filtri previsti:
-
-- stato claim;
-- brief;
-- tipo di fonte;
-- verifica;
-- scadenza.
-
-Il dettaglio resta read-only e deve essere utilizzabile da tastiera e su mobile.
-
-### 6. Estendere i contratti runtime
-
-Validare esplicitamente i campi claim necessari alla vista, inclusi valori nullable e array `required_source_kinds`.
-
-Un record non conforme deve produrre un errore leggibile, non dati incompleti o ricostruiti.
-
-### 7. Definition of Done
-
-Prima del merge devono passare:
-
-- TypeScript strict e build Astro;
-- migrazioni locali senza modifiche allo schema;
-- build e smoke del Container invariati;
-- bundle reale dentro `workerd`;
-- snapshot reale con claim e campi di fonte/verifica;
-- Chromium desktop e mobile;
-- filtri, Sheet, tastiera e focus;
-- loading, error, contratto invalido ed empty state;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna route o azione di pubblicazione;
-- nessuna regressione su overview, radar, segnali, brief e draft preview.
-
-## Fuori scope immediato
-
-- decomposizione o modifica dei claim;
-- verifica, dismiss o refresh manuale;
-- creazione o modifica delle fonti;
-- mutation della maintenance queue;
-- nuovi endpoint o query D1;
-- readiness, approvazione draft o pubblicazione;
-- modifiche alla Control Room legacy.
-
-Le azioni operative saranno introdotte soltanto in branch separate, con scope esplicito, conferme accessibili, audit e guardrail invariati.
+Uno spike su strumenti come Evidently o Cleanlab potrà essere valutato dopo aver raccolto un dataset revisionato. Non è necessario per correggere l'invariante deterministico osservato.
 
 ## Checkpoint completati il 21 luglio 2026
 
@@ -114,40 +103,26 @@ Le azioni operative saranno introdotte soltanto in branch separate, con scope es
 
 ### Overview e health
 
-- PR #32 mergiata con CI completa verde;
-- deploy e verifica manuale completati;
+- PR #32 mergiata e verificata;
 - 19 metriche, capability, binding, timestamp e guardrail visibili;
 - errori parziali e contratti runtime verificati;
 - nessuna mutation o pubblicazione.
 
 ### Radar e brief
 
-- PR #34 mergiata nel commit `53f8b8f`;
-- CI completa verde;
-- deploy e verifica manuale nel browser reale completati;
+- PR #34 mergiata e verificata;
 - run, segnali e brief visibili;
 - filtro run → segnali basato su `run_id`;
 - punteggi, flag e nullable preservati;
-- nessun collegamento segnale → brief inventato;
+- nessun linkage segnale → brief inventato;
 - desktop, mobile e tastiera verificati;
 - nessuna mutation o pubblicazione.
 
 ## Freeze immediato
 
 - niente nuove pagine tramite template string nel Worker;
-- niente nuovi componenti generici scritti a mano;
 - niente ampliamenti sostanziali della Control Room legacy;
 - browser senza accesso diretto a D1;
-- backend editoriale, claim, evidence bundle e gate invariati;
 - nessuna pubblicazione automatica;
-- nessun bypass pubblico della policy Access;
-- nessun secret in URL, HTML, JavaScript client, storage, log o repository.
-
-## Dopo la Control Room
-
-1. migrare il sito pubblico ad Astro;
-2. collegare Search Console e sitemap;
-3. configurare CMP, GTM e GA4;
-4. definire il dizionario canonico degli eventi;
-5. attivare OpenSEO e trend intelligence;
-6. attivare affiliazioni controllate.
+- nessun secret in URL, HTML, JavaScript client, storage, log o repository;
+- niente prosecuzione della migrazione claim finché il backfill quality gate non è verificato in produzione.
