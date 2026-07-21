@@ -10,11 +10,11 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | migrazioni versionate fino a `0017`; PR #36 aggiunge `0018` |
+| Worker e D1 | Operativi | migrazioni versionate fino a `0018_research_zero_relevance_gate.sql` |
 | API manutenzione | Operativa | accesso riservato e contratto invariato |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
-| Quality gate ricerca | Correzione PR #36 in verifica | score zero osservato erroneamente come eligible |
+| Quality gate ricerca | Operativo e verificato | score zero filtrato con `zero_relevance`; backfill reale confermato |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
@@ -27,7 +27,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Sessione server-side Control Room | Operativa | un solo login e snapshot automatico |
 | Overview e health | Operative e verificate | PR #32 |
 | Radar e brief | Operativi e verificati | PR #34 |
-| Claim, fonti e scadenze | Temporaneamente in attesa | riprende dopo la verifica del backfill PR #36 |
+| Claim, fonti e scadenze | PR #37 in verifica | migrazione read-only sul contratto snapshot esistente |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -108,84 +108,76 @@ Sono verificati in produzione:
 - contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
-## Falso positivo recent-demand osservato
+## Quality gate score zero verificato
 
-La nuova vista radar ha reso visibile un record persistito come idoneo:
+La Control Room ha reso visibile un falso positivo persistito con topic Holafly, contenuto relativo a uno spettacolo comico e `relevance_score = 0`.
 
-```text
-query/topic:       Holafly recent experiences
-titolo:            esperienza a uno spettacolo di Shane Gillis ad Austin
-relevance score:   0
-eligible:          true
-quality flags:     nessuno
-```
-
-Il record è estraneo al dominio eSIM. La UI ha mostrato correttamente il dato persistito; il difetto è nel quality gate storico.
-
-### Causa
-
-La migrazione `0010_research_signal_quality.sql` applica come condizioni bloccanti soltanto:
-
-- contenuto oltre la finestra recente;
-- data oltre due giorni nel futuro.
-
-`low_relevance` era soltanto un flag consultivo. Per questo uno score esattamente pari a zero restava eligible.
-
-### PR #36 — Correzione deterministica
-
-La branch `fix/research-zero-relevance-gate` introduce:
-
-- migrazione `0018_research_zero_relevance_gate.sql`;
-- backfill dei record con `relevance_score <= 0`;
-- preservazione degli override umani già espliciti;
-- flag persistito `zero_relevance`;
-- nuovo trigger D1 per gli inserimenti futuri;
-- conteggi run riallineati;
-- flag API coerente;
-- smoke D1 basato sul falso positivo osservato.
-
-Semantica scelta:
+La PR #36 è mergiata nel commit `2927419`, distribuita e verificata sul record reale:
 
 ```text
-relevance = 0              → filtered
+relevance = 0              → filtered + zero_relevance
 0 < relevance < 0,35       → eligible + warning consultivo
 relevance = null           → nessun filtro automatico
 manual_quality_override    → decisione umana preservata
 ```
 
-La CI ha già verificato con successo migrazione e smoke D1 sulla branch. Restano da completare la suite intera, il merge, il deploy e il controllo del record reale.
+La migrazione `0018`:
 
-## Confini della correzione
+- conserva i record per audit;
+- corregge eligibility e conteggi dei run;
+- preserva override umani espliciti;
+- applica la stessa regola agli inserimenti futuri;
+- non modifica automaticamente brief, claim, readiness o draft.
 
-La PR #36 non introduce:
+Il segnale osservato risulta ora filtrato e mostra `zero_relevance` nella Control Room.
 
-- classificatori semantici o LLM;
-- framework esterni di data quality;
-- cancellazione dei segnali;
-- nuovi endpoint;
-- nuovi run del Workflow;
-- modifiche a brief, claim, readiness o draft;
-- mutation o pubblicazione.
+## PR #37 — Claim, fonti e scadenze
+
+La PR #37 migra la vista claim dalla preview iniziale a un registro read-only completo usando esclusivamente i dati già esposti dallo snapshot.
+
+Implementazione in verifica:
+
+- tabella claim con brief, soggetto, stato canonico, fonte e scadenza;
+- filtri per stato, brief, tipo di fonte, verifica e scadenza;
+- dettaglio con domanda di verifica, evidence, note e source kinds richiesti;
+- metadati della fonte separati dall'evidenza testuale;
+- verification status, confidence, checked at, valid until e task status;
+- stato temporale derivato `valida`, `scaduta` o `senza scadenza`;
+- stato temporale esplicitamente separato dallo stato canonico del claim;
+- link fonte limitato a URL HTTP/HTTPS;
+- validazione runtime rigorosa dei campi usati;
+- regressioni browser dedicate desktop, mobile, tastiera, filtri, contratto invalido ed empty state.
+
+Restano invariati:
+
+- query e contratto del backend;
+- D1 e migrazioni;
+- Workflow, Container e AI;
+- claim, verifiche, fonti e queue persistiti;
+- readiness, draft e gate di pubblicazione.
 
 ## Rischi aperti
 
-1. Il backfill remoto deve essere verificato sul segnale reale.
-2. Un relevance score positivo ma errato può ancora richiedere revisione umana o un futuro gate semantico.
-3. Gli strumenti esterni di evaluation richiedono prima un dataset revisionato.
-4. L'health corrente descrive soprattutto configurazione e binding.
-5. La Control Room legacy deve restare congelata.
-6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-7. Search Console, CMP e analytics non sono ancora disponibili.
-8. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La PR #37 deve superare typecheck, build, runtime e i due smoke Chromium.
+2. La nuova vista deve essere verificata nel browser reale dopo il deploy.
+3. Lo stato temporale derivato non deve essere interpretato come mutation dello stato canonico.
+4. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
+5. L'health corrente descrive soprattutto configurazione e binding.
+6. La Control Room legacy deve restare congelata.
+7. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+8. Search Console, CMP e analytics non sono ancora disponibili.
+9. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
-Il checkpoint quality gate è raggiunto quando:
+Il checkpoint è raggiunto quando:
 
-- PR #36 è mergiata con CI completa verde;
-- migrazione `0018` è applicata in produzione;
-- il segnale osservato risulta filtered;
-- `zero_relevance` è visibile;
-- i conteggi del run sono corretti;
-- nessun brief o claim viene alterato automaticamente;
-- la migrazione claim/fonti/scadenze può riprendere.
+- PR #37 è mergiata con CI completa verde;
+- claim, fonti, verifiche e scadenze reali sono leggibili;
+- filtri e dettaglio sono utilizzabili da tastiera e su mobile;
+- payload claim non validi vengono rifiutati;
+- stato canonico e stato temporale restano distinti;
+- nessuna richiesta browser diversa da `GET` viene introdotta;
+- overview, radar, segnali, brief e draft preview non regrediscono;
+- deploy e verifica manuale sono verdi;
+- nessuna mutation o capacità di pubblicazione viene introdotta.

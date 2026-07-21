@@ -6,90 +6,106 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #36 — Zero relevance gate
+### 1. Chiudere la PR #37 — Claim, fonti e scadenze
 
 Branch:
-
-```text
-fix/research-zero-relevance-gate
-```
-
-Problema osservato in produzione:
-
-```text
-query/topic: Holafly recent experiences
-titolo: esperienza a uno spettacolo di Shane Gillis ad Austin
-relevance_score: 0
-eligible_for_editorial: 1
-```
-
-Il record è un falso positivo. Il gate storico filtrava duramente soltanto date vecchie o future e trattava tutta la bassa rilevanza come warning consultivo.
-
-Correzione autorizzata:
-
-- `relevance_score = 0` diventa condizione bloccante;
-- il record riceve `zero_relevance`;
-- gli oggetti esistenti vengono riallineati con una migrazione D1;
-- gli override umani deliberati restano validi e auditabili;
-- `0 < relevance_score < 0,35` resta consultivo;
-- `relevance_score IS NULL` non viene filtrato automaticamente.
-
-### 2. Verificare migrazione e regressione
-
-Prima del merge devono passare:
-
-- TypeScript strict e build Astro;
-- tutte le migrazioni locali, inclusa `0018_research_zero_relevance_gate.sql`;
-- smoke D1 con il falso positivo osservato;
-- conferma che il record con score `0` sia filtered;
-- conferma che un record con score `0,2` resti eligible;
-- conteggi `eligible_count` e `filtered_count` corretti;
-- Container, `workerd` e Chromium invariati;
-- nessuna regressione su Access, Control Room o publication gate.
-
-### 3. Verificare il backfill in produzione
-
-Dopo il merge e il deploy:
-
-- il segnale #11 non deve più risultare `eligible`;
-- deve apparire tra i segnali filtrati;
-- deve mostrare il flag `zero_relevance`;
-- il run di origine deve avere conteggi riallineati;
-- nessun brief o claim esistente viene modificato automaticamente.
-
-Il backfill corregge eligibility e conteggi. Non cancella record e non annulla decisioni editoriali già persistite.
-
-### 4. Riprendere claim, fonti e scadenze
-
-Subito dopo la verifica della PR #36:
 
 ```text
 feat/control-room-claims-sources
 ```
 
-Scope già approvato:
+Obiettivo esclusivo: sostituire la preview iniziale dei claim con una vista read-only completa sui campi già presenti nello snapshot protetto.
 
-- claim e brief collegato;
+La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
+
+### 2. Verificare il contratto claim
+
+Ogni record deve validare esplicitamente:
+
+- ID e brief collegato;
 - soggetto, campo, testo e domanda di verifica;
-- stato canonico, evidence e note;
-- tipo di fonte, etichetta, URL e trust level;
+- stato canonico;
+- evidence e note;
+- created at e updated at;
+- source kind, label, URL e trust level;
 - verification status, confidence, checked at e valid until;
 - task status;
-- stato temporale della scadenza separato dallo stato canonico;
-- filtri e dettaglio read-only.
+- array `required_source_kinds`;
+- valore persistito senza reinterpretazione.
 
-## Fuori scope della PR #36
+Un campo non conforme deve rendere il payload invalido. Il client non ricostruisce dati mancanti.
 
-- classificatore semantico o LLM nel quality gate;
-- framework esterni di data quality;
-- topic matching euristico generalizzato;
-- avvio Workflow o nuovo run automatico;
-- cancellazione dei segnali filtrati;
-- modifica di brief, claim, readiness o draft;
-- nuovi endpoint;
-- mutation o pubblicazione.
+### 3. Verificare la vista read-only
 
-Uno spike su strumenti come Evidently o Cleanlab potrà essere valutato dopo aver raccolto un dataset revisionato. Non è necessario per correggere l'invariante deterministico osservato.
+La vista deve offrire:
+
+- filtri per stato, brief, fonte, verifica e scadenza;
+- tabella con stato canonico e stato temporale distinti;
+- dettaglio accessibile da tastiera;
+- fonte separata dall'evidenza;
+- URL esterno soltanto per protocolli HTTP/HTTPS;
+- empty state reale e empty state dei filtri;
+- layout utilizzabile su desktop e mobile.
+
+Lo stato temporale deriva soltanto da `valid_until`:
+
+```text
+null                    → senza scadenza
+data futura             → valida
+data passata o presente → scaduta
+```
+
+Non riscrive lo stato canonico e non rende utilizzabile un claim insufficiente o scaduto.
+
+### 4. Definition of Done
+
+Prima del merge devono passare:
+
+- TypeScript strict e build Astro;
+- migrazioni locali, incluso il quality gate `0018`;
+- smoke del quality gate invariato;
+- build e smoke del Container invariati;
+- bundle reale dentro `workerd`;
+- smoke Chromium generale della Control Room;
+- smoke Chromium dedicato a claim, fonti e scadenze;
+- filtri, Sheet, tastiera, mobile, contratto invalido ed empty state;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna credenziale o accesso diretto a D1;
+- nessuna route o azione di pubblicazione;
+- nessuna regressione su overview, radar, segnali, brief e draft preview.
+
+### 5. Verificare il deploy reale
+
+Dopo il merge:
+
+- aprire `https://senzaroaming.it/control-room-foundation`;
+- verificare il titolo “Claim, fonti e scadenze”;
+- provare almeno un filtro di stato e uno di scadenza;
+- aprire il dettaglio di un claim reale;
+- verificare fonte, verifica, validità e task quando presenti;
+- controllare desktop e mobile;
+- confermare che non esistano azioni di modifica o pubblicazione.
+
+### 6. Fase successiva
+
+Dopo la verifica reale:
+
+```text
+feat/control-room-readiness-evidence
+```
+
+Scope previsto: Page Readiness ed evidence bundle in sola lettura, senza approvazioni o generazione draft nella stessa fase.
+
+## Fuori scope immediato
+
+- decomposizione o modifica dei claim;
+- verifica, dismiss o refresh manuale;
+- creazione o modifica delle fonti;
+- mutation della maintenance queue;
+- nuovi endpoint o query D1;
+- readiness actions, approvazione draft o pubblicazione;
+- modifiche alla Control Room legacy;
+- framework esterni di data quality.
 
 ## Checkpoint completati il 21 luglio 2026
 
@@ -98,15 +114,13 @@ Uno spike su strumenti come Evidently o Cleanlab potrà essere valutato dopo ave
 - PR #31 mergiata e verificata;
 - un solo login Cloudflare Access;
 - proxy snapshot read-only;
-- nessuna credenziale applicativa nel browser;
-- API originale invariata.
+- nessuna credenziale applicativa nel browser.
 
 ### Overview e health
 
 - PR #32 mergiata e verificata;
-- 19 metriche, capability, binding, timestamp e guardrail visibili;
-- errori parziali e contratti runtime verificati;
-- nessuna mutation o pubblicazione.
+- metriche, capability, binding, timestamp e guardrail visibili;
+- errori parziali e contratti runtime verificati.
 
 ### Radar e brief
 
@@ -114,9 +128,16 @@ Uno spike su strumenti come Evidently o Cleanlab potrà essere valutato dopo ave
 - run, segnali e brief visibili;
 - filtro run → segnali basato su `run_id`;
 - punteggi, flag e nullable preservati;
-- nessun linkage segnale → brief inventato;
-- desktop, mobile e tastiera verificati;
-- nessuna mutation o pubblicazione.
+- nessun linkage segnale → brief inventato.
+
+### Quality gate score zero
+
+- PR #36 mergiata nel commit `2927419`;
+- CI, migrazione e deploy completati;
+- segnale reale con score zero ora filtrato;
+- flag `zero_relevance` visibile;
+- conteggi riallineati;
+- nessuna modifica automatica a brief o claim.
 
 ## Freeze immediato
 
@@ -125,4 +146,4 @@ Uno spike su strumenti come Evidently o Cleanlab potrà essere valutato dopo ave
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- niente prosecuzione della migrazione claim finché il backfill quality gate non è verificato in produzione.
+- nessuna mutation nella PR read-only #37.

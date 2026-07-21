@@ -44,31 +44,22 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quality checkpoint aperto**
+**Stato: quality gate operativo; osservabilità da completare**
 
 - [x] Roadmap, status, architettura, decisioni e next.
 - [x] Storico e stato dei run.
 - [x] Quality gate freshness `eligible` / `filtered`.
+- [x] Score zero come failure deterministica.
+- [x] Backfill reale e flag `zero_relevance` verificati in produzione.
 - [x] Audit specifico di run, brief, claim e verifiche.
 - [x] Snapshot aggregato per dashboard.
-- [ ] Chiudere PR #36: relevance score zero come filtro duro.
-- [ ] Verificare il backfill del falso positivo osservato in produzione.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato.
 
-### Quality checkpoint PR #36
+### Quality checkpoint completato
 
-Problema osservato:
-
-```text
-query/topic: Holafly recent experiences
-contenuto: esperienza a uno spettacolo comico ad Austin
-relevance_score: 0
-eligible_for_editorial: 1
-```
-
-Decisione:
+La PR #36 è mergiata, distribuita e verificata:
 
 ```text
 relevance = 0              → filtered + zero_relevance
@@ -77,13 +68,7 @@ relevance = null           → nessun filtro automatico
 manual override            → preservato e auditabile
 ```
 
-Criterio di uscita:
-
-- migrazione `0018` applicata;
-- regressione D1 verde;
-- record reale filtered;
-- conteggi del run riallineati;
-- nessuna modifica automatica a brief o claim.
+Il record falso positivo osservato risulta filtrato. Nessun brief o claim è stato modificato automaticamente.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -158,14 +143,28 @@ Criterio di uscita:
 
 - [x] Overview e health — PR #32 verificata.
 - [x] Radar e brief — PR #34 verificata.
-- [ ] Claim, fonti e scadenze — riprende dopo il quality checkpoint PR #36.
+- [ ] Claim, fonti e scadenze — **PR #37 in verifica**.
 - [ ] Page Readiness ed evidence bundle.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-La fase claim/fonti/scadenze resta read-only e non cambia il backend. Il suo avvio è sospeso soltanto finché il dato `eligible` osservato non viene riallineato in produzione.
+#### Claim, fonti e scadenze — scope PR #37
+
+Usare soltanto il contratto snapshot esistente per mostrare:
+
+- claim atomico e brief collegato;
+- soggetto, campo, testo e domanda di verifica;
+- stato canonico, evidence e note;
+- fonte, URL, trust level e source kinds richiesti;
+- esito, confidenza, checked at, valid until e task status;
+- filtri read-only;
+- stato temporale della scadenza distinto dallo stato canonico.
+
+Non include nuovi endpoint, query D1, mutation, refresh, verifica claim, readiness actions o pubblicazione.
+
+**Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
@@ -225,16 +224,15 @@ La fase claim/fonti/scadenze resta read-only e non cambia il backend. Il suo avv
 
 ## Ordine operativo attuale
 
-1. chiudere e verificare PR #36 sul quality gate;
-2. riprendere claim, fonti e scadenze in sola lettura;
-3. migrare readiness ed evidence bundle;
-4. migrare draft, preview e decisioni;
-5. migrare queue e audit;
-6. introdurre azioni operative soltanto con scope espliciti;
-7. rimuovere la legacy soltanto dopo parità funzionale;
-8. migrare il sito pubblico ad Astro;
-9. collegare Search Console, consenso e analytics;
-10. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. chiudere e verificare PR #37 su claim, fonti e scadenze;
+2. migrare readiness ed evidence bundle in sola lettura;
+3. migrare draft, preview e decisioni;
+4. migrare queue e audit;
+5. introdurre azioni operative soltanto con scope espliciti;
+6. rimuovere la legacy soltanto dopo parità funzionale;
+7. migrare il sito pubblico ad Astro;
+8. collegare Search Console, consenso e analytics;
+9. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 

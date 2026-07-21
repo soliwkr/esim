@@ -60,7 +60,7 @@ Da scrivere nel progetto:
 - shadcn/ui con primitive Radix e sorgenti versionati;
 - icone Lucide;
 - validazione runtime dei payload API;
-- smoke `workerd` e Chromium.
+- smoke D1, `workerd` e Chromium.
 
 ### Target da adottare soltanto quando serve
 
@@ -148,7 +148,7 @@ Ordine:
 
 1. overview e health — **completate e verificate con PR #32**;
 2. radar e brief — **completati e verificati con PR #34**;
-3. claim, fonti e scadenze — **prossima fase**;
+3. claim, fonti e scadenze — **PR #37 in verifica**;
 4. readiness ed evidence bundle;
 5. draft, preview e decisioni;
 6. audit e queue;
@@ -175,38 +175,41 @@ Ordine:
 - punteggi, stati, quality flags e nullable preservati;
 - nessun linkage segnale → brief inventato;
 - filtri, Sheet, tastiera e mobile verificati;
-- overview, claim preview e draft preview non regrediti;
 - nessuna mutation o pubblicazione.
+
+Il quality checkpoint successivo ha inoltre verificato in produzione che uno score esattamente zero venga filtrato con `zero_relevance`.
 
 #### F3.3 — Claim, fonti e scadenze
 
-**Stato: prossima fase.**
+**Stato: implementazione PR #37 in verifica.**
 
-Dati esistenti da usare:
+Dati esistenti usati:
 
 - claim e brief collegato;
 - soggetto, campo, testo e domanda di verifica;
 - stato, evidence e note;
+- created at e updated at;
 - source kinds richiesti;
 - tipo di fonte, etichetta, URL e trust level;
 - verification status, confidence, checked at e valid until;
-- task status.
+- task status e valore persistito.
 
-Vista prevista:
+Vista implementata:
 
 - tabella claim con filtri per stato, brief, fonte, verifica e scadenza;
 - dettaglio read-only accessibile;
 - source metadata distinti dall'evidenza;
-- stato temporale della scadenza: assente, valida o scaduta;
+- URL esterni limitati a HTTP/HTTPS;
+- stato temporale `senza scadenza`, `valida` o `scaduta`;
 - stato temporale separato dallo stato canonico del claim;
 - empty state, contratto invalido, desktop e mobile.
 
 Contratti:
 
-- validare i campi necessari senza allargare l'API;
-- preservare `null`, array e valori canonici;
-- non ricostruire relazioni non esposte;
-- rifiutare record incoerenti con un errore esplicito.
+- i campi usati vengono validati senza allargare l'API;
+- `null`, array, timestamp e valori canonici vengono preservati;
+- relazioni non esposte non vengono ricostruite;
+- un record incoerente rende invalido lo snapshot.
 
 Non include:
 
@@ -245,23 +248,25 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - nessun componente UI introduce pubblicazione automatica;
 - la migrazione non modifica claim, evidence bundle o stati editoriali;
 - la pagina Cina resta `review` finché il publication gate non è soddisfatto;
-- i componenti esterni vengono ispezionati e fissati a versioni controllate;
 - una capability configurata non viene presentata come prova di salute end-to-end;
 - un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript;
 - segnali e trend non vengono presentati come claim commerciali verificati;
-- una scadenza derivata nel client non riscrive lo stato canonico del claim.
+- una scadenza derivata nel client non riscrive lo stato canonico del claim;
+- una fonte ufficiale non viene presentata come test indipendente.
 
 ## Definition of Done F3.3
 
 - [ ] claim, fonti e scadenze reali sono visibili;
-- [ ] contratti runtime coprono i campi necessari;
+- [ ] contratti runtime coprono tutti i campi usati;
 - [ ] stato canonico e stato temporale restano distinti;
 - [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
 - [ ] tastiera e viewport mobile sono verificati;
-- [ ] typecheck, build, migrazioni, Container, runtime e browser smoke sono verdi;
+- [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
+- [ ] smoke Chromium generale e dedicato sono verdi;
 - [ ] nessuna richiesta browser diversa da `GET`;
 - [ ] nessuna mutation, pubblicazione o accesso browser a D1;
-- [ ] overview, radar, segnali, brief e draft preview non regrediscono.
+- [ ] overview, radar, segnali, brief e draft preview non regrediscono;
+- [ ] deploy e verifica manuale sono verdi.
 
 ## Cosa non facciamo adesso
 
