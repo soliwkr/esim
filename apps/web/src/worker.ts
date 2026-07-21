@@ -18,16 +18,13 @@ function isAstroRequest(pathname: string): boolean {
     || isControlRoomRequest(pathname);
 }
 
-function privateJson(data: unknown, status: number, extraHeaders: HeadersInit = {}): Response {
-  return Response.json(data, {
-    status,
-    headers: {
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-      'x-robots-tag': 'noindex, nofollow',
-      ...extraHeaders
-    }
-  });
+function privateJson(data: unknown, status: number, extraHeaders?: HeadersInit): Response {
+  const headers = new Headers(extraHeaders);
+  headers.set('cache-control', 'no-store');
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('x-robots-tag', 'noindex, nofollow');
+
+  return Response.json(data, { status, headers });
 }
 
 async function controlRoomSnapshot(request: Request, env: Env): Promise<Response> {
