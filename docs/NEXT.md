@@ -6,106 +6,112 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la migrazione overview e health
+### 1. Aprire la fase radar e brief
 
-La PR #32 migra la prima vista funzionale della nuova Control Room senza cambiare endpoint o execution plane.
+Branch prevista:
 
-Scope autorizzato:
+```text
+feat/control-room-radar-briefs
+```
 
-- mostrare tutte le metriche già esposte da `snapshot.overview`;
-- distinguere capability dichiarate, binding configurati e probe end-to-end non ancora disponibili;
-- mostrare timestamp dello snapshot e guardrail di pubblicazione;
-- validare a runtime i contratti di `/api/health` e dello snapshot;
-- caricare health e snapshot come risorse indipendenti;
-- conservare claim e draft preview in sola lettura;
-- mantenere refresh, loading, errori parziali, empty state, tastiera e mobile.
+Obiettivo esclusivo: migrare in sola lettura `researchRuns`, `signals` e `briefs` già presenti nello snapshot protetto.
 
-Fuori scope:
+La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
 
+### 2. Implementare i run del radar
+
+Mostrare:
+
+- query e tipo di run;
+- data di generazione e finestra temporale;
+- numero risultati e warning;
+- conteggi `eligible` e `filtered`;
+- stato vuoto e dettaglio read-only.
+
+La UI non deve presentare un binding configurato come prova che un nuovo run sia stato eseguito correttamente.
+
+### 3. Implementare i segnali recenti
+
+Mostrare:
+
+- titolo, topic, tipo e provenienza;
+- data di pubblicazione e freshness;
+- relevance score;
+- stato e idoneità editoriale;
+- quality flags;
+- collegamento al run di origine.
+
+I segnali community o recent-demand restano opportunità editoriali, non prove commerciali.
+
+### 4. Implementare i brief
+
+Mostrare:
+
+- titolo proposto, cluster, slug e search intent;
+- Opportunity, Evidence e Priority Score;
+- stato del brief;
+- evidence bundle e readiness quando presenti;
+- draft collegato e renderer quando presenti;
+- dettaglio read-only e filtri.
+
+La UI deve riportare i valori canonici senza ricalcolarli o reinterpretarli.
+
+### 5. Estendere i contratti runtime
+
+Validare esplicitamente:
+
+- `researchRuns`;
+- `signals` e relativi quality flags;
+- `briefs`, punteggi e riferimenti a bundle/draft.
+
+Un record non conforme deve produrre un errore leggibile, non dati parzialmente inventati.
+
+### 6. Verificare la fase
+
+Definition of Done:
+
+- typecheck e build Astro verdi;
+- migrazioni e Container invariati;
+- smoke `workerd` sullo snapshot reale;
+- Chromium desktop e mobile;
+- filtri, dettaglio, loading, error ed empty state;
+- tastiera e focus verificati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna route di pubblicazione;
+- nessuna regressione su overview, claim e draft preview.
+
+## Fuori scope immediato
+
+- avvio manuale del Workflow;
+- accettazione o conversione dei brief;
+- decomposizione o verifica claim;
+- readiness, approvazione draft o queue;
 - nuovi endpoint o query D1;
-- health probe esterni di Workflow, Container o AI Gateway;
-- radar, brief, claim operations, readiness, draft decisions, queue o audit;
-- mutation, pubblicazione o ampliamenti della Control Room legacy.
+- mutation di qualunque tipo;
+- modifiche alla Control Room legacy.
 
-### 2. Verificare la PR #32
+Le azioni operative saranno introdotte soltanto in branch separate, con scope esplicito, conferme accessibili, audit e guardrail invariati.
 
-Prima del merge devono passare:
+## Checkpoint completati il 21 luglio 2026
 
-- TypeScript strict e build Astro;
-- migrazioni locali senza modifiche allo schema;
-- build e smoke del Container invariati;
-- bundle reale dentro `workerd`;
-- contratto completo delle 19 metriche overview;
-- rifiuto di payload health o snapshot non validi;
-- errore health con snapshot ancora visibile;
-- errore snapshot con health ancora visibile;
-- assenza di maintenance token, accesso diretto a D1, mutation e pubblicazione;
-- smoke Chromium desktop e mobile.
+### Sessione server-side
 
-### 3. Verificare il deploy reale
+- PR #31 mergiata e verificata;
+- un solo login Cloudflare Access;
+- proxy snapshot read-only;
+- nessuna credenziale applicativa nel browser;
+- API originale invariata.
 
-Dopo il merge:
+### Overview e health
 
-```text
-Cloudflare Access
-→ shell Astro
-→ snapshot proxy server-side
-→ overview completa
-```
-
-Controlli manuali:
-
-- accesso diretto dopo il solo login Access;
-- overview caricata con timestamp reale;
-- sezioni Fonti e coda, Ricerca recente, Brief e claim, Readiness e pagine;
-- guardrail “pubblicazione automatica disabilitata” visibile;
-- refresh funzionante;
-- claim e draft preview ancora consultabili;
-- layout desktop e mobile utilizzabili.
-
-### 4. Proseguire la migrazione funzionale
-
-Ordine successivo, una fase per branch:
-
-```text
-radar e brief
-→ claim e fonti
-→ readiness ed evidence bundle
-→ draft e preview
-→ queue e audit
-```
-
-Le prime mutation potranno essere introdotte soltanto con scope esplicito, contratti API stabili, conferme accessibili e guardrail editoriali invariati.
-
-### 5. Valutare il confronto UI soltanto se ancora utile
-
-shadcn/ui è operativo. Il confronto Mantine resta opzionale e separato; non blocca la migrazione in assenza di un vantaggio concreto da misurare.
-
-### 6. Migrare il sito pubblico dopo la Control Room
-
-Ordine previsto:
-
-- home e layout;
-- navigazione e pagine statiche;
-- listing;
-- pagina articolo;
-- schema, canonical, sitemap e 404;
-- migrazione progressiva senza cambiare gli stati editoriali.
-
-La pagina `esim-cina-senza-vpn` resta `review` e pubblicamente invisibile.
-
-## Checkpoint completato il 21 luglio 2026
-
-La sessione server-side della Control Room è operativa:
-
-- PR #31 mergiata con CI completa verde;
-- Cloudflare Access e validazione JWT nell’origine attivi;
-- proxy snapshot GET-only live;
-- browser privo di maintenance token, `sessionStorage` e header `Authorization` applicativo;
-- accesso manuale verificato con un solo login;
-- snapshot reale caricato automaticamente;
-- API originale invariata per agenti e consumer legacy;
-- nessuna regressione dei gate editoriali o di pubblicazione.
+- PR #32 mergiata con CI completa verde;
+- deploy automatico completato;
+- verifica manuale nel browser reale completata;
+- 19 metriche overview visibili;
+- capability, binding, timestamp e guardrail visibili;
+- errori parziali e contratti runtime verificati;
+- desktop e mobile utilizzabili;
+- nessuna mutation o pubblicazione.
 
 ## Freeze immediato
 
@@ -118,25 +124,11 @@ La sessione server-side della Control Room è operativa:
 - nessun bypass pubblico della policy Access;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository.
 
-## Definition of Done della PR #32
+## Dopo la Control Room
 
-- [ ] contratti health e snapshot validati a runtime;
-- [ ] tutte le metriche overview mostrate con significato coerente;
-- [ ] capability e binding distinti da veri probe di salute;
-- [ ] health e snapshot falliscono in modo indipendente;
-- [ ] timestamp e guardrail visibili;
-- [ ] CI completa verde;
-- [ ] deploy automatico verde;
-- [ ] verifica manuale desktop e mobile;
-- [ ] nessuna mutation o pubblicazione;
-- [ ] documentazione aggiornata allo stato verificato.
-
-## Dopo il frontend
-
-1. Search Console e sitemap operative;
-2. CMP, GTM e GA4;
-3. dizionario canonico degli eventi;
-4. OpenSEO come servizio condiviso;
-5. trend e stagionalità;
-6. affiliazioni controllate;
-7. funzioni multi-progetto dello studio.
+1. migrare il sito pubblico ad Astro;
+2. collegare Search Console e sitemap;
+3. configurare CMP, GTM e GA4;
+4. definire il dizionario canonico degli eventi;
+5. attivare OpenSEO e trend intelligence;
+6. attivare affiliazioni controllate.

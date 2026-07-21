@@ -25,7 +25,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
 | Cloudflare Access | Operativo e verificato | policy utente, service token CI e validazione JWT nell’origine |
 | Sessione server-side Control Room | Operativa | un solo login e snapshot automatico verificati nel browser reale |
-| Overview e health nuova Control Room | PR #32 in verifica | frontend-only, contratti invariati e gestione degli errori parziali |
+| Overview e health nuova Control Room | Operative e verificate | PR #32 mergiata; CI, deploy e verifica manuale completati |
+| Radar e brief nuova Control Room | Prossima fase | migrazione read-only sugli array già presenti nello snapshot |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -139,44 +140,60 @@ La PR #31 è mergiata e verificata in produzione:
 - API originale invariata per agenti e consumer legacy;
 - nessuna mutation o capacità di pubblicazione.
 
-### PR #32 — Overview e health
+### Overview e health verificate
 
-La PR #32 migra la prima vista funzionale usando soltanto i dati già esposti:
+La PR #32 è mergiata, distribuita e verificata nel browser reale:
 
-- tutte le 19 metriche di overview;
-- gruppi Fonti e coda, Ricerca recente, Brief e claim, Readiness e pagine;
-- capability Worker, D1, maintenance API, Workflow, Container, AI Gateway e Vertex;
-- timestamp dello snapshot;
-- guardrail di pubblicazione e stato affiliate visibili;
-- validazione runtime dei payload;
-- caricamento indipendente di health e snapshot;
-- dati validi preservati durante un errore parziale;
-- claim e draft preview ancora in sola lettura.
+- tutte le 19 metriche di overview sono visibili;
+- le sezioni Fonti e coda, Ricerca recente, Brief e claim, Readiness e pagine sono renderizzate;
+- capability, binding e limiti dei probe hanno semantica esplicita;
+- timestamp dello snapshot e guardrail di pubblicazione sono visibili;
+- i payload health e snapshot vengono validati a runtime;
+- un errore parziale non nasconde l’altra risorsa valida;
+- claim e draft preview restano in sola lettura;
+- desktop e mobile sono utilizzabili;
+- nessuna mutation, pubblicazione o credenziale browser è stata introdotta.
 
-La vista distingue una capability o un binding configurato da un vero probe end-to-end. Un health aggregato completo dei servizi esterni non è ancora dichiarato operativo.
+L’health corrente descrive soprattutto configurazione e binding. Un health aggregato con probe end-to-end dei servizi esterni non è ancora dichiarato operativo.
+
+## Prossima fase — Radar e brief
+
+La nuova vista userà esclusivamente `researchRuns`, `signals` e `briefs` già esposti dallo snapshot.
+
+Scope iniziale:
+
+- elenco degli ultimi run con query, finestra, risultati, warning e conteggi eligible/filtered;
+- segnali recenti con stato, qualità, provenienza e collegamento al run;
+- brief ordinati per priorità con punteggi, stato, readiness e draft collegato;
+- filtri, dettagli, empty state, errori, tastiera e mobile;
+- contratti runtime estesi ai tre array.
+
+Restano fuori scope:
+
+- avvio del Workflow;
+- accettazione o conversione dei brief;
+- mutation, nuovi endpoint o query D1;
+- modifiche al motore AI, ai gate editoriali o alla pubblicazione.
 
 ## Rischi aperti
 
-1. La PR #32 deve superare typecheck, build, runtime e browser smoke.
-2. La nuova overview deve essere verificata manualmente su desktop e mobile dopo il deploy.
-3. L’health corrente descrive soprattutto configurazione e binding.
-4. L’API originale deve restare compatibile con gli altri consumer autorizzati.
-5. La Control Room legacy deve restare congelata.
-6. L’eventuale confronto Mantine resta non eseguito.
-7. Le verifiche editoriali attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
-8. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-9. Search Console, CMP e analytics non sono ancora disponibili.
-10. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. L’health corrente descrive soprattutto configurazione e binding.
+2. L’API originale deve restare compatibile con gli altri consumer autorizzati.
+3. La Control Room legacy deve restare congelata.
+4. L’eventuale confronto Mantine resta non eseguito.
+5. Le verifiche editoriali attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
+6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+7. Search Console, CMP e analytics non sono ancora disponibili.
+8. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
-- PR #32 è mergiata con CI completa verde;
-- overview reale e timestamp sono visibili;
-- health e snapshot falliscono in modo indipendente;
-- payload non validi vengono rifiutati;
-- claim e draft preview non regrediscono;
-- live smoke e verifica manuale desktop/mobile sono verdi;
-- nessun nuovo HTML o JavaScript artigianale viene aggiunto;
-- nessun gate editoriale o di pubblicazione regredisce.
+- radar e brief sono leggibili nella nuova Control Room usando lo snapshot esistente;
+- run, segnali e brief hanno contratti runtime validati;
+- relazioni run → segnali → brief sono comprensibili;
+- punteggi e stati non vengono reinterpretati dalla UI;
+- desktop, mobile, tastiera, loading, error ed empty state sono verificati;
+- nessuna mutation o nuova capacità di pubblicazione viene introdotta;
+- backend, D1, Workflow, Container, AI e gate restano invariati.
