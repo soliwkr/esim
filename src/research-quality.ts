@@ -48,7 +48,8 @@ function qualityFlags(row: Record<string, unknown>): string[] {
   const corroboration = Number(row.corroboration_count || 0);
   const text = `${String(row.title || '')} ${String(row.summary || '')}`.toLocaleLowerCase('it');
 
-  if (relevance !== null && relevance < 0.35) flags.push('low_relevance');
+  if (relevance !== null && relevance <= 0) flags.push('zero_relevance');
+  else if (relevance !== null && relevance < 0.35) flags.push('low_relevance');
   if (corroboration < 2) flags.push('uncorroborated');
   if (
     /\b(sponsor(?:ed|izzato|izzata)?|partnership|affiliat(?:e|o|a)|coupon|codice sconto|promo(?:zione)?|use code)\b/.test(text)
