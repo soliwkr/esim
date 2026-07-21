@@ -6,9 +6,9 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Aprire la fase radar e brief
+### 1. Chiudere la PR #34 — Radar e brief
 
-Branch prevista:
+Branch:
 
 ```text
 feat/control-room-radar-briefs
@@ -18,66 +18,70 @@ Obiettivo esclusivo: migrare in sola lettura `researchRuns`, `signals` e `briefs
 
 La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
 
-### 2. Implementare i run del radar
+### 2. Verificare i run del radar
 
-Mostrare:
+La vista deve mostrare:
 
-- query e tipo di run;
+- query, sistema sorgente e tipo di run;
 - data di generazione e finestra temporale;
 - numero risultati e warning;
 - conteggi `eligible` e `filtered`;
-- stato vuoto e dettaglio read-only.
+- filtri e dettaglio read-only;
+- stato vuoto reale.
 
 La UI non deve presentare un binding configurato come prova che un nuovo run sia stato eseguito correttamente.
 
-### 3. Implementare i segnali recenti
+### 3. Verificare i segnali recenti
 
-Mostrare:
+La vista deve mostrare:
 
 - titolo, topic, tipo e provenienza;
 - data di pubblicazione e freshness;
 - relevance score;
-- stato e idoneità editoriale;
+- stato e `eligible_for_editorial` canonico;
 - quality flags;
-- collegamento al run di origine.
+- collegamento al run di origine tramite `run_id`.
 
 I segnali community o recent-demand restano opportunità editoriali, non prove commerciali.
 
-### 4. Implementare i brief
+### 4. Verificare i brief
 
-Mostrare:
+La vista deve mostrare:
 
-- titolo proposto, cluster, slug e search intent;
-- Opportunity, Evidence e Priority Score;
-- stato del brief;
+- titolo proposto, cluster, slug, asset type e search intent;
+- Opportunity, Evidence e Priority Score persistiti;
+- stato e note;
 - evidence bundle e readiness quando presenti;
 - draft collegato e renderer quando presenti;
-- dettaglio read-only e filtri.
+- filtri e dettaglio read-only.
 
-La UI deve riportare i valori canonici senza ricalcolarli o reinterpretarli.
+La UI non ricalcola o reinterpreta i punteggi. Lo snapshot non espone un collegamento diretto segnale → brief e il client non deve inventarlo.
 
-### 5. Estendere i contratti runtime
+### 5. Verificare i contratti runtime
 
 Validare esplicitamente:
 
 - `researchRuns`;
-- `signals` e relativi quality flags;
-- `briefs`, punteggi e riferimenti a bundle/draft.
+- `signals`, `run_id`, idoneità e quality flags;
+- `briefs`, punteggi e riferimenti nullable a bundle e draft.
 
 Un record non conforme deve produrre un errore leggibile, non dati parzialmente inventati.
 
-### 6. Verificare la fase
+### 6. Definition of Done
 
-Definition of Done:
+Prima del merge devono passare:
 
-- typecheck e build Astro verdi;
-- migrazioni e Container invariati;
-- smoke `workerd` sullo snapshot reale;
+- TypeScript strict e build Astro;
+- migrazioni locali senza modifiche allo schema;
+- build e smoke del Container invariati;
+- bundle reale dentro `workerd`;
+- snapshot reale con i tre array;
 - Chromium desktop e mobile;
-- filtri, dettaglio, loading, error ed empty state;
-- tastiera e focus verificati;
+- filtri run → segnali e stato brief;
+- dettagli Sheet via tastiera e focus;
+- loading, error, contratto invalido ed empty state;
 - nessuna richiesta browser diversa da `GET`;
-- nessuna route di pubblicazione;
+- nessuna route o azione di pubblicazione;
 - nessuna regressione su overview, claim e draft preview.
 
 ## Fuori scope immediato
