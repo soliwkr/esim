@@ -149,8 +149,8 @@ Ordine:
 1. overview e health — **completate e verificate con PR #32**;
 2. radar e brief — **completati e verificati con PR #34**;
 3. claim, fonti e scadenze — **completati e verificati con PR #37**;
-4. readiness ed evidence bundle — **PR #39 in verifica**;
-5. draft, preview e decisioni;
+4. readiness ed evidence bundle — **completati e verificati con PR #39 + hotfix #40**;
+5. draft, preview e decisioni — **prossima fase read-only**;
 6. audit e queue;
 7. azioni operative autorizzate, una per branch.
 
@@ -198,7 +198,7 @@ Il quality checkpoint successivo ha verificato in produzione che uno score esatt
 
 #### F3.4 — Page Readiness ed evidence bundle
 
-**Stato: implementazione PR #39 in verifica.**
+**Stato: completata e verificata in produzione.**
 
 Dati esistenti usati:
 
@@ -208,10 +208,10 @@ Dati esistenti usati:
 - `ready_for_review_draft` e `ready_for_publication`;
 - verified, insufficient, contradicted, pending ed expired count;
 - conflict, source, subject e first-party test count;
-- warning;
+- warning strutturati;
 - revisore, reviewed at, created at e updated at.
 
-Vista implementata:
+Vista verificata:
 
 - riepilogo bundle, draft idonei, pubblicabili e record con warning;
 - tabella con score, review status e gate separati;
@@ -225,10 +225,14 @@ Contratti:
 
 - i quattro gate sono validati come `0 | 1`;
 - i conteggi sono validati come interi non negativi;
-- timestamp e warning vengono validati a runtime;
+- ogni warning richiede `code` non vuoto e accetta `message` opzionale testuale;
+- metadati warning aggiuntivi vengono preservati senza reinterpretazione;
+- stringhe legacy e warning non conformi vengono rifiutati;
 - readiness score, warning, conteggi e gate non vengono ricalcolati;
 - draft eligibility e publication eligibility non vengono fuse;
 - un record incoerente rende invalido lo snapshot.
+
+La prima verifica reale ha scoperto una fixture `string[]` non aderente al backend canonico. La hotfix #40 ha riallineato parser, rendering, fixture e smoke al formato `{ code, message, ...metadata }`; il payload reale è ora visibile in produzione.
 
 Non include:
 
@@ -238,6 +242,31 @@ Non include:
 - mutation della queue;
 - nuovi endpoint o query D1;
 - draft decisions o pubblicazione.
+
+#### F3.5 — Draft, preview e decisioni
+
+**Stato: prossima fase, inizialmente read-only.**
+
+La fase deve partire dalla lettura del contratto reale e mostrare, soltanto quando esposti:
+
+- draft, evidence bundle e brief collegati;
+- versione, renderer e stato canonico;
+- contenuto strutturato e metadati principali;
+- claim usati ed esclusi;
+- provenance per campi, sezioni e FAQ;
+- autore, note, errori e timestamp;
+- pagina materializzata e stato separato;
+- decisioni editoriali già persistite.
+
+Separazioni obbligatorie:
+
+```text
+approved draft ≠ published page
+review draft    ≠ publication eligibility
+editorial approval ≠ publication action
+```
+
+La prima iterazione non introduce generazione, approvazione, mutation, nuovi endpoint o pubblicazione. Eventuali azioni operative vengono progettate e autorizzate in branch successive.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -272,22 +301,23 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - segnali e trend non vengono presentati come claim commerciali verificati;
 - una scadenza derivata nel client non riscrive lo stato canonico del claim;
 - una fonte ufficiale non viene presentata come test indipendente;
-- draft eligibility non viene presentata come publication eligibility.
+- draft eligibility non viene presentata come publication eligibility;
+- approvazione editoriale non viene presentata come pubblicazione.
 
 ## Definition of Done F3.4
 
-- [ ] evidence bundle reali sono visibili;
-- [ ] contratti runtime coprono tutti i campi usati;
-- [ ] readiness score e conteggi sono mostrati come persistiti;
-- [ ] draft eligibility e publication eligibility restano distinti;
-- [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
-- [ ] tastiera e viewport mobile sono verificati;
-- [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
-- [ ] smoke Chromium generale, claim e readiness sono verdi;
-- [ ] nessuna richiesta browser diversa da `GET`;
-- [ ] nessuna approvazione, mutation, pubblicazione o accesso browser a D1;
-- [ ] overview, radar, segnali, brief, claim e draft preview non regrediscono;
-- [ ] deploy e verifica manuale sono verdi.
+- [x] evidence bundle reali sono visibili;
+- [x] contratti runtime coprono tutti i campi usati;
+- [x] readiness score e conteggi sono mostrati come persistiti;
+- [x] draft eligibility e publication eligibility restano distinti;
+- [x] filtri, dettaglio, loading, error ed empty state sono verificati;
+- [x] tastiera e viewport mobile sono verificati;
+- [x] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
+- [x] smoke Chromium generale, claim e readiness sono verdi;
+- [x] nessuna richiesta browser diversa da `GET`;
+- [x] nessuna approvazione, mutation, pubblicazione o accesso browser a D1;
+- [x] overview, radar, segnali, brief, claim e draft preview non regrediscono;
+- [x] deploy e verifica manuale sono verdi.
 
 ## Cosa non facciamo adesso
 
@@ -297,4 +327,4 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- introdurre azioni operative nella stessa PR della migrazione readiness read-only.
+- introdurre azioni operative nella stessa PR della migrazione draft read-only.
