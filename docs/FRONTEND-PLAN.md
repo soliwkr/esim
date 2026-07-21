@@ -69,22 +69,11 @@ Da scrivere nel progetto:
 - React Hook Form per form editoriali;
 - Zod se i contratti condivisi richiedono una libreria dedicata.
 
-La migrazione overview non ha introdotto dipendenze aggiuntive. La fase radar e brief deve prima verificare se i dataset e i filtri correnti richiedono davvero TanStack Table; una libreria viene aggiunta soltanto quando riduce complessità reale.
+Una libreria viene aggiunta soltanto quando riduce complessità reale.
 
 ## UI kit
 
-La Control Room usa **shadcn/ui**. Il confronto con Mantine non è stato eseguito e resta opzionale; non blocca la migrazione in assenza di un vantaggio concreto da misurare.
-
-Criteri per un eventuale confronto:
-
-- quantità di codice custom;
-- accessibilità e tastiera;
-- qualità mobile;
-- velocità di implementazione;
-- coerenza con il sito pubblico Astro;
-- facilità di tema e branding;
-- bundle e idratazione;
-- manutenzione e aggiornamenti.
+La Control Room usa **shadcn/ui**. Il confronto con Mantine resta opzionale e non blocca la migrazione senza un vantaggio concreto da misurare.
 
 ## Integrazione Cloudflare verificata
 
@@ -131,103 +120,102 @@ La riorganizzazione completa del repository viene valutata soltanto dopo il rila
 ### F0 — Congelare la UI artigianale
 
 - [x] Control Room v3 riconosciuta come transitoria;
-- [x] solo bugfix critici;
+- [x] solo fallback e bugfix critici;
 - [x] nessuna nuova funzione importante nella dashboard HTML manuale;
 - [x] nessuna nuova pagina pubblica costruita con template string nel Worker.
 
 ### F1 — Frontend foundation
 
-- [x] creare `apps/web` con Astro, React e Cloudflare;
-- [x] collegare il custom Worker entrypoint;
-- [x] verificare binding, Workflow, Container e API in `workerd`;
-- [x] verificare che non esistano route di pubblicazione;
-- [x] distribuire e verificare la fondazione in produzione.
+- [x] `apps/web` con Astro, React e Cloudflare;
+- [x] custom Worker entrypoint;
+- [x] binding, Workflow, Container e API verificati in `workerd`;
+- [x] assenza di route di pubblicazione;
+- [x] fondazione distribuita e verificata in produzione.
 
 ### F2 — Control Room UI e perimetro privato
 
-- [x] installare shadcn/ui con componenti sorgente versionati;
-- [x] creare una shell dashboard responsive in una sola island React;
-- [x] mostrare overview, claim e draft preview campione in sola lettura;
-- [x] proteggere il path con Cloudflare Access;
-- [x] validare l’identità anche nell’origine;
-- [x] mediare la sessione applicativa nel Worker;
-- [x] eliminare il secondo login e le credenziali dal browser;
-- [x] coprire hydration, loading, error, empty, tastiera e mobile.
+- [x] shadcn/ui con componenti sorgente versionati;
+- [x] shell responsive in una React island;
+- [x] overview, claim preview e draft preview read-only;
+- [x] Cloudflare Access e validazione nell'origine;
+- [x] sessione mediata dal Worker;
+- [x] secondo login e credenziali browser rimossi;
+- [x] hydration, loading, error, empty, tastiera e mobile coperti.
 
 ### F3 — Migrare la Control Room
 
 Ordine:
 
 1. overview e health — **completate e verificate con PR #32**;
-2. radar e brief — **prossima fase**;
-3. claim e fonti;
+2. radar e brief — **completati e verificati con PR #34**;
+3. claim, fonti e scadenze — **prossima fase**;
 4. readiness ed evidence bundle;
-5. draft e preview;
-6. audit e queue.
+5. draft, preview e decisioni;
+6. audit e queue;
+7. azioni operative autorizzate, una per branch.
 
 #### F3.1 — Overview e health
 
 **Stato: completata e verificata in produzione.**
 
-Risultati:
-
-- tutte le metriche già esposte da `snapshot.overview` sono visibili;
+- tutte le metriche overview sono visibili;
 - capability e binding hanno semantica esplicita;
 - timestamp e guardrail sono mostrati;
 - health e snapshot sono risorse indipendenti;
-- payload non validi sono rifiutati;
-- dati validi sono preservati durante errori parziali;
-- claim e draft preview non sono regrediti;
-- typecheck, build, migrazioni, Container, runtime e browser smoke sono verdi;
-- deploy e verifica manuale desktop/mobile sono completati;
-- nessuna mutation, pubblicazione o accesso browser a D1 è stata introdotta.
+- payload non validi vengono rifiutati;
+- nessuna mutation, pubblicazione o accesso browser a D1.
 
 #### F3.2 — Radar e brief
+
+**Stato: completata e verificata in produzione.**
+
+- `researchRuns`, `signals` e `briefs` sono validati a runtime;
+- run, segnali e brief reali sono visibili;
+- filtro run → segnali basato sul `run_id` canonico;
+- punteggi, stati, quality flags e nullable preservati;
+- nessun linkage segnale → brief inventato;
+- filtri, Sheet, tastiera e mobile verificati;
+- overview, claim preview e draft preview non regrediti;
+- nessuna mutation o pubblicazione.
+
+#### F3.3 — Claim, fonti e scadenze
 
 **Stato: prossima fase.**
 
 Dati esistenti da usare:
 
-- `researchRuns`;
-- `signals`;
-- `briefs`.
+- claim e brief collegato;
+- soggetto, campo, testo e domanda di verifica;
+- stato, evidence e note;
+- source kinds richiesti;
+- tipo di fonte, etichetta, URL e trust level;
+- verification status, confidence, checked at e valid until;
+- task status.
 
-Vista run:
+Vista prevista:
 
-- query, sistema sorgente e tipo di run;
-- finestra temporale e data di generazione;
-- result count, warning count, eligible count e filtered count;
-- dettaglio read-only e stato vuoto.
-
-Vista segnali:
-
-- tipo, topic, titolo, provenienza e URL;
-- data di pubblicazione, freshness e relevance score;
-- idoneità editoriale, stato e quality flags;
-- relazione con il run di origine.
-
-Vista brief:
-
-- cluster, titolo proposto, slug, asset type e search intent;
-- Opportunity, Evidence e Priority Score;
-- stato e note;
-- evidence bundle, readiness e draft collegato quando presenti;
-- filtri e dettaglio read-only.
+- tabella claim con filtri per stato, brief, fonte, verifica e scadenza;
+- dettaglio read-only accessibile;
+- source metadata distinti dall'evidenza;
+- stato temporale della scadenza: assente, valida o scaduta;
+- stato temporale separato dallo stato canonico del claim;
+- empty state, contratto invalido, desktop e mobile.
 
 Contratti:
 
-- validare a runtime tutti e tre gli array;
-- preservare `null` e valori canonici senza ricalcoli nel client;
-- rifiutare record incoerenti con un errore esplicito;
-- non usare un segnale recent-demand come prova commerciale.
+- validare i campi necessari senza allargare l'API;
+- preservare `null`, array e valori canonici;
+- non ricostruire relazioni non esposte;
+- rifiutare record incoerenti con un errore esplicito.
 
 Non include:
 
-- avvio del Workflow;
-- accettazione o conversione dei brief;
+- decomposizione o modifica claim;
+- verifica, dismiss o refresh;
+- creazione o modifica fonti;
+- mutation della queue;
 - nuovi endpoint o query D1;
-- mutation o azioni operative;
-- modifiche a AI, claim, readiness, draft o publication gate.
+- readiness, draft decisions o pubblicazione.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -258,23 +246,22 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - la migrazione non modifica claim, evidence bundle o stati editoriali;
 - la pagina Cina resta `review` finché il publication gate non è soddisfatto;
 - i componenti esterni vengono ispezionati e fissati a versioni controllate;
-- non si importa un template completo senza verificare dipendenze, licenza e codice;
 - una capability configurata non viene presentata come prova di salute end-to-end;
 - un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript;
-- segnali e trend non vengono presentati come claim commerciali verificati.
+- segnali e trend non vengono presentati come claim commerciali verificati;
+- una scadenza derivata nel client non riscrive lo stato canonico del claim.
 
-## Definition of Done F3.2
+## Definition of Done F3.3
 
-- [ ] run, segnali e brief reali sono visibili;
-- [ ] relazioni run → segnali → brief sono comprensibili;
-- [ ] contratti runtime coprono i tre array;
-- [ ] punteggi, stati e quality flags conservano il significato canonico;
+- [ ] claim, fonti e scadenze reali sono visibili;
+- [ ] contratti runtime coprono i campi necessari;
+- [ ] stato canonico e stato temporale restano distinti;
 - [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
 - [ ] tastiera e viewport mobile sono verificati;
 - [ ] typecheck, build, migrazioni, Container, runtime e browser smoke sono verdi;
 - [ ] nessuna richiesta browser diversa da `GET`;
 - [ ] nessuna mutation, pubblicazione o accesso browser a D1;
-- [ ] overview, claim e draft preview non regrediscono.
+- [ ] overview, radar, segnali, brief e draft preview non regrediscono.
 
 ## Cosa non facciamo adesso
 
@@ -284,4 +271,4 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- introdurre azioni operative nella stessa PR della migrazione read-only di radar e brief.
+- introdurre azioni operative nella stessa PR della migrazione read-only.

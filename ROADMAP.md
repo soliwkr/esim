@@ -6,12 +6,12 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Come leggere i documenti
 
-- [`ROADMAP.md`](ROADMAP.md) — quando costruiamo e rilasciamo ogni blocco;
-- [`docs/FRONTEND-PLAN.md`](docs/FRONTEND-PLAN.md) — come migriamo frontend e Control Room;
-- [`docs/CAPABILITY-MAP.md`](docs/CAPABILITY-MAP.md) — quali layer compongono il sistema;
-- [`docs/SKILL-REGISTRY.md`](docs/SKILL-REGISTRY.md) — quali skill, repository e servizi vengono adottati;
-- [`docs/STATUS.md`](docs/STATUS.md) — fotografia dello stato reale;
-- [`docs/NEXT.md`](docs/NEXT.md) — prossime azioni eseguibili.
+- [`ROADMAP.md`](ROADMAP.md) — ordine dei blocchi e criteri di uscita;
+- [`docs/FRONTEND-PLAN.md`](docs/FRONTEND-PLAN.md) — migrazione frontend e Control Room;
+- [`docs/CAPABILITY-MAP.md`](docs/CAPABILITY-MAP.md) — layer del sistema;
+- [`docs/SKILL-REGISTRY.md`](docs/SKILL-REGISTRY.md) — skill, repository e servizi adottati;
+- [`docs/STATUS.md`](docs/STATUS.md) — stato operativo reale;
+- [`docs/NEXT.md`](docs/NEXT.md) — lavoro immediatamente eseguibile.
 
 ## Layer coperti
 
@@ -47,8 +47,7 @@ L9  Dashboard e integrazione studio
 
 - [x] Worker pubblico su Cloudflare.
 - [x] D1 con migrazioni versionate.
-- [x] Deploy da GitHub Actions.
-- [x] Deploy automatico per modifiche operative su `main`.
+- [x] Deploy automatico da GitHub Actions.
 - [x] Dominio principale collegato.
 - [x] Container `last30days` operativo.
 - [x] Cloudflare Workflow per il radar.
@@ -57,8 +56,6 @@ L9  Dashboard e integrazione studio
 - [x] Redirect `www → apex` implementato.
 - [x] Primo run end-to-end e ingest in D1.
 - [ ] Verificare definitivamente il `308` in produzione.
-
-**Criterio di uscita:** dominio canonico stabile, Worker, Container e Workflow sani.
 
 ## M1 — Memoria, qualità e osservabilità
 
@@ -69,12 +66,10 @@ L9  Dashboard e integrazione studio
 - [x] Storico e stato dei run.
 - [x] Quality gate `eligible` / `filtered`.
 - [x] Audit specifico di run, brief, claim e verifiche.
-- [x] Snapshot aggregato iniziale per dashboard.
+- [x] Snapshot aggregato per dashboard.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato.
-
-**Criterio di uscita:** stato e qualità comprensibili da una singola UI o risposta API.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -84,9 +79,8 @@ L9  Dashboard e integrazione studio
 - [x] Input limitato ai segnali idonei.
 - [x] Output strutturato e validato.
 - [x] Opportunity, Evidence e Priority Score.
-- [x] Brief persistiti e provenienza segnale → brief.
-- [x] Accettazione umana.
-- [x] Conversione in requisiti e task.
+- [x] Brief persistiti e provenienza segnale → brief nel backend.
+- [x] Accettazione umana e conversione in requisiti e task.
 - [x] Decomposizione in claim atomici.
 - [x] Matching soggetto claim/fonte.
 - [x] Esiti verificati, contraddetti, insufficienti e dismiss.
@@ -94,8 +88,6 @@ L9  Dashboard e integrazione studio
 - [x] Nessuna pubblicazione automatica.
 - [ ] Deduplicazione semantica storica.
 - [ ] Trust Score con prove ufficiali, first-party e indipendenti.
-
-**Criterio di uscita:** l'AI crea lavoro verificabile senza poter pubblicare.
 
 ## M3 — Page Readiness e draft grounded
 
@@ -112,49 +104,39 @@ L9  Dashboard e integrazione studio
 - [x] Primo draft Cina v2 grounded.
 - [x] Approvazione editoriale senza pubblicazione.
 
-**Criterio di uscita:** raggiunto; un evidence set diventa un draft revisionabile, non una pagina pubblicata.
-
 ## M4 — Frontend foundation e Control Room definitiva
 
 **Stato: checkpoint attuale**
 
 ### M4.0 — Freeze legacy
 
-- [x] Riconoscere la Control Room HTML manuale come transitoria.
-- [x] Separare il client v3 e aggiungere smoke live.
-- [ ] Verificare v3 realmente nel browser.
-- [x] Limitare la legacy a bugfix critici.
-- [x] Bloccare nuove feature costruite con HTML e DOM manuale.
+- [x] Control Room HTML manuale riconosciuta come transitoria.
+- [x] Legacy limitata a fallback e bugfix critici.
+- [x] Nessuna nuova funzione importante costruita con HTML e DOM manuale.
 
 ### M4.1 — Astro e Cloudflare
 
-- [x] Creare `apps/web` con Astro.
-- [x] Aggiungere adapter Cloudflare e React integration.
-- [x] Dimostrare custom Worker entrypoint.
-- [x] Conservare API, D1, Workflow e Container nello stesso execution plane.
-- [x] Verificare build e smoke runtime dentro `workerd` in CI.
-- [x] Dimostrare deploy automatico e smoke live.
-- [x] Conservare un solo Worker.
-
-La fondazione Astro è stata unita con la PR #26. Il deploy reale e gli smoke live sono stati verificati durante le fasi Access, sessione server-side e overview operativa.
+- [x] `apps/web` con Astro e React integration.
+- [x] Custom Worker entrypoint.
+- [x] API, D1, Workflow e Container nello stesso execution plane.
+- [x] Build e smoke runtime dentro `workerd`.
+- [x] Deploy automatico e live smoke.
+- [x] Un solo Worker.
 
 ### M4.2 — UI foundation
 
-- [x] Installare e versionare shadcn/ui dentro `apps/web`.
-- [x] Implementare overview/health campione in sola lettura.
-- [x] Implementare tabella claim con filtro, selezione e dettaglio in sola lettura.
-- [x] Implementare preview dei metadati draft esposti dallo snapshot.
-- [x] Verificare hydration, stati applicativi, tastiera e viewport mobile.
-- [ ] Confrontare shadcn/ui e Mantine soltanto se ancora utile.
-- [ ] Misurare codice custom, accessibilità, mobile, tema, bundle e manutenzione se viene eseguito il confronto.
-- [ ] Adottare un dashboard block o starter soltanto dopo ispezione del codice.
+- [x] shadcn/ui installato e versionato.
+- [x] Shell dashboard responsive in una React island.
+- [x] Overview, claim preview e draft preview read-only.
+- [x] Hydration, loading, error, empty, tastiera e mobile verificati.
+- [ ] Confronto Mantine soltanto se emerge un vantaggio misurabile.
 
 ### M4.3 — Perimetro privato e sessione
 
-- [x] Accesso privato tramite Cloudflare Access.
-- [x] Validazione dell’identità anche nell’origine.
-- [x] Sessione browser mediata dal Worker.
-- [x] Rimozione del secondo login applicativo.
+- [x] Cloudflare Access.
+- [x] Validazione dell'identità nell'origine.
+- [x] Sessione mediata dal Worker.
+- [x] Secondo login applicativo rimosso.
 - [x] Snapshot automatico senza credenziali nel browser.
 - [x] API originale invariata per agenti e consumer legacy.
 
@@ -163,19 +145,38 @@ La fondazione Astro è stata unita con la PR #26. Il deploy reale e gli smoke li
 Ordine:
 
 - [x] Overview e health — PR #32 mergiata, distribuita e verificata.
-- [ ] Radar e brief — **prossima fase**.
-- [ ] Claim, fonti e scadenze.
+- [x] Radar e brief — PR #34 mergiata, distribuita e verificata.
+- [ ] Claim, fonti e scadenze — **prossima fase**.
 - [ ] Page Readiness ed evidence bundle.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
-- [ ] Test browser end-to-end delle operazioni autorizzate.
+- [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-La fase overview usa i contratti esistenti, mostra tutte le metriche disponibili, valida i payload a runtime e gestisce health e snapshot come risorse indipendenti. CI, deploy e verifica manuale desktop/mobile sono completati.
+#### Radar e brief — risultato verificato
 
-La fase radar e brief usa inizialmente soltanto `researchRuns`, `signals` e `briefs` già presenti nello snapshot. È read-only e non introduce avvio Workflow, accettazione o conversione dei brief, nuovi endpoint, mutation o pubblicazione.
+- run, segnali e brief reali sono visibili;
+- il filtro run → segnali usa il `run_id` canonico;
+- punteggi, stati, quality flags e valori nullable restano quelli persistiti;
+- la UI non inventa un collegamento diretto segnale → brief non esposto dallo snapshot;
+- contratti runtime, desktop, mobile e tastiera sono verificati;
+- nessuna mutation o pubblicazione è stata introdotta.
 
-**Criterio di uscita M4:** le operazioni quotidiane non richiedono terminale; la UI non contiene codice artigianale evitabile e non può pubblicare autonomamente.
+#### Claim, fonti e scadenze — scope successivo
+
+Usare esclusivamente i dati già presenti nello snapshot:
+
+- claim, brief collegato, soggetto, campo, testo e stato;
+- domanda di verifica, evidence e note;
+- fonte, URL, trust level e source kinds richiesti;
+- verification status, confidence, checked at e valid until;
+- task status;
+- filtri e dettaglio read-only;
+- stato temporale della scadenza distinto dallo stato canonico del claim.
+
+Non include modifica o verifica claim, gestione fonti, refresh, queue mutation, nuovi endpoint, query D1 o pubblicazione.
+
+**Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
@@ -187,12 +188,8 @@ La fase radar e brief usa inizialmente soltanto `researchRuns`, `signals` e `bri
 - [ ] Migrare pagina articolo e preview.
 - [ ] Conservare canonical, sitemap, schema e vere 404.
 - [ ] Migliorare mobile, gerarchia e internal linking.
-- [ ] Confermare le pagine fondamentali.
-- [ ] Verificare pagine Tier 1 e destinazioni ad alta intenzione.
 - [ ] Pubblicare soltanto contenuti supportati da evidence set.
 - [ ] Eliminare renderer HTML, CSS e JavaScript manuali.
-
-**Criterio di uscita:** nucleo utile, verificato, navigabile e servito dal frontend Astro.
 
 ## M6 — Misurazione e indicizzazione
 
@@ -201,13 +198,9 @@ La fase radar e brief usa inizialmente soltanto `researchRuns`, `signals` e `bri
 - [ ] Google Search Console e sitemap.
 - [ ] CMP e consenso.
 - [ ] GA4 e GTM.
-- [ ] Eventi canonici.
-- [ ] Definizioni uniche delle metriche.
+- [ ] Eventi canonici e definizioni uniche delle metriche.
 - [ ] Report query, landing, CTR e indicizzazione.
-- [ ] Registro esperimenti.
-- [ ] CRO soltanto su dati osservabili.
-
-**Criterio di uscita:** domanda, scoperta, comportamento e qualità tecnica misurabili.
+- [ ] Registro esperimenti e CRO su dati osservabili.
 
 ## M7 — Intelligence SEO e trend condivisa
 
@@ -216,30 +209,20 @@ La fase radar e brief usa inizialmente soltanto `researchRuns`, `signals` e `bri
 - [ ] OpenSEO come servizio dello studio.
 - [ ] Progetto dedicato a Senza Roaming.
 - [ ] Search Console collegata.
-- [ ] Budget DataForSEO attribuito.
-- [ ] Rank tracking e competitor set.
-- [ ] Audit e trasferimento opportunità nella queue.
+- [ ] Rank tracking, competitor set e audit.
 - [ ] Trends MCP per momentum e stagionalità.
-- [ ] `claude-seo` come ispettore esterno.
 - [ ] Opportunity Score v2.
-
-**Criterio di uscita:** intelligence condivisa senza monolite.
 
 ## M8 — Monetizzazione controllata
 
 **Stato: non avviato**
 
 - [ ] Programmi affiliate ufficiali.
-- [ ] Approvazioni provider.
-- [ ] Link come secret.
 - [ ] Disclosure visibile.
+- [ ] Link come configurazione riservata.
 - [ ] Attivazione esplicita della modalità affiliate.
-- [ ] Tracking privacy-first.
-- [ ] Attribuzione per pagina, provider e CTA.
-- [ ] Monitoraggio programmi e link.
+- [ ] Tracking privacy-first e attribuzione.
 - [ ] Revenue Score dopo dati sufficienti.
-
-**Criterio di uscita:** monetizzazione senza compromettere accuratezza e indipendenza.
 
 ## M9 — Crescita e manutenzione continua
 
@@ -249,32 +232,27 @@ La fase radar e brief usa inizialmente soltanto `researchRuns`, `signals` e `bri
 - [ ] Refresh automatico delle fonti scadute.
 - [ ] Discovery mensile di cluster.
 - [ ] Aggiornamento delle pagine in perdita.
-- [ ] Priorità Opportunity, Trust e Revenue.
 - [ ] Audit tecnico, editoriale e GEO.
 - [ ] Espansione internazionale dopo stabilità italiana.
-- [ ] Contratto API con il Command Center.
-- [ ] Warehouse soltanto a scala reale.
+- [ ] Contratto API con il futuro Command Center.
 
 ## Ordine operativo attuale
 
-1. migrare radar e brief in sola lettura;
-2. migrare claim e fonti;
-3. migrare readiness ed evidence bundle;
-4. migrare draft e preview;
-5. migrare queue e audit;
-6. introdurre azioni operative soltanto con scope espliciti e separati;
-7. rimuovere la legacy soltanto dopo parità funzionale;
-8. migrare il sito pubblico ad Astro;
-9. collegare Search Console, consenso e analytics;
-10. attivare OpenSEO e trend intelligence;
-11. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. migrare claim, fonti e scadenze in sola lettura;
+2. migrare readiness ed evidence bundle;
+3. migrare draft, preview e decisioni;
+4. migrare queue e audit;
+5. introdurre azioni operative soltanto con scope espliciti e separati;
+6. rimuovere la legacy soltanto dopo parità funzionale;
+7. migrare il sito pubblico ad Astro;
+8. collegare Search Console, consenso e analytics;
+9. attivare OpenSEO e trend intelligence;
+10. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
 - cambia ordine o rilascio → `ROADMAP.md`;
 - cambia il piano frontend → `docs/FRONTEND-PLAN.md`;
-- aggiunge o modifica un layer → `docs/CAPABILITY-MAP.md`;
-- introduce skill, repository o servizio → `docs/SKILL-REGISTRY.md`;
 - cambia una scelta architetturale → `docs/DECISIONS.md`;
 - cambia ciò che è realmente operativo → `docs/STATUS.md`;
 - cambia il lavoro immediato → `docs/NEXT.md`.

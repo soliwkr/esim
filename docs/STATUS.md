@@ -26,7 +26,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Cloudflare Access | Operativo e verificato | policy utente, service token CI e validazione JWT nell’origine |
 | Sessione server-side Control Room | Operativa | un solo login e snapshot automatico verificati nel browser reale |
 | Overview e health nuova Control Room | Operative e verificate | PR #32 mergiata; CI, deploy e verifica manuale completati |
-| Radar e brief nuova Control Room | PR #34 in verifica | viste read-only sugli array esistenti dello snapshot |
+| Radar e brief nuova Control Room | Operativi e verificati | PR #34 mergiata; run, segnali e brief visibili in produzione |
+| Claim, fonti e scadenze | Prossima fase | migrazione read-only sugli oggetti già presenti nello snapshot |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -145,42 +146,57 @@ La PR #31 è mergiata e verificata in produzione:
 La PR #32 è mergiata, distribuita e verificata nel browser reale:
 
 - tutte le 19 metriche di overview sono visibili;
-- le sezioni Fonti e coda, Ricerca recente, Brief e claim, Readiness e pagine sono renderizzate;
 - capability, binding e limiti dei probe hanno semantica esplicita;
-- timestamp dello snapshot e guardrail di pubblicazione sono visibili;
-- i payload health e snapshot vengono validati a runtime;
+- timestamp e guardrail sono visibili;
+- i payload vengono validati a runtime;
 - un errore parziale non nasconde l’altra risorsa valida;
-- claim e draft preview restano in sola lettura;
 - desktop e mobile sono utilizzabili;
 - nessuna mutation, pubblicazione o credenziale browser è stata introdotta.
 
 L’health corrente descrive soprattutto configurazione e binding. Un health aggregato con probe end-to-end dei servizi esterni non è ancora dichiarato operativo.
 
-## PR #34 — Radar e brief
+### Radar e brief verificati
 
-La branch `feat/control-room-radar-briefs` implementa in sola lettura i dati già presenti nello snapshot:
+La PR #34 è mergiata nel commit `53f8b8f`, con CI completa verde, deploy e verifica nel browser reale:
 
-- run con query, sistema sorgente, tipo, finestra, risultati, warning e conteggi eligible/filtered;
-- segnali con topic, provenienza, freshness, relevance score, stato, idoneità e quality flags;
-- filtro run → segnali basato sul `run_id` canonico;
-- brief con cluster, titolo, slug, intent, punteggi persistiti, bundle, readiness e draft nullable;
-- filtri e Sheet di dettaglio accessibili;
-- runtime validation dei tre array;
-- empty state e contratto invalido coperti negli smoke.
+- gli ultimi run mostrano query, sistema sorgente, tipo, finestra, risultati, warning e conteggi eligible/filtered;
+- i segnali mostrano topic, provenienza, freshness, relevance score, stato, idoneità e quality flags;
+- il filtro run → segnali usa esclusivamente il `run_id` canonico;
+- i brief mostrano cluster, titolo, slug, intent, punteggi persistiti, bundle, readiness e draft nullable;
+- filtri e Sheet di dettaglio sono utilizzabili;
+- i tre array sono validati a runtime;
+- punteggi, stati, flag e valori `null` non vengono ricalcolati o reinterpretati;
+- lo snapshot non espone un collegamento diretto segnale → brief e la UI non lo inventa;
+- overview, claim preview e draft preview non sono regrediti;
+- nessuna mutation o nuova capacità di pubblicazione è stata introdotta.
 
-Lo snapshot non espone un collegamento diretto tra singolo segnale e brief. La UI lo dichiara e non tenta di ricostruirlo.
+## Prossima fase — Claim, fonti e scadenze
+
+La fase successiva usa inizialmente i claim già presenti nello snapshot e i relativi campi di fonte, verifica e validità.
+
+Scope iniziale:
+
+- elenco claim con soggetto, campo, testo, stato e brief collegato;
+- fonte con tipo, etichetta, URL e trust level quando presente;
+- verifica con esito, confidenza, data di controllo e scadenza;
+- evidenza, note, domanda di verifica e source kinds richiesti;
+- stato del task di manutenzione;
+- filtri per stato, fonte, scadenza e brief;
+- dettaglio read-only, empty state, errori, tastiera e mobile;
+- validazione runtime estesa senza cambiare il contratto backend.
 
 Restano fuori scope:
 
-- avvio Workflow;
-- accettazione o conversione dei brief;
-- mutation e nuovi endpoint;
-- modifiche a D1, Container, AI, claim, readiness, draft o publication gate.
+- decomposizione, modifica o verifica dei claim;
+- creazione o modifica delle fonti;
+- refresh manuale e mutation della queue;
+- nuovi endpoint o query D1;
+- readiness, draft decisions e pubblicazione.
 
 ## Rischi aperti
 
-1. La PR #34 deve superare typecheck, build, runtime e browser smoke.
-2. Radar e brief devono essere verificati manualmente su desktop e mobile dopo il deploy.
+1. Lo snapshot espone soltanto i campi già selezionati dal backend; relazioni non presenti non devono essere ricostruite nel client.
+2. La semantica di scadenza deve distinguere data assente, futura e superata senza cambiare lo stato canonico del claim.
 3. L’health corrente descrive soprattutto configurazione e binding.
 4. L’API originale deve restare compatibile con gli altri consumer autorizzati.
 5. La Control Room legacy deve restare congelata.
@@ -194,12 +210,11 @@ Restano fuori scope:
 
 Il prossimo checkpoint è raggiunto quando:
 
-- PR #34 è mergiata con CI completa verde;
-- run, segnali e brief reali sono leggibili nella nuova Control Room;
-- contratti runtime e relazioni run → segnali sono verificati;
-- punteggi, stati, quality flags e valori nullable non vengono reinterpretati;
+- claim, fonti e scadenze reali sono leggibili nella nuova Control Room;
+- contratti runtime coprono i campi necessari senza inventare relazioni;
+- stato canonico e stato temporale della scadenza restano distinti;
 - filtri, dettagli, desktop, mobile, tastiera, loading, error ed empty state sono verificati;
 - nessuna richiesta browser diversa da `GET` viene introdotta;
-- overview, claim e draft preview non regrediscono;
+- overview, radar, brief e draft preview non regrediscono;
 - nessuna mutation o capacità di pubblicazione viene introdotta;
 - backend, D1, Workflow, Container, AI e gate restano invariati.

@@ -6,68 +6,75 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #34 — Radar e brief
+### 1. Aprire la fase claim, fonti e scadenze
 
-Branch:
+Branch prevista:
 
 ```text
-feat/control-room-radar-briefs
+feat/control-room-claims-sources
 ```
 
-Obiettivo esclusivo: migrare in sola lettura `researchRuns`, `signals` e `briefs` già presenti nello snapshot protetto.
+Obiettivo esclusivo: migrare in sola lettura i claim e i relativi dati di fonte, verifica, scadenza e task già presenti nello snapshot protetto.
 
 La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
 
-### 2. Verificare i run del radar
+### 2. Mostrare i claim reali
 
 La vista deve mostrare:
 
-- query, sistema sorgente e tipo di run;
-- data di generazione e finestra temporale;
-- numero risultati e warning;
-- conteggi `eligible` e `filtered`;
-- filtri e dettaglio read-only;
-- stato vuoto reale.
+- ID e brief collegato;
+- soggetto, campo e testo del claim;
+- domanda di verifica;
+- stato canonico;
+- evidence e note;
+- source kinds richiesti.
 
-La UI non deve presentare un binding configurato come prova che un nuovo run sia stato eseguito correttamente.
+La UI non deve trasformare un claim `insufficient`, `pending` o scaduto in un fatto utilizzabile.
 
-### 3. Verificare i segnali recenti
+### 3. Mostrare le fonti
 
-La vista deve mostrare:
+Per ogni claim, quando presenti:
 
-- titolo, topic, tipo e provenienza;
-- data di pubblicazione e freshness;
-- relevance score;
-- stato e `eligible_for_editorial` canonico;
-- quality flags;
-- collegamento al run di origine tramite `run_id`.
+- tipo di fonte;
+- etichetta;
+- URL;
+- trust level;
+- provenienza distinta dall’evidenza testuale.
 
-I segnali community o recent-demand restano opportunità editoriali, non prove commerciali.
+Una fonte ufficiale resta una dichiarazione attribuita e non diventa automaticamente un test indipendente.
 
-### 4. Verificare i brief
+### 4. Mostrare verifica e scadenza
 
-La vista deve mostrare:
+Mostrare:
 
-- titolo proposto, cluster, slug, asset type e search intent;
-- Opportunity, Evidence e Priority Score persistiti;
-- stato e note;
-- evidence bundle e readiness quando presenti;
-- draft collegato e renderer quando presenti;
-- filtri e dettaglio read-only.
+- verification status;
+- confidence;
+- checked at;
+- valid until;
+- task status;
+- stato temporale derivato della data: assente, valida o scaduta.
 
-La UI non ricalcola o reinterpreta i punteggi. Lo snapshot non espone un collegamento diretto segnale → brief e il client non deve inventarlo.
+Lo stato temporale è soltanto una presentazione della data. Non sostituisce e non riscrive lo stato canonico del claim.
 
-### 5. Verificare i contratti runtime
+### 5. Aggiungere filtri e dettaglio
 
-Validare esplicitamente:
+Filtri previsti:
 
-- `researchRuns`;
-- `signals`, `run_id`, idoneità e quality flags;
-- `briefs`, punteggi e riferimenti nullable a bundle e draft.
+- stato claim;
+- brief;
+- tipo di fonte;
+- verifica;
+- scadenza.
 
-Un record non conforme deve produrre un errore leggibile, non dati parzialmente inventati.
+Il dettaglio resta read-only e deve essere utilizzabile da tastiera e su mobile.
 
-### 6. Definition of Done
+### 6. Estendere i contratti runtime
+
+Validare esplicitamente i campi claim necessari alla vista, inclusi valori nullable e array `required_source_kinds`.
+
+Un record non conforme deve produrre un errore leggibile, non dati incompleti o ricostruiti.
+
+### 7. Definition of Done
 
 Prima del merge devono passare:
 
@@ -75,23 +82,22 @@ Prima del merge devono passare:
 - migrazioni locali senza modifiche allo schema;
 - build e smoke del Container invariati;
 - bundle reale dentro `workerd`;
-- snapshot reale con i tre array;
+- snapshot reale con claim e campi di fonte/verifica;
 - Chromium desktop e mobile;
-- filtri run → segnali e stato brief;
-- dettagli Sheet via tastiera e focus;
+- filtri, Sheet, tastiera e focus;
 - loading, error, contratto invalido ed empty state;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna route o azione di pubblicazione;
-- nessuna regressione su overview, claim e draft preview.
+- nessuna regressione su overview, radar, segnali, brief e draft preview.
 
 ## Fuori scope immediato
 
-- avvio manuale del Workflow;
-- accettazione o conversione dei brief;
-- decomposizione o verifica claim;
-- readiness, approvazione draft o queue;
+- decomposizione o modifica dei claim;
+- verifica, dismiss o refresh manuale;
+- creazione o modifica delle fonti;
+- mutation della maintenance queue;
 - nuovi endpoint o query D1;
-- mutation di qualunque tipo;
+- readiness, approvazione draft o pubblicazione;
 - modifiche alla Control Room legacy.
 
 Le azioni operative saranno introdotte soltanto in branch separate, con scope esplicito, conferme accessibili, audit e guardrail invariati.
@@ -109,12 +115,21 @@ Le azioni operative saranno introdotte soltanto in branch separate, con scope es
 ### Overview e health
 
 - PR #32 mergiata con CI completa verde;
-- deploy automatico completato;
-- verifica manuale nel browser reale completata;
-- 19 metriche overview visibili;
-- capability, binding, timestamp e guardrail visibili;
+- deploy e verifica manuale completati;
+- 19 metriche, capability, binding, timestamp e guardrail visibili;
 - errori parziali e contratti runtime verificati;
-- desktop e mobile utilizzabili;
+- nessuna mutation o pubblicazione.
+
+### Radar e brief
+
+- PR #34 mergiata nel commit `53f8b8f`;
+- CI completa verde;
+- deploy e verifica manuale nel browser reale completati;
+- run, segnali e brief visibili;
+- filtro run → segnali basato su `run_id`;
+- punteggi, flag e nullable preservati;
+- nessun collegamento segnale → brief inventato;
+- desktop, mobile e tastiera verificati;
 - nessuna mutation o pubblicazione.
 
 ## Freeze immediato
