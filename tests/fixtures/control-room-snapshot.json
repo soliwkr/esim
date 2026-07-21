@@ -253,7 +253,33 @@
       "source_count": 3,
       "subject_count": 3,
       "first_party_test_count": 0,
-      "warnings": ["missing_first_party_tests", "provider_scope_conflict"],
+      "warnings": [
+        {
+          "code": "insufficient_claims",
+          "claimIds": [102],
+          "message": "Questi claim possono essere descritti soltanto come non dimostrati; non possono alimentare frasi fattuali."
+        },
+        {
+          "code": "scoped_source_conflicts",
+          "conflicts": [
+            {
+              "type": "scoped_official_document_conflict",
+              "subjectType": "provider",
+              "subjectKey": "fixture-provider",
+              "destination": "cina"
+            }
+          ],
+          "message": "Le formulazioni divergenti devono restare separate e attribuite nel draft."
+        },
+        {
+          "code": "no_first_party_test",
+          "message": "Il bundle contiene dichiarazioni ufficiali dei provider, ma nessun test indipendente sul campo."
+        },
+        {
+          "code": "provider_statements_require_attribution",
+          "message": "Le affermazioni verificate descrivono ciò che i provider dichiarano; non diventano garanzie indipendenti."
+        }
+      ],
       "reviewed_by": "fixture-reviewer",
       "reviewed_at": "2026-07-18T07:20:00.000Z",
       "created_at": "2026-07-18T07:10:00.000Z",
