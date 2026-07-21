@@ -1,5 +1,3 @@
-export const CONTROL_ROOM_SESSION_KEY = "srMaintenanceToken"
-
 export interface HealthSnapshot {
   ok: boolean
   maintenanceApi: string
@@ -102,11 +100,10 @@ export async function fetchHealth(signal?: AbortSignal): Promise<HealthSnapshot>
 }
 
 export async function fetchControlRoomSnapshot(
-  token: string,
   signal?: AbortSignal,
 ): Promise<ControlRoomSnapshot> {
-  const response = await fetch("/api/maintenance/control-room", {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await fetch("/control-room-foundation/api/snapshot", {
+    headers: { Accept: "application/json" },
     cache: "no-store",
     credentials: "same-origin",
     signal,
@@ -114,8 +111,8 @@ export async function fetchControlRoomSnapshot(
   const body = await readJson(response)
 
   if (!response.ok) {
-    const message = response.status === 401
-      ? "Sessione non valida o scaduta"
+    const message = response.status === 403
+      ? "Sessione Cloudflare Access non valida o scaduta"
       : "Snapshot della Control Room non disponibile"
     throw new ControlRoomRequestError(response.status, message)
   }
