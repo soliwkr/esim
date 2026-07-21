@@ -104,13 +104,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-011 — Astro come frontend principale
 
-**Stato:** accettata come direzione; integrazione da validare nello spike
+**Stato:** accettata
 
 **Decisione:** usare Astro come livello frontend del sito pubblico e come shell della Control Room. Usare React soltanto per isole con interattività applicativa complessa.
 
 **Razionale:** Senza Roaming è principalmente una proprietà editoriale content-first, ma possiede una dashboard privata che richiede stato, form, tabelle e mutation. Astro evita di trasformare l'intero sito in una SPA e consente di caricare React soltanto dove serve.
 
-**Conseguenza:** il Worker non deve più generare nuove interfacce tramite stringhe HTML, CSS e JavaScript. Il backend esistente resta invariato e viene integrato tramite custom Worker entrypoint o, solo se necessario, tramite un confine di deploy separato.
+**Conseguenza:** il Worker non deve più generare nuove interfacce tramite stringhe HTML, CSS e JavaScript. Il backend esistente resta invariato e viene integrato tramite custom Worker entrypoint.
 
 ## ADR-012 — Componenti comprovati prima del codice custom
 
@@ -120,7 +120,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Razionale:** il valore specifico del progetto vive nei flussi editoriali, nei contratti e nei guardrail, non nella riscrittura di primitive UI.
 
-**Conseguenza:** shadcn/ui è il candidato principale e Mantine il confronto dello spike. La scelta definitiva viene registrata con dati su codice custom, accessibilità, velocità, mobile, bundle, branding e manutenzione. Le nuove funzionalità della Control Room legacy sono congelate fino alla decisione.
+**Conseguenza:** shadcn/ui è operativo nella foundation. Un confronto Mantine resta separato e viene eseguito soltanto se produce un vantaggio misurabile.
 
 ## ADR-013 — Migrazione frontend incrementale
 
@@ -130,44 +130,54 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Razionale:** una riorganizzazione completa del repository insieme al cambio di framework aumenterebbe il rischio senza migliorare direttamente il prodotto.
 
-**Conseguenza:** prima si dimostrano Astro, Cloudflare, binding, Workflow, Container e tre viste Control Room. La ristrutturazione completa in monorepo viene valutata dopo il primo rilascio stabile.
+**Conseguenza:** la Control Room viene migrata una vista alla volta; la ristrutturazione completa in monorepo viene valutata dopo il primo rilascio stabile.
 
 ## ADR-014 — Un solo Worker con custom Astro entrypoint
 
-**Stato:** accettata per la frontend foundation
+**Stato:** accettata
 
-**Decisione:** compilare `apps/web/src/worker.ts` come entrypoint Cloudflare reale. L'entrypoint delega la route di fondazione ad Astro, inoltra le route restanti al router backend esistente ed esporta nello stesso modulo `RecentDemandWorkflow` e `Last30DaysContainer`.
+**Decisione:** compilare `apps/web/src/worker.ts` come entrypoint Cloudflare reale. L'entrypoint delega le route Astro previste, inoltra le route restanti al router backend ed esporta nello stesso modulo `RecentDemandWorkflow` e `Last30DaysContainer`.
 
-**Razionale:** la build e lo smoke `workerd` dimostrano che Astro, React, API, D1, Workflow e Container possono convivere senza separare il deploy e senza riscrivere il backend.
+**Razionale:** build, runtime smoke e deploy dimostrano che Astro, React, API, D1, Workflow e Container possono convivere senza separare il deploy e senza riscrivere il backend.
 
-**Conseguenza:** la separazione in due Worker non viene introdotta. L'espansione delle route Astro resta progressiva e ogni passaggio deve conservare i publication guardrail e gli smoke runtime.
+**Conseguenza:** la separazione in due Worker non viene introdotta. L'espansione delle route Astro resta progressiva e conserva i publication guardrail.
 
 ## ADR-015 — shadcn/ui per la fondazione read-only della Control Room
 
-**Stato:** accettata per la UI foundation
+**Stato:** accettata
 
-**Decisione:** installare shadcn/ui direttamente in `apps/web`, versionando i sorgenti dei componenti e usando una sola island React dentro la shell Astro. La prima route legge soltanto `/api/health` e `GET /api/maintenance/control-room`.
+**Decisione:** installare shadcn/ui direttamente in `apps/web`, versionando i sorgenti dei componenti e usando una sola island React dentro la shell Astro.
 
-**Razionale:** la fase richiede una dashboard accessibile e responsive senza estendere la UI legacy o ricostruire primitive generiche. Il sorgente locale di shadcn mantiene visibili dipendenze e comportamento, mentre Astro limita JavaScript alla sola superficie applicativa.
+**Razionale:** la dashboard richiede componenti accessibili e responsive senza estendere la UI legacy o ricostruire primitive generiche.
 
-**Conseguenza:** questa decisione autorizza shadcn/ui per la fondazione corrente, ma non dichiara svolto un confronto con Mantine. Mutation, flussi operativi, Cloudflare Access e migrazione completa restano fasi successive. Nessun componente della fondazione può accedere direttamente a D1 o introdurre capacità di pubblicazione.
+**Conseguenza:** shadcn/ui è la base della migrazione corrente. Nessun componente può accedere direttamente a D1 o introdurre capacità di pubblicazione.
 
 ## ADR-016 — Cloudflare Access con validazione JWT nell'origine
 
 **Stato:** accettata e verificata in produzione
 
-**Decisione:** proteggere `/control-room-foundation*` con un'applicazione Cloudflare Access deny-by-default e validare nel custom Worker il JWT `Cf-Access-Jwt-Assertion` prima di eseguire Astro.
+**Decisione:** proteggere `/control-room-foundation*` con un'applicazione Cloudflare Access deny-by-default e validare nel custom Worker il JWT prima di servire pagina o proxy.
 
-**Razionale:** una policy Access configurata soltanto al bordo non protegge da errori di routing o bypass dell'origine. La verifica di firma RS256, issuer, audience e validità temporale rende la route fail-closed anche quando Access è assente o configurato in modo errato.
+**Razionale:** la policy al bordo e la verifica nell'origine formano un perimetro fail-closed anche in presenza di errori di routing.
 
-**Conseguenza:** `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD` sono configurazione runtime non versionata; la route restituisce `503` se mancano e `403` per JWT assente o non valido. Il deploy richiede inoltre un service token dedicato per lo smoke live. Backend editoriale, D1 e publication gate non cambiano.
+**Conseguenza:** una richiesta senza configurazione valida o identità autorizzata non raggiunge la React island. Backend editoriale, D1 e publication gate non cambiano.
 
 ## ADR-017 — Sessione Control Room mediata dal Worker
 
-**Stato:** accettata; verifica live della nuova implementazione richiesta prima di dichiararla operativa
+**Stato:** accettata e verificata in produzione
 
-**Decisione:** il browser della nuova Control Room non gestisce `MAINTENANCE_TOKEN`. Dopo Cloudflare Access richiama un endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente il JWT, inserisce il maintenance token soltanto server-side e delega al contratto esistente `GET /api/maintenance/control-room`.
+**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama un endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente l’identità e delega al contratto esistente dello snapshot.
 
-**Razionale:** chiedere un secondo token all'operatore rende l'accesso macchinoso e trasferisce inutilmente un secret operativo nel browser. Cloudflare Access identifica già l'utente; il Worker può mantenere il secondo livello tra origin e API senza esporlo al client.
+**Razionale:** chiedere un secondo token all'operatore rende l'accesso macchinoso e trasferisce inutilmente una credenziale nel browser.
 
-**Conseguenza:** `sessionStorage`, campo token, header browser `Authorization` e pulsante di blocco locale vengono rimossi. Il proxy accetta soltanto `GET`, eredita il path Access, restituisce header privati e non cambia l'API originale, che resta disponibile per agenti e consumer legacy. Nessuna mutation, capacità di pubblicazione o accesso browser a D1 viene introdotto.
+**Conseguenza:** campo token, storage applicativo, header di autorizzazione dal browser e pulsante di blocco locale sono rimossi. Il proxy accetta soltanto `GET`; l'API originale resta disponibile per agenti e consumer legacy.
+
+## ADR-018 — Contratti runtime e guasti parziali nella Control Room
+
+**Stato:** accettata per la migrazione overview e health
+
+**Decisione:** validare a runtime le risposte health e snapshot e gestirle come risorse indipendenti nel client. Un payload non conforme viene rifiutato; il fallimento di una risorsa non cancella i dati validi dell'altra.
+
+**Razionale:** i tipi TypeScript non validano JSON ricevuto in esecuzione e `Promise.all` trasformava un guasto parziale in una dashboard completamente indisponibile.
+
+**Conseguenza:** overview e health possono mostrare errori separati, il refresh conserva i dati già validi e la UI distingue binding configurati da veri probe end-to-end. Nessun endpoint o contratto backend viene modificato.
