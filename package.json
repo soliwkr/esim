@@ -9,6 +9,7 @@
     "build": "astro build --root apps/web",
     "smoke:runtime": "node scripts/smoke-astro-runtime.mjs",
     "smoke:ui": "node scripts/smoke-control-room-ui.mjs",
+    "smoke:quality": "node scripts/smoke-research-quality.mjs",
     "test:runtime": "npm run build && npm run db:migrate:local && npm run smoke:runtime",
     "test:ui": "npm run build && npm run db:migrate:local && npm run smoke:ui",
     "deploy": "npm run build && wrangler deploy --config apps/web/dist/server/wrangler.json",
