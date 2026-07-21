@@ -1,8 +1,10 @@
 {
   "ok": true,
+  "site": "Senza Roaming",
   "maintenanceApi": "enabled",
   "recentDemandWorkflow": "enabled",
   "last30DaysContainer": "enabled",
   "aiGateway": "enabled",
-  "affiliateMode": "disabled"
+  "affiliateMode": "disabled",
+  "controlRoomVersion": 3
 }

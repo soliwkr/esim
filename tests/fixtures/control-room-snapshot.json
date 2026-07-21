@@ -11,10 +11,25 @@
     "publicationAutomation": false
   },
   "overview": {
+    "sources_total": 3,
+    "sources_due": 1,
+    "queue_pending": 2,
+    "queue_processing": 1,
+    "queue_failed": 0,
+    "research_runs": 4,
+    "signals_eligible": 6,
+    "signals_filtered": 9,
+    "briefs_proposed": 1,
+    "briefs_accepted": 1,
+    "briefs_converted": 1,
     "claims_pending": 1,
     "claims_verified": 1,
     "claims_insufficient": 0,
-    "drafts_review": 1
+    "evidence_bundles": 1,
+    "drafts_review": 1,
+    "drafts_approved": 0,
+    "pages_review": 1,
+    "pages_published": 0
   },
   "claims": [
     {

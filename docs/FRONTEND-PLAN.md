@@ -1,10 +1,10 @@
 # Piano frontend
 
-Data di riferimento: **18 luglio 2026**.
+Data di riferimento: **21 luglio 2026**.
 
 ## Decisione
 
-Senza Roaming smette di usare il Cloudflare Worker come generatore artigianale di HTML, CSS e JavaScript browser.
+Senza Roaming non usa più il Cloudflare Worker come generatore di nuove interfacce HTML, CSS e JavaScript applicative.
 
 La direzione adottata è:
 
@@ -17,7 +17,8 @@ Astro
 React island
 └── applicazione interattiva della Control Room
 
-Cloudflare Worker esistente
+Custom Cloudflare Worker
+├── perimetro Access e proxy server-side
 ├── API
 ├── D1
 ├── Workflows
@@ -26,158 +27,163 @@ Cloudflare Worker esistente
 └── gate editoriali e di pubblicazione
 ```
 
-Il backend non viene riscritto. La migrazione riguarda il livello di presentazione e il modo in cui viene compilato e distribuito.
+Il backend non viene riscritto. La migrazione riguarda il livello di presentazione e il modo in cui il browser consuma contratti protetti.
 
 ## Principio operativo
 
-Non si costruiscono più a mano componenti generici già risolti dall'ecosistema.
+Non si costruiscono da zero componenti generici già risolti dall'ecosistema.
 
 Da riusare:
 
 - button, input, select, dialog, drawer e toast;
 - tabelle, filtri, pagination e stati vuoti;
-- form validation, loading, error e retry;
-- focus management, tastiera e accessibilità;
-- responsive layout, dark mode e token visivi;
-- dashboard shell e pattern di navigazione.
+- loading, error, retry e focus management;
+- responsive layout e pattern di navigazione;
+- primitive accessibili e testate.
 
 Da scrivere nel progetto:
 
 - flussi brief → claim → readiness → draft;
-- contratti API e schemi di dominio;
+- contratti e validazione dei dati di dominio;
 - regole editoriali e guardrail;
 - viste specifiche di Senza Roaming;
 - copy e design token del brand.
 
-## Stack target
+## Stack
 
-### Fondazione
+### Operativo
 
 - Astro come frontend principale;
 - adapter Cloudflare;
 - React soltanto per la Control Room e altre isole realmente interattive;
 - TypeScript strict;
-- contratti condivisi e validazione con Zod;
-- client dati con TanStack Query;
-- tabelle operative con TanStack Table;
-- form con React Hook Form;
-- icone Lucide.
+- shadcn/ui con primitive Radix e sorgenti versionati;
+- icone Lucide;
+- validazione runtime dei payload API;
+- smoke `workerd` e Chromium.
 
-### UI kit
+### Target da adottare soltanto quando serve
 
-La Control Room UI foundation usa **shadcn/ui**, con componenti installati e versionati invece di ricostruire una libreria interna.
+- TanStack Query per cache, retry e mutation complesse;
+- TanStack Table per dataset operativi più grandi;
+- React Hook Form per form editoriali;
+- Zod se i contratti condivisi richiedono una libreria dedicata.
 
-Il confronto contro **Mantine** non è stato eseguito in questa fase. Resta un'attività separata soltanto se serve una decisione comparativa definitiva.
+La PR #32 non introduce dipendenze aggiuntive: implementa validazione runtime e letture resilienti con il codice già presente. Una libreria viene aggiunta soltanto quando riduce complessità reale.
 
-Lo spike implementa le stesse tre viste:
+## UI kit
 
-1. overview con metriche e health;
-2. tabella claim con filtri e pannello azione;
-3. revisione draft con preview e decisione editoriale.
+La Control Room usa **shadcn/ui**. Il confronto con Mantine non è stato eseguito e resta opzionale; non blocca la migrazione in assenza di un vantaggio concreto da misurare.
 
-Criteri di scelta:
+Criteri per un eventuale confronto:
 
 - quantità di codice custom;
-- accessibilità e uso da tastiera;
+- accessibilità e tastiera;
 - qualità mobile;
 - velocità di implementazione;
 - coerenza con il sito pubblico Astro;
 - facilità di tema e branding;
-- bundle client e idratazione necessaria;
-- manutenzione e aggiornamenti;
-- assenza di DOM e listener manuali.
+- bundle e idratazione;
+- manutenzione e aggiornamenti.
 
-Decisione predefinita: scegliere shadcn/ui salvo un vantaggio netto e dimostrato di Mantine nello spike.
+## Integrazione Cloudflare verificata
 
-## Integrazione Cloudflare da validare
-
-La forma preferita è un singolo progetto distribuito su Cloudflare:
+Il progetto usa un singolo Worker:
 
 ```text
 richiesta
 → custom Worker entrypoint
-→ route API e binding esistenti
+→ Access guard per la Control Room
+→ proxy read-only per lo snapshot
 → handler Astro per pagine e asset
+→ router backend per API e pagine non migrate
 ```
 
-Lo spike deve dimostrare che il custom entrypoint Astro può convivere con:
+Sono verificati:
 
 - export di Workflow e Container;
-- D1 e secret esistenti;
+- D1 e configurazione runtime;
 - API di manutenzione;
 - deploy automatico;
 - migrazioni D1;
-- 404, canonical, robots e sitemap;
-- nessuna regressione sui gate di pubblicazione.
+- 404, canonical, robots e sitemap esistenti;
+- assenza di route di pubblicazione automatica;
+- live smoke della shell e del proxy.
 
-Una separazione in due Worker viene valutata soltanto se l'integrazione nello stesso Worker produce accoppiamento o rischi operativi ingiustificati.
+La separazione in due Worker non viene introdotta.
 
 ## Struttura incrementale
 
-Non si sposta subito tutto il repository.
-
 ```text
 apps/
-  web/                 # nuovo frontend Astro
+  web/                 # Astro, React island e componenti Control Room
 
-src/                   # Worker e backend esistenti, invariati nella prima fase
+src/                   # backend ed execution plane esistenti
 migrations/
 containers/
+scripts/
 ```
 
-La trasformazione in monorepo più profonda viene considerata solo dopo il primo rilascio stabile Astro.
+La riorganizzazione completa del repository viene valutata soltanto dopo il rilascio stabile della Control Room e del frontend pubblico.
 
 ## Fasi
 
 ### F0 — Congelare la UI artigianale
 
-- Control Room v3 resta una soluzione transitoria;
-- solo bugfix critici;
-- nessuna nuova funzione importante nella dashboard HTML manuale;
-- nessuna nuova pagina pubblica costruita con template string nel Worker.
+- [x] Control Room v3 riconosciuta come transitoria;
+- [x] solo bugfix critici;
+- [x] nessuna nuova funzione importante nella dashboard HTML manuale;
+- [x] nessuna nuova pagina pubblica costruita con template string nel Worker.
 
-### F1a — Frontend foundation
+### F1 — Frontend foundation
 
 - [x] creare `apps/web` con Astro, React e Cloudflare;
 - [x] collegare il custom Worker entrypoint;
 - [x] verificare binding, Workflow, Container e API in `workerd`;
 - [x] verificare che non esistano route di pubblicazione;
-- [x] mantenere la demo non pubblica e la PR non mergiata.
+- [x] distribuire e verificare la fondazione in produzione.
 
-### F1b — Control Room UI foundation
+### F2 — Control Room UI e perimetro privato
 
 - [x] installare shadcn/ui con componenti sorgente versionati;
 - [x] creare una shell dashboard responsive in una sola island React;
-- [x] leggere soltanto health e snapshot protetto;
-- [x] mostrare overview, claim e draft preview in sola lettura;
-- [x] coprire hydration, stati applicativi, tastiera e mobile con smoke browser;
-- [x] mantenere la demo noindex e fuori dal deploy pubblico della PR.
-
-### F1c — Valutazione comparativa eventuale
-
-- confrontare shadcn/ui e Mantine soltanto in una fase separata;
-- produrre misure su accessibilità, bundle e manutenzione prima di una decisione comparativa.
-
-Il confronto Mantine è intenzionalmente escluso dalla UI foundation.
-
-### F2 — Design foundation
-
-- scegliere UI kit;
-- adottare un dashboard block o starter comprovato;
-- definire token di brand, tipografia, spaziature e stati;
-- creare layout pubblico e layout Control Room;
-- creare API client tipizzato e gestione sessione.
+- [x] mostrare overview, claim e draft preview campione in sola lettura;
+- [x] proteggere il path con Cloudflare Access;
+- [x] validare l’identità anche nell’origine;
+- [x] mediare la sessione applicativa nel Worker;
+- [x] eliminare il secondo login e le credenziali dal browser;
+- [x] coprire hydration, loading, error, empty, tastiera e mobile.
 
 ### F3 — Migrare la Control Room
 
 Ordine:
 
-1. overview e health;
+1. overview e health — **PR #32 in verifica**;
 2. radar e brief;
 3. claim e fonti;
 4. readiness ed evidence bundle;
 5. draft e preview;
 6. audit e queue.
+
+#### F3.1 — Overview e health
+
+Scope:
+
+- tutte le metriche già esposte da `snapshot.overview`;
+- capability e binding esistenti;
+- timestamp dello snapshot;
+- guardrail di pubblicazione e affiliate mode;
+- validazione runtime dei payload;
+- health e snapshot come risorse indipendenti;
+- refresh senza cancellare dati ancora validi;
+- errori parziali espliciti.
+
+Non include:
+
+- nuovi endpoint;
+- query D1 aggiuntive;
+- probe end-to-end di servizi esterni;
+- mutation o azioni operative.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -193,7 +199,7 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 
 ### F5 — Consolidamento
 
-- eliminare renderer HTML/CSS/JS manuali;
+- eliminare renderer HTML, CSS e JavaScript manuali;
 - ridurre codice duplicato;
 - test visuali e browser smoke;
 - budget performance;
@@ -208,26 +214,22 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - la migrazione non modifica claim, evidence bundle o stati editoriali;
 - la pagina Cina resta `review` finché il publication gate non è soddisfatto;
 - i componenti esterni vengono ispezionati e fissati a versioni controllate;
-- non si importa un template completo senza verificare dipendenze, licenza e codice.
+- non si importa un template completo senza verificare dipendenze, licenza e codice;
+- una capability configurata non viene presentata come prova di salute end-to-end;
+- un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript.
 
-## Definition of Done dello spike
+## Definition of Done F3.1
 
-### Frontend foundation
-
-- Astro gira in `workerd` con i binding equivalenti;
-- API esistenti raggiungibili senza regressioni;
-- Workflow e Container continuano a essere esportati nello stesso bundle;
-- smoke runtime reali coprono pagina Astro, `/api/health` e route di pubblicazione assenti;
-- nessun deploy pubblico e nessuna modifica diretta a `main`.
-
-### Spike UI successivo
-
-- componenti shadcn/ui installati e versionati nel repository;
-- tre viste Control Room read-only alimentate dallo snapshot protetto;
-- sessione, hydration, stati applicativi, tastiera e mobile coperti da smoke;
-- eventuale confronto Mantine dichiarato separatamente, senza attribuirgli risultati non prodotti;
-- nessuna stringa HTML monolitica, `innerHTML` o listener manuale nella nuova UI;
-- PR della foundation non collegata al traffico pubblico.
+- [ ] tutte le metriche overview reali sono visibili;
+- [ ] capability, binding e guardrail hanno semantica esplicita;
+- [ ] timestamp dello snapshot è mostrato;
+- [ ] health e snapshot falliscono in modo indipendente;
+- [ ] payload non validi sono rifiutati;
+- [ ] dati validi sono preservati durante errori parziali;
+- [ ] claim e draft preview non regrediscono;
+- [ ] typecheck, build, migrazioni, Container, runtime e browser smoke sono verdi;
+- [ ] deploy e verifica manuale desktop/mobile sono verdi;
+- [ ] nessuna mutation, pubblicazione o accesso browser a D1.
 
 ## Cosa non facciamo adesso
 
@@ -235,5 +237,6 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - spostare subito tutte le directory;
 - pubblicare la pagina Cina;
 - costruire un design system proprietario da zero;
-- scegliere una libreria soltanto perché è popolare;
-- aggiungere nuove feature alla Control Room legacy prima della migrazione.
+- introdurre una libreria senza necessità dimostrata;
+- aggiungere nuove feature alla Control Room legacy;
+- migrare radar o brief nella stessa PR dell’overview.

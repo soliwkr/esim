@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **18 luglio 2026**.
+Data di riferimento: **21 luglio 2026**.
 
 ## Scopo
 
@@ -19,15 +19,18 @@ Astro su Cloudflare
       ├── layout, navigazione e SEO
       ├── pagine statiche e on-demand
       ├── asset compilati
-      └── shell Control Room
+      └── shell Control Room privata
               │
               ▼
-React island privata
-              ├── query tipizzate; mutation solo in fasi autorizzate
-              ├── tabelle, form e dialog
+React island
+              ├── letture tipizzate e validate
+              ├── tabelle, filtri e dialog
+              ├── mutation soltanto in fasi autorizzate
               └── nessun accesso diretto a D1
 
 Custom Cloudflare Worker entrypoint
+      ├── Cloudflare Access guard
+      ├── proxy read-only della Control Room
       ├── handler Astro
       ├── API protette di manutenzione
       ├── redirect provider
@@ -59,12 +62,13 @@ Astro è responsabile di:
 
 React è usato soltanto dove esiste interattività applicativa complessa, inizialmente la Control Room.
 
-Nell'architettura target è responsabile di:
+Responsabilità:
 
-- stato della sessione operativa;
-- query, mutation, loading, error e retry;
-- tabelle, filtri e form;
-- preview e decisioni editoriali;
+- caricamento e refresh delle risorse applicative;
+- validazione dei contratti ricevuti;
+- stati loading, error, partial failure e retry;
+- tabelle, filtri, form e dialog;
+- preview e decisioni editoriali nelle fasi autorizzate;
 - notifiche e conferme;
 - accessibilità dei flussi interattivi.
 
@@ -72,16 +76,14 @@ Il sito pubblico non diventa una SPA generale.
 
 ### Componenti UI
 
-I componenti generici non vengono riscritti da zero.
-
-La UI foundation usa shadcn/ui con primitive Radix e componenti sorgente versionati in `apps/web/src/components/ui`. Il confronto Mantine non è stato eseguito in questa fase; un'eventuale decisione comparativa resta separata.
+I componenti generici non vengono riscritti da zero. La UI usa shadcn/ui con primitive Radix e sorgenti versionati in `apps/web/src/components/ui`.
 
 Non sono ammessi nella nuova UI:
 
 - template string HTML monolitiche;
 - rendering applicativo con `innerHTML`;
 - listener manuali per ogni pulsante;
-- form validation artigianale;
+- form validation artigianale quando esiste una soluzione comprovata;
 - componenti base duplicati senza necessità di dominio.
 
 ## Backend ed execution plane
@@ -192,6 +194,7 @@ L'AI non possiede un percorso diretto per promuovere una pagina a `published`.
 
 La Control Room è specifica del dominio eSIM e deve gestire:
 
+- overview e health;
 - run del radar;
 - segnali;
 - coda editoriale;
@@ -199,48 +202,24 @@ La Control Room è specifica del dominio eSIM e deve gestire:
 - fonti e claim;
 - readiness;
 - draft e preview;
-- errori e health;
+- errori e audit;
 - operazioni manuali del Workflow.
 
-Deve essere costruita sopra API stabili e protette, evitando accesso diretto del browser a D1.
-
-La Control Room HTML manuale è legacy transitoria. La versione definitiva è una React island dentro Astro.
+Deve essere costruita sopra API stabili e protette. La Control Room HTML manuale è legacy transitoria; la versione definitiva è una React island dentro Astro.
 
 ## Strategia di integrazione Cloudflare
 
-La forma preferita usa un custom Worker entrypoint:
-
-```text
-custom entrypoint
-├── route API esistenti
-├── export Workflow e Container
-└── handler Astro per pagine e asset
-```
-
-Lo spike deve dimostrare che il singolo deploy mantiene:
-
-- binding D1 e secret;
-- Workflow e Container;
-- API;
-- migrazioni;
-- route pubbliche;
-- deploy automatico;
-- smoke test live;
-- guardrail editoriali.
-
-Due Worker separati vengono adottati soltanto se il modello singolo crea rischi o accoppiamento non accettabili.
-
-### Fondazione implementata
-
-Il custom entrypoint reale è `apps/web/src/worker.ts`. Astro compila quel file come default export del Worker e conserva come named export `RecentDemandWorkflow` e `Last30DaysContainer`.
+Il progetto usa un solo custom Worker entrypoint:
 
 ```text
 richiesta Cloudflare
         │
         ▼
 apps/web/src/worker.ts
-        ├── /astro-foundation → @astrojs/cloudflare/handler
-        ├── /control-room-foundation → @astrojs/cloudflare/handler
+        ├── /astro-foundation → handler Astro
+        ├── /control-room-foundation* → Access guard
+        │       ├── pagina → handler Astro
+        │       └── /api/snapshot → proxy read-only
         └── tutte le altre route → src/index.ts
                                   ├── API e health
                                   ├── sito e Control Room legacy
@@ -248,9 +227,49 @@ apps/web/src/worker.ts
                                   └── publication guardrails
 ```
 
-La delega limitata evita di migrare prematuramente il sito o la Control Room legacy. `/astro-foundation` resta una pagina di prova; `/control-room-foundation` monta una sola island React privata/noindex. La island usa `/api/health` e lo snapshot protetto `GET /api/maintenance/control-room`, senza mutation o accesso diretto a D1.
+Lo stesso modulo esporta `RecentDemandWorkflow` e `Last30DaysContainer`. Due Worker separati vengono adottati soltanto se il modello singolo crea rischi o accoppiamento non accettabili.
 
-Il token di manutenzione non attraversa il rendering Astro: viene recuperato dopo hydration dal meccanismo transitorio `sessionStorage`, resta fuori da HTML, URL e log, ed è trasmesso soltanto nell'header `Authorization`. In assenza di sessione la UI non richiede dati protetti.
+## Perimetro privato della Control Room
+
+```text
+browser autenticato
+→ path protetto da Access
+→ validazione dell’identità nel Worker
+→ React island
+→ GET /control-room-foundation/api/snapshot
+→ delega server-side all’API esistente
+```
+
+Conseguenze:
+
+- un solo login visibile;
+- nessuna credenziale applicativa nel browser;
+- nessun token in HTML, URL, bundle o storage;
+- proxy GET-only e risposte `no-store` / `noindex`;
+- API originale invariata per agenti e consumer legacy;
+- nessuna mutation o capacità di pubblicazione introdotta dal proxy.
+
+## Contratti overview e health
+
+La nuova overview legge due risorse esistenti:
+
+```text
+GET /api/health
+GET /control-room-foundation/api/snapshot
+```
+
+Il client valida a runtime:
+
+- stato generale;
+- binding e capability attese;
+- timestamp dello snapshot;
+- 19 metriche overview;
+- collezioni claim e draft necessarie alla UI;
+- guardrail di pubblicazione disabilitata.
+
+Le risorse sono gestite in modo indipendente. Un errore health non nasconde lo snapshot; un errore snapshot non nasconde i dati health già validi. Il refresh conserva dati precedenti affidabili mentre segnala il fallimento parziale.
+
+`/api/health` descrive soprattutto configurazione e binding. Non viene presentato come probe end-to-end di Workflow, Container, AI Gateway o provider esterni.
 
 ## Confine con il futuro Command Center dello studio
 
@@ -270,21 +289,19 @@ Senza Roaming execution plane
 
 ## Confine con OpenSEO
 
-OpenSEO è un servizio specialistico condiviso dello studio e non va fuso nel Worker di Senza Roaming.
-
-Senza Roaming riceve risultati normalizzati o task, non dipende dall'intera codebase di OpenSEO.
+OpenSEO è un servizio specialistico condiviso dello studio e non va fuso nel Worker di Senza Roaming. Senza Roaming riceve risultati normalizzati o task, non dipende dall'intera codebase di OpenSEO.
 
 ## Sicurezza
 
-- `MAINTENANCE_TOKEN` protegge le API operative durante la fase transitoria.
-- `AI_GATEWAY_TOKEN` protegge il percorso AI.
-- Cloudflare Access deve proteggere la Control Room definitiva.
-- Link affiliate e credenziali restano secret Cloudflare.
-- Nessun token o dato sensibile viene versionato o inserito negli URL.
-- Le risposte di errore non espongono secret o payload completi di provider esterni.
+- Le API operative restano protette server-side.
+- Cloudflare Access protegge la Control Room.
+- Credenziali e link riservati restano configurazione non versionata.
+- Nessun token o dato sensibile viene inserito negli URL.
+- Le risposte di errore non espongono credenziali o payload completi di provider esterni.
 - Il frontend non contiene funzioni di pubblicazione automatica.
+- Il browser non accede direttamente a D1.
 
-## Deployment
+## Deployment e verifica
 
 GitHub Actions esegue:
 
@@ -297,9 +314,15 @@ GitHub Actions esegue:
 7. deploy Worker, Workflow, Container e asset;
 8. smoke test live di pagine, client e API essenziali.
 
-In pull request, lo smoke runtime usa il bundle generato dall'adapter e avvia `wrangler dev` dentro `workerd`. L'avvio risolve D1, asset, Workflow e Container nello stesso runtime; richieste HTTP reali verificano le route Astro, `/api/health`, lo snapshot autenticato e l'assenza di endpoint di pubblicazione. Uno smoke Chromium separato verifica hydration, sessione bloccata, stati loading/error/empty, tastiera, Sheet e viewport mobile usando fixture esplicitamente separate dai controlli sullo snapshot runtime reale.
+In pull request, gli smoke avviano il bundle in `workerd` e verificano:
 
-Il deploy automatico parte per modifiche operative unite in `main`; le modifiche ai soli documenti non devono distribuire produzione.
+- route Astro e Access guard;
+- proxy snapshot e API originale;
+- contratto completo delle metriche overview;
+- payload non validi rifiutati;
+- errori parziali health/snapshot;
+- hydration, tastiera e mobile;
+- assenza di mutation e route di pubblicazione.
 
 ## Principio di evoluzione
 
