@@ -27,6 +27,8 @@ La island implementa:
 - Page Readiness ed evidence bundle con score, conteggi, warning e gate separati;
 - inventario draft con renderer, versione, stato, revisore, note e claim usati/esclusi;
 - relazioni draft → evidence bundle → brief risolte soltanto tramite ID canonici già presenti;
+- maintenance queue con stato, priorità, tentativi, lock, errori, payload e timestamp;
+- audit aggregato con dominio, azione, attore, entità, dettagli e timestamp;
 - loading, errori parziali, contratti invalidi ed empty state.
 
 La relazione run → segnali usa il `run_id` canonico. Lo snapshot non espone un collegamento diretto segnale → brief e la UI non lo deduce.
@@ -59,12 +61,23 @@ La vista draft usa soltanto `drafts`, `evidenceBundles` e `briefs` già presenti
 - title, H1 e claim usati/esclusi;
 - errore di generazione quando persistito.
 
+La vista Queue/Audit usa esclusivamente gli array `queue` e `audit` già presenti nello snapshot:
+
+- la queue include soltanto task `pending`, `processing` e `failed` restituiti dalla query limitata del backend;
+- i conteggi locali descrivono i record presenti nello snapshot e non sostituiscono le metriche overview;
+- payload e dettagli audit sono validati come JSON e mostrati come dati opachi;
+- l’audit non espone un ID evento né un legame univoco con una specifica versione draft;
+- il client non calcola retry, priorità, outcome, decisioni o autorizzazioni.
+
 Separazioni obbligatorie:
 
 ```text
 approved draft ≠ published page
 review draft ≠ publication eligibility
 editorial approval ≠ publication action
+queue status ≠ decisione editoriale
+failed task ≠ contenuto non valido
+audit event ≠ autorizzazione operativa
 ```
 
 Lo snapshot aggregato non espone corpo completo, FAQ, fonti, provenance field-level, stato della pagina materializzata o audit legato univocamente a una versione del draft. La UI dichiara questi gap e non richiama endpoint separati né ricostruisce dati mancanti.
@@ -82,7 +95,7 @@ Il secondo endpoint è un proxy read-only interno al custom Worker entrypoint. A
 
 Il browser non conserva token applicativi e non invia un header di autorizzazione verso l’API di manutenzione. L’API originale resta invariata per agenti e consumer legacy.
 
-`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle e draft base. `apps/web/src/lib/draft-contract.ts` valida integralmente i campi draft usati dalla vista decisionale.
+`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle, draft base, queue e audit. `apps/web/src/lib/draft-contract.ts` valida integralmente i campi draft usati dalla vista decisionale.
 
 Punteggi, stati, quality flags, confidence, gate e valori nullable vengono mostrati come persistiti. Il client non ricalcola Opportunity, Evidence, Priority, Readiness o decisioni editoriali.
 
@@ -103,13 +116,15 @@ npm run smoke:ui
 npm run smoke:claims
 npm run smoke:readiness
 npm run smoke:drafts
+npm run smoke:queue-audit
 ```
 
 Gli smoke generano credenziali Access effimere di test; nessuna chiave viene versionata.
 
 - `smoke:quality` verifica il gate D1 per score zero e low-positive relevance.
-- `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array radar/brief/draft, API originale, export, health e route di pubblicazione assenti.
-- `smoke:ui` verifica caricamento generale, overview, radar, brief, claim, readiness e draft, errori parziali, tastiera e mobile.
+- `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array di dominio inclusi queue/audit, API originale, export, health e route di pubblicazione assenti.
+- `smoke:ui` verifica caricamento generale, viste migrate, errori parziali, tastiera e mobile.
 - `smoke:claims` verifica contratto claim, cinque filtri, fonte sicura, stato temporale, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
 - `smoke:readiness` verifica contratto bundle, warning strutturati, quattro filtri, gate separati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
 - `smoke:drafts` verifica contratto draft, tre filtri, decisione di revisione, relazioni bundle/brief, gap dichiarati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
+- `smoke:queue-audit` verifica contratti queue/audit, filtri, dettaglio, payload JSON, gap di linkage, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
