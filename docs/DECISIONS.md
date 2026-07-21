@@ -166,7 +166,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Stato:** accettata e verificata in produzione
 
-**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama un endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente l’identità e delega al contratto esistente dello snapshot.
+**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama un endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente l'identità e delega al contratto esistente dello snapshot.
 
 **Razionale:** chiedere un secondo token all'operatore rende l'accesso macchinoso e trasferisce inutilmente una credenziale nel browser.
 
@@ -174,10 +174,20 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-018 — Contratti runtime e guasti parziali nella Control Room
 
-**Stato:** accettata per la migrazione overview e health
+**Stato:** accettata
 
 **Decisione:** validare a runtime le risposte health e snapshot e gestirle come risorse indipendenti nel client. Un payload non conforme viene rifiutato; il fallimento di una risorsa non cancella i dati validi dell'altra.
 
-**Razionale:** i tipi TypeScript non validano JSON ricevuto in esecuzione e `Promise.all` trasformava un guasto parziale in una dashboard completamente indisponibile.
+**Razionale:** i tipi TypeScript non validano JSON ricevuto in esecuzione e un guasto parziale non deve rendere indisponibile l'intera dashboard.
 
-**Conseguenza:** overview e health possono mostrare errori separati, il refresh conserva i dati già validi e la UI distingue binding configurati da veri probe end-to-end. Nessun endpoint o contratto backend viene modificato.
+**Conseguenza:** overview e health mostrano errori separati e il refresh conserva dati precedenti affidabili. Nessun endpoint backend viene modificato.
+
+## ADR-019 — Relevance zero come quality failure deterministica
+
+**Stato:** accettata, in verifica con PR #36
+
+**Decisione:** un segnale recent-demand con `relevance_score = 0` non è idoneo al lavoro editoriale automatico. Il database lo conserva, imposta `eligible_for_editorial = 0` e aggiunge `zero_relevance`, salvo un override umano già esplicito.
+
+**Razionale:** la Control Room ha mostrato un risultato su uno spettacolo comico associato al topic “Holafly recent experiences” con score zero ma eligibility positiva. Uno score esattamente nullo è una dichiarazione deterministica dell'upstream e non richiede un classificatore semantico per essere rifiutato.
+
+**Conseguenza:** `0 < relevance_score < 0,35` resta un warning consultivo; `NULL` non viene bloccato automaticamente per non escludere run discovery privi di score. La regola vive in D1, riallinea i conteggi dei run e dispone di uno smoke di regressione dedicato. Framework di evaluation esterni vengono valutati soltanto dopo la costruzione di un dataset revisionato.
