@@ -149,7 +149,7 @@ Ordine:
 1. overview e health — **completate e verificate con PR #32**;
 2. radar e brief — **completati e verificati con PR #34**;
 3. claim, fonti e scadenze — **completati e verificati con PR #37**;
-4. readiness ed evidence bundle — **prossima fase**;
+4. readiness ed evidence bundle — **PR #39 in verifica**;
 5. draft, preview e decisioni;
 6. audit e queue;
 7. azioni operative autorizzate, una per branch.
@@ -198,15 +198,9 @@ Il quality checkpoint successivo ha verificato in produzione che uno score esatt
 
 #### F3.4 — Page Readiness ed evidence bundle
 
-**Stato: prossima fase.**
+**Stato: implementazione PR #39 in verifica.**
 
-Branch prevista:
-
-```text
-feat/control-room-readiness-evidence
-```
-
-Dati esistenti da usare:
+Dati esistenti usati:
 
 - ID bundle, brief, page slug e versione;
 - readiness score e review status;
@@ -217,22 +211,24 @@ Dati esistenti da usare:
 - warning;
 - revisore, reviewed at, created at e updated at.
 
-Vista prevista:
+Vista implementata:
 
-- tabella bundle con score e gate separati;
+- riepilogo bundle, draft idonei, pubblicabili e record con warning;
+- tabella con score, review status e gate separati;
 - filtri per review status, draft eligibility, publication eligibility e warning;
 - dettaglio read-only accessibile;
 - conteggi claim, conflitti, fonti, soggetti e test first-party;
-- warning mostrati come persistiti;
-- empty state, contratto invalido, desktop e mobile.
+- warning, revisore e timestamp mostrati come persistiti;
+- empty state, contratto invalido, desktop, mobile e tastiera.
 
 Contratti:
 
-- validare tutti i campi usati senza allargare l'API;
-- preservare boolean, conteggi, timestamp, array e valori canonici;
-- non ricalcolare readiness score o gate;
-- non fondere draft eligibility e publication eligibility;
-- rifiutare record incoerenti con un errore esplicito.
+- i quattro gate sono validati come `0 | 1`;
+- i conteggi sono validati come interi non negativi;
+- timestamp e warning vengono validati a runtime;
+- readiness score, warning, conteggi e gate non vengono ricalcolati;
+- draft eligibility e publication eligibility non vengono fuse;
+- un record incoerente rende invalido lo snapshot.
 
 Non include:
 
@@ -287,7 +283,7 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
 - [ ] tastiera e viewport mobile sono verificati;
 - [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
-- [ ] smoke Chromium generale e dedicato sono verdi;
+- [ ] smoke Chromium generale, claim e readiness sono verdi;
 - [ ] nessuna richiesta browser diversa da `GET`;
 - [ ] nessuna approvazione, mutation, pubblicazione o accesso browser a D1;
 - [ ] overview, radar, segnali, brief, claim e draft preview non regrediscono;
