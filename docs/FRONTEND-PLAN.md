@@ -148,8 +148,8 @@ Ordine:
 
 1. overview e health — **completate e verificate con PR #32**;
 2. radar e brief — **completati e verificati con PR #34**;
-3. claim, fonti e scadenze — **PR #37 in verifica**;
-4. readiness ed evidence bundle;
+3. claim, fonti e scadenze — **completati e verificati con PR #37**;
+4. readiness ed evidence bundle — **prossima fase**;
 5. draft, preview e decisioni;
 6. audit e queue;
 7. azioni operative autorizzate, una per branch.
@@ -177,48 +177,71 @@ Ordine:
 - filtri, Sheet, tastiera e mobile verificati;
 - nessuna mutation o pubblicazione.
 
-Il quality checkpoint successivo ha inoltre verificato in produzione che uno score esattamente zero venga filtrato con `zero_relevance`.
+Il quality checkpoint successivo ha verificato in produzione che uno score esattamente zero venga filtrato con `zero_relevance`.
 
 #### F3.3 — Claim, fonti e scadenze
 
-**Stato: implementazione PR #37 in verifica.**
+**Stato: completata e verificata in produzione.**
 
-Dati esistenti usati:
-
-- claim e brief collegato;
-- soggetto, campo, testo e domanda di verifica;
-- stato, evidence e note;
-- created at e updated at;
-- source kinds richiesti;
-- tipo di fonte, etichetta, URL e trust level;
-- verification status, confidence, checked at e valid until;
-- task status e valore persistito.
-
-Vista implementata:
-
-- tabella claim con filtri per stato, brief, fonte, verifica e scadenza;
+- contratto claim completo validato a runtime;
+- claim e brief collegato, soggetto, campo, testo e domanda di verifica;
+- stato, evidence, note, fonte, trust level e source kinds richiesti;
+- verification status, confidence, checked at, valid until e task status;
+- filtri per stato, brief, fonte, verifica e scadenza;
 - dettaglio read-only accessibile;
-- source metadata distinti dall'evidenza;
+- fonte distinta dall'evidenza;
 - URL esterni limitati a HTTP/HTTPS;
-- stato temporale `senza scadenza`, `valida` o `scaduta`;
-- stato temporale separato dallo stato canonico del claim;
+- stato temporale separato dallo stato canonico;
+- empty state, contratto invalido, desktop, mobile e tastiera verificati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna mutation o pubblicazione.
+
+#### F3.4 — Page Readiness ed evidence bundle
+
+**Stato: prossima fase.**
+
+Branch prevista:
+
+```text
+feat/control-room-readiness-evidence
+```
+
+Dati esistenti da usare:
+
+- ID bundle, brief, page slug e versione;
+- readiness score e review status;
+- `review_draft_eligible` e `publication_eligible`;
+- `ready_for_review_draft` e `ready_for_publication`;
+- verified, insufficient, contradicted, pending ed expired count;
+- conflict, source, subject e first-party test count;
+- warning;
+- revisore, reviewed at, created at e updated at.
+
+Vista prevista:
+
+- tabella bundle con score e gate separati;
+- filtri per review status, draft eligibility, publication eligibility e warning;
+- dettaglio read-only accessibile;
+- conteggi claim, conflitti, fonti, soggetti e test first-party;
+- warning mostrati come persistiti;
 - empty state, contratto invalido, desktop e mobile.
 
 Contratti:
 
-- i campi usati vengono validati senza allargare l'API;
-- `null`, array, timestamp e valori canonici vengono preservati;
-- relazioni non esposte non vengono ricostruite;
-- un record incoerente rende invalido lo snapshot.
+- validare tutti i campi usati senza allargare l'API;
+- preservare boolean, conteggi, timestamp, array e valori canonici;
+- non ricalcolare readiness score o gate;
+- non fondere draft eligibility e publication eligibility;
+- rifiutare record incoerenti con un errore esplicito.
 
 Non include:
 
-- decomposizione o modifica claim;
-- verifica, dismiss o refresh;
-- creazione o modifica fonti;
+- valutazione o ricalcolo della readiness;
+- approvazione dell'evidence bundle;
+- generazione draft;
 - mutation della queue;
 - nuovi endpoint o query D1;
-- readiness, draft decisions o pubblicazione.
+- draft decisions o pubblicazione.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -252,20 +275,22 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript;
 - segnali e trend non vengono presentati come claim commerciali verificati;
 - una scadenza derivata nel client non riscrive lo stato canonico del claim;
-- una fonte ufficiale non viene presentata come test indipendente.
+- una fonte ufficiale non viene presentata come test indipendente;
+- draft eligibility non viene presentata come publication eligibility.
 
-## Definition of Done F3.3
+## Definition of Done F3.4
 
-- [ ] claim, fonti e scadenze reali sono visibili;
+- [ ] evidence bundle reali sono visibili;
 - [ ] contratti runtime coprono tutti i campi usati;
-- [ ] stato canonico e stato temporale restano distinti;
+- [ ] readiness score e conteggi sono mostrati come persistiti;
+- [ ] draft eligibility e publication eligibility restano distinti;
 - [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
 - [ ] tastiera e viewport mobile sono verificati;
 - [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
 - [ ] smoke Chromium generale e dedicato sono verdi;
 - [ ] nessuna richiesta browser diversa da `GET`;
-- [ ] nessuna mutation, pubblicazione o accesso browser a D1;
-- [ ] overview, radar, segnali, brief e draft preview non regrediscono;
+- [ ] nessuna approvazione, mutation, pubblicazione o accesso browser a D1;
+- [ ] overview, radar, segnali, brief, claim e draft preview non regrediscono;
 - [ ] deploy e verifica manuale sono verdi.
 
 ## Cosa non facciamo adesso
@@ -276,4 +301,4 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- introdurre azioni operative nella stessa PR della migrazione read-only.
+- introdurre azioni operative nella stessa PR della migrazione readiness read-only.
