@@ -180,7 +180,7 @@ try {
   await page.getByRole('option', { name: 'Senza verifica' }).click();
   await page.getByText('1 di 3 claim visibili').waitFor();
 
-  await page.getByRole('combobox', { name: 'Filtra per stato' }).click();
+  await page.getByRole('combobox', { name: 'Filtra per stato', exact: true }).click();
   await page.getByRole('option', { name: 'verified' }).click();
   await page.getByTestId('empty-claim-filter').waitFor();
 
