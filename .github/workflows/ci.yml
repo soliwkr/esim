@@ -113,6 +113,12 @@ jobs:
           set -o pipefail
           npm run smoke:drafts 2>&1 | tee control-room-drafts-smoke.log
 
+      - name: Smoke-test Control Room queue and audit
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run smoke:queue-audit 2>&1 | tee control-room-queue-audit-smoke.log
+
       - name: Upload Control Room UI smoke logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -123,4 +129,5 @@ jobs:
             control-room-claims-smoke.log
             control-room-readiness-smoke.log
             control-room-drafts-smoke.log
+            control-room-queue-audit-smoke.log
           if-no-files-found: warn
