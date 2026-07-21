@@ -222,7 +222,7 @@ try {
   await mockSnapshot(snapshotFailurePage, { ok: false, error: 'fixture_snapshot_failure' }, 500);
   await snapshotFailurePage.goto(`${origin}/control-room-foundation`);
   await snapshotFailurePage.getByTestId('snapshot-error').waitFor();
-  await snapshotFailurePage.getByText('Configurazione del radar recent-demand.').waitFor();
+  await snapshotFailurePage.getByText('Binding del radar recent-demand.').waitFor();
   assert.equal(await snapshotFailurePage.getByText('Claim dallo snapshot').count(), 0);
   await snapshotFailureContext.close();
 
