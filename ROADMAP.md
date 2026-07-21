@@ -144,7 +144,7 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 - [x] Overview e health — PR #32 verificata.
 - [x] Radar e brief — PR #34 verificata.
 - [x] Claim, fonti e scadenze — PR #37 verificata.
-- [ ] Page Readiness ed evidence bundle — **PR #39 in verifica**.
+- [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
@@ -163,29 +163,24 @@ La PR #37 è mergiata, distribuita e verificata nel browser reale:
 - nessuna richiesta browser diversa da `GET`;
 - nessuna mutation o capacità di pubblicazione.
 
-#### Page Readiness ed evidence bundle — scope PR #39
+#### Page Readiness ed evidence bundle — checkpoint completato
 
-Usare soltanto `evidenceBundles` già presente nello snapshot per mostrare:
+La PR #39 ha introdotto la vista read-only e la PR #40 ha corretto il contratto warning osservato sul payload reale. Il checkpoint è stato verificato nel browser di produzione:
 
-- bundle, brief, pagina e versione;
-- readiness score e review status;
+- bundle, brief, pagina e versione visibili;
+- readiness score e review status persistiti;
 - `review_draft_eligible` e `publication_eligible` separati;
 - `ready_for_review_draft` e `ready_for_publication` separati;
 - conteggi verified, insufficient, contradicted, pending ed expired;
 - conflitti, fonti, soggetti e test first-party;
-- warning, revisore e timestamp;
-- filtri e dettaglio read-only.
+- warning strutturati `{ code, message, ...metadata }` validati e mostrati;
+- filtri e dettaglio read-only;
+- payload warning non conformi rifiutati;
+- desktop, mobile, tastiera ed empty state coperti;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna mutation o capacità di pubblicazione.
 
-Implementazione in verifica:
-
-- contratto runtime completo dei bundle;
-- quattro gate preservati come `0 | 1`;
-- conteggi validati come interi non negativi;
-- score, warning e gate mostrati senza ricalcolo;
-- smoke dedicato desktop, mobile, tastiera, filtri, contratto invalido ed empty state;
-- nessuna richiesta browser diversa da `GET`.
-
-Non include valutazione readiness, approvazione bundle, generazione draft, nuovi endpoint, query D1, mutation o pubblicazione.
+Non sono stati modificati valutazione readiness, approvazione bundle, generazione draft, endpoint backend, query D1, Workflow, Container, AI o publication gate.
 
 **Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
@@ -247,14 +242,13 @@ Non include valutazione readiness, approvazione bundle, generazione draft, nuovi
 
 ## Ordine operativo attuale
 
-1. chiudere e verificare PR #39 su Page Readiness ed evidence bundle;
-2. migrare draft, preview e decisioni;
-3. migrare queue e audit;
-4. introdurre azioni operative soltanto con scope espliciti;
-5. rimuovere la legacy soltanto dopo parità funzionale;
-6. migrare il sito pubblico ad Astro;
-7. collegare Search Console, consenso e analytics;
-8. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. migrare draft, preview e decisioni;
+2. migrare queue e audit;
+3. introdurre azioni operative soltanto con scope espliciti;
+4. rimuovere la legacy soltanto dopo parità funzionale;
+5. migrare il sito pubblico ad Astro;
+6. collegare Search Console, consenso e analytics;
+7. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
