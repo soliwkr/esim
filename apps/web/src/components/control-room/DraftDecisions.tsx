@@ -43,7 +43,6 @@ import type {
 import {
   parseDraftDecisionRecords,
   type DraftDecisionRecord,
-  type DraftStatus,
 } from "@/lib/draft-contract"
 import { cn } from "@/lib/utils"
 
@@ -107,20 +106,37 @@ function GateValue({ enabled }: { enabled: boolean }) {
   )
 }
 
-function DraftDetails({
-  draft,
-  context,
+function SummaryCard({
+  label,
+  value,
+  description,
+  icon: Icon,
 }: {
-  draft: DraftDecisionRecord
-  context: DraftContext
+  label: string
+  value: number
+  description: string
+  icon: typeof FileText
 }) {
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-2">
+        <div>
+          <CardDescription>{label}</CardDescription>
+          <CardTitle className="mt-1 text-3xl tabular-nums">{value}</CardTitle>
+        </div>
+        <Icon aria-hidden="true" className="size-5 text-muted-foreground" />
+      </CardHeader>
+      <CardContent><p className="text-xs leading-5 text-muted-foreground">{description}</p></CardContent>
+    </Card>
+  )
+}
+
+function DraftDetails({ draft, context }: { draft: DraftDecisionRecord; context: DraftContext }) {
   return (
     <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
       <SheetHeader>
         <SheetTitle>Draft #{draft.id}</SheetTitle>
-        <SheetDescription>
-          {draft.page_slug} · versione {draft.version} · sola lettura
-        </SheetDescription>
+        <SheetDescription>{draft.page_slug} · versione {draft.version} · sola lettura</SheetDescription>
       </SheetHeader>
 
       <div className="space-y-6 px-4 pb-8 text-sm">
@@ -135,7 +151,7 @@ function DraftDetails({
           <ShieldCheck aria-hidden="true" />
           <AlertTitle>Decisione editoriale ≠ pubblicazione</AlertTitle>
           <AlertDescription>
-            Lo stato <strong>{draft.status}</strong> appartiene al draft. Lo stato della pagina materializzata non è esposto nello snapshot e non viene dedotto.
+            Lo stato <strong>{draft.status}</strong> appartiene al draft. Il gate del bundle è mostrato separatamente; lo stato della pagina materializzata non è esposto nello snapshot e non viene dedotto.
           </AlertDescription>
         </Alert>
 
@@ -226,31 +242,6 @@ function DraftDetails({
   )
 }
 
-function SummaryCard({
-  label,
-  value,
-  description,
-  icon: Icon,
-}: {
-  label: string
-  value: number
-  description: string
-  icon: typeof FileText
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-2">
-        <div>
-          <CardDescription>{label}</CardDescription>
-          <CardTitle className="mt-1 text-3xl tabular-nums">{value}</CardTitle>
-        </div>
-        <Icon aria-hidden="true" className="size-5 text-muted-foreground" />
-      </CardHeader>
-      <CardContent><p className="text-xs leading-5 text-muted-foreground">{description}</p></CardContent>
-    </Card>
-  )
-}
-
 export function DraftDecisions({
   drafts,
   bundles,
@@ -307,7 +298,7 @@ export function DraftDecisions({
         <ShieldCheck aria-hidden="true" />
         <AlertTitle>Approved draft ≠ published page</AlertTitle>
         <AlertDescription>
-          Approvazione editoriale, publication eligibility e stato della pagina sono concetti distinti. Lo snapshot corrente espone soltanto il primo.
+          La vista espone lo stato del draft e il gate dell’evidence bundle come dati distinti. Lo stato della pagina materializzata non è disponibile nello snapshot aggregato.
         </AlertDescription>
       </Alert>
 
