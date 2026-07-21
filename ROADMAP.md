@@ -126,7 +126,7 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 
 - [x] shadcn/ui installato e versionato.
 - [x] Shell dashboard responsive in una React island.
-- [x] Overview, claim preview e draft preview read-only.
+- [x] Overview, claim preview e draft preview iniziale read-only.
 - [x] Hydration, loading, error, empty, tastiera e mobile verificati.
 - [ ] Confronto Mantine soltanto se emerge un vantaggio misurabile.
 
@@ -145,42 +145,42 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 - [x] Radar e brief — PR #34 verificata.
 - [x] Claim, fonti e scadenze — PR #37 verificata.
 - [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
-- [ ] Draft, preview e decisioni.
+- [ ] Draft, preview e decisioni — **PR #42 in verifica**.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-#### Claim, fonti e scadenze — checkpoint completato
+#### Page Readiness — checkpoint completato
 
-La PR #37 è mergiata, distribuita e verificata nel browser reale:
+La nuova UI mostra score, conteggi, warning strutturati e quattro gate distinti. La prima verifica reale ha rilevato una fixture non aderente; la hotfix #40 ha allineato parser, rendering, fixture e smoke al formato canonico `{ code, message?, ...metadata }`.
 
-- contratto claim validato a runtime;
-- filtri per stato, brief, fonte, verifica e scadenza;
-- fonte distinta dall'evidenza;
-- URL esterni limitati a HTTP/HTTPS;
-- stato temporale distinto dallo stato canonico;
-- desktop, mobile, tastiera ed empty state verificati;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna mutation o capacità di pubblicazione.
+#### Draft, preview e decisioni — scope PR #42
 
-#### Page Readiness ed evidence bundle — checkpoint completato
+La PR usa soltanto i dati già presenti nello snapshot:
 
-La PR #39 ha introdotto la vista read-only e la PR #40 ha corretto il contratto warning osservato sul payload reale. Il checkpoint è stato verificato nel browser di produzione:
+- draft, versione, pagina, renderer e stato;
+- evidence bundle e brief collegati;
+- title e H1;
+- claim usati ed esclusi;
+- generatore, revisore, reviewed at, note, errore e timestamp;
+- publication eligibility del bundle mostrata separatamente.
 
-- bundle, brief, pagina e versione visibili;
-- readiness score e review status persistiti;
-- `review_draft_eligible` e `publication_eligible` separati;
-- `ready_for_review_draft` e `ready_for_publication` separati;
-- conteggi verified, insufficient, contradicted, pending ed expired;
-- conflitti, fonti, soggetti e test first-party;
-- warning strutturati `{ code, message, ...metadata }` validati e mostrati;
-- filtri e dettaglio read-only;
-- payload warning non conformi rifiutati;
-- desktop, mobile, tastiera ed empty state coperti;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna mutation o capacità di pubblicazione.
+Separazioni obbligatorie:
 
-Non sono stati modificati valutazione readiness, approvazione bundle, generazione draft, endpoint backend, query D1, Workflow, Container, AI o publication gate.
+```text
+approved draft ≠ published page
+review draft ≠ publication eligibility
+editorial approval ≠ publication action
+```
+
+Gap dichiarati e non ricostruiti:
+
+- corpo completo, FAQ e fonti;
+- provenance field-level;
+- stato della pagina materializzata;
+- audit collegato univocamente alla versione del draft.
+
+La PR non aggiunge endpoint, query D1, generazione, azioni di revisione, mutation o pubblicazione.
 
 **Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
@@ -242,13 +242,14 @@ Non sono stati modificati valutazione readiness, approvazione bundle, generazion
 
 ## Ordine operativo attuale
 
-1. migrare draft, preview e decisioni;
+1. chiudere e verificare PR #42 su draft e decisioni read-only;
 2. migrare queue e audit;
-3. introdurre azioni operative soltanto con scope espliciti;
-4. rimuovere la legacy soltanto dopo parità funzionale;
-5. migrare il sito pubblico ad Astro;
-6. collegare Search Console, consenso e analytics;
-7. attivare affiliazioni soltanto dopo quality gate e misurazione.
+3. decidere con scope esplicito se estendere il contratto draft per contenuto e provenance;
+4. introdurre azioni operative soltanto con branch dedicate;
+5. rimuovere la legacy soltanto dopo parità funzionale;
+6. migrare il sito pubblico ad Astro;
+7. collegare Search Console, consenso e analytics;
+8. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
