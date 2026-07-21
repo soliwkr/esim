@@ -50,7 +50,10 @@ async function verifyBuildContract() {
     controlRoomIsland,
     overviewComponent,
     radarBriefsComponent,
-    readOnlySections,
+    claimsComponent,
+    readinessComponent,
+    draftComponent,
+    draftContract,
     controlRoomApiClient
   ] = await Promise.all([
     readFile(configPath, 'utf8'),
@@ -61,11 +64,22 @@ async function verifyBuildContract() {
     readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/Overview.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/RadarBriefs.tsx', 'utf8'),
-    readFile('apps/web/src/components/control-room/ReadOnlySections.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/ClaimsSources.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/ReadinessEvidence.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/DraftDecisions.tsx', 'utf8'),
+    readFile('apps/web/src/lib/draft-contract.ts', 'utf8'),
     readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
   ]);
   const config = JSON.parse(configRaw);
-  const controlRoomClient = `${controlRoomIsland}\n${overviewComponent}\n${radarBriefsComponent}\n${readOnlySections}`;
+  const controlRoomClient = [
+    controlRoomIsland,
+    overviewComponent,
+    radarBriefsComponent,
+    claimsComponent,
+    readinessComponent,
+    draftComponent,
+    draftContract
+  ].join('\n');
 
   assert.equal(config.main, 'entry.mjs');
   assert.equal(config.workflows?.[0]?.class_name, 'RecentDemandWorkflow');
@@ -74,6 +88,7 @@ async function verifyBuildContract() {
   assert.doesNotMatch(`${backendRouter}\n${customEntrypoint}`, /['"`]\/?api\/publish(?:\/|['"`])/);
   assert.doesNotMatch(controlRoomClient, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
   assert.doesNotMatch(controlRoomClient, /sessionStorage|srMaintenanceToken|maintenance-token/i);
+  assert.doesNotMatch(draftComponent, /\bfetch\s*\(|XMLHttpRequest|Authorization|Bearer/i);
   assert.doesNotMatch(controlRoomApiClient, /Authorization|Bearer|sessionStorage/i);
   assert.match(controlRoomApiClient, /overviewMetricKeys/);
   assert.match(controlRoomApiClient, /parseHealthSnapshot/);
@@ -84,6 +99,9 @@ async function verifyBuildContract() {
   assert.match(controlRoomApiClient, /control-room-foundation\/api\/snapshot/);
   assert.match(radarBriefsComponent, /Segnale, non prova commerciale/);
   assert.match(radarBriefsComponent, /Linkage non ricostruito/);
+  assert.match(draftComponent, /Approved draft ≠ published page/);
+  assert.match(draftComponent, /Gap del contratto corrente/);
+  assert.match(draftContract, /parseDraftDecisionRecords/);
   assert.match(customEntrypoint, /requireCloudflareAccess/);
   assert.match(customEntrypoint, /control-room-foundation\/api\/snapshot/);
   assert.match(customEntrypoint, /MAINTENANCE_TOKEN/);
@@ -232,13 +250,17 @@ try {
   assert.doesNotMatch(proxyText, new RegExp(maintenanceToken));
   const proxySnapshot = JSON.parse(proxyText);
   assert.equal(proxySnapshot.ok, true);
-  assert.ok(Array.isArray(proxySnapshot.researchRuns));
-  assert.ok(Array.isArray(proxySnapshot.signals));
-  assert.ok(Array.isArray(proxySnapshot.briefs));
-  assert.ok(Array.isArray(proxySnapshot.claims));
-  assert.ok(Array.isArray(proxySnapshot.drafts));
+  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts']) {
+    assert.ok(Array.isArray(proxySnapshot[key]), `Missing ${key} array`);
+  }
   for (const key of expectedOverviewKeys) {
     assert.equal(typeof proxySnapshot.overview?.[key], 'number', `Missing overview metric ${key}`);
+  }
+  for (const draft of proxySnapshot.drafts) {
+    assert.equal(typeof draft.review_notes, 'string');
+    assert.equal(typeof draft.created_at, 'string');
+    assert.ok(Array.isArray(draft.used_claim_ids));
+    assert.ok(Array.isArray(draft.excluded_claim_ids));
   }
 
   const proxyMutation = await fetch(`${origin}${snapshotProxyPath}`, {
@@ -264,16 +286,14 @@ try {
   const snapshot = await snapshotResponse.json();
   assert.equal(snapshotResponse.status, 200);
   assert.equal(snapshot.ok, true);
-  assert.ok(Array.isArray(snapshot.researchRuns));
-  assert.ok(Array.isArray(snapshot.signals));
-  assert.ok(Array.isArray(snapshot.briefs));
-  assert.ok(Array.isArray(snapshot.claims));
-  assert.ok(Array.isArray(snapshot.drafts));
+  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts']) {
+    assert.ok(Array.isArray(snapshot[key]), `Missing maintenance ${key} array`);
+  }
 
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
 
-  console.log('Astro/Cloudflare runtime, Access, radar contracts and snapshot proxy smoke passed.');
+  console.log('Astro/Cloudflare runtime, Access, domain contracts and snapshot proxy smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
