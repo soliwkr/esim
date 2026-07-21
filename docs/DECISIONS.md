@@ -184,7 +184,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-019 — Relevance zero come quality failure deterministica
 
-**Stato:** accettata, in verifica con PR #36
+**Stato:** accettata e verificata in produzione
 
 **Decisione:** un segnale recent-demand con `relevance_score = 0` non è idoneo al lavoro editoriale automatico. Il database lo conserva, imposta `eligible_for_editorial = 0` e aggiunge `zero_relevance`, salvo un override umano già esplicito.
 

@@ -143,26 +143,39 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 
 - [x] Overview e health — PR #32 verificata.
 - [x] Radar e brief — PR #34 verificata.
-- [ ] Claim, fonti e scadenze — **PR #37 in verifica**.
-- [ ] Page Readiness ed evidence bundle.
+- [x] Claim, fonti e scadenze — PR #37 verificata.
+- [ ] Page Readiness ed evidence bundle — prossima fase.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-#### Claim, fonti e scadenze — scope PR #37
+#### Claim, fonti e scadenze — checkpoint completato
 
-Usare soltanto il contratto snapshot esistente per mostrare:
+La PR #37 è mergiata, distribuita e verificata nel browser reale:
 
-- claim atomico e brief collegato;
-- soggetto, campo, testo e domanda di verifica;
-- stato canonico, evidence e note;
-- fonte, URL, trust level e source kinds richiesti;
-- esito, confidenza, checked at, valid until e task status;
-- filtri read-only;
-- stato temporale della scadenza distinto dallo stato canonico.
+- contratto claim validato a runtime;
+- filtri per stato, brief, fonte, verifica e scadenza;
+- fonte distinta dall'evidenza;
+- URL esterni limitati a HTTP/HTTPS;
+- stato temporale distinto dallo stato canonico;
+- desktop, mobile, tastiera ed empty state verificati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna mutation o capacità di pubblicazione.
 
-Non include nuovi endpoint, query D1, mutation, refresh, verifica claim, readiness actions o pubblicazione.
+#### Page Readiness ed evidence bundle — prossimo scope
+
+Usare soltanto `evidenceBundles` già presente nello snapshot per mostrare:
+
+- bundle, brief, pagina e versione;
+- readiness score e review status;
+- `review_draft_eligible` e `publication_eligible` separati;
+- conteggi verified, insufficient, contradicted, pending ed expired;
+- conflitti, fonti, soggetti e test first-party;
+- warning, revisore e timestamp;
+- filtri e dettaglio read-only.
+
+Non include valutazione readiness, approvazione bundle, generazione draft, nuovi endpoint, query D1, mutation o pubblicazione.
 
 **Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
@@ -224,15 +237,14 @@ Non include nuovi endpoint, query D1, mutation, refresh, verifica claim, readine
 
 ## Ordine operativo attuale
 
-1. chiudere e verificare PR #37 su claim, fonti e scadenze;
-2. migrare readiness ed evidence bundle in sola lettura;
-3. migrare draft, preview e decisioni;
-4. migrare queue e audit;
-5. introdurre azioni operative soltanto con scope espliciti;
-6. rimuovere la legacy soltanto dopo parità funzionale;
-7. migrare il sito pubblico ad Astro;
-8. collegare Search Console, consenso e analytics;
-9. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. migrare Page Readiness ed evidence bundle in sola lettura;
+2. migrare draft, preview e decisioni;
+3. migrare queue e audit;
+4. introdurre azioni operative soltanto con scope espliciti;
+5. rimuovere la legacy soltanto dopo parità funzionale;
+6. migrare il sito pubblico ad Astro;
+7. collegare Search Console, consenso e analytics;
+8. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
