@@ -13,9 +13,10 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { ClaimsSources } from "@/components/control-room/ClaimsSources"
 import { Overview } from "@/components/control-room/Overview"
 import { RadarBriefs } from "@/components/control-room/RadarBriefs"
-import { ClaimsPreview, DraftPreview } from "@/components/control-room/ReadOnlySections"
+import { DraftPreview } from "@/components/control-room/ReadOnlySections"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -50,7 +51,7 @@ const navigation = [
   { href: "#radar", label: "Radar", icon: RadioTower },
   { href: "#signals", label: "Segnali", icon: Search },
   { href: "#briefs", label: "Brief", icon: ClipboardList },
-  { href: "#claims", label: "Claims preview", icon: Rows3 },
+  { href: "#claims", label: "Claim e fonti", icon: Rows3 },
   { href: "#draft", label: "Draft preview", icon: FileText },
 ]
 
@@ -158,7 +159,6 @@ export function ControlRoomApp() {
       fetchControlRoomSnapshot(),
       fetchHealth(),
     ])
-
     let failureCount = 0
 
     if (snapshotResult.status === "fulfilled") {
@@ -205,7 +205,7 @@ export function ControlRoomApp() {
             <MobileNavigation />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Control Room</p>
-              <p className="truncate text-xs text-muted-foreground">Overview, radar e brief · sola lettura</p>
+              <p className="truncate text-xs text-muted-foreground">Overview, radar, brief e claim · sola lettura</p>
             </div>
             <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
               <ShieldCheck aria-hidden="true" className="size-3.5" />
@@ -240,7 +240,7 @@ export function ControlRoomApp() {
                     signals={snapshotState.data.signals}
                     briefs={snapshotState.data.briefs}
                   />
-                  <ClaimsPreview claims={snapshotState.data.claims} />
+                  <ClaimsSources claims={snapshotState.data.claims} />
                   <DraftPreview drafts={snapshotState.data.drafts} />
                 </>
               )}
