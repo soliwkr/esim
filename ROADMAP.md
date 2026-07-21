@@ -145,7 +145,7 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 - [x] Radar e brief — PR #34 verificata.
 - [x] Claim, fonti e scadenze — PR #37 verificata.
 - [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
-- [ ] Draft, preview e decisioni — **PR #42 in verifica**.
+- [x] Draft, preview e decisioni — PR #42 verificata in produzione.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
@@ -154,9 +154,11 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 
 La nuova UI mostra score, conteggi, warning strutturati e quattro gate distinti. La prima verifica reale ha rilevato una fixture non aderente; la hotfix #40 ha allineato parser, rendering, fixture e smoke al formato canonico `{ code, message?, ...metadata }`.
 
-#### Draft, preview e decisioni — scope PR #42
+#### Draft, preview e decisioni — checkpoint completato
 
-La PR usa soltanto i dati già presenti nello snapshot:
+La PR #42 è mergiata nel commit `856da79`, ha superato la CI #157 ed è stata verificata nel browser reale.
+
+La UI usa soltanto i dati già presenti nello snapshot:
 
 - draft, versione, pagina, renderer e stato;
 - evidence bundle e brief collegati;
@@ -165,7 +167,7 @@ La PR usa soltanto i dati già presenti nello snapshot:
 - generatore, revisore, reviewed at, note, errore e timestamp;
 - publication eligibility del bundle mostrata separatamente.
 
-Separazioni obbligatorie:
+Separazioni verificate:
 
 ```text
 approved draft ≠ published page
@@ -181,6 +183,18 @@ Gap dichiarati e non ricostruiti:
 - audit collegato univocamente alla versione del draft.
 
 La PR non aggiunge endpoint, query D1, generazione, azioni di revisione, mutation o pubblicazione.
+
+#### Queue e audit — prossimo checkpoint
+
+La prima iterazione resta read-only e parte dai contratti `queue` e `audit` già presenti nello snapshot.
+
+Deve mostrare, soltanto quando esposti:
+
+- task type, entity, priorità, stato, due at, tentativi, lock, errore, payload e timestamp;
+- dominio, azione, attore, entità, dettagli e timestamp degli eventi audit;
+- filtri, dettaglio, empty state, contratto invalido, desktop, mobile e tastiera.
+
+Non introduce retry, complete, dismiss, avvio Workflow, mutation o pubblicazione.
 
 **Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
@@ -242,14 +256,13 @@ La PR non aggiunge endpoint, query D1, generazione, azioni di revisione, mutatio
 
 ## Ordine operativo attuale
 
-1. chiudere e verificare PR #42 su draft e decisioni read-only;
-2. migrare queue e audit;
-3. decidere con scope esplicito se estendere il contratto draft per contenuto e provenance;
-4. introdurre azioni operative soltanto con branch dedicate;
-5. rimuovere la legacy soltanto dopo parità funzionale;
-6. migrare il sito pubblico ad Astro;
-7. collegare Search Console, consenso e analytics;
-8. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. migrare queue e audit in sola lettura;
+2. decidere con scope esplicito se estendere il contratto draft per contenuto, provenance e stato pagina;
+3. introdurre azioni operative soltanto con branch dedicate;
+4. rimuovere la legacy soltanto dopo parità funzionale;
+5. migrare il sito pubblico ad Astro;
+6. collegare Search Console, consenso e analytics;
+7. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 

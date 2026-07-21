@@ -150,8 +150,8 @@ Ordine:
 2. radar e brief — **completati e verificati con PR #34**;
 3. claim, fonti e scadenze — **completati e verificati con PR #37**;
 4. readiness ed evidence bundle — **completati con PR #39 e hotfix #40**;
-5. draft, preview e decisioni — **PR #42 in verifica**;
-6. audit e queue;
+5. draft, preview e decisioni — **completati e verificati con PR #42**;
+6. audit e queue — **prossima fase read-only**;
 7. azioni operative autorizzate, una per branch.
 
 #### F3.1 — Overview e health
@@ -198,7 +198,7 @@ Il quality checkpoint successivo ha verificato che uno score esattamente zero ve
 
 #### F3.5 — Draft, preview e decisioni
 
-**Stato: PR #42 in verifica.**
+**Stato: completata e verificata in produzione con PR #42.**
 
 Dati esistenti usati:
 
@@ -210,7 +210,7 @@ Dati esistenti usati:
 - error message, created at e updated at;
 - bundle e brief collegati tramite ID canonici.
 
-Vista implementata:
+Vista verificata:
 
 - riepilogo draft totali, approvati, in revisione e revisionati;
 - tabella versioni;
@@ -218,7 +218,8 @@ Vista implementata:
 - dettaglio read-only accessibile;
 - readiness score e publication eligibility del bundle;
 - guardrail editoriale;
-- empty state, contratto invalido, desktop, mobile e tastiera.
+- empty state, contratto invalido, desktop, mobile e tastiera;
+- nessuna richiesta browser diversa da `GET`.
 
 Separazioni:
 
@@ -245,6 +246,29 @@ Non include:
 - mutation della queue;
 - nuovi endpoint o query D1;
 - pubblicazione.
+
+#### F3.6 — Queue e audit
+
+**Stato: prossima fase, inizialmente read-only.**
+
+La fase deve partire dalla lettura dei contratti reali già presenti nello snapshot e mostrare, soltanto quando esposti:
+
+- task type, entity, priorità, stato, due at, tentativi e lock;
+- ultimo errore, payload e timestamp;
+- dominio, azione, attore, entità, dettagli e timestamp degli eventi audit;
+- filtri e dettaglio accessibile;
+- empty state, contratto invalido, desktop, mobile e tastiera.
+
+Separazioni obbligatorie:
+
+```text
+queue status ≠ decisione editoriale
+failed task ≠ contenuto non valido
+completed task ≠ pagina pubblicata
+audit event ≠ autorizzazione operativa
+```
+
+La prima iterazione non introduce retry, complete, dismiss, avvio Workflow, mutation o pubblicazione.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -279,31 +303,32 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - una scadenza derivata nel client non riscrive lo stato canonico del claim;
 - una fonte ufficiale non viene presentata come test indipendente;
 - draft eligibility non viene presentata come publication eligibility;
-- lo stato del draft non viene presentato come stato della pagina.
+- lo stato del draft non viene presentato come stato della pagina;
+- lo stato della queue non viene presentato come decisione editoriale.
 
 ## Definition of Done F3.5
 
-- [ ] tutte le versioni draft dello snapshot sono visibili;
-- [ ] contratto completo dei campi usati è validato;
-- [ ] bundle e brief sono collegati senza deduzioni arbitrarie;
-- [ ] approvazione draft e publication eligibility restano distinte;
-- [ ] stato pagina mancante è dichiarato, non dedotto;
-- [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
-- [ ] tastiera e viewport mobile sono verificati;
-- [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
-- [ ] smoke Chromium generale, claim, readiness e draft sono verdi;
-- [ ] nessuna richiesta browser diversa da `GET`;
-- [ ] nessuna generazione, revisione operativa, mutation, pubblicazione o accesso browser a D1;
-- [ ] overview, radar, segnali, brief, claim e readiness non regrediscono;
-- [ ] deploy e verifica manuale sono verdi.
+- [x] tutte le versioni draft dello snapshot sono visibili;
+- [x] contratto completo dei campi usati è validato;
+- [x] bundle e brief sono collegati senza deduzioni arbitrarie;
+- [x] approvazione draft e publication eligibility restano distinte;
+- [x] stato pagina mancante è dichiarato, non dedotto;
+- [x] filtri, dettaglio, loading, error ed empty state sono verificati;
+- [x] tastiera e viewport mobile sono verificati;
+- [x] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
+- [x] smoke Chromium generale, claim, readiness e draft sono verdi;
+- [x] nessuna richiesta browser diversa da `GET`;
+- [x] nessuna generazione, revisione operativa, mutation, pubblicazione o accesso browser a D1;
+- [x] overview, radar, segnali, brief, claim e readiness non regrediscono;
+- [x] deploy e verifica manuale sono verdi.
 
 ## Cosa non facciamo adesso
 
 - riscrivere il backend;
-- estendere lo snapshot nella PR #42;
+- estendere automaticamente lo snapshot per chiudere i gap draft;
 - spostare subito tutte le directory;
 - pubblicare la pagina Cina;
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- introdurre azioni operative nella stessa PR della migrazione draft read-only.
+- introdurre mutation nella stessa fase queue e audit read-only.

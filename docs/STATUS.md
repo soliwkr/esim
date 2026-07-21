@@ -29,7 +29,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Radar e brief | Operativi e verificati | PR #34 |
 | Claim, fonti e scadenze | Operativi e verificati | PR #37 |
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
-| Draft, preview e decisioni UI | PR #42 in verifica | inventario e revisione read-only, contratto snapshot invariato |
+| Draft, preview e decisioni UI | Operativa e verificata | PR #42, CI e verifica browser reale completate |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -108,6 +108,8 @@ Sono verificati in produzione:
 - radar, segnali e brief;
 - claim, fonti, verifiche e scadenze;
 - Page Readiness ed evidence bundle reali;
+- draft, versioni e decisioni di revisione read-only;
+- relazioni draft → evidence bundle → brief tramite ID canonici;
 - warning strutturati persistiti;
 - filtri e dettagli desktop/mobile;
 - contratti runtime delle viste chiuse;
@@ -115,7 +117,7 @@ Sono verificati in produzione:
 
 ## Quality gate score zero verificato
 
-La PR #36 è mergiata nel commit `2927419`, distribuita e verificata sul record reale:
+La PR #36 è mergiata, distribuita e verificata sul record reale:
 
 ```text
 relevance = 0              → filtered + zero_relevance
@@ -150,7 +152,9 @@ Sono visibili score, conteggi, quattro gate distinti, warning, revisore e timest
 
 ## PR #42 — Draft, preview e decisioni read-only
 
-La PR #42 usa esclusivamente gli array già presenti nello snapshot:
+La PR #42 è mergiata nel commit `856da79`, distribuita e verificata nel browser reale.
+
+Usa esclusivamente gli array già presenti nello snapshot:
 
 ```text
 drafts
@@ -158,7 +162,7 @@ evidenceBundles
 briefs
 ```
 
-Implementazione in verifica:
+Risultati verificati:
 
 - inventario di tutte le versioni draft esposte;
 - filtri per stato, renderer e presenza di revisione;
@@ -167,10 +171,11 @@ Implementazione in verifica:
 - generatore, revisore, reviewed at, note, errori e timestamp;
 - publication eligibility del bundle mostrata separatamente;
 - dettaglio read-only accessibile;
-- empty state, contratto invalido, tastiera e mobile;
-- nessuna richiesta browser diversa da `GET`.
+- empty state, contratto invalido, tastiera, desktop e mobile;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna azione di generazione, approvazione, rigenerazione o pubblicazione.
 
-Guardrail:
+Guardrail verificati:
 
 ```text
 approved draft ≠ published page
@@ -193,27 +198,27 @@ Restano invariati backend, D1, Workflow, Container, AI, draft generation, review
 
 ## Rischi aperti
 
-1. La PR #42 deve superare typecheck, build, runtime e quattro smoke Chromium.
-2. La vista draft deve essere verificata nel browser reale dopo il deploy.
-3. Lo stato della pagina non deve essere dedotto dallo stato del draft.
-4. Il gap su corpo completo e provenance richiederà uno scope backend esplicito se verrà chiuso.
-5. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
-6. L'health corrente descrive soprattutto configurazione e binding.
-7. La Control Room legacy deve restare congelata.
-8. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-9. Search Console, CMP e analytics non sono ancora disponibili.
-10. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. Lo stato della pagina non deve essere dedotto dallo stato del draft.
+2. Il gap su corpo completo e provenance richiederà uno scope backend esplicito se verrà chiuso.
+3. Queue e audit devono essere migrati senza introdurre mutation implicite.
+4. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
+5. L'health corrente descrive soprattutto configurazione e binding.
+6. La Control Room legacy deve restare congelata.
+7. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+8. Search Console, CMP e analytics non sono ancora disponibili.
+9. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
-Il checkpoint PR #42 è raggiunto quando:
+Il prossimo checkpoint riguarda **queue e audit in sola lettura**.
 
-- contratto draft completo per i campi usati validato;
-- inventario e filtri visibili;
-- draft `approved` e bundle non pubblicabile mostrati separatamente;
-- revisore, note, claim usati ed esclusi visibili;
-- gap del contratto dichiarato senza dati inventati;
-- payload non conformi rifiutati;
-- desktop, mobile e tastiera verdi;
-- CI, deploy e verifica manuale verdi;
-- nessuna mutation, generazione o pubblicazione introdotta.
+È raggiunto quando:
+
+- i contratti reali di `queue` e `audit` sono letti integralmente e validati a runtime;
+- task, priorità, stato, tentativi, errori e timestamp vengono mostrati come persistiti;
+- eventi audit, attore, dominio, azione, entità e dettagli vengono mostrati senza reinterpretazione;
+- relazioni non presenti nello snapshot non vengono inventate;
+- filtri, dettaglio, empty state, contratto invalido, tastiera e mobile sono verificati;
+- overview, radar, brief, claim, readiness e draft non regrediscono;
+- nessuna mutation della queue o azione editoriale viene introdotta nella stessa fase read-only;
+- nessuna capacità di pubblicazione viene aggiunta.
