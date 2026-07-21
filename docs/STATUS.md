@@ -27,7 +27,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Sessione server-side Control Room | Operativa | un solo login e snapshot automatico |
 | Overview e health | Operative e verificate | PR #32 |
 | Radar e brief | Operativi e verificati | PR #34 |
-| Claim, fonti e scadenze | PR #37 in verifica | migrazione read-only sul contratto snapshot esistente |
+| Claim, fonti e scadenze | Operativi e verificati | PR #37, CI e verifica browser completate |
+| Page Readiness ed evidence bundle UI | Prossima fase | read-only sul contratto snapshot esistente |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -104,13 +105,12 @@ Sono verificati in produzione:
 - nessuna credenziale applicativa nel browser;
 - overview e health;
 - radar, segnali e brief;
+- claim, fonti, verifiche e scadenze;
 - filtri e dettagli desktop/mobile;
 - contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
 ## Quality gate score zero verificato
-
-La Control Room ha reso visibile un falso positivo persistito con topic Holafly, contenuto relativo a uno spettacolo comico e `relevance_score = 0`.
 
 La PR #36 è mergiata nel commit `2927419`, distribuita e verificata sul record reale:
 
@@ -121,63 +121,68 @@ relevance = null           → nessun filtro automatico
 manual_quality_override    → decisione umana preservata
 ```
 
-La migrazione `0018`:
-
-- conserva i record per audit;
-- corregge eligibility e conteggi dei run;
-- preserva override umani espliciti;
-- applica la stessa regola agli inserimenti futuri;
-- non modifica automaticamente brief, claim, readiness o draft.
-
-Il segnale osservato risulta ora filtrato e mostra `zero_relevance` nella Control Room.
+La migrazione conserva i record per audit, riallinea eligibility e conteggi, preserva override espliciti e non modifica automaticamente brief, claim, readiness o draft.
 
 ## PR #37 — Claim, fonti e scadenze
 
-La PR #37 migra la vista claim dalla preview iniziale a un registro read-only completo usando esclusivamente i dati già esposti dallo snapshot.
+La PR #37 è mergiata nel commit `6a71174`, distribuita e verificata nel browser reale.
 
-Implementazione in verifica:
+Risultati verificati:
 
 - tabella claim con brief, soggetto, stato canonico, fonte e scadenza;
 - filtri per stato, brief, tipo di fonte, verifica e scadenza;
 - dettaglio con domanda di verifica, evidence, note e source kinds richiesti;
 - metadati della fonte separati dall'evidenza testuale;
 - verification status, confidence, checked at, valid until e task status;
-- stato temporale derivato `valida`, `scaduta` o `senza scadenza`;
-- stato temporale esplicitamente separato dallo stato canonico del claim;
+- stato temporale `valida`, `scaduta` o `senza scadenza` separato dallo stato canonico;
 - link fonte limitato a URL HTTP/HTTPS;
-- validazione runtime rigorosa dei campi usati;
-- regressioni browser dedicate desktop, mobile, tastiera, filtri, contratto invalido ed empty state.
+- payload claim non conformi rifiutati;
+- desktop, mobile, tastiera, empty state e filtri verificati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna mutation o capacità di pubblicazione.
 
-Restano invariati:
+Restano invariati backend, query D1, Workflow, Container, AI, queue, readiness, draft e publication gate.
 
-- query e contratto del backend;
-- D1 e migrazioni;
-- Workflow, Container e AI;
-- claim, verifiche, fonti e queue persistiti;
-- readiness, draft e gate di pubblicazione.
+## Prossima fase — Page Readiness ed evidence bundle
+
+La prossima branch prevista è:
+
+```text
+feat/control-room-readiness-evidence
+```
+
+Scope read-only:
+
+- bundle, brief, pagina e versione;
+- readiness score e review status;
+- idoneità al draft separata dall'idoneità alla pubblicazione;
+- conteggi claim ed expired;
+- conflitti, fonti, soggetti e test first-party;
+- warning, revisore e timestamp;
+- filtri, dettaglio, contratto runtime, desktop e mobile.
+
+Non include valutazione readiness, approvazione bundle, generazione draft, nuovi endpoint, mutation o pubblicazione.
 
 ## Rischi aperti
 
-1. La PR #37 deve superare typecheck, build, runtime e i due smoke Chromium.
-2. La nuova vista deve essere verificata nel browser reale dopo il deploy.
-3. Lo stato temporale derivato non deve essere interpretato come mutation dello stato canonico.
-4. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
-5. L'health corrente descrive soprattutto configurazione e binding.
-6. La Control Room legacy deve restare congelata.
-7. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-8. Search Console, CMP e analytics non sono ancora disponibili.
-9. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La nuova vista readiness deve mantenere distinti `review_draft_eligible` e `publication_eligible`.
+2. Un warning o uno score non deve essere reinterpretato dal client.
+3. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
+4. L'health corrente descrive soprattutto configurazione e binding.
+5. La Control Room legacy deve restare congelata.
+6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+7. Search Console, CMP e analytics non sono ancora disponibili.
+8. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
-Il checkpoint è raggiunto quando:
+Il prossimo checkpoint è raggiunto quando:
 
-- PR #37 è mergiata con CI completa verde;
-- claim, fonti, verifiche e scadenze reali sono leggibili;
+- gli evidence bundle reali sono visibili nella nuova Control Room;
+- readiness score, warning e conteggi sono validati a runtime;
+- draft eligibility e publication eligibility restano separati;
 - filtri e dettaglio sono utilizzabili da tastiera e su mobile;
-- payload claim non validi vengono rifiutati;
-- stato canonico e stato temporale restano distinti;
 - nessuna richiesta browser diversa da `GET` viene introdotta;
-- overview, radar, segnali, brief e draft preview non regrediscono;
-- deploy e verifica manuale sono verdi;
-- nessuna mutation o capacità di pubblicazione viene introdotta.
+- overview, radar, brief, claim e draft preview non regrediscono;
+- CI, deploy e verifica manuale sono verdi;
+- nessuna approvazione, mutation o pubblicazione viene introdotta.
