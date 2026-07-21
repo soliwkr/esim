@@ -87,4 +87,15 @@ jobs:
           if-no-files-found: error
 
       - name: Smoke-test Control Room hydration and interaction
-        run: npm run smoke:ui
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run smoke:ui 2>&1 | tee control-room-ui-smoke.log
+
+      - name: Upload Control Room UI smoke log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-room-ui-smoke-log
+          path: control-room-ui-smoke.log
+          if-no-files-found: error

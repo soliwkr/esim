@@ -116,7 +116,7 @@ jobs:
           const payload = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json', 'utf8'));
           const rows = Array.isArray(payload) ? payload : payload.result || [];
           const names = new Set(rows.map((item) => item.name));
-          const required = ['CF_ACCESS_TEAM_DOMAIN', 'CF_ACCESS_AUD'];
+          const required = ['MAINTENANCE_TOKEN', 'CF_ACCESS_TEAM_DOMAIN', 'CF_ACCESS_AUD'];
           const missing = required.filter((name) => !names.has(name));
           if (missing.length) throw new Error(`Missing Worker secrets: ${missing.join(', ')}`);
           NODE
@@ -184,6 +184,7 @@ jobs:
         run: |
           set -euo pipefail
           page_url="$SENZA_ROAMING_SITE_URL/control-room-foundation"
+          snapshot_url="$page_url/api/snapshot"
 
           anonymous_status="$(curl --silent --show-error --max-time 20 --output /tmp/control-room-anonymous.html --write-out '%{http_code}' "$page_url")"
           case "$anonymous_status" in
@@ -191,6 +192,16 @@ jobs:
             *)
               echo "Control Room foundation is not protected; anonymous status: $anonymous_status"
               head -c 1000 /tmp/control-room-anonymous.html 2>/dev/null || true
+              exit 1
+              ;;
+          esac
+
+          anonymous_snapshot_status="$(curl --silent --show-error --max-time 20 --output /tmp/control-room-snapshot-anonymous.html --write-out '%{http_code}' "$snapshot_url")"
+          case "$anonymous_snapshot_status" in
+            302|401|403) ;;
+            *)
+              echo "Control Room snapshot proxy is not protected; anonymous status: $anonymous_snapshot_status"
+              head -c 1000 /tmp/control-room-snapshot-anonymous.html 2>/dev/null || true
               exit 1
               ;;
           esac
@@ -205,18 +216,32 @@ jobs:
               && grep -qi '^cache-control:.*no-store' /tmp/control-room-foundation.headers \
               && grep -qi '^x-robots-tag:.*noindex' /tmp/control-room-foundation.headers \
               && grep -q '<title>Control Room · Senza Roaming</title>' /tmp/control-room-foundation.html \
-              && grep -q '<astro-island' /tmp/control-room-foundation.html; then
-              echo "Cloudflare Access and origin JWT validation are active."
+              && grep -q '<astro-island' /tmp/control-room-foundation.html \
+              && curl --fail --silent --show-error --max-time 20 \
+              -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+              -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+              -H 'Accept: application/json' \
+              -D /tmp/control-room-snapshot.headers \
+              "$snapshot_url" -o /tmp/control-room-snapshot.json \
+              && grep -qi '^cache-control:.*no-store' /tmp/control-room-snapshot.headers \
+              && grep -qi '^x-robots-tag:.*noindex' /tmp/control-room-snapshot.headers \
+              && grep -q '"ok":true' /tmp/control-room-snapshot.json \
+              && grep -q '"publicationAutomation":false' /tmp/control-room-snapshot.json; then
+              echo "Cloudflare Access, origin JWT validation and server-side snapshot proxy are active."
               exit 0
             fi
             sleep 5
           done
 
           echo "Access-protected Control Room foundation did not become healthy."
-          echo "--- headers ---"
+          echo "--- page headers ---"
           cat /tmp/control-room-foundation.headers 2>/dev/null || true
           echo "--- page head ---"
           head -c 1000 /tmp/control-room-foundation.html 2>/dev/null || true
+          echo "--- snapshot headers ---"
+          cat /tmp/control-room-snapshot.headers 2>/dev/null || true
+          echo "--- snapshot head ---"
+          head -c 1000 /tmp/control-room-snapshot.json 2>/dev/null || true
           exit 1
 
       - name: Deployment summary
@@ -233,7 +258,7 @@ jobs:
             echo "- Schedule: Monday and Thursday at 05:00 UTC"
             echo "- Canonical URL: $SENZA_ROAMING_SITE_URL"
             echo "- Legacy Control Room: v3 live-smoke verified"
-            echo "- Astro Control Room: Cloudflare Access and origin JWT verified"
+            echo "- Astro Control Room: Access, origin JWT and server-side snapshot proxy verified"
             echo "- AI Gateway: senza-roaming-ai"
             echo "- Vertex project: soliwkr"
             echo "- Publication automation: disabled"

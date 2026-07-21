@@ -6,7 +6,7 @@ Frontend Astro di Senza Roaming e fondazione della nuova Control Room.
 
 `apps/web/src/worker.ts` è il custom entrypoint del singolo Worker Cloudflare. Delega ad Astro soltanto `/astro-foundation` e `/control-room-foundation`; tutte le altre richieste continuano a usare il router backend in `src/index.ts`. Lo stesso modulo conserva gli export `RecentDemandWorkflow` e `Last30DaysContainer`.
 
-La nuova Control Room è `noindex,nofollow` e `no-store`. La route `/control-room-foundation` è inoltre fail-closed: prima di delegare ad Astro, il Worker richiede e valida il JWT `Cf-Access-Jwt-Assertion` emesso dall'applicazione Cloudflare Access configurata per quel path.
+La nuova Control Room è `noindex,nofollow` e `no-store`. Tutto il path `/control-room-foundation*` è fail-closed: prima di servire la shell o il proxy snapshot, il Worker richiede e valida il JWT `Cf-Access-Jwt-Assertion` emesso dall'applicazione Cloudflare Access.
 
 ## UI foundation
 
@@ -15,7 +15,7 @@ Astro fornisce la shell SSR e monta un solo root React con `client:load`. shadcn
 La island implementa:
 
 - sidebar desktop e Sheet mobile;
-- stato sessione e UI bloccata;
+- caricamento automatico dopo Cloudflare Access;
 - health di API, Workflow, Container e AI Gateway;
 - metriche editoriali dello snapshot;
 - tabella claim filtrabile e dettaglio laterale read-only;
@@ -24,16 +24,18 @@ La island implementa:
 
 Non implementa mutation, azioni editoriali, accesso diretto a D1 o capacità di pubblicazione.
 
-## Access e sessione
+## Access e sessione server-side
 
 Cloudflare Access è il perimetro esterno. Il Worker verifica firma RS256, issuer, audience e validità temporale del JWT usando le chiavi pubbliche del team domain. Se `CF_ACCESS_TEAM_DOMAIN` o `CF_ACCESS_AUD` mancano, la route risponde `503`; se il JWT manca o non è valido, risponde `403`.
 
-Dopo Access, la fondazione riusa il meccanismo transitorio della Control Room legacy: il maintenance token resta in `sessionStorage` con chiave `srMaintenanceToken` e viene inviato soltanto nell'header `Authorization`. Astro non riceve il token come prop e non lo inserisce in HTML o URL. Senza token la island non chiama lo snapshot protetto.
-
-I soli endpoint letti sono:
+Dopo Access, il browser legge:
 
 - `GET /api/health`;
-- `GET /api/maintenance/control-room`.
+- `GET /control-room-foundation/api/snapshot`.
+
+Il secondo endpoint è un proxy read-only interno al custom Worker entrypoint. Accetta soltanto `GET`, inserisce `MAINTENANCE_TOKEN` esclusivamente nella richiesta server-side e delega al contratto esistente `GET /api/maintenance/control-room`.
+
+Il maintenance token non viene serializzato da Astro, non entra nel bundle client, non viene richiesto all'utente, non viene scritto in `sessionStorage` e non compare negli header del browser. L'API di manutenzione originale resta invariata e protetta per agenti e consumer legacy.
 
 Tutti i dati reali arrivano dalle API del Worker; il browser non accede a D1.
 
@@ -50,4 +52,4 @@ npm run smoke:runtime
 npm run smoke:ui
 ```
 
-Gli smoke generano una coppia RSA effimera e un JWT Access di test; nessuna chiave di test viene versionata. `smoke:runtime` verifica il bundle reale in `workerd`, il fail-closed anonimo, la firma JWT, gli export, health, snapshot autenticato e route di pubblicazione assenti. `smoke:ui` usa Chromium dietro lo stesso guard e copre hydration, loading, error, empty, tastiera, mobile e pannelli read-only.
+Gli smoke generano una coppia RSA effimera e un JWT Access di test; nessuna chiave di test viene versionata. `smoke:runtime` verifica il bundle reale in `workerd`, il fail-closed anonimo, la firma JWT, il proxy snapshot GET-only, la compatibilità dell'API originale, gli export, health e route di pubblicazione assenti. `smoke:ui` usa Chromium dietro lo stesso guard e copre caricamento automatico, assenza di token nel browser, loading, error, empty, tastiera, mobile e pannelli read-only.
