@@ -165,6 +165,35 @@ export interface ControlRoomDraft {
   updated_at: string
 }
 
+export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
+export type ControlRoomQueueStatus = "pending" | "processing" | "failed"
+
+export interface ControlRoomQueueTask {
+  id: number
+  task_type: string
+  entity_type: string
+  entity_key: string
+  priority: number
+  status: ControlRoomQueueStatus
+  due_at: string
+  attempts: number
+  max_attempts: number
+  locked_by: string | null
+  last_error: string | null
+  payload: JsonValue
+  created_at: string
+  updated_at: string
+}
+
+export interface ControlRoomAuditEvent {
+  domain: string
+  action: string
+  actor: string
+  entity: string
+  details: JsonValue
+  created_at: string
+}
+
 export interface ControlRoomCapabilities {
   worker: boolean
   d1: boolean
@@ -186,6 +215,8 @@ export interface ControlRoomSnapshot {
   claims: ControlRoomClaim[]
   evidenceBundles: ControlRoomEvidenceBundle[]
   drafts: ControlRoomDraft[]
+  queue: ControlRoomQueueTask[]
+  audit: ControlRoomAuditEvent[]
 }
 
 export class ControlRoomRequestError extends Error {
@@ -275,6 +306,21 @@ function requireTimestamp(object: JsonObject, key: string): string {
 function requireNullableTimestamp(object: JsonObject, key: string): string | null {
   const value = requireNullableString(object, key)
   if (value !== null && Number.isNaN(new Date(value).getTime())) throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
+function isJsonValue(value: unknown, depth = 0): value is JsonValue {
+  if (depth > 20) return false
+  if (value === null || typeof value === "string" || typeof value === "boolean") return true
+  if (typeof value === "number") return Number.isFinite(value)
+  if (Array.isArray(value)) return value.every((item) => isJsonValue(item, depth + 1))
+  if (!isObject(value)) return false
+  return Object.values(value).every((item) => isJsonValue(item, depth + 1))
+}
+
+function requireJsonValue(object: JsonObject, key: string): JsonValue {
+  const value = object[key]
+  if (!isJsonValue(value)) throw new Error(`Campo ${key} non valido`)
   return value
 }
 
@@ -514,6 +560,51 @@ function parseDrafts(value: unknown): ControlRoomDraft[] {
   return value as ControlRoomDraft[]
 }
 
+function parseQueue(value: unknown): ControlRoomQueueTask[] {
+  if (!Array.isArray(value)) throw new Error("Lista queue non valida")
+
+  return value.map((record) => {
+    if (!isObject(record)) throw new Error("Task queue non valido")
+    const status = requireString(record, "status")
+    if (status !== "pending" && status !== "processing" && status !== "failed") {
+      throw new Error("Stato queue non valido")
+    }
+
+    return {
+      id: requirePositiveInteger(record, "id"),
+      task_type: requireString(record, "task_type"),
+      entity_type: requireString(record, "entity_type"),
+      entity_key: requireString(record, "entity_key"),
+      priority: requireNonNegativeInteger(record, "priority"),
+      status,
+      due_at: requireTimestamp(record, "due_at"),
+      attempts: requireNonNegativeInteger(record, "attempts"),
+      max_attempts: requirePositiveInteger(record, "max_attempts"),
+      locked_by: requireNullableString(record, "locked_by"),
+      last_error: requireNullableString(record, "last_error"),
+      payload: requireJsonValue(record, "payload"),
+      created_at: requireTimestamp(record, "created_at"),
+      updated_at: requireTimestamp(record, "updated_at"),
+    }
+  })
+}
+
+function parseAudit(value: unknown): ControlRoomAuditEvent[] {
+  if (!Array.isArray(value)) throw new Error("Lista audit non valida")
+
+  return value.map((record) => {
+    if (!isObject(record)) throw new Error("Evento audit non valido")
+    return {
+      domain: requireString(record, "domain"),
+      action: requireString(record, "action"),
+      actor: requireString(record, "actor"),
+      entity: requireString(record, "entity"),
+      details: requireJsonValue(record, "details"),
+      created_at: requireTimestamp(record, "created_at"),
+    }
+  })
+}
+
 function parseControlRoomSnapshot(value: unknown): ControlRoomSnapshot {
   if (!isObject(value) || value.ok !== true) throw new Error("Snapshot payload non valido")
   const generatedAt = requireString(value, "generatedAt")
@@ -530,6 +621,8 @@ function parseControlRoomSnapshot(value: unknown): ControlRoomSnapshot {
     claims: parseClaims(value.claims),
     evidenceBundles: parseEvidenceBundles(value.evidenceBundles),
     drafts: parseDrafts(value.drafts),
+    queue: parseQueue(value.queue),
+    audit: parseAudit(value.audit),
   }
 }
 
