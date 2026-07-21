@@ -136,7 +136,7 @@ La riorganizzazione completa del repository viene valutata soltanto dopo il rila
 
 - [x] shadcn/ui con componenti sorgente versionati;
 - [x] shell responsive in una React island;
-- [x] overview, claim preview e draft preview read-only;
+- [x] overview, claim preview e draft preview iniziale read-only;
 - [x] Cloudflare Access e validazione nell'origine;
 - [x] sessione mediata dal Worker;
 - [x] secondo login e credenziali browser rimossi;
@@ -149,8 +149,8 @@ Ordine:
 1. overview e health — **completate e verificate con PR #32**;
 2. radar e brief — **completati e verificati con PR #34**;
 3. claim, fonti e scadenze — **completati e verificati con PR #37**;
-4. readiness ed evidence bundle — **completati e verificati con PR #39 + hotfix #40**;
-5. draft, preview e decisioni — **prossima fase read-only**;
+4. readiness ed evidence bundle — **completati con PR #39 e hotfix #40**;
+5. draft, preview e decisioni — **PR #42 in verifica**;
 6. audit e queue;
 7. azioni operative autorizzate, una per branch.
 
@@ -158,41 +158,31 @@ Ordine:
 
 **Stato: completata e verificata in produzione.**
 
-- tutte le metriche overview sono visibili;
-- capability e binding hanno semantica esplicita;
-- timestamp e guardrail sono mostrati;
-- health e snapshot sono risorse indipendenti;
-- payload non validi vengono rifiutati;
+- metriche overview, capability, binding, timestamp e guardrail;
+- health e snapshot come risorse indipendenti;
+- payload non validi rifiutati;
 - nessuna mutation, pubblicazione o accesso browser a D1.
 
 #### F3.2 — Radar e brief
 
 **Stato: completata e verificata in produzione.**
 
-- `researchRuns`, `signals` e `briefs` sono validati a runtime;
-- run, segnali e brief reali sono visibili;
+- run, segnali e brief reali;
 - filtro run → segnali basato sul `run_id` canonico;
 - punteggi, stati, quality flags e nullable preservati;
 - nessun linkage segnale → brief inventato;
-- filtri, Sheet, tastiera e mobile verificati;
 - nessuna mutation o pubblicazione.
 
-Il quality checkpoint successivo ha verificato in produzione che uno score esattamente zero venga filtrato con `zero_relevance`.
+Il quality checkpoint successivo ha verificato che uno score esattamente zero venga filtrato con `zero_relevance`.
 
 #### F3.3 — Claim, fonti e scadenze
 
 **Stato: completata e verificata in produzione.**
 
-- contratto claim completo validato a runtime;
-- claim e brief collegato, soggetto, campo, testo e domanda di verifica;
-- stato, evidence, note, fonte, trust level e source kinds richiesti;
-- verification status, confidence, checked at, valid until e task status;
+- contratto claim completo;
 - filtri per stato, brief, fonte, verifica e scadenza;
-- dettaglio read-only accessibile;
 - fonte distinta dall'evidenza;
-- URL esterni limitati a HTTP/HTTPS;
 - stato temporale separato dallo stato canonico;
-- empty state, contratto invalido, desktop, mobile e tastiera verificati;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna mutation o pubblicazione.
 
@@ -200,73 +190,61 @@ Il quality checkpoint successivo ha verificato in produzione che uno score esatt
 
 **Stato: completata e verificata in produzione.**
 
-Dati esistenti usati:
-
-- ID bundle, brief, page slug e versione;
-- readiness score e review status;
-- `review_draft_eligible` e `publication_eligible`;
-- `ready_for_review_draft` e `ready_for_publication`;
-- verified, insufficient, contradicted, pending ed expired count;
-- conflict, source, subject e first-party test count;
-- warning strutturati;
-- revisore, reviewed at, created at e updated at.
-
-Vista verificata:
-
-- riepilogo bundle, draft idonei, pubblicabili e record con warning;
-- tabella con score, review status e gate separati;
-- filtri per review status, draft eligibility, publication eligibility e warning;
-- dettaglio read-only accessibile;
-- conteggi claim, conflitti, fonti, soggetti e test first-party;
-- warning, revisore e timestamp mostrati come persistiti;
-- empty state, contratto invalido, desktop, mobile e tastiera.
-
-Contratti:
-
-- i quattro gate sono validati come `0 | 1`;
-- i conteggi sono validati come interi non negativi;
-- ogni warning richiede `code` non vuoto e accetta `message` opzionale testuale;
-- metadati warning aggiuntivi vengono preservati senza reinterpretazione;
-- stringhe legacy e warning non conformi vengono rifiutati;
-- readiness score, warning, conteggi e gate non vengono ricalcolati;
-- draft eligibility e publication eligibility non vengono fuse;
-- un record incoerente rende invalido lo snapshot.
-
-La prima verifica reale ha scoperto una fixture `string[]` non aderente al backend canonico. La hotfix #40 ha riallineato parser, rendering, fixture e smoke al formato `{ code, message, ...metadata }`; il payload reale è ora visibile in produzione.
-
-Non include:
-
-- valutazione o ricalcolo della readiness;
-- approvazione dell'evidence bundle;
-- generazione draft;
-- mutation della queue;
-- nuovi endpoint o query D1;
-- draft decisions o pubblicazione.
+- score, conteggi e quattro gate distinti;
+- warning strutturati `{ code, message?, ...metadata }`;
+- filtri, dettaglio, empty state, desktop e mobile;
+- fixture aderente al payload canonico dopo la hotfix #40;
+- nessuna valutazione, approvazione o pubblicazione.
 
 #### F3.5 — Draft, preview e decisioni
 
-**Stato: prossima fase, inizialmente read-only.**
+**Stato: PR #42 in verifica.**
 
-La fase deve partire dalla lettura del contratto reale e mostrare, soltanto quando esposti:
+Dati esistenti usati:
 
-- draft, evidence bundle e brief collegati;
-- versione, renderer e stato canonico;
-- contenuto strutturato e metadati principali;
+- ID draft, evidence bundle, versione, page slug e page type;
+- renderer e stato canonico;
+- title e H1;
 - claim usati ed esclusi;
-- provenance per campi, sezioni e FAQ;
-- autore, note, errori e timestamp;
-- pagina materializzata e stato separato;
-- decisioni editoriali già persistite.
+- generated by, reviewed by, reviewed at e review notes;
+- error message, created at e updated at;
+- bundle e brief collegati tramite ID canonici.
 
-Separazioni obbligatorie:
+Vista implementata:
+
+- riepilogo draft totali, approvati, in revisione e revisionati;
+- tabella versioni;
+- filtri per stato, renderer e presenza di revisione;
+- dettaglio read-only accessibile;
+- readiness score e publication eligibility del bundle;
+- guardrail editoriale;
+- empty state, contratto invalido, desktop, mobile e tastiera.
+
+Separazioni:
 
 ```text
 approved draft ≠ published page
-review draft    ≠ publication eligibility
+review draft ≠ publication eligibility
 editorial approval ≠ publication action
 ```
 
-La prima iterazione non introduce generazione, approvazione, mutation, nuovi endpoint o pubblicazione. Eventuali azioni operative vengono progettate e autorizzate in branch successive.
+Gap del contratto aggregato:
+
+- corpo completo, FAQ e fonti;
+- provenance field-level del renderer v2;
+- stato della pagina materializzata;
+- audit collegato univocamente a una specifica versione.
+
+La PR #42 non chiude questi gap con endpoint o query nuovi. La UI li rende espliciti e non deduce dati mancanti.
+
+Non include:
+
+- generazione o rigenerazione draft;
+- approvazione o richiesta modifiche;
+- materializzazione della pagina;
+- mutation della queue;
+- nuovi endpoint o query D1;
+- pubblicazione.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -296,32 +274,33 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - nessun componente UI introduce pubblicazione automatica;
 - la migrazione non modifica claim, evidence bundle o stati editoriali;
 - la pagina Cina resta `review` finché il publication gate non è soddisfatto;
-- una capability configurata non viene presentata come prova di salute end-to-end;
 - un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript;
 - segnali e trend non vengono presentati come claim commerciali verificati;
 - una scadenza derivata nel client non riscrive lo stato canonico del claim;
 - una fonte ufficiale non viene presentata come test indipendente;
 - draft eligibility non viene presentata come publication eligibility;
-- approvazione editoriale non viene presentata come pubblicazione.
+- lo stato del draft non viene presentato come stato della pagina.
 
-## Definition of Done F3.4
+## Definition of Done F3.5
 
-- [x] evidence bundle reali sono visibili;
-- [x] contratti runtime coprono tutti i campi usati;
-- [x] readiness score e conteggi sono mostrati come persistiti;
-- [x] draft eligibility e publication eligibility restano distinti;
-- [x] filtri, dettaglio, loading, error ed empty state sono verificati;
-- [x] tastiera e viewport mobile sono verificati;
-- [x] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
-- [x] smoke Chromium generale, claim e readiness sono verdi;
-- [x] nessuna richiesta browser diversa da `GET`;
-- [x] nessuna approvazione, mutation, pubblicazione o accesso browser a D1;
-- [x] overview, radar, segnali, brief, claim e draft preview non regrediscono;
-- [x] deploy e verifica manuale sono verdi.
+- [ ] tutte le versioni draft dello snapshot sono visibili;
+- [ ] contratto completo dei campi usati è validato;
+- [ ] bundle e brief sono collegati senza deduzioni arbitrarie;
+- [ ] approvazione draft e publication eligibility restano distinte;
+- [ ] stato pagina mancante è dichiarato, non dedotto;
+- [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
+- [ ] tastiera e viewport mobile sono verificati;
+- [ ] typecheck, build, migrazioni, quality gate, Container e runtime sono verdi;
+- [ ] smoke Chromium generale, claim, readiness e draft sono verdi;
+- [ ] nessuna richiesta browser diversa da `GET`;
+- [ ] nessuna generazione, revisione operativa, mutation, pubblicazione o accesso browser a D1;
+- [ ] overview, radar, segnali, brief, claim e readiness non regrediscono;
+- [ ] deploy e verifica manuale sono verdi.
 
 ## Cosa non facciamo adesso
 
 - riscrivere il backend;
+- estendere lo snapshot nella PR #42;
 - spostare subito tutte le directory;
 - pubblicare la pagina Cina;
 - costruire un design system proprietario da zero;

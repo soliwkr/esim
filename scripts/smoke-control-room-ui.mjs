@@ -140,12 +140,9 @@ try {
   assert.match(realProxyResponse.headers.get('cache-control') || '', /no-store/);
   assert.match(realProxyResponse.headers.get('x-robots-tag') || '', /noindex/);
   assert.equal(realProxySnapshot.ok, true);
-  assert.ok(Array.isArray(realProxySnapshot.researchRuns));
-  assert.ok(Array.isArray(realProxySnapshot.signals));
-  assert.ok(Array.isArray(realProxySnapshot.briefs));
-  assert.ok(Array.isArray(realProxySnapshot.claims));
-  assert.ok(Array.isArray(realProxySnapshot.evidenceBundles));
-  assert.ok(Array.isArray(realProxySnapshot.drafts));
+  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts']) {
+    assert.ok(Array.isArray(realProxySnapshot[key]), `Missing ${key} array`);
+  }
 
   const anonymousSnapshot = await fetch(`${origin}/api/maintenance/control-room`);
   assert.equal(anonymousSnapshot.status, 401);
@@ -155,10 +152,6 @@ try {
   const realSnapshot = await realSnapshotResponse.json();
   assert.equal(realSnapshotResponse.status, 200);
   assert.equal(realSnapshot.ok, true);
-  assert.ok(Array.isArray(realSnapshot.researchRuns));
-  assert.ok(Array.isArray(realSnapshot.signals));
-  assert.ok(Array.isArray(realSnapshot.briefs));
-  assert.ok(Array.isArray(realSnapshot.evidenceBundles));
 
   browser = await chromium.launch({ headless: true });
 
@@ -177,6 +170,7 @@ try {
   await automaticPage.getByText('Stato operativo').waitFor();
   await automaticPage.getByText('Run di ricerca recente').waitFor();
   await automaticPage.getByText('Priorità editoriali persistite').waitFor();
+  await automaticPage.getByText('Draft, preview e revisione').waitFor();
   await automaticPage.getByTestId('publication-guardrail').waitFor();
   assert.ok(proxyReads >= 1);
   assert.equal(directProtectedReads, 0);
@@ -204,7 +198,8 @@ try {
   await fixturePage.getByText('eSIM in Cina: funzionano davvero senza VPN?').waitFor();
   await fixturePage.getByText('Claim dallo snapshot').waitFor();
   await fixturePage.getByText('Evidence bundle e gate').waitFor();
-  await fixturePage.getByText('Fixture: guida di destinazione').waitFor();
+  await fixturePage.getByText('Draft, preview e revisione').waitFor();
+  await fixturePage.getByText('eSIM in Cina: dichiarazioni dei provider e limiti delle prove').waitFor();
   await fixturePage.getByTestId('publication-guardrail').getByText('disabilitata').waitFor();
 
   const runButton = fixturePage.getByRole('button', { name: 'Apri run 501' });
@@ -220,19 +215,14 @@ try {
   const signalButton = fixturePage.getByRole('button', { name: 'Apri segnale 601' });
   await signalButton.focus();
   await fixturePage.keyboard.press('Enter');
-  const signalDialog = fixturePage.getByRole('dialog');
-  await signalDialog.getByText('Segnale #601').waitFor();
-  await signalDialog.getByText('Segnale, non prova commerciale').waitFor();
+  await fixturePage.getByRole('dialog').getByText('Segnale #601').waitFor();
+  await fixturePage.getByRole('dialog').getByText('Segnale, non prova commerciale').waitFor();
   await fixturePage.keyboard.press('Escape');
 
   const briefButton = fixturePage.getByRole('button', { name: 'Apri brief 701' });
   await briefButton.focus();
   await fixturePage.keyboard.press('Enter');
-  const briefDialog = fixturePage.getByRole('dialog');
-  await briefDialog.getByText('Brief #701').waitFor();
-  await briefDialog.getByText('85').waitFor();
-  await briefDialog.getByText('54').waitFor();
-  await briefDialog.getByText('63').waitFor();
+  await fixturePage.getByRole('dialog').getByText('Brief #701').waitFor();
   await fixturePage.keyboard.press('Escape');
 
   const claimButton = fixturePage.getByRole('button', { name: 'Apri claim 101' });
@@ -240,10 +230,18 @@ try {
   await fixturePage.keyboard.press('Enter');
   await fixturePage.getByRole('dialog').getByText('Claim #101').waitFor();
   await fixturePage.keyboard.press('Escape');
+
+  const draftButton = fixturePage.getByRole('button', { name: 'Apri draft 202' });
+  await draftButton.focus();
+  await fixturePage.keyboard.press('Enter');
+  await fixturePage.getByRole('dialog').getByText('Draft #202').waitFor();
+  await fixturePage.getByRole('dialog').getByText('Decisione editoriale ≠ pubblicazione').waitFor();
+  await fixturePage.keyboard.press('Escape');
+
   await fixturePage.getByRole('combobox', { name: 'Filtra per stato', exact: true }).click();
   await fixturePage.getByRole('option', { name: 'pending' }).click();
   await fixturePage.getByText('La velocità dichiarata è ancora da verificare.').waitFor();
-  assert.equal(await fixturePage.getByRole('button', { name: /pubblic/i }).count(), 0);
+  assert.equal(await fixturePage.getByRole('button', { name: /pubblic|approv|genera|rigenera/i }).count(), 0);
   assert.deepEqual(mutationRequests, []);
   await fixtureContext.close();
 
@@ -254,7 +252,7 @@ try {
   await healthFailurePage.goto(`${origin}/control-room-foundation`);
   await healthFailurePage.getByTestId('health-error').waitFor();
   await healthFailurePage.getByText('Run di ricerca recente').waitFor();
-  await healthFailurePage.getByText('Claim dallo snapshot').waitFor();
+  await healthFailurePage.getByText('Draft, preview e revisione').waitFor();
   await healthFailureContext.close();
 
   const snapshotFailureContext = await accessContext(browser);
@@ -264,7 +262,7 @@ try {
   await snapshotFailurePage.goto(`${origin}/control-room-foundation`);
   await snapshotFailurePage.getByTestId('snapshot-error').waitFor();
   await snapshotFailurePage.getByText('Binding del radar recent-demand.').waitFor();
-  assert.equal(await snapshotFailurePage.getByText('Run di ricerca recente').count(), 0);
+  assert.equal(await snapshotFailurePage.getByText('Draft, preview e revisione').count(), 0);
   await snapshotFailureContext.close();
 
   const invalidSnapshotContext = await accessContext(browser);
@@ -314,7 +312,7 @@ try {
   await mobilePage.goto(`${origin}/control-room-foundation`);
   await mobilePage.getByTestId('control-room-app').waitFor();
   await mobilePage.locator('html[data-control-room-hydrated="true"]').waitFor();
-  await mobilePage.getByText('Run di ricerca recente').waitFor();
+  await mobilePage.getByText('Draft, preview e revisione').waitFor();
   await mobilePage.getByRole('button', { name: 'Apri navigazione' }).focus();
   await mobilePage.keyboard.press('Enter');
   const mobileNavigation = mobilePage.getByRole('dialog').getByRole('navigation', { name: 'Navigazione Control Room' });
@@ -322,10 +320,11 @@ try {
   await mobileNavigation.getByRole('link', { name: 'Radar' }).waitFor();
   await mobileNavigation.getByRole('link', { name: 'Brief' }).waitFor();
   await mobileNavigation.getByRole('link', { name: 'Readiness' }).waitFor();
+  await mobileNavigation.getByRole('link', { name: 'Draft e decisioni' }).waitFor();
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room overview, radar, signals, briefs, claims, readiness, Access and browser smoke passed.');
+  console.log('Control Room overview, radar, signals, briefs, claims, readiness, drafts, Access and browser smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));

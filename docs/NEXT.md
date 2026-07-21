@@ -6,116 +6,117 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Avviare la fase draft, preview e decisioni
+### 1. Chiudere la PR #42 su draft e decisioni read-only
 
-Branch prevista:
+Branch:
 
 ```text
 feat/control-room-draft-decisions
 ```
 
-Obiettivo esclusivo iniziale: migrare nella nuova Control Room la lettura completa dei draft, della preview e delle decisioni editoriali già persistite.
+La PR sostituisce la preview ridotta dell’ultimo draft con un inventario delle versioni e delle decisioni di revisione già presenti nello snapshot.
 
-La prima iterazione resta read-only. Non introduce approvazione, rigenerazione, mutation, nuovi endpoint o pubblicazione.
+Scope implementato:
 
-### 2. Leggere il contratto canonico prima del codice
-
-Prima di modificare la UI, verificare nel backend e nello snapshot:
-
-- record draft completo e campi nullable;
-- evidence bundle collegato;
-- versione e renderer;
-- stato canonico del draft;
-- contenuto strutturato e metadati SEO disponibili;
+- pagina, versione, renderer e stato canonico del draft;
+- evidence bundle e brief collegati tramite ID persistiti;
+- title e H1 esposti dallo snapshot;
 - claim usati ed esclusi;
-- provenance per campi, sezioni e FAQ;
-- autore, note di revisione, errore e timestamp;
-- eventuale pagina materializzata e relativo stato;
-- decisioni editoriali e audit già esposti.
+- generatore, revisore, data di revisione e note;
+- errore e timestamp;
+- filtri per stato, renderer e presenza di revisione;
+- dettaglio accessibile desktop e mobile;
+- guardrail esplicito tra approvazione editoriale e pubblicazione.
 
-Non inventare linkage o semantiche mancanti. Se un dato necessario non è nello snapshot, fermare lo scope frontend e documentare il gap prima di cambiare il backend.
+### 2. Conservare le separazioni editoriali
 
-### 3. Conservare le separazioni editoriali
-
-La UI deve rendere esplicito che:
+La UI deve continuare a mostrare:
 
 ```text
 approved draft ≠ published page
-review draft    ≠ publication eligibility
+review draft ≠ publication eligibility
 editorial approval ≠ publication action
 ```
 
 Regole:
 
-- lo stato del draft resta distinto dallo stato della pagina;
-- un draft approvato può restare materializzato in `review`;
-- provenance e claim esclusi non vengono nascosti;
-- errori e contenuti nullable vengono mostrati senza dati sostitutivi;
+- lo stato `approved` appartiene al draft;
+- publication eligibility arriva dall’evidence bundle e resta separata;
+- lo stato della pagina materializzata non viene dedotto;
 - il client non ricalcola score, gate o decisioni;
-- nessun pulsante di pubblicazione viene introdotto.
+- nessun pulsante di approvazione, rigenerazione o pubblicazione viene introdotto.
 
-### 4. Vista read-only prevista
+### 3. Rendere visibile il gap del contratto corrente
 
-La nuova sezione deve includere, soltanto quando supportato dal contratto reale:
+Lo snapshot aggregato non espone:
 
-- elenco draft con pagina, versione, renderer e stato;
-- collegamento a evidence bundle e brief;
-- preview dei campi principali;
-- dettaglio del contenuto strutturato;
-- claim usati ed esclusi;
-- provenance leggibile;
-- note di revisione ed eventuali errori;
-- stato della pagina materializzata separato;
-- filtri utili e dettaglio accessibile;
-- empty state reale, contratto invalido, desktop, mobile e tastiera.
+- corpo strutturato completo;
+- FAQ e fonti del draft;
+- provenance field-level del renderer v2;
+- stato della pagina materializzata;
+- audit collegato univocamente a una specifica versione del draft.
 
-### 5. Definition of Done della fase read-only
+Questi dati esistono nel backend tramite endpoint o tabelle già presenti, ma la PR #42 non cambia API, proxy o query. La UI dichiara il gap e non ricostruisce dati mancanti.
+
+Una fase successiva potrà scegliere fra:
+
+1. estendere esplicitamente lo snapshot aggregato;
+2. aggiungere un proxy GET-only dedicato sotto Access;
+3. mantenere il gap finché non serve parità completa.
+
+La scelta richiederà scope backend esplicito e una decisione architetturale documentata.
+
+### 4. Definition of Done della PR #42
 
 Prima del merge devono passare:
 
 - TypeScript strict e build Astro;
 - migrazioni locali e quality gate invariati;
 - build e smoke del Container invariati;
-- runtime `workerd` con draft reale;
+- runtime `workerd` con array draft reale;
 - smoke Chromium generale;
-- smoke Chromium claim e readiness invariati;
-- smoke dedicato a draft e preview;
-- contratti non conformi rifiutati;
+- smoke claim e readiness invariati;
+- smoke dedicato a draft e decisioni;
+- stati draft non ammessi rifiutati;
+- array claim e timestamp non conformi rifiutati;
+- empty state, filtri, tastiera e mobile;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna credenziale o accesso diretto a D1;
-- nessuna route o azione di approvazione, generazione o pubblicazione;
+- nessuna route o azione di generazione, approvazione o pubblicazione;
 - nessuna regressione su overview, radar, segnali, brief, claim e readiness.
 
-### 6. Verifica reale dopo il merge
+### 5. Verificare il deploy reale
 
-Dopo il deploy:
+Dopo il merge:
 
 - aprire `https://senzaroaming.it/control-room-foundation`;
-- verificare il draft reale del primo ciclo editoriale;
+- verificare il draft reale `2`;
 - verificare versione `2` e renderer `editorial-page-draft-v2`;
-- verificare stato draft `approved` e pagina materializzata ancora `review`;
-- verificare claim usati, esclusi e provenance;
+- verificare stato draft `approved`;
+- verificare bundle `1`, readiness `77` e publication eligibility negativa;
+- verificare revisore, note, claim usati ed esclusi;
+- verificare che lo stato pagina sia indicato come non disponibile nello snapshot, non dedotto;
 - controllare desktop e mobile;
-- confermare che non esistano azioni di generazione, approvazione operativa o pubblicazione.
+- confermare l’assenza di azioni operative.
 
-### 7. Fase successiva
+### 6. Fase successiva
 
-Soltanto dopo la parità read-only dei draft:
+Soltanto dopo la verifica reale della PR #42:
 
 ```text
 feat/control-room-queue-audit
 ```
 
-Le eventuali mutation editoriali richiedono branch separate, contratti espliciti, autorizzazione e conferme accessibili. Non vengono incluse automaticamente nella migrazione read-only.
+Queue e audit resteranno inizialmente read-only. Le mutation editoriali richiederanno branch separate, contratti espliciti, autorizzazione e conferme accessibili.
 
 ## Fuori scope immediato
 
 - generazione o rigenerazione draft;
-- approvazione o rifiuto tramite nuova UI;
-- materializzazione di nuove pagine;
+- approvazione, richiesta modifiche o rifiuto tramite nuova UI;
+- materializzazione di pagine;
+- estensione di endpoint o query D1 nella PR #42;
 - modifica claim, fonti o evidence bundle;
 - mutation della maintenance queue;
-- nuovi endpoint o query D1 senza gap documentato e scope esplicito;
 - pubblicazione;
 - modifiche alla Control Room legacy;
 - migrazione del sito pubblico.
@@ -124,54 +125,43 @@ Le eventuali mutation editoriali richiedono branch separate, contratti espliciti
 
 ### Sessione server-side
 
-- PR #31 mergiata e verificata;
-- un solo login Cloudflare Access;
+- PR #31 verificata;
+- un solo login Access;
 - proxy snapshot read-only;
 - nessuna credenziale applicativa nel browser.
 
 ### Overview e health
 
-- PR #32 mergiata e verificata;
+- PR #32 verificata;
 - metriche, capability, binding, timestamp e guardrail visibili;
 - errori parziali e contratti runtime verificati.
 
 ### Radar e brief
 
-- PR #34 mergiata e verificata;
+- PR #34 verificata;
 - run, segnali e brief visibili;
 - filtro run → segnali basato su `run_id`;
-- punteggi, flag e nullable preservati;
 - nessun linkage segnale → brief inventato.
 
 ### Quality gate score zero
 
-- PR #36 mergiata nel commit `2927419`;
-- segnale reale con score zero filtrato;
-- flag `zero_relevance` visibile;
-- conteggi riallineati;
-- nessuna modifica automatica a brief o claim.
+- PR #36 verificata sul dato reale;
+- segnale con score zero filtrato;
+- flag `zero_relevance` e conteggi riallineati.
 
 ### Claim, fonti e scadenze
 
-- PR #37 mergiata nel commit `6a71174`;
-- CI, deploy e verifica browser completati;
-- cinque filtri e dettaglio read-only verificati;
+- PR #37 verificata;
+- cinque filtri e dettaglio read-only;
 - stato canonico e stato temporale separati;
-- fonte ed evidenza distinte;
-- payload non validi rifiutati;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna mutation o pubblicazione.
+- fonte ed evidenza distinte.
 
 ### Page Readiness ed evidence bundle
 
-- PR #39 e hotfix #40 mergiate;
-- CI completa, deploy e verifica browser completati;
-- score 77, draft eligibility positiva e publication eligibility negativa visibili;
+- PR #39 e hotfix #40 verificate;
 - quattro gate distinti;
-- conteggi, conflitto, warning strutturati e zero first-party tests visibili;
-- fixture riallineata al payload canonico;
-- warning non conformi rifiutati;
-- nessuna richiesta browser diversa da `GET`;
+- warning strutturati reali visibili;
+- fixture aderente al payload canonico;
 - nessuna mutation o pubblicazione.
 
 ## Freeze immediato
@@ -181,4 +171,4 @@ Le eventuali mutation editoriali richiedono branch separate, contratti espliciti
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation nella prima fase draft read-only.
+- nessuna mutation nella fase draft read-only.

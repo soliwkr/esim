@@ -25,7 +25,8 @@ La island implementa:
 - brief ordinati dal backend con punteggi, readiness e draft collegati;
 - claim, fonti e scadenze con filtri e dettaglio read-only;
 - Page Readiness ed evidence bundle con score, conteggi, warning e gate separati;
-- preview read-only dei metadati dell'ultimo draft;
+- inventario draft con renderer, versione, stato, revisore, note e claim usati/esclusi;
+- relazioni draft → evidence bundle → brief risolte soltanto tramite ID canonici già presenti;
 - loading, errori parziali, contratti invalidi ed empty state.
 
 La relazione run → segnali usa il `run_id` canonico. Lo snapshot non espone un collegamento diretto segnale → brief e la UI non lo deduce.
@@ -47,11 +48,28 @@ La vista readiness usa esclusivamente `evidenceBundles` già presente nello snap
 - conteggi claim, conflitti, fonti, soggetti e test first-party;
 - warning strutturati, revisore e timestamp.
 
-Ogni warning è un oggetto con `code`, `message` opzionale e metadati aggiuntivi opachi come claim o conflitti collegati. Il client valida `code` e `message`, conserva gli altri campi e mostra il contenuto senza trasformarlo in una decisione propria.
+Ogni warning è un oggetto con `code`, `message` opzionale e metadati aggiuntivi opachi. Il client valida `code` e `message`, conserva gli altri campi e non li trasforma in una decisione propria.
 
-Draft eligibility e publication eligibility restano gate distinti. Il client non ricalcola score, conteggi o decisioni.
+La vista draft usa soltanto `drafts`, `evidenceBundles` e `briefs` già presenti nello snapshot. Mostra:
 
-Non implementa avvio Workflow, accettazione o conversione brief, mutation claim, gestione fonti, valutazione readiness, approvazione bundle, generazione draft, queue actions, accesso diretto a D1 o capacità di pubblicazione.
+- pagina, versione, renderer e stato canonico del draft;
+- autore, revisore, timestamp e note di revisione;
+- evidence bundle e brief collegati;
+- readiness score e publication eligibility del bundle;
+- title, H1 e claim usati/esclusi;
+- errore di generazione quando persistito.
+
+Separazioni obbligatorie:
+
+```text
+approved draft ≠ published page
+review draft ≠ publication eligibility
+editorial approval ≠ publication action
+```
+
+Lo snapshot aggregato non espone corpo completo, FAQ, fonti, provenance field-level, stato della pagina materializzata o audit legato univocamente a una versione del draft. La UI dichiara questi gap e non richiama endpoint separati né ricostruisce dati mancanti.
+
+Non implementa avvio Workflow, accettazione o conversione brief, mutation claim, gestione fonti, valutazione readiness, approvazione bundle, generazione o revisione operativa dei draft, queue actions, accesso diretto a D1 o capacità di pubblicazione.
 
 ## Dati e sessione server-side
 
@@ -64,9 +82,9 @@ Il secondo endpoint è un proxy read-only interno al custom Worker entrypoint. A
 
 Il browser non conserva token applicativi e non invia un header di autorizzazione verso l’API di manutenzione. L’API originale resta invariata per agenti e consumer legacy.
 
-`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle e draft. Per i bundle vengono validati anche i quattro gate binari, i conteggi non negativi, i warning strutturati e i timestamp nullable.
+`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle e draft base. `apps/web/src/lib/draft-contract.ts` valida integralmente i campi draft usati dalla vista decisionale.
 
-Punteggi, stati, quality flags, confidence, gate e valori nullable vengono mostrati come persistiti. Il client non ricalcola Opportunity, Evidence, Priority, Readiness o lo stato canonico dei claim.
+Punteggi, stati, quality flags, confidence, gate e valori nullable vengono mostrati come persistiti. Il client non ricalcola Opportunity, Evidence, Priority, Readiness o decisioni editoriali.
 
 Tutti i dati reali arrivano dalle API del Worker; il browser non accede a D1.
 
@@ -84,12 +102,14 @@ npm run smoke:runtime
 npm run smoke:ui
 npm run smoke:claims
 npm run smoke:readiness
+npm run smoke:drafts
 ```
 
 Gli smoke generano credenziali Access effimere di test; nessuna chiave viene versionata.
 
 - `smoke:quality` verifica il gate D1 per score zero e low-positive relevance.
-- `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array radar/brief, API originale, export, health e route di pubblicazione assenti.
+- `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array radar/brief/draft, API originale, export, health e route di pubblicazione assenti.
 - `smoke:ui` verifica caricamento generale, overview, radar, brief, claim, readiness e draft, errori parziali, tastiera e mobile.
 - `smoke:claims` verifica contratto claim, cinque filtri, fonte sicura, stato temporale, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
 - `smoke:readiness` verifica contratto bundle, warning strutturati, quattro filtri, gate separati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
+- `smoke:drafts` verifica contratto draft, tre filtri, decisione di revisione, relazioni bundle/brief, gap dichiarati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
