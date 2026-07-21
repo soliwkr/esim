@@ -69,7 +69,7 @@ Da scrivere nel progetto:
 - React Hook Form per form editoriali;
 - Zod se i contratti condivisi richiedono una libreria dedicata.
 
-La PR #32 non introduce dipendenze aggiuntive: implementa validazione runtime e letture resilienti con il codice già presente. Una libreria viene aggiunta soltanto quando riduce complessità reale.
+La migrazione overview non ha introdotto dipendenze aggiuntive. La fase radar e brief deve prima verificare se i dataset e i filtri correnti richiedono davvero TanStack Table; una libreria viene aggiunta soltanto quando riduce complessità reale.
 
 ## UI kit
 
@@ -158,8 +158,8 @@ La riorganizzazione completa del repository viene valutata soltanto dopo il rila
 
 Ordine:
 
-1. overview e health — **PR #32 in verifica**;
-2. radar e brief;
+1. overview e health — **completate e verificate con PR #32**;
+2. radar e brief — **prossima fase**;
 3. claim e fonti;
 4. readiness ed evidence bundle;
 5. draft e preview;
@@ -167,23 +167,67 @@ Ordine:
 
 #### F3.1 — Overview e health
 
-Scope:
+**Stato: completata e verificata in produzione.**
 
-- tutte le metriche già esposte da `snapshot.overview`;
-- capability e binding esistenti;
-- timestamp dello snapshot;
-- guardrail di pubblicazione e affiliate mode;
-- validazione runtime dei payload;
-- health e snapshot come risorse indipendenti;
-- refresh senza cancellare dati ancora validi;
-- errori parziali espliciti.
+Risultati:
+
+- tutte le metriche già esposte da `snapshot.overview` sono visibili;
+- capability e binding hanno semantica esplicita;
+- timestamp e guardrail sono mostrati;
+- health e snapshot sono risorse indipendenti;
+- payload non validi sono rifiutati;
+- dati validi sono preservati durante errori parziali;
+- claim e draft preview non sono regrediti;
+- typecheck, build, migrazioni, Container, runtime e browser smoke sono verdi;
+- deploy e verifica manuale desktop/mobile sono completati;
+- nessuna mutation, pubblicazione o accesso browser a D1 è stata introdotta.
+
+#### F3.2 — Radar e brief
+
+**Stato: prossima fase.**
+
+Dati esistenti da usare:
+
+- `researchRuns`;
+- `signals`;
+- `briefs`.
+
+Vista run:
+
+- query, sistema sorgente e tipo di run;
+- finestra temporale e data di generazione;
+- result count, warning count, eligible count e filtered count;
+- dettaglio read-only e stato vuoto.
+
+Vista segnali:
+
+- tipo, topic, titolo, provenienza e URL;
+- data di pubblicazione, freshness e relevance score;
+- idoneità editoriale, stato e quality flags;
+- relazione con il run di origine.
+
+Vista brief:
+
+- cluster, titolo proposto, slug, asset type e search intent;
+- Opportunity, Evidence e Priority Score;
+- stato e note;
+- evidence bundle, readiness e draft collegato quando presenti;
+- filtri e dettaglio read-only.
+
+Contratti:
+
+- validare a runtime tutti e tre gli array;
+- preservare `null` e valori canonici senza ricalcoli nel client;
+- rifiutare record incoerenti con un errore esplicito;
+- non usare un segnale recent-demand come prova commerciale.
 
 Non include:
 
-- nuovi endpoint;
-- query D1 aggiuntive;
-- probe end-to-end di servizi esterni;
-- mutation o azioni operative.
+- avvio del Workflow;
+- accettazione o conversione dei brief;
+- nuovi endpoint o query D1;
+- mutation o azioni operative;
+- modifiche a AI, claim, readiness, draft o publication gate.
 
 La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzionale.
 
@@ -216,20 +260,21 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - i componenti esterni vengono ispezionati e fissati a versioni controllate;
 - non si importa un template completo senza verificare dipendenze, licenza e codice;
 - una capability configurata non viene presentata come prova di salute end-to-end;
-- un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript.
+- un payload JSON non viene considerato valido soltanto perché esiste un tipo TypeScript;
+- segnali e trend non vengono presentati come claim commerciali verificati.
 
-## Definition of Done F3.1
+## Definition of Done F3.2
 
-- [ ] tutte le metriche overview reali sono visibili;
-- [ ] capability, binding e guardrail hanno semantica esplicita;
-- [ ] timestamp dello snapshot è mostrato;
-- [ ] health e snapshot falliscono in modo indipendente;
-- [ ] payload non validi sono rifiutati;
-- [ ] dati validi sono preservati durante errori parziali;
-- [ ] claim e draft preview non regrediscono;
+- [ ] run, segnali e brief reali sono visibili;
+- [ ] relazioni run → segnali → brief sono comprensibili;
+- [ ] contratti runtime coprono i tre array;
+- [ ] punteggi, stati e quality flags conservano il significato canonico;
+- [ ] filtri, dettaglio, loading, error ed empty state sono verificati;
+- [ ] tastiera e viewport mobile sono verificati;
 - [ ] typecheck, build, migrazioni, Container, runtime e browser smoke sono verdi;
-- [ ] deploy e verifica manuale desktop/mobile sono verdi;
-- [ ] nessuna mutation, pubblicazione o accesso browser a D1.
+- [ ] nessuna richiesta browser diversa da `GET`;
+- [ ] nessuna mutation, pubblicazione o accesso browser a D1;
+- [ ] overview, claim e draft preview non regrediscono.
 
 ## Cosa non facciamo adesso
 
@@ -239,4 +284,4 @@ La vecchia Control Room viene rimossa solo dopo test end-to-end e parità funzio
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- migrare radar o brief nella stessa PR dell’overview.
+- introdurre azioni operative nella stessa PR della migrazione read-only di radar e brief.
