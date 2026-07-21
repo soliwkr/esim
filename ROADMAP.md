@@ -55,7 +55,7 @@ Ultimo aggiornamento: **21 luglio 2026**.
 - [x] Snapshot aggregato per dashboard.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
-- [ ] Audit log unificato.
+- [ ] Audit log unificato oltre la vista aggregata corrente.
 
 ### Quality checkpoint completato
 
@@ -146,7 +146,7 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 - [x] Claim, fonti e scadenze — PR #37 verificata.
 - [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
 - [x] Draft, preview e decisioni — PR #42 verificata in produzione.
-- [ ] Queue e audit.
+- [ ] Queue e audit — **PR #44 in verifica**.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
@@ -184,17 +184,36 @@ Gap dichiarati e non ricostruiti:
 
 La PR non aggiunge endpoint, query D1, generazione, azioni di revisione, mutation o pubblicazione.
 
-#### Queue e audit — prossimo checkpoint
+#### Queue e audit — scope PR #44
 
-La prima iterazione resta read-only e parte dai contratti `queue` e `audit` già presenti nello snapshot.
+La PR #44 usa soltanto gli array `queue` e `audit` già presenti nello snapshot aggregato.
 
-Deve mostrare, soltanto quando esposti:
+Queue:
 
-- task type, entity, priorità, stato, due at, tentativi, lock, errore, payload e timestamp;
-- dominio, azione, attore, entità, dettagli e timestamp degli eventi audit;
-- filtri, dettaglio, empty state, contratto invalido, desktop, mobile e tastiera.
+- task `pending`, `processing` e `failed`;
+- task type, entity type, entity key, priorità e stato;
+- due at, tentativi, max attempts, lock e ultimo errore;
+- payload JSON e timestamp;
+- riepiloghi limitati ai record restituiti;
+- filtri e dettaglio read-only.
 
-Non introduce retry, complete, dismiss, avvio Workflow, mutation o pubblicazione.
+Audit:
+
+- dominio, azione, attore, entità e timestamp;
+- dettagli JSON opachi;
+- filtri e dettaglio read-only;
+- limite esplicito: nessun ID evento e nessun legame univoco con una versione draft.
+
+Separazioni obbligatorie:
+
+```text
+queue status ≠ decisione editoriale
+failed task ≠ contenuto non valido
+completed task ≠ pagina pubblicata
+audit event ≠ autorizzazione operativa
+```
+
+La PR non aggiunge endpoint, query D1, retry, complete, dismiss, avvio Workflow, mutation o pubblicazione.
 
 **Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
 
@@ -256,7 +275,7 @@ Non introduce retry, complete, dismiss, avvio Workflow, mutation o pubblicazione
 
 ## Ordine operativo attuale
 
-1. migrare queue e audit in sola lettura;
+1. chiudere e verificare PR #44 su queue e audit read-only;
 2. decidere con scope esplicito se estendere il contratto draft per contenuto, provenance e stato pagina;
 3. introdurre azioni operative soltanto con branch dedicate;
 4. rimuovere la legacy soltanto dopo parità funzionale;

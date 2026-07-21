@@ -15,7 +15,7 @@
     "sources_due": 1,
     "queue_pending": 2,
     "queue_processing": 1,
-    "queue_failed": 0,
+    "queue_failed": 1,
     "research_runs": 4,
     "signals_eligible": 6,
     "signals_filtered": 9,
@@ -352,6 +352,145 @@
       "error_message": null,
       "created_at": "2026-07-18T07:15:00.000Z",
       "updated_at": "2026-07-18T07:25:00.000Z"
+    }
+  ],
+  "queue": [
+    {
+      "id": 801,
+      "task_type": "verify_claims",
+      "entity_type": "editorial_claim",
+      "entity_key": "editorial-claim:102",
+      "priority": 95,
+      "status": "processing",
+      "due_at": "2026-07-18T07:40:00.000Z",
+      "attempts": 1,
+      "max_attempts": 3,
+      "locked_by": "fixture-worker",
+      "last_error": null,
+      "payload": {
+        "briefId": 702,
+        "candidateIds": [102],
+        "reason": "source_required"
+      },
+      "created_at": "2026-07-18T07:35:00.000Z",
+      "updated_at": "2026-07-18T07:42:00.000Z"
+    },
+    {
+      "id": 802,
+      "task_type": "refresh_source",
+      "entity_type": "provider",
+      "entity_key": "fixture-provider",
+      "priority": 90,
+      "status": "pending",
+      "due_at": "2026-07-19T08:00:00.000Z",
+      "attempts": 0,
+      "max_attempts": 3,
+      "locked_by": null,
+      "last_error": null,
+      "payload": {
+        "reason": "freshness_expired",
+        "sourceUrl": "https://example.test/provider"
+      },
+      "created_at": "2026-07-18T07:50:00.000Z",
+      "updated_at": "2026-07-18T07:50:00.000Z"
+    },
+    {
+      "id": 803,
+      "task_type": "editorial_review",
+      "entity_type": "page",
+      "entity_key": "esim-cina-senza-vpn",
+      "priority": 63,
+      "status": "failed",
+      "due_at": "2026-07-18T07:30:00.000Z",
+      "attempts": 3,
+      "max_attempts": 3,
+      "locked_by": null,
+      "last_error": "fixture_review_worker_unavailable",
+      "payload": {
+        "reason": "field_grounded_draft_generated",
+        "draftId": 202,
+        "bundleId": 31,
+        "pageSlug": "esim-cina-senza-vpn"
+      },
+      "created_at": "2026-07-18T07:25:00.000Z",
+      "updated_at": "2026-07-18T07:55:00.000Z"
+    },
+    {
+      "id": 804,
+      "task_type": "verify_claims",
+      "entity_type": "editorial_claim",
+      "entity_key": "editorial-claim:103",
+      "priority": 80,
+      "status": "pending",
+      "due_at": "2026-07-20T08:00:00.000Z",
+      "attempts": 0,
+      "max_attempts": 5,
+      "locked_by": null,
+      "last_error": null,
+      "payload": [],
+      "created_at": "2026-07-18T07:58:00.000Z",
+      "updated_at": "2026-07-18T07:58:00.000Z"
+    }
+  ],
+  "audit": [
+    {
+      "domain": "draft",
+      "action": "approved",
+      "actor": "fixture-reviewer",
+      "entity": "esim-cina-senza-vpn",
+      "details": {
+        "draftId": 202,
+        "version": 2,
+        "notes": "Approvato editorialmente; nessuna pubblicazione."
+      },
+      "created_at": "2026-07-18T07:45:00.000Z"
+    },
+    {
+      "domain": "readiness",
+      "action": "approved_for_draft",
+      "actor": "fixture-reviewer",
+      "entity": "esim-cina-senza-vpn",
+      "details": {
+        "bundleId": 31,
+        "publicationEligible": false,
+        "readinessScore": 77
+      },
+      "created_at": "2026-07-18T07:20:00.000Z"
+    },
+    {
+      "domain": "claim",
+      "action": "verified",
+      "actor": "fixture-reviewer",
+      "entity": "claim:101",
+      "details": {
+        "sourceKind": "official_provider",
+        "confidence": 1
+      },
+      "created_at": "2026-07-18T07:00:00.000Z"
+    },
+    {
+      "domain": "research",
+      "action": "completed",
+      "actor": "system",
+      "entity": "eSIM Cina problemi VPN",
+      "details": {
+        "runId": 501,
+        "eligible": 2,
+        "filtered": 10
+      },
+      "created_at": "2026-07-18T06:51:00.000Z"
+    },
+    {
+      "domain": "ai_editorial",
+      "action": "completed",
+      "actor": "system",
+      "entity": "ai-run:41",
+      "details": {
+        "model": "fixture-model",
+        "briefCount": 1,
+        "error": null
+      },
+      "created_at": "2026-07-18T06:58:00.000Z"
     }
   ]
 }

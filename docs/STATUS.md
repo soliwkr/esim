@@ -30,6 +30,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Claim, fonti e scadenze | Operativi e verificati | PR #37 |
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42, CI e verifica browser reale completate |
+| Queue e audit UI | PR #44 in verifica | lettura, filtri e dettaglio senza mutation |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -115,6 +116,8 @@ Sono verificati in produzione:
 - contratti runtime delle viste chiuse;
 - nessuna mutation o capacità di pubblicazione.
 
+Queue e audit sono implementati nella PR #44 ma non ancora verificati in produzione.
+
 ## Quality gate score zero verificato
 
 La PR #36 è mergiata, distribuita e verificata sul record reale:
@@ -150,7 +153,7 @@ Le PR #39 e #40 sono distribuite e verificate. La prima verifica reale ha rileva
 
 Sono visibili score, conteggi, quattro gate distinti, warning, revisore e timestamp. La UI non ricalcola readiness o decisioni.
 
-## PR #42 — Draft, preview e decisioni read-only
+## Draft, preview e decisioni read-only
 
 La PR #42 è mergiata nel commit `856da79`, distribuita e verificata nel browser reale.
 
@@ -194,31 +197,63 @@ Lo snapshot non espone:
 
 Il backend possiede già tali dati attraverso endpoint e tabelle esistenti, ma la PR #42 non amplia API o query. La UI dichiara il gap e non deduce dati mancanti.
 
-Restano invariati backend, D1, Workflow, Container, AI, draft generation, review actions, queue e publication gate.
+## PR #44 — Queue e audit read-only
+
+La PR #44 usa soltanto gli array già esposti dallo snapshot:
+
+```text
+queue
+audit
+```
+
+Implementazione in verifica:
+
+- contratto runtime per task `pending`, `processing` e `failed`;
+- task type, entity, priorità, due at, tentativi, lock, ultimo errore e timestamp;
+- payload validato come JSON e mostrato senza reinterpretazione;
+- riepiloghi esplicitamente limitati ai record restituiti dalla query backend;
+- filtri queue per stato, task type, entity type e condizione;
+- audit aggregato con dominio, azione, attore, entità, dettagli e timestamp;
+- filtri audit per dominio, azione e attore;
+- dettaglio read-only accessibile, empty state, desktop, mobile e tastiera;
+- nessuna richiesta browser diversa da `GET`;
+- nessun nuovo endpoint o query D1.
+
+Guardrail:
+
+```text
+queue status ≠ decisione editoriale
+failed task ≠ contenuto non valido
+completed task ≠ pagina pubblicata
+audit event ≠ autorizzazione operativa
+```
+
+Lo snapshot audit non espone un ID evento né un collegamento univoco con una versione draft. La UI dichiara il limite e non inventa relazioni.
 
 ## Rischi aperti
 
-1. Lo stato della pagina non deve essere dedotto dallo stato del draft.
-2. Il gap su corpo completo e provenance richiederà uno scope backend esplicito se verrà chiuso.
-3. Queue e audit devono essere migrati senza introdurre mutation implicite.
-4. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
-5. L'health corrente descrive soprattutto configurazione e binding.
-6. La Control Room legacy deve restare congelata.
-7. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-8. Search Console, CMP e analytics non sono ancora disponibili.
-9. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La PR #44 deve superare la CI completa, incluso lo smoke Queue/Audit dedicato.
+2. Queue e audit devono essere verificati nel browser reale dopo il deploy.
+3. I conteggi della vista queue non devono essere presentati come metriche globali oltre la porzione restituita.
+4. Lo stato della pagina non deve essere dedotto dallo stato del draft.
+5. Il gap su corpo completo e provenance richiederà uno scope backend esplicito se verrà chiuso.
+6. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
+7. L'health corrente descrive soprattutto configurazione e binding.
+8. La Control Room legacy deve restare congelata.
+9. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+10. Search Console, CMP e analytics non sono ancora disponibili.
+11. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
-Il prossimo checkpoint riguarda **queue e audit in sola lettura**.
+Il checkpoint PR #44 è raggiunto quando:
 
-È raggiunto quando:
-
-- i contratti reali di `queue` e `audit` sono letti integralmente e validati a runtime;
-- task, priorità, stato, tentativi, errori e timestamp vengono mostrati come persistiti;
-- eventi audit, attore, dominio, azione, entità e dettagli vengono mostrati senza reinterpretazione;
+- i contratti reali di `queue` e `audit` sono validati a runtime;
+- task, priorità, stato, tentativi, errori, payload e timestamp vengono mostrati come persistiti;
+- eventi audit, attore, dominio, azione, entità, dettagli e timestamp vengono mostrati senza reinterpretazione;
 - relazioni non presenti nello snapshot non vengono inventate;
 - filtri, dettaglio, empty state, contratto invalido, tastiera e mobile sono verificati;
 - overview, radar, brief, claim, readiness e draft non regrediscono;
-- nessuna mutation della queue o azione editoriale viene introdotta nella stessa fase read-only;
+- CI, deploy e verifica manuale sono verdi;
+- nessuna mutation della queue o azione editoriale viene introdotta;
 - nessuna capacità di pubblicazione viene aggiunta.
