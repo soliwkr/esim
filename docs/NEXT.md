@@ -2,98 +2,80 @@
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; la migrazione frontend vive in `docs/FRONTEND-PLAN.md`.
 
-Ultimo aggiornamento: **18 luglio 2026**.
+Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Configurare Cloudflare Access prima del merge
+### 1. Chiudere la sessione server-side della Control Room
 
-La branch `feat/control-room-access-guard` rende `/control-room-foundation` fail-closed e valida nel Worker il JWT Access prima di delegare ad Astro.
+La PR #31 elimina il secondo login visibile senza cambiare il contratto dell'API esistente.
 
-Prima del merge completare la checklist in `docs/CONTROL-ROOM-ACCESS.md`:
+Verificare prima del merge:
 
-- creare l'app self-hosted sul path `/control-room-foundation*`;
-- aggiungere una policy utente Allow limitata all'identità operativa;
-- creare un service token dedicato alla CI e la relativa policy Service Auth;
-- impostare i Worker secrets `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD`;
-- impostare i GitHub secrets `CF_ACCESS_CLIENT_ID` e `CF_ACCESS_CLIENT_SECRET`;
-- verificare che nessun valore sensibile compaia nel repository o nei log.
+- `/control-room-foundation/api/snapshot` richiede un JWT Cloudflare Access valido;
+- il proxy accetta soltanto `GET`;
+- `MAINTENANCE_TOKEN` viene usato soltanto nel Worker;
+- il browser non usa `sessionStorage`, campo token o header `Authorization`;
+- `GET /api/maintenance/control-room` resta protetto e invariato;
+- nessuna mutation o route di pubblicazione viene introdotta;
+- typecheck, build, smoke `workerd` e Chromium sono verdi.
 
-Non mergiare la PR finché questi prerequisiti non sono verificati.
+### 2. Verificare il deploy reale
 
-### 2. Revisionare il guard e gli smoke
-
-Verificare nella PR:
-
-- richiesta anonima a `/control-room-foundation` → `403` nel runtime locale;
-- JWT con firma, issuer o audience errati → `403`;
-- configurazione Access mancante → `503` fail-closed;
-- JWT valido → shell Astro `200` con una sola React island;
-- `/api/health` resta pubblico e operativo;
-- `GET /api/maintenance/control-room` resta protetto dal maintenance token;
-- nessuna mutation o route di pubblicazione introdotta;
-- smoke `workerd` e Chromium verdi.
-
-### 3. Verificare Access e Control Room dopo il deploy
-
-Il workflow di produzione deve dimostrare:
+Dopo il merge, il workflow di produzione deve dimostrare:
 
 ```text
-richiesta anonima
-→ redirect/login Access oppure 401/403
+richiesta anonima a pagina o proxy
+→ login Access oppure 401/403
 
 service token CI
 → Access emette JWT
 → Worker valida firma + issuer + audience
-→ Astro serve la shell noindex/no-store
+→ shell Astro 200
+→ proxy snapshot 200
+→ publicationAutomation:false
 ```
 
-La Control Room legacy `/control-room` resta disponibile come fallback transitorio e deve continuare a superare il proprio smoke live.
+Controlli manuali nel browser:
 
-### 4. Chiudere la verifica della Control Room v3
+- un solo login Cloudflare Access;
+- nessun campo per il maintenance token;
+- snapshot caricato automaticamente;
+- refresh funzionante;
+- nessun token in URL o storage;
+- layout desktop e mobile utilizzabili.
 
-Verificare in produzione:
+### 3. Aggiornare lo stato canonico dopo il live smoke
 
-```text
-/control-room
-→ badge v3 visibile
-→ client JavaScript caricato
-→ apertura sessione funzionante
-→ snapshot reale caricato
-```
+Solo dopo un deploy verde:
 
-Non aggiungere nuove funzioni importanti alla dashboard artigianale.
+- marcare la sessione server-side come operativa in `docs/STATUS.md`;
+- marcare Access e gestione sessione completati in `ROADMAP.md` e `docs/FRONTEND-PLAN.md`;
+- mantenere ADR-017 come decisione canonica;
+- non dichiarare completato ciò che non è stato verificato nel browser reale.
 
-### 5. Valutare separatamente l'eventuale confronto UI
+### 4. Proseguire la migrazione funzionale della Control Room
 
-La UI foundation shadcn è implementata. Un confronto Mantine, se ancora utile, deve essere una fase separata e non va retrodatato come svolto.
-
-Le tre viste disponibili come base misurabile sono:
-
-1. overview e health;
-2. tabella claim con filtro e dettaglio read-only;
-3. metadati draft con preview read-only.
-
-Misurare codice custom, velocità, accessibilità, mobile, tema, bundle e manutenzione.
-
-### 6. Migrare la Control Room
-
-Ordine operativo successivo all'attivazione di Access:
+Ordine successivo:
 
 ```text
-overview
+overview e health aggregato
 → radar e brief
 → claim e fonti
-→ readiness
+→ readiness ed evidence bundle
 → draft e preview
 → queue e audit
 ```
 
-La UI legacy viene rimossa soltanto dopo parità funzionale, test browser e verifica end-to-end.
+Ogni fase resta separata, con contratti tipizzati, test browser e nessuna pubblicazione automatica.
 
-### 7. Migrare il sito pubblico ad Astro
+### 5. Valutare il confronto UI soltanto se ancora utile
 
-Dopo la Control Room:
+shadcn/ui è operativo nella foundation. Un confronto Mantine resta opzionale e separato; non deve bloccare la migrazione se non esiste un vantaggio concreto da misurare.
+
+### 6. Migrare il sito pubblico ad Astro dopo la Control Room
+
+Ordine previsto:
 
 - home e layout;
 - navigazione e pagine statiche;
@@ -106,15 +88,14 @@ La pagina `esim-cina-senza-vpn` resta `review` e pubblicamente invisibile.
 
 ## Freeze immediato
 
-Fino alla conclusione della fase Access:
-
 - niente nuove pagine tramite template string nel Worker;
 - niente nuovi componenti generici scritti a mano;
 - niente ampliamenti sostanziali della Control Room legacy;
-- backend, claim, evidence bundle e gate restano invariati;
+- browser senza accesso diretto a D1;
+- backend editoriale, claim, evidence bundle e gate invariati;
 - nessuna pubblicazione automatica;
 - nessun bypass pubblico della policy Access;
-- nessun secret in URL, HTML, log o repository.
+- nessun secret in URL, HTML, JavaScript client, storage, log o repository.
 
 ## Completato
 
@@ -122,32 +103,30 @@ Fino alla conclusione della fase Access:
 - recent-demand Workflow e osservabilità;
 - quality gate `eligible` / `filtered`;
 - Vertex AI attraverso Cloudflare AI Gateway;
-- primo brief AI reale;
-- Opportunity, Evidence e Priority Score;
-- claim generali e atomici;
-- 5 verifiche ufficiali e 1 esito `insufficient`;
-- Page Readiness Gate;
-- evidence bundle versionato;
-- renderer v2 con provenienza campo → claim;
-- draft `2` approvato editorialmente;
-- pagina ancora in `review` e pubblicamente `404 noindex`;
+- primo ciclo brief → claim → readiness → draft approvato senza pubblicazione;
 - deploy automatico per modifiche operative su `main`;
 - `apps/web` con Astro, React e adapter Cloudflare;
-- custom Worker entrypoint unico con fallback al backend esistente;
+- custom Worker entrypoint unico;
 - shadcn/ui installato e versionato;
 - overview, claim e draft preview read-only;
-- smoke runtime e browser della UI foundation.
+- Cloudflare Access attivo sul path della Control Room;
+- validazione JWT nell'origine;
+- policy utente e service token CI verificati;
+- Worker e GitHub secrets configurati;
+- live smoke della shell Access-protected verde;
+- nessuna capacità di pubblicazione nella nuova UI.
 
 ## Definition of Done del prossimo checkpoint
 
-- [ ] applicazione Cloudflare Access attiva sul path corretto;
-- [ ] policy utente e service token verificati;
-- [ ] Worker secrets e GitHub secrets configurati;
-- [ ] validazione JWT nell'origine coperta da CI;
-- [ ] smoke live anonimo e autenticato verdi;
-- [ ] Control Room v3 verificata realmente nel browser;
+- [ ] PR #31 con CI completa verde;
+- [ ] proxy snapshot GET-only coperto da smoke;
+- [ ] browser privo di maintenance token e `sessionStorage`;
+- [ ] deploy automatico verde;
+- [ ] live smoke pagina + proxy verde;
+- [ ] accesso manuale con un solo login;
+- [ ] snapshot reale caricato automaticamente;
 - [ ] nessuna regressione dei gate editoriali e di pubblicazione;
-- [ ] piano di migrazione operativa della Control Room pronto per l'esecuzione.
+- [ ] documentazione aggiornata allo stato verificato.
 
 ## Dopo il frontend
 
