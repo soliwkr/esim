@@ -53,6 +53,7 @@ async function verifyBuildContract() {
     claimsComponent,
     readinessComponent,
     draftComponent,
+    queueAuditComponent,
     draftContract,
     controlRoomApiClient
   ] = await Promise.all([
@@ -67,6 +68,7 @@ async function verifyBuildContract() {
     readFile('apps/web/src/components/control-room/ClaimsSources.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/ReadinessEvidence.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/DraftDecisions.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/QueueAudit.tsx', 'utf8'),
     readFile('apps/web/src/lib/draft-contract.ts', 'utf8'),
     readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
   ]);
@@ -78,6 +80,7 @@ async function verifyBuildContract() {
     claimsComponent,
     readinessComponent,
     draftComponent,
+    queueAuditComponent,
     draftContract
   ].join('\n');
 
@@ -89,18 +92,23 @@ async function verifyBuildContract() {
   assert.doesNotMatch(controlRoomClient, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
   assert.doesNotMatch(controlRoomClient, /sessionStorage|srMaintenanceToken|maintenance-token/i);
   assert.doesNotMatch(draftComponent, /\bfetch\s*\(|XMLHttpRequest|Authorization|Bearer/i);
+  assert.doesNotMatch(queueAuditComponent, /\bfetch\s*\(|XMLHttpRequest|Authorization|Bearer/i);
   assert.doesNotMatch(controlRoomApiClient, /Authorization|Bearer|sessionStorage/i);
   assert.match(controlRoomApiClient, /overviewMetricKeys/);
   assert.match(controlRoomApiClient, /parseHealthSnapshot/);
   assert.match(controlRoomApiClient, /parseResearchRuns/);
   assert.match(controlRoomApiClient, /parseSignals/);
   assert.match(controlRoomApiClient, /parseBriefs/);
+  assert.match(controlRoomApiClient, /parseQueue/);
+  assert.match(controlRoomApiClient, /parseAudit/);
   assert.match(controlRoomApiClient, /parseControlRoomSnapshot/);
   assert.match(controlRoomApiClient, /control-room-foundation\/api\/snapshot/);
   assert.match(radarBriefsComponent, /Segnale, non prova commerciale/);
   assert.match(radarBriefsComponent, /Linkage non ricostruito/);
   assert.match(draftComponent, /Approved draft ≠ published page/);
   assert.match(draftComponent, /Gap del contratto corrente/);
+  assert.match(queueAuditComponent, /Queue status ≠ decisione editoriale/);
+  assert.match(queueAuditComponent, /Audit event ≠ autorizzazione operativa/);
   assert.match(draftContract, /parseDraftDecisionRecords/);
   assert.match(customEntrypoint, /requireCloudflareAccess/);
   assert.match(customEntrypoint, /control-room-foundation\/api\/snapshot/);
@@ -250,7 +258,7 @@ try {
   assert.doesNotMatch(proxyText, new RegExp(maintenanceToken));
   const proxySnapshot = JSON.parse(proxyText);
   assert.equal(proxySnapshot.ok, true);
-  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts']) {
+  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts', 'queue', 'audit']) {
     assert.ok(Array.isArray(proxySnapshot[key]), `Missing ${key} array`);
   }
   for (const key of expectedOverviewKeys) {
@@ -261,6 +269,16 @@ try {
     assert.equal(typeof draft.created_at, 'string');
     assert.ok(Array.isArray(draft.used_claim_ids));
     assert.ok(Array.isArray(draft.excluded_claim_ids));
+  }
+  for (const task of proxySnapshot.queue) {
+    assert.ok(['pending', 'processing', 'failed'].includes(task.status));
+    assert.equal(typeof task.priority, 'number');
+    assert.ok(Object.hasOwn(task, 'payload'));
+  }
+  for (const event of proxySnapshot.audit) {
+    assert.equal(typeof event.domain, 'string');
+    assert.equal(typeof event.action, 'string');
+    assert.ok(Object.hasOwn(event, 'details'));
   }
 
   const proxyMutation = await fetch(`${origin}${snapshotProxyPath}`, {
@@ -286,7 +304,7 @@ try {
   const snapshot = await snapshotResponse.json();
   assert.equal(snapshotResponse.status, 200);
   assert.equal(snapshot.ok, true);
-  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts']) {
+  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts', 'queue', 'audit']) {
     assert.ok(Array.isArray(snapshot[key]), `Missing maintenance ${key} array`);
   }
 
