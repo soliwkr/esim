@@ -20,13 +20,14 @@ function record(chunk) {
 }
 
 async function verifyBuildContract() {
-  const [configRaw, entry, backendRouter, customEntrypoint, accessGuard, controlRoomIsland] = await Promise.all([
+  const [configRaw, entry, backendRouter, customEntrypoint, accessGuard, controlRoomIsland, controlRoomApiClient] = await Promise.all([
     readFile(configPath, 'utf8'),
     readFile(entryPath, 'utf8'),
     readFile('src/index.ts', 'utf8'),
     readFile('apps/web/src/worker.ts', 'utf8'),
     readFile('apps/web/src/lib/cloudflare-access.ts', 'utf8'),
-    readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8')
+    readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8'),
+    readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
   ]);
   const config = JSON.parse(configRaw);
 
@@ -36,7 +37,12 @@ async function verifyBuildContract() {
   assert.match(entry, /export \{ Last30DaysContainer, RecentDemandWorkflow,/);
   assert.doesNotMatch(`${backendRouter}\n${customEntrypoint}`, /['"`]\/?api\/publish(?:\/|['"`])/);
   assert.doesNotMatch(controlRoomIsland, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
+  assert.doesNotMatch(controlRoomIsland, /sessionStorage|srMaintenanceToken|maintenance-token/i);
+  assert.doesNotMatch(controlRoomApiClient, /Authorization|Bearer|sessionStorage/i);
+  assert.match(controlRoomApiClient, /control-room-foundation\/api\/snapshot/);
   assert.match(customEntrypoint, /requireCloudflareAccess/);
+  assert.match(customEntrypoint, /control-room-foundation\/api\/snapshot/);
+  assert.match(customEntrypoint, /MAINTENANCE_TOKEN/);
   assert.match(accessGuard, /cf-access-jwt-assertion/i);
   assert.ok(config.assets?.run_worker_first?.includes('/control-room-foundation'));
 }
@@ -154,6 +160,33 @@ try {
   assert.doesNotMatch(controlRoomPage, new RegExp(maintenanceToken));
   assert.doesNotMatch(controlRoomPage, new RegExp(access.token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
+  const snapshotProxyPath = '/control-room-foundation/api/snapshot';
+  const anonymousProxy = await fetch(`${origin}${snapshotProxyPath}`);
+  assert.equal(anonymousProxy.status, 403);
+
+  const invalidProxy = await fetch(`${origin}${snapshotProxyPath}`, {
+    headers: { 'cf-access-jwt-assertion': `${access.token}invalid` }
+  });
+  assert.equal(invalidProxy.status, 403);
+
+  const proxyResponse = await fetch(`${origin}${snapshotProxyPath}`, { headers: accessHeaders });
+  const proxyText = await proxyResponse.text();
+  assert.equal(proxyResponse.status, 200);
+  assert.match(proxyResponse.headers.get('cache-control') || '', /no-store/);
+  assert.match(proxyResponse.headers.get('x-robots-tag') || '', /noindex/);
+  assert.doesNotMatch(proxyText, new RegExp(maintenanceToken));
+  const proxySnapshot = JSON.parse(proxyText);
+  assert.equal(proxySnapshot.ok, true);
+  assert.ok(Array.isArray(proxySnapshot.claims));
+  assert.ok(Array.isArray(proxySnapshot.drafts));
+
+  const proxyMutation = await fetch(`${origin}${snapshotProxyPath}`, {
+    method: 'POST',
+    headers: accessHeaders
+  });
+  assert.equal(proxyMutation.status, 405);
+  assert.equal(proxyMutation.headers.get('allow'), 'GET');
+
   const healthResponse = await fetch(`${origin}/api/health`);
   const health = await healthResponse.json();
   assert.equal(healthResponse.status, 200);
@@ -176,7 +209,7 @@ try {
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
 
-  console.log('Astro/Cloudflare runtime and Access guard smoke passed.');
+  console.log('Astro/Cloudflare runtime, Access guard and snapshot proxy smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
