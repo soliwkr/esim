@@ -2,7 +2,7 @@
 
 Questa è la roadmap canonica del progetto `soliwkr/esim`. Descrive l'ordine con cui Senza Roaming passa da infrastruttura funzionante a proprietà editoriale, SEO e affiliate governabile.
 
-Ultimo aggiornamento: **18 luglio 2026**.
+Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Come leggere i documenti
 
@@ -123,47 +123,57 @@ L9  Dashboard e integrazione studio
 - [x] Riconoscere la Control Room HTML manuale come transitoria.
 - [x] Separare il client v3 e aggiungere smoke live.
 - [ ] Verificare v3 realmente nel browser.
-- [ ] Limitare la legacy a bugfix critici.
-- [ ] Bloccare nuove feature costruite con HTML/DOM manuale.
+- [x] Limitare la legacy a bugfix critici.
+- [x] Bloccare nuove feature costruite con HTML e DOM manuale.
 
-### M4.1 — Spike Astro e Cloudflare
+### M4.1 — Astro e Cloudflare
 
 - [x] Creare `apps/web` con Astro.
 - [x] Aggiungere adapter Cloudflare e React integration.
 - [x] Dimostrare custom Worker entrypoint.
 - [x] Conservare API, D1, Workflow e Container nello stesso execution plane.
 - [x] Verificare build e smoke runtime dentro `workerd` in CI.
-- [ ] Dimostrare deploy automatico e smoke live.
-- [x] Conservare un solo Worker: lo spike non ha dimostrato la necessità di separarlo.
+- [x] Dimostrare deploy automatico e smoke live.
+- [x] Conservare un solo Worker.
 
-La fondazione Astro è stata unita con la PR #26. L'espansione della Control Room resta incrementale e non viene collegata al traffico pubblico dalle pull request.
+La fondazione Astro è stata unita con la PR #26. Il deploy reale e gli smoke live sono stati verificati durante le fasi Access e sessione server-side.
 
-### M4.2 — Scelta UI comprovata
+### M4.2 — UI foundation
 
 - [x] Installare e versionare shadcn/ui dentro `apps/web`.
 - [x] Implementare overview/health campione in sola lettura.
 - [x] Implementare tabella claim con filtro, selezione e dettaglio in sola lettura.
 - [x] Implementare preview dei metadati draft esposti dallo snapshot.
-- [ ] Confrontare shadcn/ui e Mantine.
-- [ ] Misurare codice custom, accessibilità, mobile, tema, bundle e manutenzione.
-- [x] Verificare hydration, stati applicativi, tastiera e viewport mobile con smoke browser.
-- [ ] Adottare un dashboard block o starter ispezionato per la migrazione completa.
-- [ ] Registrare una decisione comparativa definitiva in ADR.
+- [x] Verificare hydration, stati applicativi, tastiera e viewport mobile.
+- [ ] Confrontare shadcn/ui e Mantine soltanto se ancora utile.
+- [ ] Misurare codice custom, accessibilità, mobile, tema, bundle e manutenzione se viene eseguito il confronto.
+- [ ] Adottare un dashboard block o starter soltanto dopo ispezione del codice.
 
-### M4.3 — Migrazione Control Room
+### M4.3 — Perimetro privato e sessione
 
-- [ ] Accesso privato tramite Cloudflare Access.
-- [ ] API client tipizzato e gestione sessione.
-- [ ] Overview e health.
+- [x] Accesso privato tramite Cloudflare Access.
+- [x] Validazione dell’identità anche nell’origine.
+- [x] Sessione browser mediata dal Worker.
+- [x] Rimozione del secondo login applicativo.
+- [x] Snapshot automatico senza credenziali nel browser.
+- [x] API originale invariata per agenti e consumer legacy.
+
+### M4.4 — Migrazione funzionale Control Room
+
+Ordine:
+
+- [ ] Overview e health — **PR #32 in verifica**.
 - [ ] Radar e brief.
 - [ ] Claim, fonti e scadenze.
 - [ ] Page Readiness ed evidence bundle.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
-- [ ] Test browser end-to-end.
+- [ ] Test browser end-to-end delle operazioni autorizzate.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-**Criterio di uscita:** le operazioni quotidiane non richiedono terminale; la UI non contiene codice artigianale evitabile e non può pubblicare autonomamente.
+La fase overview usa i contratti esistenti, mostra tutte le metriche disponibili, valida i payload a runtime e gestisce health e snapshot come risorse indipendenti. Non aggiunge probe esterni, mutation o pubblicazione.
+
+**Criterio di uscita M4:** le operazioni quotidiane non richiedono terminale; la UI non contiene codice artigianale evitabile e non può pubblicare autonomamente.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
@@ -178,7 +188,7 @@ La fondazione Astro è stata unita con la PR #26. L'espansione della Control Roo
 - [ ] Confermare le pagine fondamentali.
 - [ ] Verificare pagine Tier 1 e destinazioni ad alta intenzione.
 - [ ] Pubblicare soltanto contenuti supportati da evidence set.
-- [ ] Eliminare renderer HTML/CSS/JS manuali.
+- [ ] Eliminare renderer HTML, CSS e JavaScript manuali.
 
 **Criterio di uscita:** nucleo utile, verificato, navigabile e servito dal frontend Astro.
 
@@ -221,7 +231,7 @@ La fondazione Astro è stata unita con la PR #26. L'espansione della Control Roo
 - [ ] Approvazioni provider.
 - [ ] Link come secret.
 - [ ] Disclosure visibile.
-- [ ] `AFFILIATE_MODE=enabled` esplicito.
+- [ ] Attivazione esplicita della modalità affiliate.
 - [ ] Tracking privacy-first.
 - [ ] Attribuzione per pagina, provider e CTA.
 - [ ] Monitoraggio programmi e link.
@@ -245,16 +255,17 @@ La fondazione Astro è stata unita con la PR #26. L'espansione della Control Roo
 
 ## Ordine operativo attuale
 
-1. verificare Control Room v3 nel browser;
-2. eseguire spike Astro + custom Worker entrypoint;
-3. confrontare shadcn/ui e Mantine sulle tre viste campione;
-4. scegliere kit e dashboard starter;
-5. migrare la Control Room;
-6. aggiungere Cloudflare Access;
-7. migrare il sito pubblico ad Astro;
-8. collegare Search Console, consenso e analytics;
-9. attivare OpenSEO e trend intelligence;
-10. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. chiudere overview e health della nuova Control Room;
+2. migrare radar e brief;
+3. migrare claim e fonti;
+4. migrare readiness ed evidence bundle;
+5. migrare draft e preview;
+6. migrare queue e audit;
+7. rimuovere la legacy soltanto dopo parità funzionale;
+8. migrare il sito pubblico ad Astro;
+9. collegare Search Console, consenso e analytics;
+10. attivare OpenSEO e trend intelligence;
+11. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
