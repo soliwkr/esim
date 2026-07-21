@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -9,10 +8,10 @@ import { createAccessTestCredentials } from './access-test-token.mjs';
 const port = Number(process.env.CONTROL_ROOM_SMOKE_PORT || 8789);
 const origin = `http://127.0.0.1:${port}`;
 const configPath = 'apps/web/dist/server/wrangler.json';
-const maintenanceToken = `runtime-smoke-${randomUUID()}`;
-const sessionKey = 'srMaintenanceToken';
+const maintenanceToken = 'runtime-smoke-control-room-token';
 const access = createAccessTestCredentials();
 const accessHeaders = { 'cf-access-jwt-assertion': access.token };
+const snapshotProxyPath = '/control-room-foundation/api/snapshot';
 const logs = [];
 
 const [fixture, healthFixture] = await Promise.all([
@@ -88,23 +87,15 @@ async function stopWrangler() {
   await Promise.race([once(wrangler, 'exit'), new Promise((resolve) => setTimeout(resolve, 5_000))]);
 }
 
-function addSession(context, token = maintenanceToken) {
-  return context.addInitScript(({ key, value }) => {
-    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-      window.sessionStorage.setItem(key, value);
-    }
-  }, { key: sessionKey, value: token });
-}
-
 async function mockReadApis(page, snapshot = fixture, delayMs = 0) {
   await page.route('**/api/health', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify(healthFixture)
   }));
-  await page.route('**/api/maintenance/control-room', async (route) => {
+  await page.route(`**${snapshotProxyPath}`, async (route) => {
     assert.equal(route.request().method(), 'GET');
-    assert.match(route.request().headers().authorization || '', /^Bearer /);
+    assert.equal(route.request().headers().authorization, undefined);
     if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(snapshot) });
   });
@@ -133,6 +124,17 @@ try {
   assert.doesNotMatch(serverHtml, new RegExp(maintenanceToken));
   assert.doesNotMatch(serverHtml, new RegExp(access.token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
+  const anonymousProxy = await fetch(`${origin}${snapshotProxyPath}`);
+  assert.equal(anonymousProxy.status, 403);
+  const realProxyResponse = await fetch(`${origin}${snapshotProxyPath}`, { headers: accessHeaders });
+  const realProxySnapshot = await realProxyResponse.json();
+  assert.equal(realProxyResponse.status, 200);
+  assert.match(realProxyResponse.headers.get('cache-control') || '', /no-store/);
+  assert.match(realProxyResponse.headers.get('x-robots-tag') || '', /noindex/);
+  assert.equal(realProxySnapshot.ok, true);
+  assert.ok(Array.isArray(realProxySnapshot.claims));
+  assert.ok(Array.isArray(realProxySnapshot.drafts));
+
   const anonymousSnapshot = await fetch(`${origin}/api/maintenance/control-room`);
   assert.equal(anonymousSnapshot.status, 401);
   const realSnapshotResponse = await fetch(`${origin}/api/maintenance/control-room`, {
@@ -146,27 +148,31 @@ try {
 
   browser = await chromium.launch({ headless: true });
 
-  const lockedContext = await accessContext(browser);
-  const lockedPage = await lockedContext.newPage();
-  let protectedReads = 0;
-  lockedPage.on('request', (request) => {
-    if (new URL(request.url()).pathname === '/api/maintenance/control-room') protectedReads += 1;
-  });
-  await lockedPage.goto(`${origin}/control-room-foundation`);
-  await lockedPage.getByTestId('locked-state').waitFor();
-  assert.equal(protectedReads, 0);
-  assert.equal(await lockedPage.locator('html').getAttribute('data-control-room-hydrated'), 'true');
-  assert.equal(new URL(lockedPage.url()).search, '');
+  const automaticContext = await accessContext(browser);
+  const automaticPage = await automaticContext.newPage();
+  let proxyReads = 0;
+  let directProtectedReads = 0;
   const consoleMessages = [];
-  lockedPage.on('console', (message) => consoleMessages.push(message.text()));
-  await lockedPage.getByLabel('Token di manutenzione').fill(maintenanceToken);
-  await lockedPage.getByRole('button', { name: 'Apri sessione' }).click();
-  await lockedPage.getByTestId('control-room-app').waitFor();
+  automaticPage.on('console', (message) => consoleMessages.push(message.text()));
+  automaticPage.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === snapshotProxyPath) proxyReads += 1;
+    if (pathname === '/api/maintenance/control-room') directProtectedReads += 1;
+  });
+  await automaticPage.goto(`${origin}/control-room-foundation`);
+  await automaticPage.getByText('Stato del runtime').waitFor();
+  assert.ok(proxyReads >= 1);
+  assert.equal(directProtectedReads, 0);
+  assert.equal(await automaticPage.getByLabel('Token di manutenzione').count(), 0);
+  assert.equal(await automaticPage.getByRole('button', { name: 'Apri sessione' }).count(), 0);
+  assert.equal(await automaticPage.getByRole('button', { name: 'Blocca' }).count(), 0);
+  assert.equal(await automaticPage.evaluate(() => window.sessionStorage.getItem('srMaintenanceToken')), null);
   assert.equal(consoleMessages.join('\n').includes(maintenanceToken), false);
-  await lockedContext.close();
+  assert.equal(await automaticPage.locator('html').getAttribute('data-control-room-hydrated'), 'true');
+  assert.equal(new URL(automaticPage.url()).search, '');
+  await automaticContext.close();
 
   const fixtureContext = await accessContext(browser, { viewport: { width: 1280, height: 900 } });
-  await addSession(fixtureContext);
   const fixturePage = await fixtureContext.newPage();
   await mockReadApis(fixturePage, fixture, 450);
   const mutationRequests = [];
@@ -190,7 +196,6 @@ try {
   await fixtureContext.close();
 
   const emptyContext = await accessContext(browser);
-  await addSession(emptyContext);
   const emptyPage = await emptyContext.newPage();
   await mockReadApis(emptyPage, { ...fixture, claims: [], drafts: [] });
   await emptyPage.goto(`${origin}/control-room-foundation`);
@@ -199,17 +204,15 @@ try {
   await emptyContext.close();
 
   const errorContext = await accessContext(browser);
-  await addSession(errorContext);
   const errorPage = await errorContext.newPage();
   await errorPage.route('**/api/health', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(healthFixture) }));
-  await errorPage.route('**/api/maintenance/control-room', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'fixture_failure' }) }));
+  await errorPage.route(`**${snapshotProxyPath}`, (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'fixture_failure' }) }));
   await errorPage.goto(`${origin}/control-room-foundation`);
   await errorPage.getByTestId('error-state').waitFor();
   await errorPage.getByRole('button', { name: 'Riprova' }).waitFor();
   await errorContext.close();
 
   const mobileContext = await accessContext(browser, { viewport: { width: 390, height: 844 } });
-  await addSession(mobileContext);
   const mobilePage = await mobileContext.newPage();
   await mockReadApis(mobilePage);
   await mobilePage.goto(`${origin}/control-room-foundation`);
@@ -220,7 +223,7 @@ try {
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room Access/browser/runtime smoke passed.');
+  console.log('Control Room Access, server-side session and browser smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
