@@ -151,3 +151,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** la fase richiede una dashboard accessibile e responsive senza estendere la UI legacy o ricostruire primitive generiche. Il sorgente locale di shadcn mantiene visibili dipendenze e comportamento, mentre Astro limita JavaScript alla sola superficie applicativa.
 
 **Conseguenza:** questa decisione autorizza shadcn/ui per la fondazione corrente, ma non dichiara svolto un confronto con Mantine. Mutation, flussi operativi, Cloudflare Access e migrazione completa restano fasi successive. Nessun componente della fondazione può accedere direttamente a D1 o introdurre capacità di pubblicazione.
+
+## ADR-016 — Cloudflare Access con validazione JWT nell'origine
+
+**Stato:** accettata; attivazione subordinata alla configurazione esterna e agli smoke live
+
+**Decisione:** proteggere `/control-room-foundation*` con un'applicazione Cloudflare Access deny-by-default e validare nel custom Worker il JWT `Cf-Access-Jwt-Assertion` prima di eseguire Astro.
+
+**Razionale:** una policy Access configurata soltanto al bordo non protegge da errori di routing o bypass dell'origine. La verifica di firma RS256, issuer, audience e validità temporale rende la route fail-closed anche quando Access è assente o configurato in modo errato.
+
+**Conseguenza:** `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD` sono configurazione runtime non versionata; la route restituisce `503` se mancano e `403` per JWT assente o non valido. Il deploy richiede inoltre un service token dedicato per lo smoke live. La sessione applicativa e il `MAINTENANCE_TOKEN` restano un secondo livello; backend editoriale, D1 e publication gate non cambiano.

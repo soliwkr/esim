@@ -28,6 +28,9 @@ export interface Env {
   GOOGLE_VERTEX_PROJECT_NUMBER?: string;
   GOOGLE_VERTEX_LOCATION?: string;
   GOOGLE_VERTEX_MODEL?: string;
+  CF_ACCESS_TEAM_DOMAIN?: string;
+  CF_ACCESS_AUD?: string;
+  CF_ACCESS_TEST_JWKS?: string;
 }
 
 export type ContentBlock =

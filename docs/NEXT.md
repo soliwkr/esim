@@ -6,9 +6,51 @@ Ultimo aggiornamento: **18 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la verifica della Control Room v3
+### 1. Configurare Cloudflare Access prima del merge
 
-La Control Room legacy resta una soluzione transitoria.
+La branch `feat/control-room-access-guard` rende `/control-room-foundation` fail-closed e valida nel Worker il JWT Access prima di delegare ad Astro.
+
+Prima del merge completare la checklist in `docs/CONTROL-ROOM-ACCESS.md`:
+
+- creare l'app self-hosted sul path `/control-room-foundation*`;
+- aggiungere una policy utente Allow limitata all'identità operativa;
+- creare un service token dedicato alla CI e la relativa policy Service Auth;
+- impostare i Worker secrets `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD`;
+- impostare i GitHub secrets `CF_ACCESS_CLIENT_ID` e `CF_ACCESS_CLIENT_SECRET`;
+- verificare che nessun valore sensibile compaia nel repository o nei log.
+
+Non mergiare la PR finché questi prerequisiti non sono verificati.
+
+### 2. Revisionare il guard e gli smoke
+
+Verificare nella PR:
+
+- richiesta anonima a `/control-room-foundation` → `403` nel runtime locale;
+- JWT con firma, issuer o audience errati → `403`;
+- configurazione Access mancante → `503` fail-closed;
+- JWT valido → shell Astro `200` con una sola React island;
+- `/api/health` resta pubblico e operativo;
+- `GET /api/maintenance/control-room` resta protetto dal maintenance token;
+- nessuna mutation o route di pubblicazione introdotta;
+- smoke `workerd` e Chromium verdi.
+
+### 3. Verificare Access e Control Room dopo il deploy
+
+Il workflow di produzione deve dimostrare:
+
+```text
+richiesta anonima
+→ redirect/login Access oppure 401/403
+
+service token CI
+→ Access emette JWT
+→ Worker valida firma + issuer + audience
+→ Astro serve la shell noindex/no-store
+```
+
+La Control Room legacy `/control-room` resta disponibile come fallback transitorio e deve continuare a superare il proprio smoke live.
+
+### 4. Chiudere la verifica della Control Room v3
 
 Verificare in produzione:
 
@@ -20,39 +62,9 @@ Verificare in produzione:
 → snapshot reale caricato
 ```
 
-Il deploy automatico deve fallire quando il client live non è sintatticamente valido.
-
 Non aggiungere nuove funzioni importanti alla dashboard artigianale.
 
-### 2. Revisionare la Control Room UI foundation
-
-La branch `feat/control-room-ui-foundation` contiene shadcn/ui e la nuova route read-only senza spostare o modificare il backend esistente.
-
-Prima del merge verificare:
-
-- CI runtime e browser verde dentro `workerd` e Chromium;
-- route `/control-room-foundation`, snapshot protetto e `/api/health` nello stesso Worker;
-- export di Workflow e Container nel bundle generato;
-- sessione bloccata senza token e assenza di mutation o route di pubblicazione;
-- loading, error, empty, tastiera e mobile coperti;
-- nessun deploy pubblico dalla PR.
-
-### 3. Valutare separatamente l'eventuale confronto UI
-
-Candidato principale:
-
-```text
-shadcn/ui
-+ componenti e dashboard block esistenti
-+ Tailwind
-```
-
-Confronto:
-
-```text
-Mantine
-+ React island completa
-```
+### 5. Valutare separatamente l'eventuale confronto UI
 
 La UI foundation shadcn è implementata. Un confronto Mantine, se ancora utile, deve essere una fase separata e non va retrodatato come svolto.
 
@@ -64,19 +76,9 @@ Le tre viste disponibili come base misurabile sono:
 
 Misurare codice custom, velocità, accessibilità, mobile, tema, bundle e manutenzione.
 
-### 4. Registrare la decisione UI
+### 6. Migrare la Control Room
 
-Dopo lo spike:
-
-- aggiornare `docs/DECISIONS.md`;
-- scegliere il kit e lo starter/dashboard block;
-- fissare versioni e dipendenze;
-- definire token visivi minimi;
-- evitare un design system proprietario costruito da zero.
-
-### 5. Migrare la Control Room
-
-Ordine operativo:
+Ordine operativo successivo all'attivazione di Access:
 
 ```text
 overview
@@ -88,12 +90,6 @@ overview
 ```
 
 La UI legacy viene rimossa soltanto dopo parità funzionale, test browser e verifica end-to-end.
-
-### 6. Proteggere la nuova Control Room
-
-Aggiungere Cloudflare Access prima di considerare completata la dashboard operativa.
-
-La sessione applicativa resta un secondo livello. Nessun token deve comparire in URL, HTML generato o repository.
 
 ### 7. Migrare il sito pubblico ad Astro
 
@@ -110,13 +106,15 @@ La pagina `esim-cina-senza-vpn` resta `review` e pubblicamente invisibile.
 
 ## Freeze immediato
 
-Fino alla conclusione dello spike:
+Fino alla conclusione della fase Access:
 
 - niente nuove pagine tramite template string nel Worker;
 - niente nuovi componenti generici scritti a mano;
 - niente ampliamenti sostanziali della Control Room legacy;
 - backend, claim, evidence bundle e gate restano invariati;
-- nessuna pubblicazione automatica.
+- nessuna pubblicazione automatica;
+- nessun bypass pubblico della policy Access;
+- nessun secret in URL, HTML, log o repository.
 
 ## Completato
 
@@ -134,23 +132,22 @@ Fino alla conclusione dello spike:
 - draft `2` approvato editorialmente;
 - pagina ancora in `review` e pubblicamente `404 noindex`;
 - deploy automatico per modifiche operative su `main`;
-- decisione di migrare il frontend verso Astro + React island;
-- piano frontend documentato.
 - `apps/web` con Astro, React e adapter Cloudflare;
 - custom Worker entrypoint unico con fallback al backend esistente;
-- smoke runtime per pagina Astro, health, Workflow, Container e assenza di route di pubblicazione.
+- shadcn/ui installato e versionato;
+- overview, claim e draft preview read-only;
+- smoke runtime e browser della UI foundation.
 
 ## Definition of Done del prossimo checkpoint
 
+- [ ] applicazione Cloudflare Access attiva sul path corretto;
+- [ ] policy utente e service token verificati;
+- [ ] Worker secrets e GitHub secrets configurati;
+- [ ] validazione JWT nell'origine coperta da CI;
+- [ ] smoke live anonimo e autenticato verdi;
 - [ ] Control Room v3 verificata realmente nel browser;
-- [x] `apps/web` Astro creato;
-- [x] integrazione con Worker, binding, Workflow e Container dimostrata in CI;
-- [x] tre viste campione read-only implementate;
-- [ ] shadcn/ui e Mantine confrontati con criteri misurabili;
-- [x] shadcn/ui installato e versionato per la fondazione;
-- [x] nessun nuovo HTML/JS applicativo artigianale aggiunto;
 - [ ] nessuna regressione dei gate editoriali e di pubblicazione;
-- [ ] piano di migrazione della Control Room pronto per l'esecuzione.
+- [ ] piano di migrazione operativa della Control Room pronto per l'esecuzione.
 
 ## Dopo il frontend
 

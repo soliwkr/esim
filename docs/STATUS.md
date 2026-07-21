@@ -23,8 +23,9 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
 | Control Room legacy | Transitoria | v3 con client separato e smoke live; verifica browser da chiudere |
 | Frontend foundation | Unita con PR #26 | `apps/web`, React island e custom entrypoint nello stesso bundle Worker |
-| Control Room UI foundation | Implementata su feature branch | shadcn/ui, una island React e snapshot protetto in sola lettura |
-| Frontend target | Incrementale | confronto Mantine e migrazione operativa completa non eseguiti |
+| Control Room UI foundation | Unita con PR #27 | shadcn/ui, una island React e snapshot protetto in sola lettura |
+| Cloudflare Access guard | Implementato su feature branch | JWT validato nell'origine; configurazione Access e secret ancora da completare |
+| Frontend target | Incrementale | migrazione operativa completa non eseguita |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | link ufficiali non remunerati |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -172,18 +173,17 @@ La PR #26 ha aggiunto la fondazione Astro e mantiene un solo execution plane:
 ```text
 apps/web/src/worker.ts
 ├── /astro-foundation → handler Astro
+├── /control-room-foundation → Access guard → handler Astro
 ├── API, pagine legacy e redirect → router backend esistente
 ├── export RecentDemandWorkflow
 └── export Last30DaysContainer
 ```
 
-Il bundle generato conserva D1, secret, AI Gateway/Vertex e i binding esistenti. Lo smoke CI avvia il bundle in `workerd`, richiede realmente la pagina Astro e `/api/health`, verifica Workflow e Container e conferma che le route di pubblicazione candidate restituiscano `404`.
-
-La pagina di fondazione è `noindex,nofollow`. La PR della successiva UI foundation non esegue deploy pubblico e la Control Room completa non fa parte di questa fase.
+Il bundle generato conserva D1, secret, AI Gateway/Vertex e i binding esistenti. Gli smoke CI avviano il bundle in `workerd`, verificano le route Astro e `/api/health`, controllano Workflow e Container e confermano che le route di pubblicazione candidate restituiscano `404`.
 
 ## Control Room UI foundation
 
-La branch `feat/control-room-ui-foundation` aggiunge una sola nuova route Astro, `/control-room-foundation`, con header e meta `noindex,nofollow`, `no-store` e una CSP limitata allo stesso origin.
+La PR #27 ha aggiunto `/control-room-foundation` con header e meta `noindex,nofollow`, `no-store` e una CSP limitata allo stesso origin.
 
 La pagina monta una sola island React. I componenti shadcn/ui `Button`, `Card`, `Badge`, `Input`, `Select`, `Table`, `Alert`, `Skeleton`, `Sheet` e `Sonner` sono installati e versionati sotto `apps/web/src/components/ui`.
 
@@ -191,29 +191,45 @@ La sessione riusa `srMaintenanceToken` in `sessionStorage`. Il token viene letto
 
 La dashboard legge esclusivamente `/api/health` e `GET /api/maintenance/control-room`. Mostra health, metriche, claim filtrabili con dettaglio laterale e metadati dell'ultimo draft. Non contiene mutation, accesso browser a D1, route o pulsanti di pubblicazione. Il backend e i gate editoriali restano invariati.
 
-Gli smoke distinguono lo snapshot reale del runtime dalle fixture dichiarate in `tests/fixtures`: il runtime reale verifica autenticazione e forma del contratto; le fixture coprono deterministicamente hydration, loading, error, empty, tastiera, mobile e pannelli read-only.
+## Cloudflare Access guard
+
+La branch `feat/control-room-access-guard` aggiunge un controllo fail-closed nel custom Worker entrypoint prima del rendering Astro.
+
+Il guard:
+
+- richiede `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD` come configurazione runtime non versionata;
+- legge il JWT soltanto dall'header `Cf-Access-Jwt-Assertion`;
+- accetta soltanto firme RS256;
+- verifica chiave pubblica, issuer, audience, scadenza, `nbf` e `iat`;
+- restituisce `503` se la configurazione manca;
+- restituisce `403` se il JWT manca o non è valido;
+- non modifica le API di manutenzione né la sessione applicativa.
+
+Gli smoke locali usano una coppia RSA effimera e non versionano chiavi. Il workflow di produzione viene predisposto per verificare sia il blocco anonimo sia l'accesso tramite service token. La protezione non è dichiarata operativa finché l'app Access, le policy e i secret descritti in `docs/CONTROL-ROOM-ACCESS.md` non sono configurati e verificati dal live smoke.
 
 ## Rischi aperti
 
 1. La Control Room v3 deve essere verificata realmente nel browser.
-2. La UI foundation deve essere revisionata in una PR draft senza preview o deploy pubblico.
-3. shadcn/ui è installato per questa fondazione; un eventuale confronto Mantine resta non eseguito.
-4. Cloudflare Access deve diventare il perimetro esterno della dashboard.
-5. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
-6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-7. Serve un health aggregato che includa runtime di Container, Workflow e AI Gateway.
-8. Search Console, CMP e analytics non sono ancora disponibili.
-9. Il repository pubblico non deve contenere credenziali o dati riservati.
+2. L'app Cloudflare Access e le policy devono essere configurate prima del merge del guard.
+3. Worker secrets e GitHub service-token secrets devono essere presenti senza comparire nel repository.
+4. Il primo deploy del guard deve superare smoke anonimo e autenticato; un fallimento deve lasciare la route fail-closed.
+5. shadcn/ui è installato per questa fondazione; un eventuale confronto Mantine resta non eseguito.
+6. Le verifiche attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
+7. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+8. Serve un health aggregato che includa runtime di Container, Workflow e AI Gateway.
+9. Search Console, CMP e analytics non sono ancora disponibili.
+10. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
+- l'app Cloudflare Access protegge `/control-room-foundation*`;
+- il Worker valida realmente il JWT Access;
+- richiesta anonima e JWT invalido non raggiungono Astro;
+- service token CI e identità operativa raggiungono la shell;
+- la sessione applicativa continua a proteggere lo snapshot;
+- smoke runtime, Chromium e live sono verdi;
 - Control Room v3 è verificata nel browser;
-- la PR draft della UI foundation è revisionata;
-- la singola React island e il custom Worker entrypoint funzionano con i binding esistenti;
-- overview, claim e draft preview read-only sono coperti da smoke browser e runtime;
-- sessione bloccata, noindex e assenza di mutation sono verificati;
-- il confronto Mantine resta separato e non blocca la revisione di questa fondazione;
-- nessuna nuova UI artigianale viene aggiunta;
+- nessun nuovo HTML/JS artigianale viene aggiunto;
 - nessun gate editoriale o di pubblicazione regredisce.

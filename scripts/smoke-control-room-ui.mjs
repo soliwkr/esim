@@ -4,12 +4,15 @@ import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { chromium } from '@playwright/test';
+import { createAccessTestCredentials } from './access-test-token.mjs';
 
 const port = Number(process.env.CONTROL_ROOM_SMOKE_PORT || 8789);
 const origin = `http://127.0.0.1:${port}`;
 const configPath = 'apps/web/dist/server/wrangler.json';
 const maintenanceToken = `runtime-smoke-${randomUUID()}`;
 const sessionKey = 'srMaintenanceToken';
+const access = createAccessTestCredentials();
+const accessHeaders = { 'cf-access-jwt-assertion': access.token };
 const logs = [];
 
 const [fixture, healthFixture] = await Promise.all([
@@ -40,7 +43,17 @@ async function waitForRuntime(child, timeoutMs = 180_000) {
 
 const wrangler = spawn(
   process.execPath,
-  ['node_modules/wrangler/bin/wrangler.js', 'dev', '--config', configPath, '--persist-to', '.wrangler/state', '--port', String(port), '--ip', '127.0.0.1'],
+  [
+    'node_modules/wrangler/bin/wrangler.js',
+    'dev',
+    '--config', configPath,
+    '--persist-to', '.wrangler/state',
+    '--port', String(port),
+    '--ip', '127.0.0.1',
+    '--var', `CF_ACCESS_TEAM_DOMAIN:${access.issuer}`,
+    '--var', `CF_ACCESS_AUD:${access.audience}`,
+    '--var', `CF_ACCESS_TEST_JWKS:${access.jwks}`
+  ],
   {
     env: {
       ...process.env,
@@ -97,12 +110,19 @@ async function mockReadApis(page, snapshot = fixture, delayMs = 0) {
   });
 }
 
+function accessContext(browser, options = {}) {
+  return browser.newContext({ ...options, extraHTTPHeaders: { ...accessHeaders, ...(options.extraHTTPHeaders || {}) } });
+}
+
 let browser;
 
 try {
   await waitForRuntime(wrangler);
 
-  const pageResponse = await fetch(`${origin}/control-room-foundation`);
+  const anonymousPageResponse = await fetch(`${origin}/control-room-foundation`);
+  assert.equal(anonymousPageResponse.status, 403);
+
+  const pageResponse = await fetch(`${origin}/control-room-foundation`, { headers: accessHeaders });
   const serverHtml = await pageResponse.text();
   assert.equal(pageResponse.status, 200);
   assert.match(pageResponse.headers.get('x-robots-tag') || '', /noindex/);
@@ -111,6 +131,7 @@ try {
   assert.equal((serverHtml.match(/<astro-island/g) || []).length, 1);
   assert.match(serverHtml, /noindex,nofollow,noarchive/);
   assert.doesNotMatch(serverHtml, new RegExp(maintenanceToken));
+  assert.doesNotMatch(serverHtml, new RegExp(access.token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
   const anonymousSnapshot = await fetch(`${origin}/api/maintenance/control-room`);
   assert.equal(anonymousSnapshot.status, 401);
@@ -125,7 +146,7 @@ try {
 
   browser = await chromium.launch({ headless: true });
 
-  const lockedContext = await browser.newContext();
+  const lockedContext = await accessContext(browser);
   const lockedPage = await lockedContext.newPage();
   let protectedReads = 0;
   lockedPage.on('request', (request) => {
@@ -144,7 +165,7 @@ try {
   assert.equal(consoleMessages.join('\n').includes(maintenanceToken), false);
   await lockedContext.close();
 
-  const fixtureContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const fixtureContext = await accessContext(browser, { viewport: { width: 1280, height: 900 } });
   await addSession(fixtureContext);
   const fixturePage = await fixtureContext.newPage();
   await mockReadApis(fixturePage, fixture, 450);
@@ -168,7 +189,7 @@ try {
   assert.deepEqual(mutationRequests, []);
   await fixtureContext.close();
 
-  const emptyContext = await browser.newContext();
+  const emptyContext = await accessContext(browser);
   await addSession(emptyContext);
   const emptyPage = await emptyContext.newPage();
   await mockReadApis(emptyPage, { ...fixture, claims: [], drafts: [] });
@@ -177,7 +198,7 @@ try {
   await emptyPage.getByTestId('empty-drafts').waitFor();
   await emptyContext.close();
 
-  const errorContext = await browser.newContext();
+  const errorContext = await accessContext(browser);
   await addSession(errorContext);
   const errorPage = await errorContext.newPage();
   await errorPage.route('**/api/health', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(healthFixture) }));
@@ -187,7 +208,7 @@ try {
   await errorPage.getByRole('button', { name: 'Riprova' }).waitFor();
   await errorContext.close();
 
-  const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const mobileContext = await accessContext(browser, { viewport: { width: 390, height: 844 } });
   await addSession(mobileContext);
   const mobilePage = await mobileContext.newPage();
   await mockReadApis(mobilePage);
@@ -199,7 +220,7 @@ try {
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room browser/runtime smoke passed.');
+  console.log('Control Room Access/browser/runtime smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));

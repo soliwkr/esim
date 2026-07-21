@@ -101,6 +101,26 @@ jobs:
       - name: Generate production config
         run: node scripts/build-production-config.mjs
 
+      - name: Verify Control Room Access prerequisites
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$CF_ACCESS_CLIENT_ID" || { echo "Missing GitHub secret CF_ACCESS_CLIENT_ID"; exit 1; }
+          test -n "$CF_ACCESS_CLIENT_SECRET" || { echo "Missing GitHub secret CF_ACCESS_CLIENT_SECRET"; exit 1; }
+          npx wrangler secret list --config wrangler.production.jsonc --json > /tmp/worker-secrets.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const payload = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json', 'utf8'));
+          const rows = Array.isArray(payload) ? payload : payload.result || [];
+          const names = new Set(rows.map((item) => item.name));
+          const required = ['CF_ACCESS_TEAM_DOMAIN', 'CF_ACCESS_AUD'];
+          const missing = required.filter((name) => !names.has(name));
+          if (missing.length) throw new Error(`Missing Worker secrets: ${missing.join(', ')}`);
+          NODE
+
       - name: Apply D1 migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -156,6 +176,49 @@ jobs:
           head -c 1000 /tmp/control-room.js 2>/dev/null || true
           exit 1
 
+      - name: Verify live Access-protected Control Room foundation
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          page_url="$SENZA_ROAMING_SITE_URL/control-room-foundation"
+
+          anonymous_status="$(curl --silent --show-error --max-time 20 --output /tmp/control-room-anonymous.html --write-out '%{http_code}' "$page_url")"
+          case "$anonymous_status" in
+            302|401|403) ;;
+            *)
+              echo "Control Room foundation is not protected; anonymous status: $anonymous_status"
+              head -c 1000 /tmp/control-room-anonymous.html 2>/dev/null || true
+              exit 1
+              ;;
+          esac
+
+          for attempt in $(seq 1 36); do
+            echo "Access-authenticated smoke attempt $attempt/36"
+            if curl --fail --silent --show-error --max-time 20 \
+              -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+              -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+              -D /tmp/control-room-foundation.headers \
+              "$page_url" -o /tmp/control-room-foundation.html \
+              && grep -qi '^cache-control:.*no-store' /tmp/control-room-foundation.headers \
+              && grep -qi '^x-robots-tag:.*noindex' /tmp/control-room-foundation.headers \
+              && grep -q 'Control Room foundation' /tmp/control-room-foundation.html \
+              && grep -q '<astro-island' /tmp/control-room-foundation.html; then
+              echo "Cloudflare Access and origin JWT validation are active."
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Access-protected Control Room foundation did not become healthy."
+          echo "--- headers ---"
+          cat /tmp/control-room-foundation.headers 2>/dev/null || true
+          echo "--- page head ---"
+          head -c 1000 /tmp/control-room-foundation.html 2>/dev/null || true
+          exit 1
+
       - name: Deployment summary
         run: |
           {
@@ -169,7 +232,8 @@ jobs:
             echo "- Workflow: senza-roaming-recent-demand"
             echo "- Schedule: Monday and Thursday at 05:00 UTC"
             echo "- Canonical URL: $SENZA_ROAMING_SITE_URL"
-            echo "- Control Room: v3 live-smoke verified"
+            echo "- Legacy Control Room: v3 live-smoke verified"
+            echo "- Astro Control Room: Cloudflare Access and origin JWT verified"
             echo "- AI Gateway: senza-roaming-ai"
             echo "- Vertex project: soliwkr"
             echo "- Publication automation: disabled"
