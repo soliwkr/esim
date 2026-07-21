@@ -114,6 +114,12 @@ export interface ControlRoomClaim {
   value: unknown
 }
 
+export interface ControlRoomEvidenceWarning {
+  code: string
+  message?: string
+  [key: string]: unknown
+}
+
 export interface ControlRoomEvidenceBundle {
   id: number
   brief_id: number
@@ -134,7 +140,7 @@ export interface ControlRoomEvidenceBundle {
   source_count: number
   subject_count: number
   first_party_test_count: number
-  warnings: string[]
+  warnings: ControlRoomEvidenceWarning[]
   reviewed_by: string | null
   reviewed_at: string | null
   created_at: string
@@ -234,6 +240,12 @@ function requireNonNegativeInteger(object: JsonObject, key: string): number {
   return value
 }
 
+function requirePositiveInteger(object: JsonObject, key: string): number {
+  const value = requireNumber(object, key)
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
 function requireBinaryNumber(object: JsonObject, key: string): 0 | 1 {
   const value = requireNumber(object, key)
   if (value !== 0 && value !== 1) throw new Error(`Campo ${key} non valido`)
@@ -264,6 +276,28 @@ function requireNullableTimestamp(object: JsonObject, key: string): string | nul
   const value = requireNullableString(object, key)
   if (value !== null && Number.isNaN(new Date(value).getTime())) throw new Error(`Campo ${key} non valido`)
   return value
+}
+
+function requireEvidenceWarnings(object: JsonObject, key: string): ControlRoomEvidenceWarning[] {
+  const value = object[key]
+  if (!Array.isArray(value)) throw new Error(`Campo ${key} non valido`)
+
+  return value.map((warning) => {
+    if (!isObject(warning)) throw new Error(`Campo ${key} non valido`)
+    const code = requireString(warning, "code")
+    if (code.trim().length === 0) throw new Error(`Campo ${key} non valido`)
+
+    const message = warning.message
+    if (message !== undefined && typeof message !== "string") {
+      throw new Error(`Campo ${key} non valido`)
+    }
+
+    return {
+      ...warning,
+      code,
+      ...(message === undefined ? {} : { message }),
+    }
+  })
 }
 
 function parseHealthSnapshot(value: unknown): HealthSnapshot {
@@ -431,10 +465,10 @@ function parseEvidenceBundles(value: unknown): ControlRoomEvidenceBundle[] {
   return value.map((record) => {
     if (!isObject(record)) throw new Error("Evidence bundle non valido")
     return {
-      id: requireNumber(record, "id"),
-      brief_id: requireNumber(record, "brief_id"),
+      id: requirePositiveInteger(record, "id"),
+      brief_id: requirePositiveInteger(record, "brief_id"),
       page_slug: requireString(record, "page_slug"),
-      version: requireNonNegativeInteger(record, "version"),
+      version: requirePositiveInteger(record, "version"),
       readiness_score: requireNumber(record, "readiness_score"),
       review_draft_eligible: requireBinaryNumber(record, "review_draft_eligible"),
       publication_eligible: requireBinaryNumber(record, "publication_eligible"),
@@ -450,7 +484,7 @@ function parseEvidenceBundles(value: unknown): ControlRoomEvidenceBundle[] {
       source_count: requireNonNegativeInteger(record, "source_count"),
       subject_count: requireNonNegativeInteger(record, "subject_count"),
       first_party_test_count: requireNonNegativeInteger(record, "first_party_test_count"),
-      warnings: requireStringArray(record, "warnings"),
+      warnings: requireEvidenceWarnings(record, "warnings"),
       reviewed_by: requireNullableString(record, "reviewed_by"),
       reviewed_at: requireNullableTimestamp(record, "reviewed_at"),
       created_at: requireTimestamp(record, "created_at"),
