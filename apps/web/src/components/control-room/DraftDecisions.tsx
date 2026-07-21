@@ -172,7 +172,7 @@ function DraftDetails({ draft, context }: { draft: DraftDecisionRecord; context:
           </div>
           <div>
             <p className="text-muted-foreground">Publication eligibility</p>
-            <div className="mt-1"><GateValue enabled={context.bundle?.ready_for_publication === 1} /></div>
+            <div className="mt-1"><GateValue enabled={context.bundle?.publication_eligible === 1} /></div>
           </div>
         </div>
 
