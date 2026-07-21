@@ -6,104 +6,103 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #37 — Claim, fonti e scadenze
+### 1. Avviare Page Readiness ed evidence bundle
 
 Branch:
 
 ```text
-feat/control-room-claims-sources
+feat/control-room-readiness-evidence
 ```
 
-Obiettivo esclusivo: sostituire la preview iniziale dei claim con una vista read-only completa sui campi già presenti nello snapshot protetto.
+Obiettivo esclusivo: migrare nella nuova Control Room la lettura degli evidence bundle già presenti nello snapshot protetto.
 
 La fase non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
 
-### 2. Verificare il contratto claim
+### 2. Mappare e validare il contratto bundle
+
+Usare soltanto `evidenceBundles` già restituito da `GET /control-room-foundation/api/snapshot`.
 
 Ogni record deve validare esplicitamente:
 
-- ID e brief collegato;
-- soggetto, campo, testo e domanda di verifica;
-- stato canonico;
-- evidence e note;
-- created at e updated at;
-- source kind, label, URL e trust level;
-- verification status, confidence, checked at e valid until;
-- task status;
-- array `required_source_kinds`;
-- valore persistito senza reinterpretazione.
+- ID, brief, page slug e versione;
+- readiness score e review status;
+- `review_draft_eligible` e `publication_eligible`;
+- `ready_for_review_draft` e `ready_for_publication` senza fonderli;
+- conteggi verified, insufficient, contradicted, pending ed expired;
+- conflitti, fonti, soggetti e first-party tests;
+- warning;
+- revisore, reviewed at, created at e updated at.
 
-Un campo non conforme deve rendere il payload invalido. Il client non ricostruisce dati mancanti.
+Un campo non conforme deve rendere invalido il payload. Il client non ricalcola score, gate o conteggi.
 
-### 3. Verificare la vista read-only
+### 3. Costruire la vista read-only
 
 La vista deve offrire:
 
-- filtri per stato, brief, fonte, verifica e scadenza;
-- tabella con stato canonico e stato temporale distinti;
+- riepilogo readiness per bundle;
+- filtri per review status, draft eligibility, publication eligibility e presenza warning;
+- tabella con score e gate separati;
 - dettaglio accessibile da tastiera;
-- fonte separata dall'evidenza;
-- URL esterno soltanto per protocolli HTTP/HTTPS;
+- conteggi claim, conflitti e fonti;
+- warning mostrati come persistiti;
 - empty state reale e empty state dei filtri;
 - layout utilizzabile su desktop e mobile.
 
-Lo stato temporale deriva soltanto da `valid_until`:
+La UI deve rendere evidente che:
 
 ```text
-null                    → senza scadenza
-data futura             → valida
-data passata o presente → scaduta
+review draft eligible ≠ publication eligible
 ```
 
-Non riscrive lo stato canonico e non rende utilizzabile un claim insufficiente o scaduto.
+Un bundle idoneo alla generazione di un draft non è automaticamente pubblicabile.
 
 ### 4. Definition of Done
 
 Prima del merge devono passare:
 
 - TypeScript strict e build Astro;
-- migrazioni locali, incluso il quality gate `0018`;
-- smoke del quality gate invariato;
+- migrazioni locali e smoke del quality gate invariati;
 - build e smoke del Container invariati;
 - bundle reale dentro `workerd`;
 - smoke Chromium generale della Control Room;
-- smoke Chromium dedicato a claim, fonti e scadenze;
-- filtri, Sheet, tastiera, mobile, contratto invalido ed empty state;
+- smoke Chromium dedicato a readiness ed evidence bundle;
+- filtri, dettaglio, tastiera, mobile, contratto invalido ed empty state;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna credenziale o accesso diretto a D1;
-- nessuna route o azione di pubblicazione;
-- nessuna regressione su overview, radar, segnali, brief e draft preview.
+- nessuna route o azione di approvazione o pubblicazione;
+- nessuna regressione su overview, radar, segnali, brief, claim e draft preview.
 
 ### 5. Verificare il deploy reale
 
 Dopo il merge:
 
 - aprire `https://senzaroaming.it/control-room-foundation`;
-- verificare il titolo “Claim, fonti e scadenze”;
-- provare almeno un filtro di stato e uno di scadenza;
-- aprire il dettaglio di un claim reale;
-- verificare fonte, verifica, validità e task quando presenti;
+- verificare la sezione Page Readiness;
+- aprire il bundle reale del primo ciclo editoriale;
+- verificare score 77, draft eligibility positiva e publication eligibility negativa;
+- verificare conteggi, conflitto e warning;
 - controllare desktop e mobile;
-- confermare che non esistano azioni di modifica o pubblicazione.
+- confermare che non esistano azioni di approvazione, generazione o pubblicazione.
 
 ### 6. Fase successiva
 
 Dopo la verifica reale:
 
 ```text
-feat/control-room-readiness-evidence
+feat/control-room-draft-decisions
 ```
 
-Scope previsto: Page Readiness ed evidence bundle in sola lettura, senza approvazioni o generazione draft nella stessa fase.
+Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation richiederanno uno scope separato e conferme esplicite; non vengono introdotte automaticamente nella fase readiness.
 
 ## Fuori scope immediato
 
-- decomposizione o modifica dei claim;
-- verifica, dismiss o refresh manuale;
-- creazione o modifica delle fonti;
+- valutazione o ricalcolo della readiness;
+- approvazione dell'evidence bundle;
+- generazione draft;
+- modifica claim o fonti;
 - mutation della maintenance queue;
 - nuovi endpoint o query D1;
-- readiness actions, approvazione draft o pubblicazione;
+- pubblicazione;
 - modifiche alla Control Room legacy;
 - framework esterni di data quality.
 
@@ -133,11 +132,21 @@ Scope previsto: Page Readiness ed evidence bundle in sola lettura, senza approva
 ### Quality gate score zero
 
 - PR #36 mergiata nel commit `2927419`;
-- CI, migrazione e deploy completati;
-- segnale reale con score zero ora filtrato;
+- segnale reale con score zero filtrato;
 - flag `zero_relevance` visibile;
 - conteggi riallineati;
 - nessuna modifica automatica a brief o claim.
+
+### Claim, fonti e scadenze
+
+- PR #37 mergiata nel commit `6a71174`;
+- CI, deploy e verifica browser completati;
+- cinque filtri e dettaglio read-only verificati;
+- stato canonico e stato temporale separati;
+- fonte ed evidenza distinte;
+- payload non validi rifiutati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna mutation o pubblicazione.
 
 ## Freeze immediato
 
@@ -146,4 +155,4 @@ Scope previsto: Page Readiness ed evidence bundle in sola lettura, senza approva
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation nella PR read-only #37.
+- nessuna mutation nella fase readiness read-only.
