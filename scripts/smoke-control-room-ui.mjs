@@ -140,7 +140,7 @@ try {
   assert.match(realProxyResponse.headers.get('cache-control') || '', /no-store/);
   assert.match(realProxyResponse.headers.get('x-robots-tag') || '', /noindex/);
   assert.equal(realProxySnapshot.ok, true);
-  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts']) {
+  for (const key of ['researchRuns', 'signals', 'briefs', 'claims', 'evidenceBundles', 'drafts', 'queue', 'audit']) {
     assert.ok(Array.isArray(realProxySnapshot[key]), `Missing ${key} array`);
   }
 
@@ -152,6 +152,8 @@ try {
   const realSnapshot = await realSnapshotResponse.json();
   assert.equal(realSnapshotResponse.status, 200);
   assert.equal(realSnapshot.ok, true);
+  assert.ok(Array.isArray(realSnapshot.queue));
+  assert.ok(Array.isArray(realSnapshot.audit));
 
   browser = await chromium.launch({ headless: true });
 
@@ -171,6 +173,8 @@ try {
   await automaticPage.getByText('Run di ricerca recente').waitFor();
   await automaticPage.getByText('Priorità editoriali persistite').waitFor();
   await automaticPage.getByText('Draft, preview e revisione').waitFor();
+  await automaticPage.getByText('Coda operativa in sola lettura').waitFor();
+  await automaticPage.getByText('Eventi e traccia operativa').waitFor();
   await automaticPage.getByTestId('publication-guardrail').waitFor();
   assert.ok(proxyReads >= 1);
   assert.equal(directProtectedReads, 0);
@@ -200,6 +204,9 @@ try {
   await fixturePage.getByText('Evidence bundle e gate').waitFor();
   await fixturePage.getByText('Draft, preview e revisione').waitFor();
   await fixturePage.getByText('eSIM in Cina: dichiarazioni dei provider e limiti delle prove').waitFor();
+  await fixturePage.getByText('Coda operativa in sola lettura').waitFor();
+  await fixturePage.getByText('Eventi e traccia operativa').waitFor();
+  await fixturePage.getByText('fixture_review_worker_unavailable').waitFor();
   await fixturePage.getByTestId('publication-guardrail').getByText('disabilitata').waitFor();
 
   const runButton = fixturePage.getByRole('button', { name: 'Apri run 501' });
@@ -238,10 +245,16 @@ try {
   await fixturePage.getByRole('dialog').getByText('Decisione editoriale ≠ pubblicazione').waitFor();
   await fixturePage.keyboard.press('Escape');
 
+  const queueButton = fixturePage.getByRole('button', { name: 'Apri task queue 803' });
+  await queueButton.focus();
+  await fixturePage.keyboard.press('Enter');
+  await fixturePage.getByRole('dialog').getByText('Task queue #803').waitFor();
+  await fixturePage.keyboard.press('Escape');
+
   await fixturePage.getByRole('combobox', { name: 'Filtra per stato', exact: true }).click();
   await fixturePage.getByRole('option', { name: 'pending' }).click();
   await fixturePage.getByText('La velocità dichiarata è ancora da verificare.').waitFor();
-  assert.equal(await fixturePage.getByRole('button', { name: /pubblic|approv|genera|rigenera/i }).count(), 0);
+  assert.equal(await fixturePage.getByRole('button', { name: /retry|complete|dismiss|pubblic|approv|genera|rigenera/i }).count(), 0);
   assert.deepEqual(mutationRequests, []);
   await fixtureContext.close();
 
@@ -253,6 +266,7 @@ try {
   await healthFailurePage.getByTestId('health-error').waitFor();
   await healthFailurePage.getByText('Run di ricerca recente').waitFor();
   await healthFailurePage.getByText('Draft, preview e revisione').waitFor();
+  await healthFailurePage.getByText('Coda operativa in sola lettura').waitFor();
   await healthFailureContext.close();
 
   const snapshotFailureContext = await accessContext(browser);
@@ -263,6 +277,7 @@ try {
   await snapshotFailurePage.getByTestId('snapshot-error').waitFor();
   await snapshotFailurePage.getByText('Binding del radar recent-demand.').waitFor();
   assert.equal(await snapshotFailurePage.getByText('Draft, preview e revisione').count(), 0);
+  assert.equal(await snapshotFailurePage.getByText('Coda operativa in sola lettura').count(), 0);
   await snapshotFailureContext.close();
 
   const invalidSnapshotContext = await accessContext(browser);
@@ -295,7 +310,9 @@ try {
     briefs: [],
     claims: [],
     evidenceBundles: [],
-    drafts: []
+    drafts: [],
+    queue: [],
+    audit: []
   });
   await emptyPage.goto(`${origin}/control-room-foundation`);
   await emptyPage.getByTestId('empty-runs').waitFor();
@@ -304,6 +321,8 @@ try {
   await emptyPage.getByTestId('empty-claims').waitFor();
   await emptyPage.getByTestId('empty-evidence-bundles').waitFor();
   await emptyPage.getByTestId('empty-drafts').waitFor();
+  await emptyPage.getByTestId('empty-queue').waitFor();
+  await emptyPage.getByTestId('empty-audit').waitFor();
   await emptyContext.close();
 
   const mobileContext = await accessContext(browser, { viewport: { width: 390, height: 844 } });
@@ -313,6 +332,7 @@ try {
   await mobilePage.getByTestId('control-room-app').waitFor();
   await mobilePage.locator('html[data-control-room-hydrated="true"]').waitFor();
   await mobilePage.getByText('Draft, preview e revisione').waitFor();
+  await mobilePage.getByText('Coda operativa in sola lettura').waitFor();
   await mobilePage.getByRole('button', { name: 'Apri navigazione' }).focus();
   await mobilePage.keyboard.press('Enter');
   const mobileNavigation = mobilePage.getByRole('dialog').getByRole('navigation', { name: 'Navigazione Control Room' });
@@ -321,10 +341,12 @@ try {
   await mobileNavigation.getByRole('link', { name: 'Brief' }).waitFor();
   await mobileNavigation.getByRole('link', { name: 'Readiness' }).waitFor();
   await mobileNavigation.getByRole('link', { name: 'Draft e decisioni' }).waitFor();
+  await mobileNavigation.getByRole('link', { name: 'Queue', exact: true }).waitFor();
+  await mobileNavigation.getByRole('link', { name: 'Audit', exact: true }).waitFor();
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room overview, radar, signals, briefs, claims, readiness, drafts, Access and browser smoke passed.');
+  console.log('Control Room overview, radar, signals, briefs, claims, readiness, drafts, queue, audit, Access and browser smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
