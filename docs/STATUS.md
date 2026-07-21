@@ -26,7 +26,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Cloudflare Access | Operativo e verificato | policy utente, service token CI e validazione JWT nell’origine |
 | Sessione server-side Control Room | Operativa | un solo login e snapshot automatico verificati nel browser reale |
 | Overview e health nuova Control Room | Operative e verificate | PR #32 mergiata; CI, deploy e verifica manuale completati |
-| Radar e brief nuova Control Room | Prossima fase | migrazione read-only sugli array già presenti nello snapshot |
+| Radar e brief nuova Control Room | PR #34 in verifica | viste read-only sugli array esistenti dello snapshot |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -156,44 +156,50 @@ La PR #32 è mergiata, distribuita e verificata nel browser reale:
 
 L’health corrente descrive soprattutto configurazione e binding. Un health aggregato con probe end-to-end dei servizi esterni non è ancora dichiarato operativo.
 
-## Prossima fase — Radar e brief
+## PR #34 — Radar e brief
 
-La nuova vista userà esclusivamente `researchRuns`, `signals` e `briefs` già esposti dallo snapshot.
+La branch `feat/control-room-radar-briefs` implementa in sola lettura i dati già presenti nello snapshot:
 
-Scope iniziale:
+- run con query, sistema sorgente, tipo, finestra, risultati, warning e conteggi eligible/filtered;
+- segnali con topic, provenienza, freshness, relevance score, stato, idoneità e quality flags;
+- filtro run → segnali basato sul `run_id` canonico;
+- brief con cluster, titolo, slug, intent, punteggi persistiti, bundle, readiness e draft nullable;
+- filtri e Sheet di dettaglio accessibili;
+- runtime validation dei tre array;
+- empty state e contratto invalido coperti negli smoke.
 
-- elenco degli ultimi run con query, finestra, risultati, warning e conteggi eligible/filtered;
-- segnali recenti con stato, qualità, provenienza e collegamento al run;
-- brief ordinati per priorità con punteggi, stato, readiness e draft collegato;
-- filtri, dettagli, empty state, errori, tastiera e mobile;
-- contratti runtime estesi ai tre array.
+Lo snapshot non espone un collegamento diretto tra singolo segnale e brief. La UI lo dichiara e non tenta di ricostruirlo.
 
 Restano fuori scope:
 
-- avvio del Workflow;
+- avvio Workflow;
 - accettazione o conversione dei brief;
-- mutation, nuovi endpoint o query D1;
-- modifiche al motore AI, ai gate editoriali o alla pubblicazione.
+- mutation e nuovi endpoint;
+- modifiche a D1, Container, AI, claim, readiness, draft o publication gate.
 
 ## Rischi aperti
 
-1. L’health corrente descrive soprattutto configurazione e binding.
-2. L’API originale deve restare compatibile con gli altri consumer autorizzati.
-3. La Control Room legacy deve restare congelata.
-4. L’eventuale confronto Mantine resta non eseguito.
-5. Le verifiche editoriali attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
-6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-7. Search Console, CMP e analytics non sono ancora disponibili.
-8. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La PR #34 deve superare typecheck, build, runtime e browser smoke.
+2. Radar e brief devono essere verificati manualmente su desktop e mobile dopo il deploy.
+3. L’health corrente descrive soprattutto configurazione e binding.
+4. L’API originale deve restare compatibile con gli altri consumer autorizzati.
+5. La Control Room legacy deve restare congelata.
+6. L’eventuale confronto Mantine resta non eseguito.
+7. Le verifiche editoriali attuali descrivono soprattutto dichiarazioni ufficiali, non test indipendenti sul campo.
+8. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+9. Search Console, CMP e analytics non sono ancora disponibili.
+10. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
-- radar e brief sono leggibili nella nuova Control Room usando lo snapshot esistente;
-- run, segnali e brief hanno contratti runtime validati;
-- relazioni run → segnali → brief sono comprensibili;
-- punteggi e stati non vengono reinterpretati dalla UI;
-- desktop, mobile, tastiera, loading, error ed empty state sono verificati;
-- nessuna mutation o nuova capacità di pubblicazione viene introdotta;
+- PR #34 è mergiata con CI completa verde;
+- run, segnali e brief reali sono leggibili nella nuova Control Room;
+- contratti runtime e relazioni run → segnali sono verificati;
+- punteggi, stati, quality flags e valori nullable non vengono reinterpretati;
+- filtri, dettagli, desktop, mobile, tastiera, loading, error ed empty state sono verificati;
+- nessuna richiesta browser diversa da `GET` viene introdotta;
+- overview, claim e draft preview non regrediscono;
+- nessuna mutation o capacità di pubblicazione viene introdotta;
 - backend, D1, Workflow, Container, AI e gate restano invariati.

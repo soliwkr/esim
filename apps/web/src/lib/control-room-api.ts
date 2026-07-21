@@ -34,6 +34,60 @@ export interface HealthSnapshot {
   controlRoomVersion?: number
 }
 
+export interface ControlRoomResearchRun {
+  id: number
+  source_system: string
+  run_kind: string
+  query: string
+  generated_at: string | null
+  window_days: number
+  result_count: number
+  warning_count: number
+  eligible_count: number
+  filtered_count: number
+  created_at: string
+}
+
+export interface ControlRoomSignal {
+  id: number
+  run_id: number
+  signal_type: string
+  topic: string
+  title: string
+  source: string
+  url: string
+  published_at: string | null
+  relevance_score: number
+  freshness_days: number
+  eligible_for_editorial: 0 | 1
+  quality_flags: string[]
+  status: string
+  updated_at: string
+}
+
+export interface ControlRoomBrief {
+  id: number
+  cluster_title: string
+  proposed_title: string
+  slug_suggestion: string
+  asset_type: string
+  search_intent: string
+  opportunity_score: number
+  evidence_score: number
+  priority_score: number
+  quality_flags: string[]
+  status: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+  bundle_id: number | null
+  readiness_score: number | null
+  readiness_status: string | null
+  draft_id: number | null
+  draft_status: string | null
+  draft_renderer: string | null
+}
+
 export interface ControlRoomClaim {
   id: number
   brief_id: number | null
@@ -91,6 +145,9 @@ export interface ControlRoomSnapshot {
   generatedAt: string
   capabilities: ControlRoomCapabilities
   overview: ControlRoomOverview
+  researchRuns: ControlRoomResearchRun[]
+  signals: ControlRoomSignal[]
+  briefs: ControlRoomBrief[]
   claims: ControlRoomClaim[]
   drafts: ControlRoomDraft[]
 }
@@ -121,9 +178,37 @@ function requireString(object: JsonObject, key: string): string {
   return value
 }
 
+function requireNullableString(object: JsonObject, key: string): string | null {
+  const value = object[key]
+  if (value === null) return null
+  if (typeof value !== "string") throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
+function requireNumber(object: JsonObject, key: string): number {
+  const value = object[key]
+  if (!isFiniteNumber(value)) throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
+function requireNullableNumber(object: JsonObject, key: string): number | null {
+  const value = object[key]
+  if (value === null) return null
+  if (!isFiniteNumber(value)) throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
 function requireBoolean(object: JsonObject, key: string): boolean {
   const value = object[key]
   if (typeof value !== "boolean") throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
+function requireStringArray(object: JsonObject, key: string): string[] {
+  const value = object[key]
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`Campo ${key} non valido`)
+  }
   return value
 }
 
@@ -175,6 +260,84 @@ function parseOverview(value: unknown): ControlRoomOverview {
   })) as ControlRoomOverview
 }
 
+function parseResearchRuns(value: unknown): ControlRoomResearchRun[] {
+  if (!Array.isArray(value)) throw new Error("Lista run ricerca non valida")
+
+  return value.map((record) => {
+    if (!isObject(record)) throw new Error("Run ricerca non valido")
+    return {
+      id: requireNumber(record, "id"),
+      source_system: requireString(record, "source_system"),
+      run_kind: requireString(record, "run_kind"),
+      query: requireString(record, "query"),
+      generated_at: requireNullableString(record, "generated_at"),
+      window_days: requireNumber(record, "window_days"),
+      result_count: requireNumber(record, "result_count"),
+      warning_count: requireNumber(record, "warning_count"),
+      eligible_count: requireNumber(record, "eligible_count"),
+      filtered_count: requireNumber(record, "filtered_count"),
+      created_at: requireString(record, "created_at"),
+    }
+  })
+}
+
+function parseSignals(value: unknown): ControlRoomSignal[] {
+  if (!Array.isArray(value)) throw new Error("Lista segnali non valida")
+
+  return value.map((record) => {
+    if (!isObject(record)) throw new Error("Segnale non valido")
+    const eligibility = requireNumber(record, "eligible_for_editorial")
+    if (eligibility !== 0 && eligibility !== 1) throw new Error("Idoneità segnale non valida")
+
+    return {
+      id: requireNumber(record, "id"),
+      run_id: requireNumber(record, "run_id"),
+      signal_type: requireString(record, "signal_type"),
+      topic: requireString(record, "topic"),
+      title: requireString(record, "title"),
+      source: requireString(record, "source"),
+      url: requireString(record, "url"),
+      published_at: requireNullableString(record, "published_at"),
+      relevance_score: requireNumber(record, "relevance_score"),
+      freshness_days: requireNumber(record, "freshness_days"),
+      eligible_for_editorial: eligibility,
+      quality_flags: requireStringArray(record, "quality_flags"),
+      status: requireString(record, "status"),
+      updated_at: requireString(record, "updated_at"),
+    }
+  })
+}
+
+function parseBriefs(value: unknown): ControlRoomBrief[] {
+  if (!Array.isArray(value)) throw new Error("Lista brief non valida")
+
+  return value.map((record) => {
+    if (!isObject(record)) throw new Error("Brief non valido")
+    return {
+      id: requireNumber(record, "id"),
+      cluster_title: requireString(record, "cluster_title"),
+      proposed_title: requireString(record, "proposed_title"),
+      slug_suggestion: requireString(record, "slug_suggestion"),
+      asset_type: requireString(record, "asset_type"),
+      search_intent: requireString(record, "search_intent"),
+      opportunity_score: requireNumber(record, "opportunity_score"),
+      evidence_score: requireNumber(record, "evidence_score"),
+      priority_score: requireNumber(record, "priority_score"),
+      quality_flags: requireStringArray(record, "quality_flags"),
+      status: requireString(record, "status"),
+      notes: requireNullableString(record, "notes"),
+      created_at: requireString(record, "created_at"),
+      updated_at: requireString(record, "updated_at"),
+      bundle_id: requireNullableNumber(record, "bundle_id"),
+      readiness_score: requireNullableNumber(record, "readiness_score"),
+      readiness_status: requireNullableString(record, "readiness_status"),
+      draft_id: requireNullableNumber(record, "draft_id"),
+      draft_status: requireNullableString(record, "draft_status"),
+      draft_renderer: requireNullableString(record, "draft_renderer"),
+    }
+  })
+}
+
 function parseClaims(value: unknown): ControlRoomClaim[] {
   if (!Array.isArray(value)) throw new Error("Lista claim non valida")
   for (const claim of value) {
@@ -221,6 +384,9 @@ function parseControlRoomSnapshot(value: unknown): ControlRoomSnapshot {
     generatedAt,
     capabilities: parseCapabilities(value.capabilities),
     overview: parseOverview(value.overview),
+    researchRuns: parseResearchRuns(value.researchRuns),
+    signals: parseSignals(value.signals),
+    briefs: parseBriefs(value.briefs),
     claims: parseClaims(value.claims),
     drafts: parseDrafts(value.drafts),
   }

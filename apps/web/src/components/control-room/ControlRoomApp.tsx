@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState } from "react"
 import {
+  ClipboardList,
   FileText,
   LayoutDashboard,
   Menu,
   PanelLeft,
+  RadioTower,
   RefreshCw,
   Rows3,
+  Search,
   ShieldCheck,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Overview } from "@/components/control-room/Overview"
+import { RadarBriefs } from "@/components/control-room/RadarBriefs"
 import { ClaimsPreview, DraftPreview } from "@/components/control-room/ReadOnlySections"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,6 +47,9 @@ type ResourceState<T> = {
 
 const navigation = [
   { href: "#overview", label: "Overview", icon: LayoutDashboard },
+  { href: "#radar", label: "Radar", icon: RadioTower },
+  { href: "#signals", label: "Segnali", icon: Search },
+  { href: "#briefs", label: "Brief", icon: ClipboardList },
   { href: "#claims", label: "Claims preview", icon: Rows3 },
   { href: "#draft", label: "Draft preview", icon: FileText },
 ]
@@ -113,7 +120,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)}
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-72 rounded-xl" />)}
+        {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-72 rounded-xl" />)}
       </div>
     </div>
   )
@@ -173,7 +180,7 @@ export function ControlRoomApp() {
     setIsRefreshing(false)
 
     if (announce) {
-      if (failureCount === 0) toast.success("Overview aggiornata")
+      if (failureCount === 0) toast.success("Control Room aggiornata")
       else if (failureCount === 1) toast.warning("Aggiornamento parziale")
       else toast.error("Control Room non disponibile")
     }
@@ -198,7 +205,7 @@ export function ControlRoomApp() {
             <MobileNavigation />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Control Room</p>
-              <p className="truncate text-xs text-muted-foreground">Overview operativo · sola lettura</p>
+              <p className="truncate text-xs text-muted-foreground">Overview, radar e brief · sola lettura</p>
             </div>
             <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
               <ShieldCheck aria-hidden="true" className="size-3.5" />
@@ -209,7 +216,7 @@ export function ControlRoomApp() {
               size="icon"
               onClick={() => { void load(true) }}
               disabled={isRefreshing}
-              aria-label="Aggiorna overview"
+              aria-label="Aggiorna Control Room"
             >
               <RefreshCw aria-hidden="true" className={cn(isRefreshing && "animate-spin")} />
             </Button>
@@ -228,6 +235,11 @@ export function ControlRoomApp() {
               />
               {snapshotState.data && (
                 <>
+                  <RadarBriefs
+                    researchRuns={snapshotState.data.researchRuns}
+                    signals={snapshotState.data.signals}
+                    briefs={snapshotState.data.briefs}
+                  />
                   <ClaimsPreview claims={snapshotState.data.claims} />
                   <DraftPreview drafts={snapshotState.data.drafts} />
                 </>

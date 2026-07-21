@@ -49,6 +49,7 @@ async function verifyBuildContract() {
     accessGuard,
     controlRoomIsland,
     overviewComponent,
+    radarBriefsComponent,
     readOnlySections,
     controlRoomApiClient
   ] = await Promise.all([
@@ -59,11 +60,12 @@ async function verifyBuildContract() {
     readFile('apps/web/src/lib/cloudflare-access.ts', 'utf8'),
     readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/Overview.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/RadarBriefs.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/ReadOnlySections.tsx', 'utf8'),
     readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
   ]);
   const config = JSON.parse(configRaw);
-  const controlRoomClient = `${controlRoomIsland}\n${overviewComponent}\n${readOnlySections}`;
+  const controlRoomClient = `${controlRoomIsland}\n${overviewComponent}\n${radarBriefsComponent}\n${readOnlySections}`;
 
   assert.equal(config.main, 'entry.mjs');
   assert.equal(config.workflows?.[0]?.class_name, 'RecentDemandWorkflow');
@@ -75,8 +77,13 @@ async function verifyBuildContract() {
   assert.doesNotMatch(controlRoomApiClient, /Authorization|Bearer|sessionStorage/i);
   assert.match(controlRoomApiClient, /overviewMetricKeys/);
   assert.match(controlRoomApiClient, /parseHealthSnapshot/);
+  assert.match(controlRoomApiClient, /parseResearchRuns/);
+  assert.match(controlRoomApiClient, /parseSignals/);
+  assert.match(controlRoomApiClient, /parseBriefs/);
   assert.match(controlRoomApiClient, /parseControlRoomSnapshot/);
   assert.match(controlRoomApiClient, /control-room-foundation\/api\/snapshot/);
+  assert.match(radarBriefsComponent, /Segnale, non prova commerciale/);
+  assert.match(radarBriefsComponent, /Linkage non ricostruito/);
   assert.match(customEntrypoint, /requireCloudflareAccess/);
   assert.match(customEntrypoint, /control-room-foundation\/api\/snapshot/);
   assert.match(customEntrypoint, /MAINTENANCE_TOKEN/);
@@ -225,6 +232,9 @@ try {
   assert.doesNotMatch(proxyText, new RegExp(maintenanceToken));
   const proxySnapshot = JSON.parse(proxyText);
   assert.equal(proxySnapshot.ok, true);
+  assert.ok(Array.isArray(proxySnapshot.researchRuns));
+  assert.ok(Array.isArray(proxySnapshot.signals));
+  assert.ok(Array.isArray(proxySnapshot.briefs));
   assert.ok(Array.isArray(proxySnapshot.claims));
   assert.ok(Array.isArray(proxySnapshot.drafts));
   for (const key of expectedOverviewKeys) {
@@ -254,13 +264,16 @@ try {
   const snapshot = await snapshotResponse.json();
   assert.equal(snapshotResponse.status, 200);
   assert.equal(snapshot.ok, true);
+  assert.ok(Array.isArray(snapshot.researchRuns));
+  assert.ok(Array.isArray(snapshot.signals));
+  assert.ok(Array.isArray(snapshot.briefs));
   assert.ok(Array.isArray(snapshot.claims));
   assert.ok(Array.isArray(snapshot.drafts));
 
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
 
-  console.log('Astro/Cloudflare runtime, Access, overview contract and snapshot proxy smoke passed.');
+  console.log('Astro/Cloudflare runtime, Access, radar contracts and snapshot proxy smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
