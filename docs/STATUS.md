@@ -28,7 +28,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Overview e health | Operative e verificate | PR #32 |
 | Radar e brief | Operativi e verificati | PR #34 |
 | Claim, fonti e scadenze | Operativi e verificati | PR #37, CI e verifica browser completate |
-| Page Readiness ed evidence bundle UI | Prossima fase | read-only sul contratto snapshot esistente |
+| Page Readiness ed evidence bundle UI | PR #39 in verifica | read-only sul contratto snapshot esistente |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -143,46 +143,58 @@ Risultati verificati:
 
 Restano invariati backend, query D1, Workflow, Container, AI, queue, readiness, draft e publication gate.
 
-## Prossima fase — Page Readiness ed evidence bundle
+## PR #39 — Page Readiness ed evidence bundle
 
-La prossima branch prevista è:
+La PR #39 migra nella nuova Control Room la lettura di `evidenceBundles` già presente nello snapshot.
 
-```text
-feat/control-room-readiness-evidence
-```
+Implementazione in verifica:
 
-Scope read-only:
-
-- bundle, brief, pagina e versione;
-- readiness score e review status;
-- idoneità al draft separata dall'idoneità alla pubblicazione;
-- conteggi claim ed expired;
+- tabella bundle con pagina, brief, versione, score e review status;
+- filtri per review status, draft eligibility, publication eligibility e warning;
+- `review_draft_eligible` separato da `publication_eligible`;
+- `ready_for_review_draft` separato da `ready_for_publication`;
+- dettaglio con verified, insufficient, contradicted, pending ed expired count;
 - conflitti, fonti, soggetti e test first-party;
-- warning, revisore e timestamp;
-- filtri, dettaglio, contratto runtime, desktop e mobile.
+- warning mostrati come persistiti;
+- revisore, reviewed at, created at e updated at;
+- validazione runtime dei quattro gate binari, conteggi non negativi, warning e timestamp;
+- empty state, contratto invalido, tastiera, desktop e mobile;
+- smoke dedicato senza richieste browser diverse da `GET`.
 
-Non include valutazione readiness, approvazione bundle, generazione draft, nuovi endpoint, mutation o pubblicazione.
+La UI non ricalcola readiness score, conteggi o gate. Un bundle idoneo alla generazione o revisione di un draft non viene presentato come pubblicabile.
+
+Restano invariati:
+
+- query e contratto backend;
+- D1 e migrazioni;
+- Workflow, Container e AI;
+- evaluation e approval della readiness;
+- generazione draft, queue e publication gate.
 
 ## Rischi aperti
 
-1. La nuova vista readiness deve mantenere distinti `review_draft_eligible` e `publication_eligible`.
-2. Un warning o uno score non deve essere reinterpretato dal client.
-3. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
-4. L'health corrente descrive soprattutto configurazione e binding.
-5. La Control Room legacy deve restare congelata.
-6. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-7. Search Console, CMP e analytics non sono ancora disponibili.
-8. Il repository pubblico non deve contenere credenziali o dati riservati.
+1. La PR #39 deve superare typecheck, build, runtime e i tre smoke Chromium.
+2. La nuova vista deve essere verificata nel browser reale dopo il deploy.
+3. Draft eligibility e publication eligibility devono restare distinti in ogni stato UI.
+4. Score, warning e conteggi non devono essere reinterpretati dal client.
+5. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
+6. L'health corrente descrive soprattutto configurazione e binding.
+7. La Control Room legacy deve restare congelata.
+8. Le fonti devono rientrare automaticamente nella coda alla scadenza.
+9. Search Console, CMP e analytics non sono ancora disponibili.
+10. Il repository pubblico non deve contenere credenziali o dati riservati.
 
 ## Prossimo checkpoint
 
 Il prossimo checkpoint è raggiunto quando:
 
-- gli evidence bundle reali sono visibili nella nuova Control Room;
-- readiness score, warning e conteggi sono validati a runtime;
-- draft eligibility e publication eligibility restano separati;
+- PR #39 è mergiata con CI completa verde;
+- gli evidence bundle reali sono visibili;
+- score 77, draft eligibility positiva e publication eligibility negativa sono leggibili nel bundle reale;
+- conteggi, conflitto, warning e first-party tests sono visibili;
+- payload bundle non validi vengono rifiutati;
 - filtri e dettaglio sono utilizzabili da tastiera e su mobile;
 - nessuna richiesta browser diversa da `GET` viene introdotta;
 - overview, radar, brief, claim e draft preview non regrediscono;
-- CI, deploy e verifica manuale sono verdi;
-- nessuna approvazione, mutation o pubblicazione viene introdotta.
+- deploy e verifica manuale sono verdi;
+- nessuna approvazione, generazione, mutation o pubblicazione viene introdotta.
