@@ -20,11 +20,16 @@ La island implementa:
 - capability e binding di Worker, D1, maintenance API, Workflow, Container, AI Gateway e Vertex;
 - timestamp dello snapshot e guardrail di pubblicazione;
 - health e snapshot gestiti come risorse indipendenti;
+- run del radar filtrabili con dettaglio read-only;
+- segnali recenti filtrabili per run e idoneità;
+- brief ordinati dal backend con punteggi, readiness e draft collegati;
 - claim filtrabili con dettaglio laterale read-only;
 - preview read-only dei metadati dell'ultimo draft;
 - loading, errori parziali, contratti invalidi ed empty state.
 
-Non implementa mutation, azioni editoriali, accesso diretto a D1 o capacità di pubblicazione.
+La relazione run → segnali usa il `run_id` canonico. Lo snapshot non espone un collegamento diretto segnale → brief e la UI non lo deduce.
+
+Non implementa avvio Workflow, accettazione o conversione brief, mutation, azioni editoriali, accesso diretto a D1 o capacità di pubblicazione.
 
 ## Dati e sessione server-side
 
@@ -37,13 +42,9 @@ Il secondo endpoint è un proxy read-only interno al custom Worker entrypoint. A
 
 Il browser non conserva token applicativi e non invia un header di autorizzazione verso l’API di manutenzione. L’API originale resta invariata per agenti e consumer legacy.
 
-`apps/web/src/lib/control-room-api.ts` valida a runtime i payload health e snapshot. I tipi TypeScript non vengono usati come sostituto della validazione del JSON ricevuto.
+`apps/web/src/lib/control-room-api.ts` valida a runtime i payload health e snapshot, inclusi `researchRuns`, `signals`, `briefs`, claim e draft. I tipi TypeScript non vengono usati come sostituto della validazione del JSON ricevuto.
 
-La vista overview distingue esplicitamente:
-
-- capability dichiarate dallo snapshot;
-- binding configurati restituiti da `/api/health`;
-- probe end-to-end non ancora disponibili.
+Punteggi, stati, quality flags e valori nullable vengono mostrati come persistiti. Il client non ricalcola Opportunity, Evidence, Priority o Readiness Score.
 
 Tutti i dati reali arrivano dalle API del Worker; il browser non accede a D1.
 
@@ -62,5 +63,5 @@ npm run smoke:ui
 
 Gli smoke generano credenziali Access effimere di test; nessuna chiave viene versionata.
 
-- `smoke:runtime` verifica bundle, Access, proxy GET-only, contratto delle metriche overview, API originale, export, health e route di pubblicazione assenti.
-- `smoke:ui` verifica caricamento reale, contratti runtime, errori parziali, refresh, claim e draft read-only, tastiera, mobile e assenza di mutation o credenziali nel browser.
+- `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array radar/brief, API originale, export, health e route di pubblicazione assenti.
+- `smoke:ui` verifica caricamento reale, contratti runtime, filtri run/segnali/brief, dettagli accessibili, errori parziali, refresh, claim e draft read-only, tastiera, mobile e assenza di mutation o credenziali nel browser.
