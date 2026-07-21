@@ -87,18 +87,26 @@ async function stopWrangler() {
   await Promise.race([once(wrangler, 'exit'), new Promise((resolve) => setTimeout(resolve, 5_000))]);
 }
 
-async function mockReadApis(page, snapshot = fixture, delayMs = 0) {
+async function mockHealth(page, body = healthFixture, status = 200) {
   await page.route('**/api/health', (route) => route.fulfill({
-    status: 200,
+    status,
     contentType: 'application/json',
-    body: JSON.stringify(healthFixture)
+    body: JSON.stringify(body)
   }));
+}
+
+async function mockSnapshot(page, body = fixture, status = 200, delayMs = 0) {
   await page.route(`**${snapshotProxyPath}`, async (route) => {
     assert.equal(route.request().method(), 'GET');
     assert.equal(route.request().headers().authorization, undefined);
     if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(snapshot) });
+    await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
   });
+}
+
+async function mockReadApis(page, snapshot = fixture, delayMs = 0) {
+  await mockHealth(page);
+  await mockSnapshot(page, snapshot, 200, delayMs);
 }
 
 function accessContext(browser, options = {}) {
@@ -160,7 +168,8 @@ try {
     if (pathname === '/api/maintenance/control-room') directProtectedReads += 1;
   });
   await automaticPage.goto(`${origin}/control-room-foundation`);
-  await automaticPage.getByText('Stato del runtime').waitFor();
+  await automaticPage.getByText('Stato operativo').waitFor();
+  await automaticPage.getByTestId('publication-guardrail').waitFor();
   assert.ok(proxyReads >= 1);
   assert.equal(directProtectedReads, 0);
   assert.equal(await automaticPage.getByLabel('Token di manutenzione').count(), 0);
@@ -181,8 +190,11 @@ try {
   });
   await fixturePage.goto(`${origin}/control-room-foundation`);
   await fixturePage.getByTestId('loading-state').waitFor();
+  await fixturePage.getByText('Fonti e coda').waitFor();
+  await fixturePage.getByText('Fonti registrate').waitFor();
   await fixturePage.getByText('Claim dallo snapshot').waitFor();
   await fixturePage.getByText('Fixture: guida di destinazione').waitFor();
+  await fixturePage.getByTestId('publication-guardrail').getByText('disabilitata').waitFor();
   const claimButton = fixturePage.getByRole('button', { name: 'Apri claim 101' });
   await claimButton.focus();
   await fixturePage.keyboard.press('Enter');
@@ -195,6 +207,34 @@ try {
   assert.deepEqual(mutationRequests, []);
   await fixtureContext.close();
 
+  const healthFailureContext = await accessContext(browser);
+  const healthFailurePage = await healthFailureContext.newPage();
+  await mockSnapshot(healthFailurePage);
+  await mockHealth(healthFailurePage, { ok: false, error: 'fixture_health_failure' }, 500);
+  await healthFailurePage.goto(`${origin}/control-room-foundation`);
+  await healthFailurePage.getByTestId('health-error').waitFor();
+  await healthFailurePage.getByText('Claim dallo snapshot').waitFor();
+  await healthFailureContext.close();
+
+  const snapshotFailureContext = await accessContext(browser);
+  const snapshotFailurePage = await snapshotFailureContext.newPage();
+  await mockHealth(snapshotFailurePage);
+  await mockSnapshot(snapshotFailurePage, { ok: false, error: 'fixture_snapshot_failure' }, 500);
+  await snapshotFailurePage.goto(`${origin}/control-room-foundation`);
+  await snapshotFailurePage.getByTestId('snapshot-error').waitFor();
+  await snapshotFailurePage.getByText('Configurazione del radar recent-demand.').waitFor();
+  assert.equal(await snapshotFailurePage.getByText('Claim dallo snapshot').count(), 0);
+  await snapshotFailureContext.close();
+
+  const invalidHealthContext = await accessContext(browser);
+  const invalidHealthPage = await invalidHealthContext.newPage();
+  await mockSnapshot(invalidHealthPage);
+  await mockHealth(invalidHealthPage, { ...healthFixture, aiGateway: 7 });
+  await invalidHealthPage.goto(`${origin}/control-room-foundation`);
+  await invalidHealthPage.getByTestId('health-error').waitFor();
+  await invalidHealthPage.getByText('Contratto Health API non valido').waitFor();
+  await invalidHealthContext.close();
+
   const emptyContext = await accessContext(browser);
   const emptyPage = await emptyContext.newPage();
   await mockReadApis(emptyPage, { ...fixture, claims: [], drafts: [] });
@@ -203,19 +243,11 @@ try {
   await emptyPage.getByTestId('empty-drafts').waitFor();
   await emptyContext.close();
 
-  const errorContext = await accessContext(browser);
-  const errorPage = await errorContext.newPage();
-  await errorPage.route('**/api/health', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(healthFixture) }));
-  await errorPage.route(`**${snapshotProxyPath}`, (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'fixture_failure' }) }));
-  await errorPage.goto(`${origin}/control-room-foundation`);
-  await errorPage.getByTestId('error-state').waitFor();
-  await errorPage.getByRole('button', { name: 'Riprova' }).waitFor();
-  await errorContext.close();
-
   const mobileContext = await accessContext(browser, { viewport: { width: 390, height: 844 } });
   const mobilePage = await mobileContext.newPage();
   await mockReadApis(mobilePage);
   await mobilePage.goto(`${origin}/control-room-foundation`);
+  await mobilePage.getByTestId('control-room-app').waitFor();
   await mobilePage.locator('html[data-control-room-hydrated="true"]').waitFor();
   await mobilePage.getByRole('button', { name: 'Apri navigazione' }).focus();
   await mobilePage.keyboard.press('Enter');
@@ -223,7 +255,7 @@ try {
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room Access, server-side session and browser smoke passed.');
+  console.log('Control Room overview, health, Access and browser smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
