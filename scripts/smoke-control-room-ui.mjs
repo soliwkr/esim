@@ -144,6 +144,7 @@ try {
   assert.ok(Array.isArray(realProxySnapshot.signals));
   assert.ok(Array.isArray(realProxySnapshot.briefs));
   assert.ok(Array.isArray(realProxySnapshot.claims));
+  assert.ok(Array.isArray(realProxySnapshot.evidenceBundles));
   assert.ok(Array.isArray(realProxySnapshot.drafts));
 
   const anonymousSnapshot = await fetch(`${origin}/api/maintenance/control-room`);
@@ -157,6 +158,7 @@ try {
   assert.ok(Array.isArray(realSnapshot.researchRuns));
   assert.ok(Array.isArray(realSnapshot.signals));
   assert.ok(Array.isArray(realSnapshot.briefs));
+  assert.ok(Array.isArray(realSnapshot.evidenceBundles));
 
   browser = await chromium.launch({ headless: true });
 
@@ -201,6 +203,7 @@ try {
   await fixturePage.getByText('Le eSIM in Cina funzionano davvero senza VPN?').waitFor();
   await fixturePage.getByText('eSIM in Cina: funzionano davvero senza VPN?').waitFor();
   await fixturePage.getByText('Claim dallo snapshot').waitFor();
+  await fixturePage.getByText('Evidence bundle e gate').waitFor();
   await fixturePage.getByText('Fixture: guida di destinazione').waitFor();
   await fixturePage.getByTestId('publication-guardrail').getByText('disabilitata').waitFor();
 
@@ -237,7 +240,7 @@ try {
   await fixturePage.keyboard.press('Enter');
   await fixturePage.getByRole('dialog').getByText('Claim #101').waitFor();
   await fixturePage.keyboard.press('Escape');
-  await fixturePage.getByRole('combobox', { name: 'Filtra per stato' }).click();
+  await fixturePage.getByRole('combobox', { name: 'Filtra per stato', exact: true }).click();
   await fixturePage.getByRole('option', { name: 'pending' }).click();
   await fixturePage.getByText('La velocità dichiarata è ancora da verificare.').waitFor();
   assert.equal(await fixturePage.getByRole('button', { name: /pubblic/i }).count(), 0);
@@ -293,6 +296,7 @@ try {
     signals: [],
     briefs: [],
     claims: [],
+    evidenceBundles: [],
     drafts: []
   });
   await emptyPage.goto(`${origin}/control-room-foundation`);
@@ -300,6 +304,7 @@ try {
   await emptyPage.getByTestId('empty-signals').waitFor();
   await emptyPage.getByTestId('empty-briefs').waitFor();
   await emptyPage.getByTestId('empty-claims').waitFor();
+  await emptyPage.getByTestId('empty-evidence-bundles').waitFor();
   await emptyPage.getByTestId('empty-drafts').waitFor();
   await emptyContext.close();
 
@@ -316,10 +321,11 @@ try {
   await mobileNavigation.waitFor();
   await mobileNavigation.getByRole('link', { name: 'Radar' }).waitFor();
   await mobileNavigation.getByRole('link', { name: 'Brief' }).waitFor();
+  await mobileNavigation.getByRole('link', { name: 'Readiness' }).waitFor();
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room overview, radar, signals, briefs, Access and browser smoke passed.');
+  console.log('Control Room overview, radar, signals, briefs, claims, readiness, Access and browser smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
