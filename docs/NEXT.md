@@ -6,21 +6,17 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Avviare la fase queue e audit read-only
+### 1. Chiudere la PR #44 su queue e audit read-only
 
-Branch prevista:
+Branch:
 
 ```text
 feat/control-room-queue-audit
 ```
 
-Obiettivo esclusivo iniziale: migrare nella nuova Control Room la lettura di `queue` e `audit` già presenti nello snapshot aggregato.
+La PR #44 migra nella nuova Control Room la lettura di `queue` e `audit` già presenti nello snapshot aggregato.
 
-La prima iterazione resta read-only. Non introduce claim mutation, draft action, gestione operativa della queue, nuovi endpoint o pubblicazione.
-
-### 2. Leggere i contratti canonici prima del codice
-
-Prima di modificare la UI, verificare nel backend e nello snapshot:
+Scope implementato e in verifica:
 
 #### Queue
 
@@ -31,8 +27,10 @@ Prima di modificare la UI, verificare nel backend e nello snapshot:
 - attempts e max attempts;
 - locked by;
 - last error;
-- payload normalizzato;
-- created at e updated at.
+- payload JSON normalizzato;
+- created at e updated at;
+- filtri per stato, task type, entity type e condizione;
+- dettaglio accessibile in Sheet.
 
 #### Audit
 
@@ -40,15 +38,16 @@ Prima di modificare la UI, verificare nel backend e nello snapshot:
 - action;
 - actor;
 - entity;
-- details normalizzati;
+- details JSON normalizzati;
 - created at;
-- limiti del collegamento fra evento, record e versione.
+- filtri per dominio, azione e attore;
+- dettaglio accessibile in Sheet.
 
-Non inventare linkage o semantiche mancanti. Se un dato necessario non è nello snapshot, fermare lo scope frontend e documentare il gap prima di cambiare il backend.
+La prima iterazione resta read-only. Non introduce claim mutation, draft action, gestione operativa della queue, nuovi endpoint o pubblicazione.
 
-### 3. Conservare le separazioni operative
+### 2. Conservare le separazioni operative
 
-La UI deve rendere esplicito che:
+La UI rende esplicito che:
 
 ```text
 queue status ≠ decisione editoriale
@@ -60,24 +59,15 @@ audit event ≠ autorizzazione operativa
 Regole:
 
 - stato, tentativi, errori e priorità vengono mostrati come persistiti;
+- i riepiloghi locali descrivono soltanto i record restituiti dalla query limitata dello snapshot;
 - il client non ricalcola priorità, retry o outcome;
-- i dettagli audit vengono trattati come dati opachi validati, non come decisioni ricostruite;
+- payload e dettagli audit vengono trattati come JSON opaco validato;
+- lo snapshot non espone un ID evento audit né un legame univoco con una versione draft;
+- nessun linkage mancante viene ricostruito;
 - nessun pulsante retry, complete, dismiss, approve o publish viene introdotto;
 - nessuna richiesta browser diversa da `GET` viene aggiunta.
 
-### 4. Vista read-only prevista
-
-Soltanto quando supportato dal contratto reale:
-
-- riepilogo task pending, processing e failed;
-- tabella queue con filtri utili;
-- dettaglio task con payload, tentativi, lock ed errore;
-- timeline audit con dominio, azione, attore, entità e timestamp;
-- filtri audit per dominio e azione;
-- dettaglio accessibile dei metadati;
-- empty state reale, contratto invalido, desktop, mobile e tastiera.
-
-### 5. Definition of Done
+### 3. Definition of Done della PR #44
 
 Prima del merge devono passare:
 
@@ -88,30 +78,34 @@ Prima del merge devono passare:
 - smoke Chromium generale;
 - smoke claim, readiness e draft invariati;
 - smoke dedicato a queue e audit;
-- contratti non conformi rifiutati;
+- stati queue non ammessi rifiutati;
+- tentativi, timestamp, payload e dettagli non conformi rifiutati;
+- empty state, filtri, tastiera e mobile;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna credenziale o accesso diretto a D1;
 - nessuna route o azione di retry, completamento, approvazione o pubblicazione;
 - nessuna regressione su overview, radar, segnali, brief, claim, readiness e draft.
 
-### 6. Verifica reale dopo il merge
+### 4. Verificare il deploy reale
 
-Dopo il deploy:
+Dopo il merge:
 
 - aprire `https://senzaroaming.it/control-room-foundation`;
 - verificare task reali pending, processing o failed quando presenti;
+- verificare tipo, entità, priorità, tentativi, lock, errore e payload;
 - verificare eventi audit reali del primo ciclo editoriale;
-- controllare che actor, action, entity, errori e timestamp coincidano con lo snapshot;
+- controllare dominio, azione, attore, entità, dettagli e timestamp;
 - controllare desktop e mobile;
 - confermare l’assenza di azioni operative e pubblicazione.
 
-### 7. Fase successiva
+### 5. Fase successiva
 
 Soltanto dopo la parità read-only di queue e audit:
 
 - decidere con scope esplicito se chiudere il gap draft su corpo, provenance e stato pagina;
 - progettare eventuali mutation una per branch;
-- mantenere approvazione editoriale e pubblicazione come gate separati.
+- mantenere approvazione editoriale e pubblicazione come gate separati;
+- valutare la rimozione della legacy soltanto dopo parità funzionale verificata.
 
 ## Fuori scope immediato
 
@@ -120,7 +114,7 @@ Soltanto dopo la parità read-only di queue e audit:
 - generazione o rigenerazione draft;
 - approvazione o richiesta modifiche draft;
 - modifica claim, fonti o evidence bundle;
-- estensione di endpoint o query D1 senza gap documentato e scope esplicito;
+- estensione di endpoint o query D1;
 - pubblicazione;
 - modifiche alla Control Room legacy;
 - migrazione del sito pubblico.
