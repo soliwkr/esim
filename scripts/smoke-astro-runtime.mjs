@@ -12,6 +12,27 @@ const maintenanceToken = 'runtime-smoke-token';
 const access = createAccessTestCredentials();
 const accessHeaders = { 'cf-access-jwt-assertion': access.token };
 const logs = [];
+const expectedOverviewKeys = [
+  'sources_total',
+  'sources_due',
+  'queue_pending',
+  'queue_processing',
+  'queue_failed',
+  'research_runs',
+  'signals_eligible',
+  'signals_filtered',
+  'briefs_proposed',
+  'briefs_accepted',
+  'briefs_converted',
+  'claims_pending',
+  'claims_verified',
+  'claims_insufficient',
+  'evidence_bundles',
+  'drafts_review',
+  'drafts_approved',
+  'pages_review',
+  'pages_published'
+];
 
 function record(chunk) {
   const value = chunk.toString();
@@ -20,25 +41,41 @@ function record(chunk) {
 }
 
 async function verifyBuildContract() {
-  const [configRaw, entry, backendRouter, customEntrypoint, accessGuard, controlRoomIsland, controlRoomApiClient] = await Promise.all([
+  const [
+    configRaw,
+    entry,
+    backendRouter,
+    customEntrypoint,
+    accessGuard,
+    controlRoomIsland,
+    overviewComponent,
+    readOnlySections,
+    controlRoomApiClient
+  ] = await Promise.all([
     readFile(configPath, 'utf8'),
     readFile(entryPath, 'utf8'),
     readFile('src/index.ts', 'utf8'),
     readFile('apps/web/src/worker.ts', 'utf8'),
     readFile('apps/web/src/lib/cloudflare-access.ts', 'utf8'),
     readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/Overview.tsx', 'utf8'),
+    readFile('apps/web/src/components/control-room/ReadOnlySections.tsx', 'utf8'),
     readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
   ]);
   const config = JSON.parse(configRaw);
+  const controlRoomClient = `${controlRoomIsland}\n${overviewComponent}\n${readOnlySections}`;
 
   assert.equal(config.main, 'entry.mjs');
   assert.equal(config.workflows?.[0]?.class_name, 'RecentDemandWorkflow');
   assert.equal(config.containers?.[0]?.class_name, 'Last30DaysContainer');
   assert.match(entry, /export \{ Last30DaysContainer, RecentDemandWorkflow,/);
   assert.doesNotMatch(`${backendRouter}\n${customEntrypoint}`, /['"`]\/?api\/publish(?:\/|['"`])/);
-  assert.doesNotMatch(controlRoomIsland, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
-  assert.doesNotMatch(controlRoomIsland, /sessionStorage|srMaintenanceToken|maintenance-token/i);
+  assert.doesNotMatch(controlRoomClient, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
+  assert.doesNotMatch(controlRoomClient, /sessionStorage|srMaintenanceToken|maintenance-token/i);
   assert.doesNotMatch(controlRoomApiClient, /Authorization|Bearer|sessionStorage/i);
+  assert.match(controlRoomApiClient, /overviewMetricKeys/);
+  assert.match(controlRoomApiClient, /parseHealthSnapshot/);
+  assert.match(controlRoomApiClient, /parseControlRoomSnapshot/);
   assert.match(controlRoomApiClient, /control-room-foundation\/api\/snapshot/);
   assert.match(customEntrypoint, /requireCloudflareAccess/);
   assert.match(customEntrypoint, /control-room-foundation\/api\/snapshot/);
@@ -190,6 +227,9 @@ try {
   assert.equal(proxySnapshot.ok, true);
   assert.ok(Array.isArray(proxySnapshot.claims));
   assert.ok(Array.isArray(proxySnapshot.drafts));
+  for (const key of expectedOverviewKeys) {
+    assert.equal(typeof proxySnapshot.overview?.[key], 'number', `Missing overview metric ${key}`);
+  }
 
   const proxyMutation = await fetch(`${origin}${snapshotProxyPath}`, {
     method: 'POST',
@@ -220,7 +260,7 @@ try {
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
 
-  console.log('Astro/Cloudflare runtime, Access guard and snapshot proxy smoke passed.');
+  console.log('Astro/Cloudflare runtime, Access, overview contract and snapshot proxy smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
