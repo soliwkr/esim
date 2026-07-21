@@ -33,7 +33,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import type { ControlRoomEvidenceBundle } from "@/lib/control-room-api"
+import type {
+  ControlRoomEvidenceBundle,
+  ControlRoomEvidenceWarning,
+} from "@/lib/control-room-api"
 import { cn } from "@/lib/utils"
 
 function formatDateTime(value: string | null): string {
@@ -103,6 +106,19 @@ function GateCard({ label, field, value }: { label: string; field: string; value
   )
 }
 
+function WarningCard({ warning }: { warning: ControlRoomEvidenceWarning }) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-amber-950">
+      <Badge variant="outline" className="border-amber-300 bg-amber-100 font-mono text-amber-900">
+        {warning.code}
+      </Badge>
+      {warning.message && (
+        <p className="mt-2 text-sm leading-6 text-amber-950/80">{warning.message}</p>
+      )}
+    </div>
+  )
+}
+
 function BundleDetails({ bundle }: { bundle: ControlRoomEvidenceBundle }) {
   return (
     <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
@@ -167,11 +183,9 @@ function BundleDetails({ bundle }: { bundle: ControlRoomEvidenceBundle }) {
           {bundle.warnings.length === 0 ? (
             <p className="text-muted-foreground">Nessun warning registrato.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {bundle.warnings.map((warning) => (
-                <Badge key={warning} variant="outline" className="border-amber-200 bg-amber-50 text-amber-800">
-                  {warning}
-                </Badge>
+            <div className="space-y-3">
+              {bundle.warnings.map((warning, index) => (
+                <WarningCard key={`${warning.code}-${index}`} warning={warning} />
               ))}
             </div>
           )}
