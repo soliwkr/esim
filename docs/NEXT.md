@@ -6,124 +6,119 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la hotfix del contratto warning readiness
+### 1. Avviare la fase draft, preview e decisioni
 
-Branch:
-
-```text
-fix/control-room-readiness-warning-contract
-```
-
-Contesto osservato nel browser reale:
-
-```text
-Access verificato
-→ shell disponibile
-→ snapshot HTTP disponibile
-→ client: Contratto snapshot non valido
-```
-
-Causa:
-
-```text
-Page Readiness canonico → warnings come oggetti strutturati
-fixture PR #39          → warnings come stringhe
-parser frontend         → richiedeva stringhe
-```
-
-La hotfix resta frontend-only e non modifica backend, D1, Workflow, Container, AI, gate editoriali o contratti API.
-
-### 2. Allineare il contratto warning
-
-Ogni warning deve essere un oggetto:
-
-```text
-{
-  code: string non vuota,
-  message?: string,
-  ...metadati persistiti non interpretati dal client
-}
-```
-
-Regole:
-
-- l'array `warnings` è obbligatorio;
-- una stringa legacy non è valida;
-- `code` è obbligatorio e non vuoto;
-- `message`, quando presente, deve essere una stringa;
-- campi aggiuntivi come `claimIds` e `conflicts` vengono preservati;
-- il client non deduce nuovi blocker, score o gate dai warning.
-
-### 3. Correggere vista e fixture
-
-La vista deve:
-
-- mostrare `warning.code`;
-- mostrare `warning.message` quando presente;
-- non renderizzare direttamente oggetti JSON come figli React;
-- continuare a filtrare per presenza o assenza di warning;
-- mantenere i quattro gate e tutti i conteggi invariati.
-
-La fixture deve usare gli stessi warning prodotti da `src/page-readiness.ts`, inclusi:
-
-- `insufficient_claims`;
-- `scoped_source_conflicts`;
-- `no_first_party_test`;
-- `provider_statements_require_attribution`.
-
-### 4. Definition of Done hotfix
-
-Prima del merge devono passare:
-
-- TypeScript strict e build Astro;
-- migrazioni locali e smoke del quality gate invariati;
-- build e smoke del Container invariati;
-- runtime `workerd`;
-- smoke Chromium generale;
-- smoke Chromium claim, fonti e scadenze;
-- smoke Chromium readiness con warning strutturati;
-- regressione per stringa legacy, codice mancante e messaggio non testuale;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna credenziale o accesso diretto a D1;
-- nessuna route o azione di approvazione, generazione o pubblicazione;
-- nessuna regressione su overview, radar, segnali, brief, claim e draft preview.
-
-### 5. Verificare il deploy reale
-
-Dopo il merge:
-
-- aprire `https://senzaroaming.it/control-room-foundation`;
-- verificare che lo snapshot sia disponibile;
-- aprire “Evidence bundle e gate”;
-- aprire il bundle reale del primo ciclo editoriale;
-- verificare score 77;
-- verificare draft eligibility positiva e publication eligibility negativa;
-- verificare conteggi, conflitto, warning strutturati e zero first-party tests;
-- controllare desktop e mobile;
-- confermare che non esistano azioni di approvazione, generazione o pubblicazione.
-
-### 6. Fase successiva
-
-Soltanto dopo la verifica reale della hotfix:
+Branch prevista:
 
 ```text
 feat/control-room-draft-decisions
 ```
 
-Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation richiederanno una branch separata, contratti espliciti e conferme accessibili; non vengono introdotte automaticamente nella fase readiness.
+Obiettivo esclusivo iniziale: migrare nella nuova Control Room la lettura completa dei draft, della preview e delle decisioni editoriali già persistite.
+
+La prima iterazione resta read-only. Non introduce approvazione, rigenerazione, mutation, nuovi endpoint o pubblicazione.
+
+### 2. Leggere il contratto canonico prima del codice
+
+Prima di modificare la UI, verificare nel backend e nello snapshot:
+
+- record draft completo e campi nullable;
+- evidence bundle collegato;
+- versione e renderer;
+- stato canonico del draft;
+- contenuto strutturato e metadati SEO disponibili;
+- claim usati ed esclusi;
+- provenance per campi, sezioni e FAQ;
+- autore, note di revisione, errore e timestamp;
+- eventuale pagina materializzata e relativo stato;
+- decisioni editoriali e audit già esposti.
+
+Non inventare linkage o semantiche mancanti. Se un dato necessario non è nello snapshot, fermare lo scope frontend e documentare il gap prima di cambiare il backend.
+
+### 3. Conservare le separazioni editoriali
+
+La UI deve rendere esplicito che:
+
+```text
+approved draft ≠ published page
+review draft    ≠ publication eligibility
+editorial approval ≠ publication action
+```
+
+Regole:
+
+- lo stato del draft resta distinto dallo stato della pagina;
+- un draft approvato può restare materializzato in `review`;
+- provenance e claim esclusi non vengono nascosti;
+- errori e contenuti nullable vengono mostrati senza dati sostitutivi;
+- il client non ricalcola score, gate o decisioni;
+- nessun pulsante di pubblicazione viene introdotto.
+
+### 4. Vista read-only prevista
+
+La nuova sezione deve includere, soltanto quando supportato dal contratto reale:
+
+- elenco draft con pagina, versione, renderer e stato;
+- collegamento a evidence bundle e brief;
+- preview dei campi principali;
+- dettaglio del contenuto strutturato;
+- claim usati ed esclusi;
+- provenance leggibile;
+- note di revisione ed eventuali errori;
+- stato della pagina materializzata separato;
+- filtri utili e dettaglio accessibile;
+- empty state reale, contratto invalido, desktop, mobile e tastiera.
+
+### 5. Definition of Done della fase read-only
+
+Prima del merge devono passare:
+
+- TypeScript strict e build Astro;
+- migrazioni locali e quality gate invariati;
+- build e smoke del Container invariati;
+- runtime `workerd` con draft reale;
+- smoke Chromium generale;
+- smoke Chromium claim e readiness invariati;
+- smoke dedicato a draft e preview;
+- contratti non conformi rifiutati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna credenziale o accesso diretto a D1;
+- nessuna route o azione di approvazione, generazione o pubblicazione;
+- nessuna regressione su overview, radar, segnali, brief, claim e readiness.
+
+### 6. Verifica reale dopo il merge
+
+Dopo il deploy:
+
+- aprire `https://senzaroaming.it/control-room-foundation`;
+- verificare il draft reale del primo ciclo editoriale;
+- verificare versione `2` e renderer `editorial-page-draft-v2`;
+- verificare stato draft `approved` e pagina materializzata ancora `review`;
+- verificare claim usati, esclusi e provenance;
+- controllare desktop e mobile;
+- confermare che non esistano azioni di generazione, approvazione operativa o pubblicazione.
+
+### 7. Fase successiva
+
+Soltanto dopo la parità read-only dei draft:
+
+```text
+feat/control-room-queue-audit
+```
+
+Le eventuali mutation editoriali richiedono branch separate, contratti espliciti, autorizzazione e conferme accessibili. Non vengono incluse automaticamente nella migrazione read-only.
 
 ## Fuori scope immediato
 
-- modifica del formato backend dei warning;
-- valutazione o ricalcolo della readiness;
-- approvazione dell'evidence bundle;
-- generazione draft;
-- modifica claim o fonti;
+- generazione o rigenerazione draft;
+- approvazione o rifiuto tramite nuova UI;
+- materializzazione di nuove pagine;
+- modifica claim, fonti o evidence bundle;
 - mutation della maintenance queue;
-- nuovi endpoint o query D1;
+- nuovi endpoint o query D1 senza gap documentato e scope esplicito;
 - pubblicazione;
 - modifiche alla Control Room legacy;
-- framework esterni di data quality.
+- migrazione del sito pubblico.
 
 ## Checkpoint completati il 21 luglio 2026
 
@@ -167,6 +162,18 @@ Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation ric
 - nessuna richiesta browser diversa da `GET`;
 - nessuna mutation o pubblicazione.
 
+### Page Readiness ed evidence bundle
+
+- PR #39 e hotfix #40 mergiate;
+- CI completa, deploy e verifica browser completati;
+- score 77, draft eligibility positiva e publication eligibility negativa visibili;
+- quattro gate distinti;
+- conteggi, conflitto, warning strutturati e zero first-party tests visibili;
+- fixture riallineata al payload canonico;
+- warning non conformi rifiutati;
+- nessuna richiesta browser diversa da `GET`;
+- nessuna mutation o pubblicazione.
+
 ## Freeze immediato
 
 - niente nuove pagine tramite template string nel Worker;
@@ -174,4 +181,4 @@ Scope previsto: draft, preview e decisioni editoriali. Le eventuali mutation ric
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation nella hotfix readiness read-only.
+- nessuna mutation nella prima fase draft read-only.
