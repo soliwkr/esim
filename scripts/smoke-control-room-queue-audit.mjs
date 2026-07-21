@@ -173,6 +173,7 @@ try {
   await dialog.getByText('field_grounded_draft_generated').waitFor();
   await dialog.getByTestId('queue-task-guardrail').waitFor();
   await page.keyboard.press('Escape');
+  await dialog.waitFor({ state: 'hidden' });
 
   await choose(page, 'Filtra queue per stato', 'failed');
   await queue.getByText('1 di 4 task visibili').waitFor();
@@ -210,6 +211,7 @@ try {
   await dialog.getByText('draftId').waitFor();
   await dialog.getByTestId('audit-event-guardrail').waitFor();
   await page.keyboard.press('Escape');
+  await dialog.waitFor({ state: 'hidden' });
 
   await choose(page, 'Filtra audit per dominio', 'claim');
   await audit.getByText('1 di 5 eventi visibili').waitFor();
