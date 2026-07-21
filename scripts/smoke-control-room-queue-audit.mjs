@@ -192,7 +192,7 @@ try {
   await choose(page, 'Filtra queue per entity type', 'Tutte le entità');
   await choose(page, 'Filtra queue per condizione', 'Con lock');
   await queue.getByText('1 di 4 task visibili').waitFor();
-  await queue.getByText('fixture-worker').count().catch(() => 0);
+  await queue.getByRole('row').filter({ hasText: 'editorial-claim:102' }).waitFor();
 
   await choose(page, 'Filtra queue per condizione', 'Tutte le condizioni');
 
@@ -205,10 +205,10 @@ try {
   await auditButton.focus();
   await page.keyboard.press('Enter');
   dialog = page.getByRole('dialog');
-  await dialog.getByText('Evento audit').waitFor();
-  await dialog.getByText('draft').waitFor();
-  await dialog.getByText('approved').waitFor();
-  await dialog.getByText('draftId').waitFor();
+  await dialog.getByRole('heading', { name: 'Evento audit', exact: true }).waitFor();
+  await dialog.getByText('draft', { exact: true }).first().waitFor();
+  await dialog.getByText('approved', { exact: true }).first().waitFor();
+  await dialog.locator('pre').filter({ hasText: '"draftId": 202' }).waitFor();
   await dialog.getByTestId('audit-event-guardrail').waitFor();
   await page.keyboard.press('Escape');
   await dialog.waitFor({ state: 'hidden' });
