@@ -64,16 +64,27 @@ async function waitForRuntime(child, timeoutMs = 180_000) {
   throw new Error('Timed out waiting for the workerd runtime.');
 }
 
-async function expectNotFound(path) {
-  const response = await fetch(`${origin}${path}`, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${maintenanceToken}`,
-      'content-type': 'application/json'
-    },
-    body: '{}'
-  });
-  assert.equal(response.status, 404, `${path} unexpectedly resolved with ${response.status}`);
+async function expectNotFound(path, maxAttempts = 5) {
+  let lastStatus = 0;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await fetch(`${origin}${path}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${maintenanceToken}`,
+        'content-type': 'application/json'
+      },
+      body: '{}'
+    });
+    lastStatus = response.status;
+
+    if (lastStatus === 404) return;
+    if (lastStatus !== 503) break;
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  assert.equal(lastStatus, 404, `${path} unexpectedly resolved with ${lastStatus}`);
 }
 
 await verifyBuildContract();
