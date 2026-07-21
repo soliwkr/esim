@@ -15,10 +15,10 @@ import {
 import { toast } from "sonner"
 
 import { ClaimsSources } from "@/components/control-room/ClaimsSources"
+import { DraftDecisions } from "@/components/control-room/DraftDecisions"
 import { Overview } from "@/components/control-room/Overview"
 import { RadarBriefs } from "@/components/control-room/RadarBriefs"
 import { ReadinessEvidence } from "@/components/control-room/ReadinessEvidence"
-import { DraftPreview } from "@/components/control-room/ReadOnlySections"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,7 +55,7 @@ const navigation = [
   { href: "#briefs", label: "Brief", icon: ClipboardList },
   { href: "#claims", label: "Claim e fonti", icon: Rows3 },
   { href: "#readiness", label: "Readiness", icon: FileCheck2 },
-  { href: "#draft", label: "Draft preview", icon: FileText },
+  { href: "#draft", label: "Draft e decisioni", icon: FileText },
 ]
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
@@ -208,7 +208,7 @@ export function ControlRoomApp() {
             <MobileNavigation />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Control Room</p>
-              <p className="truncate text-xs text-muted-foreground">Overview, radar, claim e readiness · sola lettura</p>
+              <p className="truncate text-xs text-muted-foreground">Overview, radar, claim, readiness e draft · sola lettura</p>
             </div>
             <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
               <ShieldCheck aria-hidden="true" className="size-3.5" />
@@ -245,7 +245,11 @@ export function ControlRoomApp() {
                   />
                   <ClaimsSources claims={snapshotState.data.claims} />
                   <ReadinessEvidence bundles={snapshotState.data.evidenceBundles} />
-                  <DraftPreview drafts={snapshotState.data.drafts} />
+                  <DraftDecisions
+                    drafts={snapshotState.data.drafts}
+                    bundles={snapshotState.data.evidenceBundles}
+                    briefs={snapshotState.data.briefs}
+                  />
                 </>
               )}
             </>
