@@ -154,10 +154,20 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-016 — Cloudflare Access con validazione JWT nell'origine
 
-**Stato:** accettata; attivazione subordinata alla configurazione esterna e agli smoke live
+**Stato:** accettata e verificata in produzione
 
 **Decisione:** proteggere `/control-room-foundation*` con un'applicazione Cloudflare Access deny-by-default e validare nel custom Worker il JWT `Cf-Access-Jwt-Assertion` prima di eseguire Astro.
 
 **Razionale:** una policy Access configurata soltanto al bordo non protegge da errori di routing o bypass dell'origine. La verifica di firma RS256, issuer, audience e validità temporale rende la route fail-closed anche quando Access è assente o configurato in modo errato.
 
-**Conseguenza:** `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD` sono configurazione runtime non versionata; la route restituisce `503` se mancano e `403` per JWT assente o non valido. Il deploy richiede inoltre un service token dedicato per lo smoke live. La sessione applicativa e il `MAINTENANCE_TOKEN` restano un secondo livello; backend editoriale, D1 e publication gate non cambiano.
+**Conseguenza:** `CF_ACCESS_TEAM_DOMAIN` e `CF_ACCESS_AUD` sono configurazione runtime non versionata; la route restituisce `503` se mancano e `403` per JWT assente o non valido. Il deploy richiede inoltre un service token dedicato per lo smoke live. Backend editoriale, D1 e publication gate non cambiano.
+
+## ADR-017 — Sessione Control Room mediata dal Worker
+
+**Stato:** accettata; verifica live della nuova implementazione richiesta prima di dichiararla operativa
+
+**Decisione:** il browser della nuova Control Room non gestisce `MAINTENANCE_TOKEN`. Dopo Cloudflare Access richiama un endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente il JWT, inserisce il maintenance token soltanto server-side e delega al contratto esistente `GET /api/maintenance/control-room`.
+
+**Razionale:** chiedere un secondo token all'operatore rende l'accesso macchinoso e trasferisce inutilmente un secret operativo nel browser. Cloudflare Access identifica già l'utente; il Worker può mantenere il secondo livello tra origin e API senza esporlo al client.
+
+**Conseguenza:** `sessionStorage`, campo token, header browser `Authorization` e pulsante di blocco locale vengono rimossi. Il proxy accetta soltanto `GET`, eredita il path Access, restituisce header privati e non cambia l'API originale, che resta disponibile per agenti e consumer legacy. Nessuna mutation, capacità di pubblicazione o accesso browser a D1 viene introdotto.
