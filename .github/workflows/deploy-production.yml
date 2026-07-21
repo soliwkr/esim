@@ -110,7 +110,7 @@ jobs:
           set -euo pipefail
           test -n "$CF_ACCESS_CLIENT_ID" || { echo "Missing GitHub secret CF_ACCESS_CLIENT_ID"; exit 1; }
           test -n "$CF_ACCESS_CLIENT_SECRET" || { echo "Missing GitHub secret CF_ACCESS_CLIENT_SECRET"; exit 1; }
-          npx wrangler secret list --config wrangler.production.jsonc --json > /tmp/worker-secrets.json
+          npx wrangler secret list --config wrangler.production.jsonc --format json > /tmp/worker-secrets.json
           node - <<'NODE'
           const fs = require('node:fs');
           const payload = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json', 'utf8'));
