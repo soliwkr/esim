@@ -13,21 +13,6 @@ Ultimo aggiornamento: **21 luglio 2026**.
 - [`docs/STATUS.md`](docs/STATUS.md) — stato operativo reale;
 - [`docs/NEXT.md`](docs/NEXT.md) — lavoro immediatamente eseguibile.
 
-## Layer coperti
-
-```text
-L0  Governance, sicurezza e controllo
-L1  Runtime, orchestrazione e dati
-L2  Evidence, ricerca e trend
-L3  AI intelligence controllata
-L4  Operazioni editoriali
-L5  Contenuto e product experience
-L6  SEO, AEO e GEO
-L7  Analytics, metriche ed esperimenti
-L8  Monetizzazione
-L9  Dashboard e integrazione studio
-```
-
 ## Principi non negoziabili
 
 1. L'AI non pubblica direttamente.
@@ -35,11 +20,11 @@ L9  Dashboard e integrazione studio
 3. Prezzi, copertura, rete, hotspot, fair use, durata, attivazione, routing e accesso richiedono fonti identificabili e data di verifica.
 4. Un requisito generale non è un claim verificato.
 5. Ogni automazione deve essere osservabile, idempotente e protetta.
-6. Il repository è la memoria canonica; la chat non è il database del progetto.
+6. Il repository è la memoria canonica.
 7. Senza Roaming resta un execution project autonomo.
-8. Una capacità viene adottata soltanto se migliora una decisione e ha ownership e criterio di successo.
+8. Una capacità viene adottata soltanto se migliora una decisione e ha un criterio di successo.
 9. Non si riscrivono componenti generici già risolti da librerie mature.
-10. Il sito pubblico resta content-first; JavaScript viene caricato soltanto dove serve.
+10. Il sito pubblico resta content-first.
 
 ## M0 — Fondazioni tecniche
 
@@ -52,24 +37,53 @@ L9  Dashboard e integrazione studio
 - [x] Container `last30days` operativo.
 - [x] Cloudflare Workflow per il radar.
 - [x] Endpoint protetti di manutenzione.
-- [x] Vere 404 e noindex per scanner e file inesistenti.
+- [x] Vere 404 e noindex.
 - [x] Redirect `www → apex` implementato.
 - [x] Primo run end-to-end e ingest in D1.
 - [ ] Verificare definitivamente il `308` in produzione.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quasi completato**
+**Stato: quality checkpoint aperto**
 
 - [x] Roadmap, status, architettura, decisioni e next.
-- [x] Capability Map e Skill Registry.
 - [x] Storico e stato dei run.
-- [x] Quality gate `eligible` / `filtered`.
+- [x] Quality gate freshness `eligible` / `filtered`.
 - [x] Audit specifico di run, brief, claim e verifiche.
 - [x] Snapshot aggregato per dashboard.
+- [ ] Chiudere PR #36: relevance score zero come filtro duro.
+- [ ] Verificare il backfill del falso positivo osservato in produzione.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato.
+
+### Quality checkpoint PR #36
+
+Problema osservato:
+
+```text
+query/topic: Holafly recent experiences
+contenuto: esperienza a uno spettacolo comico ad Austin
+relevance_score: 0
+eligible_for_editorial: 1
+```
+
+Decisione:
+
+```text
+relevance = 0              → filtered + zero_relevance
+0 < relevance < 0,35       → eligible + warning
+relevance = null           → nessun filtro automatico
+manual override            → preservato e auditabile
+```
+
+Criterio di uscita:
+
+- migrazione `0018` applicata;
+- regressione D1 verde;
+- record reale filtered;
+- conteggi del run riallineati;
+- nessuna modifica automatica a brief o claim.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -79,7 +93,7 @@ L9  Dashboard e integrazione studio
 - [x] Input limitato ai segnali idonei.
 - [x] Output strutturato e validato.
 - [x] Opportunity, Evidence e Priority Score.
-- [x] Brief persistiti e provenienza segnale → brief nel backend.
+- [x] Brief persistiti e provenienza nel backend.
 - [x] Accettazione umana e conversione in requisiti e task.
 - [x] Decomposizione in claim atomici.
 - [x] Matching soggetto claim/fonte.
@@ -142,41 +156,16 @@ L9  Dashboard e integrazione studio
 
 ### M4.4 — Migrazione funzionale Control Room
 
-Ordine:
-
-- [x] Overview e health — PR #32 mergiata, distribuita e verificata.
-- [x] Radar e brief — PR #34 mergiata, distribuita e verificata.
-- [ ] Claim, fonti e scadenze — **prossima fase**.
+- [x] Overview e health — PR #32 verificata.
+- [x] Radar e brief — PR #34 verificata.
+- [ ] Claim, fonti e scadenze — riprende dopo il quality checkpoint PR #36.
 - [ ] Page Readiness ed evidence bundle.
 - [ ] Draft, preview e decisioni.
 - [ ] Queue e audit.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-#### Radar e brief — risultato verificato
-
-- run, segnali e brief reali sono visibili;
-- il filtro run → segnali usa il `run_id` canonico;
-- punteggi, stati, quality flags e valori nullable restano quelli persistiti;
-- la UI non inventa un collegamento diretto segnale → brief non esposto dallo snapshot;
-- contratti runtime, desktop, mobile e tastiera sono verificati;
-- nessuna mutation o pubblicazione è stata introdotta.
-
-#### Claim, fonti e scadenze — scope successivo
-
-Usare esclusivamente i dati già presenti nello snapshot:
-
-- claim, brief collegato, soggetto, campo, testo e stato;
-- domanda di verifica, evidence e note;
-- fonte, URL, trust level e source kinds richiesti;
-- verification status, confidence, checked at e valid until;
-- task status;
-- filtri e dettaglio read-only;
-- stato temporale della scadenza distinto dallo stato canonico del claim.
-
-Non include modifica o verifica claim, gestione fonti, refresh, queue mutation, nuovi endpoint, query D1 o pubblicazione.
-
-**Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
+La fase claim/fonti/scadenze resta read-only e non cambia il backend. Il suo avvio è sospeso soltanto finché il dato `eligible` osservato non viene riallineato in produzione.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
@@ -207,7 +196,6 @@ Non include modifica o verifica claim, gestione fonti, refresh, queue mutation, 
 **Stato: direzione presa, implementazione separata**
 
 - [ ] OpenSEO come servizio dello studio.
-- [ ] Progetto dedicato a Senza Roaming.
 - [ ] Search Console collegata.
 - [ ] Rank tracking, competitor set e audit.
 - [ ] Trends MCP per momentum e stagionalità.
@@ -234,19 +222,18 @@ Non include modifica o verifica claim, gestione fonti, refresh, queue mutation, 
 - [ ] Aggiornamento delle pagine in perdita.
 - [ ] Audit tecnico, editoriale e GEO.
 - [ ] Espansione internazionale dopo stabilità italiana.
-- [ ] Contratto API con il futuro Command Center.
 
 ## Ordine operativo attuale
 
-1. migrare claim, fonti e scadenze in sola lettura;
-2. migrare readiness ed evidence bundle;
-3. migrare draft, preview e decisioni;
-4. migrare queue e audit;
-5. introdurre azioni operative soltanto con scope espliciti e separati;
-6. rimuovere la legacy soltanto dopo parità funzionale;
-7. migrare il sito pubblico ad Astro;
-8. collegare Search Console, consenso e analytics;
-9. attivare OpenSEO e trend intelligence;
+1. chiudere e verificare PR #36 sul quality gate;
+2. riprendere claim, fonti e scadenze in sola lettura;
+3. migrare readiness ed evidence bundle;
+4. migrare draft, preview e decisioni;
+5. migrare queue e audit;
+6. introdurre azioni operative soltanto con scope espliciti;
+7. rimuovere la legacy soltanto dopo parità funzionale;
+8. migrare il sito pubblico ad Astro;
+9. collegare Search Console, consenso e analytics;
 10. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
