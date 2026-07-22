@@ -11,7 +11,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
 | Worker e D1 | Operativi | produzione verificata fino a `0018`; `0019` mergiata, verifica remota ancora aperta |
-| API manutenzione | Operativa | accesso riservato; contratti editoriali esistenti invariati salvo linkage audit ancora da completare |
+| API manutenzione | Operativa | accesso riservato; snapshot read-only esteso senza nuove route |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
@@ -34,8 +34,9 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
 | Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
+| Audit → versione draft | Implementato e verificato in CI | draft PR #52, CI #217; nessuna migrazione D1 |
 | Dettaglio draft completo UI | Operativo e verificato in produzione | PR #47, CI #198 e verifica browser reale |
-| Audit parità legacy | Completato | PR #49, merge `e0a39fa9`; resta il linkage audit → versione draft |
+| Audit parità legacy | Read-only completa in CI | PR #49 + gap chiusi in PR #50 e draft PR #52 |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -120,7 +121,10 @@ Sono verificati in produzione:
 - filtri, dettagli, desktop, mobile e contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
-Il nuovo rendering di `task_id` nel dettaglio claim è verificato dalla CI #213 ma non è ancora attestato nel browser reale di produzione dietro Cloudflare Access.
+Sono verificati dalla CI ma non ancora attestati nel browser reale di produzione dietro Cloudflare Access:
+
+- rendering di `task_id` nel dettaglio claim — CI #213;
+- chiave audit stabile e linkage `draft_id` + `draft_version` — CI #217.
 
 ## Dettaglio draft completo — checkpoint completato
 
@@ -154,11 +158,9 @@ La verifica visuale conferma che in produzione vengono renderizzati il corpo, i 
 
 Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
 
-## Audit di parità legacy — checkpoint completato
+## Audit di parità legacy — letture chiuse in CI
 
 La PR #49 è mergiata nel commit `e0a39fa9` dopo la CI #209 completamente verde. La matrice è versionata in `docs/CONTROL-ROOM-LEGACY-PARITY-AUDIT.md` e lo smoke `smoke:legacy-parity` resta nella pipeline.
-
-L’audit conferma che la nuova Control Room conserva o supera le letture legacy per overview, radar, brief, claim, readiness, draft, dettaglio completo, queue, audit, error isolation, Access, tastiera e mobile.
 
 Il gap `claim → task_id` è stato chiuso dalla PR #50:
 
@@ -169,7 +171,14 @@ Il gap `claim → task_id` è stato chiuso dalla PR #50:
 - payload invalido rifiutato;
 - CI #213 completamente verde.
 
-Resta un solo gap read-only condiviso: il contratto audit aggregato non espone ancora un’identità evento stabile né campi canonici `draft_id` e `draft_version`. Deve essere risolto server-side senza euristiche nel browser.
+Il gap `audit → specifica versione draft` è chiuso sulla draft PR #52 senza migrazione D1:
+
+- lo schema esistente fornisce ID evento, `draft_id` e versione draft;
+- lo snapshot espone una `event_key` namespaced e univoca;
+- gli eventi draft espongono `draft_id` e `draft_version` positivi;
+- gli altri domini espongono entrambi i campi come `null`;
+- il client seleziona per `event_key` e non interpreta `details`;
+- CI #217 completamente verde, inclusi D1 locale, `workerd`, Queue/Audit e legacy parity.
 
 La preview HTML legacy non viene mantenuta come dipendenza visuale. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview del sito deve appartenere al renderer pubblico Astro.
 
@@ -219,18 +228,19 @@ Il gate non è ancora dichiarato verificato in produzione finché non viene atte
 
 ## Gap aperti
 
-- l'audit non è legato univocamente a una specifica versione draft;
-- verifica browser reale del linkage claim → task ancora aperta;
+- verifica browser reale dei linkage claim → task e audit → versione draft;
 - health aggregato runtime e log errori unificati restano incompleti;
 - refresh automatico delle fonti scadute resta da completare;
 - Search Console, CMP e analytics non sono configurati;
-- la Control Room legacy non è ancora rimossa;
+- la Control Room legacy non è ancora rimossa perché ospita mutation;
 - verifica remota della migrazione `0019` ancora aperta.
 
 ## Prossimo checkpoint
 
+Prima chiudere e mergiare la PR #52. Poi:
+
 ```text
-fix/control-room-audit-draft-version-linkage-readonly
+azioni operative della Control Room, una capacità per branch
 ```
 
-Il prossimo lavoro rende canonico il collegamento tra evento audit e specifica versione draft con uno scope server-side read-only, senza mutation, pubblicazione o ricostruzioni euristiche nel client.
+La prima mutation verrà scelta soltanto dopo il merge e richiederà conferma esplicita, idempotenza, audit, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
