@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **21 luglio 2026**.
+Data di riferimento: **22 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -15,6 +15,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate ricerca | Operativo e verificato | score zero filtrato con `zero_relevance` |
+| Quality evaluation | PR #45 in verifica | golden dataset e confusion matrix contro D1 reale |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
@@ -29,8 +30,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Radar e brief | Operativi e verificati | PR #34 |
 | Claim, fonti e scadenze | Operativi e verificati | PR #37 |
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
-| Draft, preview e decisioni UI | Operativa e verificata | PR #42, CI e verifica browser reale completate |
-| Queue e audit UI | PR #44 in verifica | lettura, filtri e dettaglio senza mutation |
+| Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
+| Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -110,116 +111,31 @@ Sono verificati in produzione:
 - claim, fonti, verifiche e scadenze;
 - Page Readiness ed evidence bundle reali;
 - draft, versioni e decisioni di revisione read-only;
+- queue e audit aggregato read-only;
 - relazioni draft → evidence bundle → brief tramite ID canonici;
 - warning strutturati persistiti;
 - filtri e dettagli desktop/mobile;
 - contratti runtime delle viste chiuse;
 - nessuna mutation o capacità di pubblicazione.
 
-Queue e audit sono implementati nella PR #44 ma non ancora verificati in produzione.
+### Queue e audit — checkpoint completato
 
-## Quality gate score zero verificato
+La PR #44 è mergiata nel commit `ea0600b2`, ha superato la CI #174 ed è stata verificata nel browser reale.
 
-La PR #36 è mergiata, distribuita e verificata sul record reale:
+Queue mostra come persistiti:
 
-```text
-relevance = 0              → filtered + zero_relevance
-0 < relevance < 0,35       → eligible + warning consultivo
-relevance = null           → nessun filtro automatico
-manual_quality_override    → decisione umana preservata
-```
+- task `pending`, `processing` e `failed`;
+- tipo, entità, priorità, scadenza, tentativi e lock;
+- ultimo errore, payload e timestamp;
+- riepiloghi limitati ai record restituiti dallo snapshot.
 
-La migrazione conserva i record per audit, riallinea eligibility e conteggi e non modifica automaticamente brief, claim, readiness o draft.
+Audit mostra:
 
-## Claim, fonti e scadenze
-
-La PR #37 è distribuita e verificata:
-
-- cinque filtri e dettaglio read-only;
-- fonte distinta dall’evidenza;
-- verification status, confidence, checked at, valid until e task status;
-- stato temporale separato dallo stato canonico;
-- link fonte limitato a HTTP/HTTPS;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna mutation o pubblicazione.
-
-## Page Readiness ed evidence bundle
-
-Le PR #39 e #40 sono distribuite e verificate. La prima verifica reale ha rilevato una fixture warning non aderente al backend; la hotfix ha riallineato parser, rendering, fixture e smoke al formato canonico:
-
-```text
-{ code, message?, ...metadata }
-```
-
-Sono visibili score, conteggi, quattro gate distinti, warning, revisore e timestamp. La UI non ricalcola readiness o decisioni.
-
-## Draft, preview e decisioni read-only
-
-La PR #42 è mergiata nel commit `856da79`, distribuita e verificata nel browser reale.
-
-Usa esclusivamente gli array già presenti nello snapshot:
-
-```text
-drafts
-evidenceBundles
-briefs
-```
-
-Risultati verificati:
-
-- inventario di tutte le versioni draft esposte;
-- filtri per stato, renderer e presenza di revisione;
-- evidence bundle e brief collegati tramite ID canonici;
-- title, H1, claim usati ed esclusi;
-- generatore, revisore, reviewed at, note, errori e timestamp;
-- publication eligibility del bundle mostrata separatamente;
-- dettaglio read-only accessibile;
-- empty state, contratto invalido, tastiera, desktop e mobile;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna azione di generazione, approvazione, rigenerazione o pubblicazione.
+- dominio, azione, attore, entità e timestamp;
+- dettagli JSON opachi;
+- limite esplicito: nessun ID evento e nessun legame univoco con una versione draft.
 
 Guardrail verificati:
-
-```text
-approved draft ≠ published page
-review draft ≠ publication eligibility
-editorial approval ≠ publication action
-```
-
-### Gap esplicito del contratto aggregato
-
-Lo snapshot non espone:
-
-- corpo strutturato, FAQ e fonti;
-- provenance field-level del renderer v2;
-- stato della pagina materializzata;
-- audit legato univocamente a una specifica versione del draft.
-
-Il backend possiede già tali dati attraverso endpoint e tabelle esistenti, ma la PR #42 non amplia API o query. La UI dichiara il gap e non deduce dati mancanti.
-
-## PR #44 — Queue e audit read-only
-
-La PR #44 usa soltanto gli array già esposti dallo snapshot:
-
-```text
-queue
-audit
-```
-
-Implementazione in verifica:
-
-- contratto runtime per task `pending`, `processing` e `failed`;
-- task type, entity, priorità, due at, tentativi, lock, ultimo errore e timestamp;
-- payload validato come JSON e mostrato senza reinterpretazione;
-- riepiloghi esplicitamente limitati ai record restituiti dalla query backend;
-- filtri queue per stato, task type, entity type e condizione;
-- audit aggregato con dominio, azione, attore, entità, dettagli e timestamp;
-- filtri audit per dominio, azione e attore;
-- dettaglio read-only accessibile, empty state, desktop, mobile e tastiera;
-- nessuna richiesta browser diversa da `GET`;
-- nessun nuovo endpoint o query D1.
-
-Guardrail:
 
 ```text
 queue status ≠ decisione editoriale
@@ -228,32 +144,85 @@ completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-Lo snapshot audit non espone un ID evento né un collegamento univoco con una versione draft. La UI dichiara il limite e non inventa relazioni.
+## Quality gate score zero
 
-## Rischi aperti
+La PR #36 è distribuita e verificata:
 
-1. La PR #44 deve superare la CI completa, incluso lo smoke Queue/Audit dedicato.
-2. Queue e audit devono essere verificati nel browser reale dopo il deploy.
-3. I conteggi della vista queue non devono essere presentati come metriche globali oltre la porzione restituita.
-4. Lo stato della pagina non deve essere dedotto dallo stato del draft.
-5. Il gap su corpo completo e provenance richiederà uno scope backend esplicito se verrà chiuso.
-6. Una fonte ufficiale resta una dichiarazione attribuita e non un test indipendente.
-7. L'health corrente descrive soprattutto configurazione e binding.
-8. La Control Room legacy deve restare congelata.
-9. Le fonti devono rientrare automaticamente nella coda alla scadenza.
-10. Search Console, CMP e analytics non sono ancora disponibili.
-11. Il repository pubblico non deve contenere credenziali o dati riservati.
+```text
+relevance = 0              → filtered + zero_relevance
+0 < relevance < 0,35       → eligible + warning consultivo
+relevance = null           → nessun filtro automatico
+manual_quality_override    → decisione umana preservata
+```
+
+La migrazione conserva i record per audit e non modifica automaticamente brief, claim, readiness o draft.
+
+## PR #45 — Research quality golden evaluation
+
+La PR #45 è in verifica e non modifica il gate di produzione.
+
+Aggiunge:
+
+```text
+tests/fixtures/research-quality-golden.json
+scripts/evaluate-research-quality-golden.mjs
+npm run eval:research-quality
+```
+
+Il golden evaluator:
+
+- applica le migrazioni D1 locali;
+- inserisce otto segnali revisionati;
+- esegue il trigger canonico;
+- confronta l'output con il comportamento corrente e con label editoriali umane;
+- produce confusion matrix, precision e recall;
+- pulisce i record di test.
+
+Baseline attesa:
+
+```text
+true positive:  3
+false positive: 1
+true negative:  4
+false negative: 0
+precision:       0.75
+recall:          1.00
+```
+
+Il falso positivo residuo è un risultato estraneo al topic con score positivo `0.2`. La baseline lo rende misurabile; non lo considera corretto.
+
+Framework valutati:
+
+- Promptfoo: candidato quando esisterà un vero grader semantico o prompt/model comparison;
+- Evidently: candidato per reporting e drift su un corpus più ampio;
+- Great Expectations: non necessario per vincoli già coperti da D1 e runtime tests;
+- Cleanlab: da rivalutare con probabilità di modello e volume etichettato sufficiente.
+
+Nessuno di questi framework viene inserito nel Worker durante lo spike.
+
+## Gap ancora aperti
+
+- corpo completo, FAQ, fonti e provenance field-level del draft non sono ancora nella nuova UI;
+- lo stato della pagina materializzata non è esposto nello snapshot aggregato;
+- l'audit non è legato univocamente a una specifica versione draft;
+- health aggregato runtime e log errori unificati restano incompleti;
+- refresh automatico delle fonti scadute resta da completare;
+- Search Console, CMP e analytics non sono configurati;
+- la Control Room legacy non è ancora rimossa.
 
 ## Prossimo checkpoint
 
-Il checkpoint PR #44 è raggiunto quando:
+Dopo la PR #45:
 
-- i contratti reali di `queue` e `audit` sono validati a runtime;
-- task, priorità, stato, tentativi, errori, payload e timestamp vengono mostrati come persistiti;
-- eventi audit, attore, dominio, azione, entità, dettagli e timestamp vengono mostrati senza reinterpretazione;
-- relazioni non presenti nello snapshot non vengono inventate;
-- filtri, dettaglio, empty state, contratto invalido, tastiera e mobile sono verificati;
-- overview, radar, brief, claim, readiness e draft non regrediscono;
-- CI, deploy e verifica manuale sono verdi;
-- nessuna mutation della queue o azione editoriale viene introdotta;
-- nessuna capacità di pubblicazione viene aggiunta.
+```text
+feat/research-topic-mismatch-gate
+```
+
+Criterio di uscita:
+
+```text
+false positive: 1 → 0
+false negative: 0 → 0
+```
+
+La fase deve filtrare il topic mismatch con una regola auditabile, conservare i segnali rilevanti low-positive e non modificare automaticamente brief, claim, bundle o draft già esistenti.
