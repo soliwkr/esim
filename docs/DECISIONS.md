@@ -166,21 +166,21 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Stato:** accettata e verificata in produzione
 
-**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama un endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente l'identità e delega al contratto esistente dello snapshot.
+**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente l'identità e delega a contratti backend esistenti.
 
 **Razionale:** chiedere un secondo token all'operatore rende l'accesso macchinoso e trasferisce inutilmente una credenziale nel browser.
 
-**Conseguenza:** campo token, storage applicativo, header di autorizzazione dal browser e pulsante di blocco locale sono rimossi. Il proxy accetta soltanto `GET`; l'API originale resta disponibile per agenti e consumer legacy.
+**Conseguenza:** campo token, storage applicativo e header di autorizzazione dal browser sono rimossi. I proxy accettano soltanto `GET`; le API originali restano disponibili per agenti e consumer legacy.
 
 ## ADR-018 — Contratti runtime e guasti parziali nella Control Room
 
 **Stato:** accettata
 
-**Decisione:** validare a runtime le risposte health e snapshot e gestirle come risorse indipendenti nel client. Un payload non conforme viene rifiutato; il fallimento di una risorsa non cancella i dati validi dell'altra.
+**Decisione:** validare a runtime health, snapshot e risorse on-demand e gestirle come risorse indipendenti nel client. Un payload non conforme viene rifiutato; il fallimento di una risorsa non cancella i dati validi delle altre.
 
 **Razionale:** i tipi TypeScript non validano JSON ricevuto in esecuzione e un guasto parziale non deve rendere indisponibile l'intera dashboard.
 
-**Conseguenza:** overview e health mostrano errori separati e il refresh conserva dati precedenti affidabili. Nessun endpoint backend viene modificato.
+**Conseguenza:** overview, health, snapshot e dettagli on-demand mostrano errori separati e conservano dati precedenti affidabili. Nessun calcolo editoriale viene spostato nel browser.
 
 ## ADR-019 — Relevance zero come quality failure deterministica
 
@@ -204,10 +204,20 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-021 — Topic anchor deterministici prima di un grader semantico
 
-**Stato:** proposta nella PR #46
+**Stato:** accettata con PR #46; verifica remota ancora aperta
 
 **Decisione:** per i nuovi run research e comparison, estrarre dalla query un massimo di otto anchor informative, persistirle nel run e richiedere nel trigger D1 almeno una corrispondenza letterale nel titolo o nel summary. Un mancato match produce `eligible_for_editorial = 0` e `topic_mismatch`.
 
 **Razionale:** il golden set contiene un risultato estraneo con score positivo `0.2`, causato da parole generiche come “recent experience”. Il nome del provider “Holafly” distingue il segnale pertinente senza richiedere un modello o un LLM-as-a-judge.
 
-**Conseguenza:** articoli e termini generici non diventano anchor; i run discovery persistono `[]` e restano esenti dal filtro; i run esistenti ricevono il default `[]` e non vengono riclassificati. La CI #183 porta il golden set a `3 TP`, `0 FP`, `5 TN`, `0 FN`, precision e recall `1.00`. Sinonimi, entità implicite e negazioni restano limiti dichiarati e richiedono nuovi esempi prima di valutare Promptfoo o un grader semantico.
+**Conseguenza:** articoli e termini generici non diventano anchor; i run discovery persistono `[]` e restano esenti dal filtro; i run esistenti ricevono il default `[]` e non vengono riclassificati. La CI porta il golden set a `3 TP`, `0 FP`, `5 TN`, `0 FN`, precision e recall `1.00`. Sinonimi, entità implicite e negazioni restano limiti dichiarati.
+
+## ADR-022 — Dettaglio draft on demand separato dallo snapshot
+
+**Stato:** proposta nella PR #47
+
+**Decisione:** mantenere nello snapshot aggregato soltanto l’inventario dei draft e caricare corpo completo, FAQ, fonti, provenance field-level e stato della pagina tramite una risorsa GET-only separata, richiesta soltanto quando l’operatore apre una versione.
+
+**Razionale:** includere tutti i corpi e le provenance nello snapshot iniziale aumenterebbe peso, tempo di validazione e raggio dei guasti. Il backend espone già il contratto necessario tramite `GET /api/maintenance/editorial-draft-grounding`; duplicare query D1 o creare un nuovo contratto editoriale non aggiungerebbe valore.
+
+**Conseguenza:** il custom Worker aggiunge `/control-room-foundation/api/draft-detail?draftId=<id>`, protetto da Cloudflare Access e mediato dal maintenance token server-side. Il client usa un contratto runtime dedicato; un errore del dettaglio non cancella inventario, overview o altre viste. Stato draft, stato pagina materializzata e publication eligibility restano distinti. Nessuna generation, review action, materializzazione o pubblicazione viene esposta.
