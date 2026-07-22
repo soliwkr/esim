@@ -93,7 +93,7 @@ q.status AS task_status
 
 La legacy mostra entrambi. L'audit aveva rilevato che il contratto `ControlRoomClaim` conservava soltanto `task_status`.
 
-La branch `fix/control-room-claim-task-linkage-readonly` chiude il gap senza modificare backend o D1:
+La PR #50, mergiata nel commit `41a9beee`, chiude il gap senza modificare backend o D1:
 
 - aggiunge `task_id: number | null` al contratto;
 - accetta soltanto `null` o interi positivi nel parser runtime;
@@ -102,7 +102,9 @@ La branch `fix/control-room-claim-task-linkage-readonly` chiude il gap senza mod
 - rifiuta payload con ID stringa, zero, negativo o non intero;
 - aggiorna smoke claim e controllo di parità.
 
-Il browser non ricostruisce il collegamento da `entity_key` o da altri campi.
+La CI #213 è completamente verde e copre typecheck, build, migrazioni locali, quality gate, Container, runtime `workerd` e tutti gli smoke della Control Room.
+
+Il browser non ricostruisce il collegamento da `entity_key` o da altri campi. La verifica visuale nel browser reale di produzione dietro Cloudflare Access resta separata e non è ancora certificata.
 
 ## Preview del draft
 
@@ -163,9 +165,9 @@ La rimozione della legacy **non è autorizzata** per due ragioni distinte:
 
 ## Verifica
 
-La CI #203 della PR #49 ha superato typecheck, build, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room.
-
-La branch di chiusura del linkage claim → task deve superare nuovamente la CI completa prima del merge.
+- PR #49: merge `e0a39fa9`, CI #209 verde;
+- PR #50: merge `41a9beee`, CI #213 verde;
+- verifica visuale in produzione del nuovo linkage claim → task: ancora aperta.
 
 ## Definition of Done verificabile
 
@@ -177,7 +179,8 @@ La branch di chiusura del linkage claim → task deve superare nuovamente la CI 
 - [x] nessun accesso diretto a D1 dal browser;
 - [x] nessuna mutation o capacità di pubblicazione introdotta;
 - [x] `task_id` del claim conservato e mostrato senza euristiche;
-- [ ] CI della branch di chiusura verde;
+- [x] CI della branch di chiusura verde;
+- [ ] verifica browser reale del linkage claim → task;
 - [ ] audit legato canonicamente alla versione draft;
 - [ ] mutation operative migrate;
 - [ ] fallback legacy non più necessario;
