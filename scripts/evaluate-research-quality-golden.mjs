@@ -81,7 +81,7 @@ try {
       source_system,schema_version,run_kind,query,generated_at,window_days,
       source_status_json,result_count,warning_count,payload_hash
     ) VALUES(
-      'golden_fixture','1.0','evaluation',${sqlString(fixture.run.query)},
+      'golden_fixture','1.0','research',${sqlString(fixture.run.query)},
       ${sqlString(fixture.run.generatedAt)},${fixture.run.windowDays},'{}',
       ${fixture.cases.length},0,${sqlString(payloadHash)}
     );
@@ -100,7 +100,7 @@ try {
         run_id,signal_key,signal_type,topic,title,summary,source,url,published_at,
         engagement_json,relevance_score,momentum,corroboration_count,cluster_title
       ) VALUES(
-        ${runId},${sqlString(`golden:${entry.id}`)},'evaluation',${sqlString(fixture.run.query)},
+        ${runId},${sqlString(`golden:${entry.id}`)},'comparison',${sqlString(fixture.run.query)},
         ${sqlString(entry.title)},${sqlString(entry.summary)},${sqlString(entry.source)},
         ${sqlString(`https://example.test/golden/${entry.id}`)},${sqlString(entry.publishedAt)},
         '{}',${entry.relevanceScore},NULL,0,''
