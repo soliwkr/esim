@@ -113,7 +113,7 @@ async function verifySignature(signingInput: string, signature: Uint8Array, key:
     ["verify"],
   )
   return crypto.subtle.verify(
-    { name: "RSASSA-PK1-v1_5".replace("PK1", "PKCS1") },
+    { name: "RSASSA-PKCS1-v1_5" },
     cryptoKey,
     toArrayBuffer(signature),
     toArrayBuffer(new TextEncoder().encode(signingInput)),
