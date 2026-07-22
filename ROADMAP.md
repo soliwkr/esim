@@ -45,7 +45,7 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quality gate operativo; evaluation e osservabilità in completamento**
+**Stato: quality gate operativo; topic-mismatch e osservabilità in completamento**
 
 - [x] Roadmap, status, architettura, decisioni e next.
 - [x] Storico e stato dei run.
@@ -54,8 +54,8 @@ Ultimo aggiornamento: **22 luglio 2026**.
 - [x] Backfill reale e flag `zero_relevance` verificati in produzione.
 - [x] Audit specifico di run, brief, claim e verifiche.
 - [x] Snapshot aggregato per dashboard.
-- [ ] Golden evaluation versionata — **PR #45 in verifica**.
-- [ ] Topic-mismatch gate con zero falsi positivi sul golden set.
+- [x] Golden evaluation versionata — PR #45.
+- [ ] Topic-mismatch gate — **PR #46 in verifica**.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato oltre la vista aggregata corrente.
@@ -71,13 +71,11 @@ relevance = null           → nessun filtro automatico
 manual override            → preservato e auditabile
 ```
 
-Il record falso positivo osservato risulta filtrato. Nessun brief o claim è stato modificato automaticamente.
+### Golden evaluation — checkpoint completato
 
-### Quality evaluation spike
+La PR #45 è mergiata nel commit `a918177` e misura il trigger D1 reale con un golden dataset versionato.
 
-La PR #45 aggiunge un golden dataset e misura il trigger D1 reale con confusion matrix.
-
-Baseline caratterizzata:
+Baseline del gate precedente:
 
 ```text
 true positive:  3
@@ -88,15 +86,38 @@ precision:       0.75
 recall:          1.00
 ```
 
-Il falso positivo residuo ha score positivo ma nessuna pertinenza semantica con la query.
+Decisione adottata:
 
-Decisione proposta:
+- golden dataset + evaluator D1 in CI;
+- Promptfoo quando esisterà un vero prompt, modello o grader semantico;
+- Evidently per report e drift su un corpus significativo;
+- Cleanlab con probabilità di modello e volume sufficiente;
+- nessun framework come wrapper decorativo di regole deterministiche.
 
-- usare subito golden dataset + evaluator D1 in CI;
-- usare Promptfoo quando esisterà un vero prompt, modello o grader semantico;
-- usare Evidently per report e drift quando il corpus sarà significativo;
-- usare Cleanlab quando esisteranno probabilità di modello e volume sufficiente;
-- non aggiungere framework come wrapper decorativi attorno a regole deterministiche.
+### Topic-mismatch gate — PR #46
+
+La PR #46 introduce anchor informative per i nuovi run research e comparison:
+
+```text
+query
+→ anchor normalizzate
+→ topic_anchors_json
+→ trigger D1 su title + summary
+→ nessun match: filtered + topic_mismatch
+```
+
+CI #183:
+
+```text
+true positive:  3
+false positive: 0
+true negative:  5
+false negative: 0
+precision:       1.00
+recall:          1.00
+```
+
+Il risultato vale per il golden set. I run discovery persistono `[]`; i run esistenti non vengono riclassificati; nessun brief, claim, bundle o draft viene modificato automaticamente.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -173,7 +194,7 @@ Decisione proposta:
 - [x] Claim, fonti e scadenze — PR #37 verificata.
 - [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
 - [x] Draft, preview e decisioni — PR #42 verificata.
-- [x] Queue e audit — PR #44, CI #174 e browser reale verificati.
+- [x] Queue e audit — PR #44 verificata.
 - [ ] Dettaglio draft completo on demand e read-only.
 - [ ] Audit di parità con la Control Room legacy.
 - [ ] Azioni operative autorizzate, una per branch.
@@ -258,14 +279,13 @@ Gap read-only ancora da chiudere:
 
 ## Ordine operativo attuale
 
-1. chiudere la PR #45 sul golden quality evaluation;
-2. ridurre il falso positivo con `feat/research-topic-mismatch-gate`;
-3. aggiungere il dettaglio draft completo GET-only e read-only;
-4. eseguire l'audit di parità e rimuovere la legacy soltanto quando sicuro;
-5. introdurre azioni operative una per branch;
-6. migrare il sito pubblico ad Astro;
-7. collegare Search Console, consenso e analytics;
-8. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. chiudere PR #46 e applicare la migrazione `0019`;
+2. aggiungere il dettaglio draft completo GET-only e read-only;
+3. eseguire l'audit di parità e rimuovere la legacy soltanto quando sicuro;
+4. introdurre azioni operative una per branch;
+5. migrare il sito pubblico ad Astro;
+6. collegare Search Console, consenso e analytics;
+7. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
