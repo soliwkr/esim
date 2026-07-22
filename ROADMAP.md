@@ -155,7 +155,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 
 ## M4 — Frontend foundation e Control Room definitiva
 
-**Stato: audit di parità eseguito; due gap read-only prima delle mutation**
+**Stato: parità read-only completa in CI; mutation operative da migrare**
 
 ### M4.0 — Freeze legacy
 
@@ -198,11 +198,12 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 - [x] Draft, preview e decisioni — PR #42 verificata.
 - [x] Queue e audit — PR #44 verificata.
 - [x] Dettaglio draft completo on demand e read-only — PR #47 verificata.
-- [x] Audit sistematico di parità legacy — draft PR #49, CI #203 verde.
-- [ ] Conservare e mostrare `task_id` del claim già presente nello snapshot.
-- [ ] Legare canonicamente audit e specifica versione draft.
+- [x] Audit sistematico di parità legacy — PR #49, merge `e0a39fa9`, CI #209.
+- [x] Linkage claim → task — PR #50, merge `41a9beee`, CI #213.
+- [x] Linkage audit → versione draft — PR #52, merge `35f56e82`, CI finale #220.
+- [ ] Verifica visuale in produzione dei due nuovi linkage.
 - [ ] Azioni operative autorizzate, una per branch.
-- [ ] Rimozione legacy dopo parità funzionale e migrazione delle mutation.
+- [ ] Rimozione legacy dopo migrazione completa delle mutation.
 
 Il dettaglio draft usa il contratto backend esistente e resta separato dallo snapshot:
 
@@ -226,18 +227,20 @@ completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-Gap read-only emersi dall’audit:
+Non restano gap read-only noti rispetto alle letture necessarie della legacy. I linkage canonici sono:
 
-- `claim → task_id`: dato disponibile nel backend ma perso dal contratto React;
-- `audit → draft_id + draft_version`: relazione non canonica nel contratto aggregato.
+```text
+claim → task_id + task_status
+audit event_key → draft_id + draft_version
+```
 
 La preview HTML legacy non è un requisito della nuova architettura. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview visuale deve appartenere al renderer pubblico Astro.
 
-**Criterio di uscita M4:** la nuova Control Room conserva tutte le letture e i guardrail necessari, i linkage read-only sono canonici e le mutation operative sono migrate con conferma, idempotenza e audit. Soltanto allora la legacy può essere rimossa senza perdita funzionale.
+**Criterio di uscita M4:** le mutation operative necessarie sono migrate con conferma, idempotenza, audit e test; il fallback legacy non è più necessario. Soltanto allora la legacy può essere rimossa.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
-**Stato: dopo M4**
+**Stato: dopo la migrazione operativa della Control Room**
 
 - [ ] Migrare layout, home e navigazione.
 - [ ] Migrare pagine statiche.
@@ -293,15 +296,14 @@ La preview HTML legacy non è un requisito della nuova architettura. Il dettagli
 
 ## Ordine operativo attuale
 
-1. chiudere la draft PR #49 sull’audit di parità;
-2. conservare `task_id` del claim nella nuova Control Room;
-3. rendere canonico il linkage audit → versione draft;
-4. verificare separatamente il deploy remoto della migrazione `0019` senza creare dati artificiali;
-5. introdurre azioni operative una per branch;
-6. rimuovere la legacy soltanto dopo la migrazione completa del fallback;
-7. migrare il sito pubblico ad Astro;
-8. collegare Search Console, consenso e analytics;
-9. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. verificare visivamente in produzione i linkage claim → task e audit → versione draft;
+2. definire esplicitamente la prima mutation della Control Room;
+3. migrare le mutation una per branch con conferma, idempotenza, audit e test;
+4. verificare separatamente la migrazione remota `0019` senza creare dati artificiali;
+5. rimuovere la legacy soltanto quando il fallback non serve più;
+6. migrare il sito pubblico ad Astro;
+7. collegare Search Console, consenso e analytics;
+8. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
