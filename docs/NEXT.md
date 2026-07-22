@@ -6,52 +6,40 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere il linkage claim → task
+### 1. Rendere canonico il linkage audit → versione draft
 
-Branch:
-
-```text
-fix/control-room-claim-task-linkage-readonly
-```
-
-Draft PR:
-
-```text
-#50
-```
-
-Scope esclusivo:
-
-- conservare `task_id` nullable nel contratto `ControlRoomClaim`;
-- accettare soltanto `null` o interi positivi nel parser runtime;
-- collegare la fixture canonica ai task persistiti;
-- mostrare ID e stato task nel dettaglio claim;
-- verificare rendering, payload invalido e parity audit;
-- non modificare query backend, D1 o mutation.
-
-Il dato esiste già nello snapshot canonico come `q.id AS task_id`; il browser non lo ricostruisce da `entity_key`.
-
-Stato corrente:
-
-- contratto, parser, vista, fixture e smoke aggiornati;
-- draft PR #50 aperta;
-- CI #211 in esecuzione;
-- nessuna mutation o capacità di pubblicazione introdotta.
-
-### 2. Rendere canonico il linkage audit → versione draft
-
-Branch successiva prevista:
+Branch prevista:
 
 ```text
 fix/control-room-audit-draft-version-linkage-readonly
 ```
 
-Scope da mantenere separato:
+Scope esclusivo:
 
-- aggiungere nel contratto server-side un’identità evento stabile o campi canonici sufficienti;
-- legare gli eventi draft a `draft_id` e `draft_version` senza leggere euristicamente `details` nel client;
-- mantenere il percorso GET-only;
-- non introdurre decisioni draft, mutation o pubblicazione.
+- verificare la struttura reale della tabella e della query audit;
+- esporre un’identità evento stabile e campi canonici sufficienti per gli eventi draft;
+- legare gli eventi draft a `draft_id` e `draft_version` senza interpretare euristicamente `details` nel browser;
+- aggiornare contratto runtime, fixture, vista e smoke;
+- mantenere il percorso read-only e GET-only;
+- non introdurre decisioni draft, mutation, materializzazione o pubblicazione.
+
+Prima di modificare il backend devono essere confermati i campi già disponibili. Non viene introdotta una migrazione D1 se la relazione può essere esposta dalla struttura persistita esistente.
+
+### 2. Verificare il linkage claim → task nel browser reale
+
+La PR #50 è mergiata nel commit `41a9beee` e la CI #213 è completamente verde.
+
+Sono verificati in CI:
+
+- `task_id: number | null` nel contratto claim;
+- validazione come `null` o intero positivo;
+- fixture collegata ai task persistiti;
+- badge e dettaglio con ID e stato task;
+- payload con ID stringa rifiutato;
+- parity audit aggiornato;
+- nessuna mutation o capacità di pubblicazione.
+
+Resta una verifica visuale nel browser reale dietro Cloudflare Access. Finché non viene eseguita, il rendering non viene dichiarato verificato in produzione.
 
 ### 3. Verificare separatamente il topic-mismatch gate in produzione
 
@@ -79,7 +67,7 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 
 ## Next
 
-### 5. Azioni operative soltanto dopo i gap read-only
+### 5. Azioni operative soltanto dopo il linkage audit
 
 Ordine indicativo, una branch per capacità:
 
@@ -92,6 +80,8 @@ decisione brief
 ```
 
 Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
+
+La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
 
 ## Framework di evaluation
 
@@ -115,11 +105,8 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - PR #45 — golden quality evaluation e criteri di adozione framework;
 - PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere;
 - PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale;
-- PR #49 — audit di parità legacy, mergiato nel commit `e0a39fa9` dopo CI #209 verde.
-
-## Checkpoint in review
-
-- PR #50 — linkage read-only claim → task; CI #211 in esecuzione.
+- PR #49 — audit di parità legacy, merge `e0a39fa9`, CI #209 verde;
+- PR #50 — linkage read-only claim → task, merge `41a9beee`, CI #213 verde.
 
 ## Freeze immediato
 
@@ -128,5 +115,5 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation durante la chiusura dei gap read-only;
+- nessuna mutation durante la chiusura del linkage audit;
 - nessuna rimozione della legacy finché resta un fallback operativo.
