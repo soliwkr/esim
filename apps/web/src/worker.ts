@@ -1,12 +1,14 @@
 import { handle } from '@astrojs/cloudflare/handler';
 import backendWorker from '../../../src/index';
-import { requireCloudflareAccess } from './lib/cloudflare-access';
+import { handleControlRoomBriefDecision } from '../../../src/editorial-brief-decisions';
+import { cloudflareAccessActor, requireCloudflareAccess } from './lib/cloudflare-access';
 
 export { Last30DaysContainer } from '../../../src/last30days-container';
 export { RecentDemandWorkflow } from '../../../src/recent-demand-workflow';
 
 const CONTROL_ROOM_SNAPSHOT_PATH = '/control-room-foundation/api/snapshot';
 const CONTROL_ROOM_DRAFT_DETAIL_PATH = '/control-room-foundation/api/draft-detail';
+const CONTROL_ROOM_BRIEF_DECISION_PATH = '/control-room-foundation/api/brief-decision';
 
 function isControlRoomRequest(pathname: string): boolean {
   return pathname === '/control-room-foundation'
@@ -87,6 +89,18 @@ async function controlRoomDraftDetail(request: Request, env: Env): Promise<Respo
   return privateUpstream(await backendWorker.fetch(upstreamRequest, env));
 }
 
+async function controlRoomBriefDecision(request: Request, env: Env): Promise<Response> {
+  if (!env.MAINTENANCE_TOKEN) {
+    return privateJson({ ok: false, error: 'control_room_brief_decision_unavailable' }, 503);
+  }
+
+  try {
+    return handleControlRoomBriefDecision(request, env, cloudflareAccessActor(request));
+  } catch {
+    return privateJson({ ok: false, error: 'verified_actor_required' }, 403);
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const pathname = new URL(request.url).pathname;
@@ -102,6 +116,10 @@ export default {
 
     if (pathname === CONTROL_ROOM_DRAFT_DETAIL_PATH) {
       return controlRoomDraftDetail(request, env);
+    }
+
+    if (pathname === CONTROL_ROOM_BRIEF_DECISION_PATH) {
+      return controlRoomBriefDecision(request, env);
     }
 
     if (isAstroRequest(pathname)) {
