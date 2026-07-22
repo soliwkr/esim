@@ -121,44 +121,48 @@ Regole del contratto:
 - la UI non legge `details.draftId`, `details.version` o altri metadati opachi per ricostruire relazioni;
 - `details` resta JSON validato, non comando o autorizzazione.
 
-Chiavi namespaced:
-
-```text
-draft-event:<id>
-readiness-event:<id>
-claim-event:<id>
-research-run:<id>
-ai-run:<id>
-```
-
-CI #217 e CI finale #220 completamente verdi. Gli smoke verificano chiavi vuote o duplicate, linkage mancante sui draft, linkage improprio sugli altri domini e tipi non validi.
+CI #217 e CI finale #220 sono completamente verdi.
 
 ## Mutation migrata: decisione brief
 
-La branch `feat/control-room-brief-decision-mutation` introduce esclusivamente:
+La draft PR #54 introduce esclusivamente:
 
 ```text
 proposed → accepted | dismissed
-accepted → converted  # resta capacità separata e non esposta da questa UI
+accepted → converted  # gate separato, non esposto dalla UI di questa branch
 ```
 
 Guardrail implementati:
 
 - un solo brief per richiesta;
-- conferma esplicita tramite AlertDialog accessibile;
-- attore derivato dal JWT Cloudflare Access già verificato, mai dal body browser;
+- conferma tramite AlertDialog accessibile;
+- attore derivato dal JWT Cloudflare Access, mai dal body browser;
 - evento `editorial_brief_events` append-only;
 - transizioni illegali bloccate da D1;
 - retry della stessa decisione idempotente;
+- conflitto sulla decisione opposta;
 - motivo obbligatorio per `dismissed`;
 - task editoriale aperto cancellato soltanto sul rifiuto;
 - reload dello snapshot dopo esito;
 - risposta con `publicationTriggered: false`;
+- conteggio delle pagine pubblicate invariato;
 - nessuna conversione, generazione claim, draft, materializzazione o pubblicazione.
 
-La migrazione `0020` conserva gli stati storici già osservati con un attore esplicitamente marcato come backfill, senza inventare l'identità originale.
+La migrazione `0020` conserva gli stati storici già osservati con attore `migration-0020-backfill`, senza inventare l'identità originale.
 
-Questo checkpoint è **in implementazione**: CI, merge, migrazione remota e verifica browser reale non sono ancora dichiarati completati.
+La CI #230 è completamente verde e copre:
+
+- typecheck e build Astro;
+- migrazioni D1 locali;
+- quality gate e golden evaluation;
+- Container e runtime `workerd`;
+- Access anonimo negato e attore server-side;
+- accept, dismiss, motivo obbligatorio, retry idempotente e conflitto;
+- queue e snapshot reali;
+- conferme desktop/mobile;
+- regressioni di tutte le viste e legacy parity.
+
+Il checkpoint è **verificato in CI ma non operativo in produzione**: PR #54 ancora draft, migrazione `0020` remota e verifica browser reale aperte.
 
 ## Mutation legacy ancora escluse
 
@@ -176,17 +180,18 @@ Queste capacità verranno migrate una per branch, con conferma, idempotenza, aud
 
 ## Verdetto
 
-La nuova Control Room ha **parità read-only completa in CI** rispetto alle letture operative necessarie della legacy e applica guardrail più forti.
+La nuova Control Room ha **parità read-only completa in CI** e la prima mutation è verificata in CI con guardrail più forti della legacy.
 
-La decisione brief è la prima mutation in migrazione. La rimozione della legacy **non è autorizzata** perché resta il fallback delle mutation non ancora migrate.
+La rimozione della legacy **non è autorizzata** perché resta il fallback delle mutation non ancora migrate.
 
 ## Verifica
 
-- PR #49: merge `e0a39fa9`, CI #209 verde;
-- PR #50: merge `41a9beee`, CI #213 verde;
-- PR #52: merge `35f56e82`, CI finale #220 verde;
-- branch decisione brief: CI e merge ancora aperti;
-- verifica visuale in produzione dei nuovi linkage e della mutation: ancora aperta.
+- PR #49: merge `e0a39fa9`, CI #209;
+- PR #50: merge `41a9beee`, CI #213;
+- PR #52: merge `35f56e82`, CI #220;
+- draft PR #54: CI #230 verde, merge aperto;
+- migrazione remota `0020`: non applicata;
+- verifica visuale in produzione dei nuovi linkage e della mutation: aperta.
 
 ## Definition of Done
 
@@ -198,8 +203,9 @@ La decisione brief è la prima mutation in migrazione. La rimozione della legacy
 - [x] nessun accesso diretto a D1;
 - [x] `task_id` conservato senza euristiche;
 - [x] audit legato canonicamente alla versione draft senza euristiche;
-- [x] decisione brief progettata con conferma, idempotenza e audit append-only;
-- [ ] CI completa della mutation verde;
+- [x] decisione brief con conferma, idempotenza e audit append-only;
+- [x] CI completa della mutation verde;
+- [ ] PR #54 mergiata;
 - [ ] migrazione `0020` applicata e verificata in produzione;
 - [ ] verifica browser reale della mutation;
 - [ ] mutation operative residue migrate;
