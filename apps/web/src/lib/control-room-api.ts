@@ -187,10 +187,13 @@ export interface ControlRoomQueueTask {
 }
 
 export interface ControlRoomAuditEvent {
+  event_key: string
   domain: string
   action: string
   actor: string
   entity: string
+  draft_id: number | null
+  draft_version: number | null
   details: JsonValue
   created_at: string
 }
@@ -602,14 +605,34 @@ function parseQueue(value: unknown): ControlRoomQueueTask[] {
 
 function parseAudit(value: unknown): ControlRoomAuditEvent[] {
   if (!Array.isArray(value)) throw new Error("Lista audit non valida")
+  const eventKeys = new Set<string>()
 
   return value.map((record) => {
     if (!isObject(record)) throw new Error("Evento audit non valido")
+    const eventKey = requireString(record, "event_key")
+    const domain = requireString(record, "domain")
+    const draftId = requireNullablePositiveInteger(record, "draft_id")
+    const draftVersion = requireNullablePositiveInteger(record, "draft_version")
+
+    if (eventKey.trim().length === 0 || eventKeys.has(eventKey)) {
+      throw new Error("Identità evento audit non valida")
+    }
+    eventKeys.add(eventKey)
+
+    if (domain === "draft") {
+      if (draftId === null || draftVersion === null) throw new Error("Linkage draft audit non valido")
+    } else if (draftId !== null || draftVersion !== null) {
+      throw new Error("Linkage draft audit non valido")
+    }
+
     return {
-      domain: requireString(record, "domain"),
+      event_key: eventKey,
+      domain,
       action: requireString(record, "action"),
       actor: requireString(record, "actor"),
       entity: requireString(record, "entity"),
+      draft_id: draftId,
+      draft_version: draftVersion,
       details: requireJsonValue(record, "details"),
       created_at: requireTimestamp(record, "created_at"),
     }
