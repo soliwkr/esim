@@ -6,9 +6,15 @@ Data di riferimento: **22 luglio 2026**.
 
 Misurare il quality gate recent-demand contro decisioni editoriali umane prima di aggiungere classificatori, dipendenze o mutation operative.
 
-Il quality gate di produzione resta deterministico e auditabile. Lo spike non modifica il Worker, D1, Workflow, Container, AI Gateway, Vertex AI o i contratti delle API.
+Il quality gate resta deterministico e auditabile. Evaluation e runtime sono separati:
 
-## Metodo adottato nello spike
+```text
+quality gate di produzione
+≠
+framework di evaluation
+```
+
+## Metodo adottato
 
 ```text
 fixture golden versionata
@@ -19,26 +25,21 @@ fixture golden versionata
 → confusion matrix in CI
 ```
 
-Il dataset vive in:
+File:
 
 ```text
 tests/fixtures/research-quality-golden.json
-```
-
-L'evaluator vive in:
-
-```text
 scripts/evaluate-research-quality-golden.mjs
 ```
 
-Il comando è:
+Comandi:
 
 ```bash
 npm run db:migrate:local
 npm run eval:research-quality
 ```
 
-## Baseline caratterizzata
+## Baseline PR #45
 
 Il primo golden set contiene otto casi:
 
@@ -51,7 +52,7 @@ Il primo golden set contiene otto casi:
 - risultato con data futura;
 - secondo risultato estraneo con score zero.
 
-Baseline corrente:
+La PR #45 ha caratterizzato il gate precedente:
 
 ```text
 true positive:  3
@@ -62,89 +63,100 @@ precision:       0.75
 recall:          1.00
 ```
 
-Il falso positivo residuo è intenzionale nella caratterizzazione: dimostra che il solo score positivo non basta a garantire il topic match.
+Il falso positivo dimostrava che un punteggio positivo non garantisce la pertinenza con la query.
 
-Una modifica futura del gate deve aggiornare la baseline soltanto insieme a una motivazione editoriale e a nuovi casi di regressione. Il target immediato è:
+## PR #46 — Topic anchor gate
+
+**Stato: implementata e in verifica.**
+
+Il nuovo gate usa anchor informative deterministiche:
 
 ```text
-false positive: 1 → 0
-false negative: 0 → 0
+query
+→ normalizzazione Unicode e lowercase
+→ rimozione di articoli, parole generiche e token troppo brevi
+→ massimo otto anchor uniche
+→ persistenza in research_runs.topic_anchors_json
+→ verifica D1 su title + summary
 ```
 
-## Spike su framework OSS maturi
+Esempio:
+
+```text
+Holafly recent experiences
+→ ["holafly"]
+```
+
+Parole come `recent`, `experience`, `review`, `problem` e `viaggio` non bastano a rendere un segnale pertinente.
+
+Regola:
+
+```text
+anchor presenti nel run
++ nessun anchor in title o summary
+→ eligible_for_editorial = 0
+→ quality flag topic_mismatch
+```
+
+I run discovery persistono `[]` e non subiscono il filtro semantico deterministico. I run già esistenti ricevono il default `[]` e non vengono riclassificati o sottoposti a backfill.
+
+### Risultato locale verificato
+
+Migrazione, smoke D1, golden evaluation e ingest end-to-end in `workerd` sono verdi nella CI #183.
+
+Golden set aggiornato:
+
+```text
+true positive:  3
+false positive: 0
+true negative:  5
+false negative: 0
+precision:       1.00
+recall:          1.00
+```
+
+Il segnale estraneo con score `0.2` viene filtrato con `topic_mismatch`; il segnale Holafly rilevante con lo stesso score resta idoneo.
+
+Questo risultato vale per il golden set versionato e non autorizza a generalizzare la precisione a tutto il web. Ogni nuovo errore reale deve diventare un caso revisionato nel dataset.
+
+## Framework OSS valutati
 
 ### Promptfoo
 
 Repository: <https://github.com/promptfoo/promptfoo>
 
-Punti a favore:
-
-- Node.js e integrazione CI;
-- dataset dichiarativi e assertion;
-- adatto a prompt, modelli, agenti e grader semantici;
-- esecuzione locale.
-
-Decisione:
-
-- **candidato principale quando il topic gate includerà un classificatore o un grader AI**;
-- non adottato in questa PR perché il gate misurato è un trigger D1 deterministico e non esiste ancora un prompt o modello da confrontare;
-- usarlo ora aggiungerebbe un wrapper e una dipendenza senza ridurre la complessità.
+Candidato principale quando esisterà un prompt, modello o grader semantico da confrontare in Node e CI. Non viene usato come wrapper decorativo attorno al trigger deterministico.
 
 ### Evidently
 
 Repository: <https://github.com/evidentlyai/evidently>
 
-Punti a favore:
-
-- evaluation di dati testuali, classificazione e ranking;
-- report, test suite e monitoraggio nel tempo;
-- metriche personalizzabili.
-
-Decisione:
-
-- **candidato per reporting offline e drift quando il dataset etichettato crescerà**;
-- non adottato ora perché introduce uno stack Python separato per otto casi e non migliora il trigger di produzione.
+Candidato per report, trend e drift quando il corpus etichettato avrà dimensione significativa. Non viene introdotto ora perché richiederebbe uno stack Python separato senza migliorare il trigger corrente.
 
 ### Great Expectations
 
 Repository: <https://github.com/great-expectations/great_expectations>
 
-Punti a favore:
-
-- Expectations mature per qualità e contratti tabellari;
-- documentazione automatica dei risultati di validazione.
-
-Decisione:
-
-- non adottato per il topic gate corrente;
-- i vincoli strutturali sono già verificati da migrazioni, parser runtime e smoke D1;
-- non risolve autonomamente la pertinenza semantica titolo/query.
+Da adottare soltanto se nasce un data-quality layer multipipeline non già coperto da D1, migrazioni, parser runtime e smoke.
 
 ### Cleanlab
 
 Repository: <https://github.com/cleanlab/cleanlab>
 
-Punti a favore:
+Da rivalutare quando esisteranno probabilità di classificazione e un dataset abbastanza ampio da cercare label errate e outlier.
 
-- rilevazione di label errate, outlier e duplicati;
-- supporto per classificazione testuale e probabilità prodotte da modelli.
+## Decisione
 
-Decisione:
-
-- rinviato finché non esistono un dataset etichettato più ampio e probabilità di classificazione;
-- non è appropriato per un dataset iniziale di otto casi e un trigger senza modello.
-
-## Decisione dello spike
-
-Adottare adesso:
+Adottato ora:
 
 ```text
 golden dataset versionato
-+ evaluator contro il D1 reale
++ evaluator contro D1 reale
 + confusion matrix bloccante in CI
++ topic anchor gate deterministico
 ```
 
-Non adottare ancora:
+Non adottato ora:
 
 ```text
 framework Python separato
@@ -153,29 +165,10 @@ LLM-as-a-judge
 classificatore semantico nel runtime
 ```
 
-Questa non è una rinuncia ai framework comprovati. È una soglia di adozione esplicita:
+Promptfoo entra soltanto quando input, output, costo, fallback e soglia di successo di un vero grader semantico sono formalizzati.
 
-- Promptfoo entra quando esiste una decisione semantica basata su prompt/modello;
-- Evidently entra quando servono trend, drift e report su un corpus etichettato significativo;
-- Cleanlab entra quando esistono probabilità di modello e volume sufficiente per cercare label errate;
-- Great Expectations entra soltanto se nasce un vero data-quality layer multipipeline non già coperto da D1 e test runtime.
+## Limiti e prossimo ampliamento
 
-## Prossimo quality checkpoint
+Il gate richiede almeno una corrispondenza letterale con un anchor informativo. Non comprende sinonimi, entità implicite o negazioni. Questi casi richiederanno nuovi esempi reali e, soltanto quando necessario, uno spike separato su un grader semantico.
 
-Branch prevista:
-
-```text
-feat/research-topic-mismatch-gate
-```
-
-Scope:
-
-- definire anchor di dominio e token informativi della query;
-- filtrare il falso positivo semanticamente estraneo ma con score positivo;
-- mantenere il segnale Holafly rilevante con score `0.2`;
-- non usare trend o community come prova commerciale;
-- non modificare automaticamente brief, claim, bundle o draft esistenti;
-- aggiungere eventuale backfill soltanto con regole auditabili;
-- portare il golden set a zero falsi positivi senza introdurre falsi negativi.
-
-Una fase successiva può sperimentare Promptfoo su un grader semantico, ma non prima che input, output, costo, fallback e soglia di successo siano formalizzati.
+La PR #46 non modifica automaticamente brief, claim, bundle o draft esistenti e non introduce pubblicazione.
