@@ -83,12 +83,13 @@ Il progetto usa un singolo Worker:
 richiesta
 → custom Worker entrypoint
 → Access guard per la Control Room
-→ proxy read-only per lo snapshot
+→ proxy snapshot read-only
+→ proxy dettaglio draft GET-only on demand
 → handler Astro per pagine e asset
 → router backend per API e pagine non migrate
 ```
 
-Sono verificati:
+Sono verificati prima della PR #47:
 
 - export di Workflow e Container;
 - D1 e configurazione runtime;
@@ -97,9 +98,9 @@ Sono verificati:
 - migrazioni D1;
 - 404, canonical, robots e sitemap esistenti;
 - assenza di route di pubblicazione automatica;
-- live smoke della shell e del proxy.
+- live smoke della shell e del proxy snapshot.
 
-La separazione in due Worker non viene introdotta.
+La PR #47 estende lo stesso perimetro con una seconda risorsa GET-only, senza introdurre un secondo Worker o un nuovo contratto backend.
 
 ## Struttura incrementale
 
@@ -204,12 +205,7 @@ Ordine completato:
 - empty state, contratto invalido, desktop, mobile e tastiera;
 - nessuna richiesta browser diversa da `GET`.
 
-Gap ancora dichiarati:
-
-- corpo completo, FAQ e fonti;
-- provenance field-level del renderer v2;
-- stato della pagina materializzata;
-- audit collegato univocamente a una specifica versione.
+Il vecchio inventario continua a non ricostruire corpo, provenance o stato pagina. Questi dati vengono trattati dalla risorsa separata F3.7.
 
 #### F3.6 — Queue e audit
 
@@ -242,37 +238,54 @@ audit event ≠ autorizzazione operativa
 
 ### F3.7 — Dettaglio draft completo read-only
 
-**Stato: prossimo checkpoint frontend dopo il quality gate topic-mismatch.**
+**Stato: implementata nella PR #47, in verifica.**
 
-Branch prevista:
+Branch:
 
 ```text
 feat/control-room-draft-detail-readonly
 ```
 
-Architettura prevista:
+Architettura implementata:
 
 ```text
-apertura del dettaglio draft
-→ GET-only sotto Cloudflare Access
-→ proxy server-side on demand
+inventario draft nello snapshot
+→ selezione esplicita della versione
+→ GET /control-room-foundation/api/draft-detail?draftId=<id>
+→ Cloudflare Access e validazione origine
+→ maintenance token soltanto server-side
 → endpoint backend esistente
-→ corpo e provenance senza inserirli nello snapshot iniziale
+→ contratto runtime dedicato
 ```
 
-Deve mostrare:
+La vista mostra:
 
 - corpo strutturato completo;
-- sezioni e FAQ;
-- fonti;
+- title, meta description, H1, direct answer e intro;
+- blocchi paragraph, heading, bullets, steps, table e callout;
+- FAQ e fonti HTTPS;
 - provenance field-level;
-- claim collegati ai campi;
+- claim collegati ai campi, alle sezioni e alle FAQ;
+- claim usati ed esclusi;
+- regole e metadati di generazione;
 - stato reale della pagina materializzata;
 - separazione fra draft approved, pagina review e publication gate.
+
+Proprietà di isolamento:
+
+- nessuna richiesta dettaglio prima dell’apertura;
+- errore del dettaglio confinato nel relativo Sheet;
+- inventario snapshot preservato;
+- retry esplicito;
+- corrispondenza verificata tra inventario e dettaglio;
+- nessun token operativo nel browser;
+- proxy `GET`-only.
 
 Non include generazione, revisione operativa, materializzazione, mutation o pubblicazione.
 
 ### F3.8 — Audit di parità legacy
+
+**Stato: prossimo checkpoint dopo la chiusura della PR #47.**
 
 Branch prevista:
 
@@ -286,6 +299,8 @@ La vecchia Control Room viene rimossa soltanto quando:
 - i guardrail sono equivalenti o più forti;
 - gli smoke end-to-end sono verdi;
 - il fallback non è più necessario.
+
+Il gap read-only noto da valutare nell’audit è il collegamento univoco degli eventi audit a una specifica versione draft.
 
 ### F3.9 — Azioni operative
 
@@ -333,7 +348,9 @@ Ogni mutation richiede conferma, audit, idempotenza, reload dello stato e test e
 - una fonte ufficiale non viene presentata come test indipendente;
 - draft eligibility non viene presentata come publication eligibility;
 - lo stato del draft non viene presentato come stato della pagina;
-- lo stato della queue non viene presentato come decisione editoriale.
+- lo stato della queue non viene presentato come decisione editoriale;
+- un errore del dettaglio draft non invalida lo snapshot aggregato;
+- il dettaglio on demand non abilita materializzazione o pubblicazione.
 
 ## Cosa non facciamo adesso
 
@@ -344,4 +361,4 @@ Ogni mutation richiede conferma, audit, idempotenza, reload dello stato e test e
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- chiudere i gap draft ricostruendo dati mancanti nel client.
+- duplicare query D1 già coperte dal contratto backend esistente.

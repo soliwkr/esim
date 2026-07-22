@@ -10,13 +10,13 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | produzione fino a `0018`; migrazione `0019` in PR #46 |
-| API manutenzione | Operativa | accesso riservato; contratto invariato |
+| Worker e D1 | Operativi | produzione verificata fino a `0018`; `0019` mergiata, verifica remota ancora aperta |
+| API manutenzione | Operativa | accesso riservato; contratti editoriali esistenti invariati |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
 | Golden quality evaluation | Operativa in CI | PR #45, dataset revisionato e confusion matrix |
-| Topic-mismatch gate | PR #46 in verifica | anchor deterministiche, CI #183 verde |
+| Topic-mismatch gate | Mergiato, verifica remota aperta | PR #46, CI #188 verde; migrazione remota da attestare |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
@@ -33,6 +33,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
 | Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
+| Dettaglio draft completo UI | PR #47 in verifica | GET-only on demand, contratto separato e stato pagina reale |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -85,11 +86,11 @@ status:                 approved
 materialized page:      review
 ```
 
-La pagina pubblica continua a restituire `404` con `noindex, nofollow`.
+La pagina pubblica continua a restituire `404` con `noindex, nofollow` nell’ultima verifica documentata.
 
 ## Control Room definitiva
 
-Architettura operativa:
+Architettura operativa verificata:
 
 ```text
 Cloudflare Access
@@ -156,9 +157,9 @@ Framework valutati:
 
 Nessuno di questi framework è stato inserito nel Worker.
 
-## Topic-mismatch gate — PR #46 in verifica
+## Topic-mismatch gate — PR #46 mergiata
 
-La PR #46 introduce per i nuovi run research e comparison:
+La PR #46, merge `215470ae`, introduce per i nuovi run research e comparison:
 
 ```text
 query
@@ -175,9 +176,9 @@ Holafly recent experiences
 → ["holafly"]
 ```
 
-Proprietà verificate nella CI #183:
+Proprietà verificate nella CI #188:
 
-- migrazione `0019` valida in D1;
+- migrazione `0019` valida in D1 locale;
 - score zero ancora filtrato;
 - risultato estraneo con score `0.2` filtrato con `topic_mismatch`;
 - risultato Holafly pertinente con score `0.2` ancora idoneo;
@@ -194,24 +195,51 @@ Limiti:
 - run esistenti non riclassificati e nessun backfill;
 - nessuna modifica automatica a brief, claim, bundle o draft.
 
-Il gate non è ancora dichiarato operativo in produzione finché PR #46, deploy e migrazione remota non sono completati.
+Il gate non è ancora dichiarato verificato in produzione finché non viene attestata l’applicazione remota della migrazione `0019`. La prova funzionale completa avverrà sul primo nuovo run autorizzato, senza creare dati artificiali.
+
+## Dettaglio draft completo — PR #47 in verifica
+
+La PR #47 aggiunge una seconda risorsa privata e indipendente dallo snapshot:
+
+```text
+GET /control-room-foundation/api/draft-detail?draftId=<id>
+```
+
+Il custom Worker:
+
+- richiede Cloudflare Access prima della route;
+- accetta soltanto `GET`;
+- valida un `draftId` intero positivo;
+- usa il maintenance token soltanto server-side;
+- delega all’endpoint backend esistente `GET /api/maintenance/editorial-draft-grounding`;
+- imposta `no-store`, `noindex` e `nosniff`.
+
+La React island carica la risorsa soltanto quando viene aperta una versione. Il contratto runtime separato valida:
+
+- identità e relazione con il record inventario;
+- corpo strutturato, FAQ e fonti HTTPS;
+- provenance dei campi principali, sezioni e FAQ;
+- claim usati/esclusi e regole di generazione;
+- stato draft e stato pagina materializzata;
+- metadati, usage e timestamp.
+
+Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
 
 ## Gap aperti
 
-- corpo completo, FAQ, fonti e provenance field-level del draft non sono ancora nella nuova UI;
-- lo stato della pagina materializzata non è esposto nello snapshot aggregato;
 - l'audit non è legato univocamente a una specifica versione draft;
 - health aggregato runtime e log errori unificati restano incompleti;
 - refresh automatico delle fonti scadute resta da completare;
 - Search Console, CMP e analytics non sono configurati;
-- la Control Room legacy non è ancora rimossa.
+- la Control Room legacy non è ancora rimossa;
+- verifica remota della migrazione `0019` ancora aperta.
 
 ## Prossimo checkpoint
 
-Prima chiudere PR #46 e verificare il deploy. Poi:
+Prima chiudere la PR #47 con CI completa e verifica nel browser reale. Poi:
 
 ```text
-feat/control-room-draft-detail-readonly
+chore/control-room-legacy-parity-audit
 ```
 
-La fase successiva completa corpo, fonti, provenance e stato pagina tramite un proxy GET-only on demand, senza mutation o pubblicazione.
+L’audit confronterà nuova e vecchia Control Room senza introdurre mutation. La legacy verrà rimossa soltanto dopo parità funzionale verificata.

@@ -6,114 +6,98 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #46 sul topic-mismatch gate
+### 1. Chiudere la PR #47 sul dettaglio draft completo read-only
 
 Branch:
-
-```text
-feat/research-topic-mismatch-gate
-```
-
-Obiettivo esclusivo:
-
-- estrarre anchor informative dai nuovi run research e comparison;
-- rimuovere articoli, parole generiche e token troppo brevi;
-- persistere gli anchor in `research_runs.topic_anchors_json`;
-- filtrare i segnali senza alcuna corrispondenza in title o summary;
-- aggiungere il flag auditabile `topic_mismatch`;
-- mantenere invariati run esistenti, discovery, brief, claim, bundle e draft.
-
-Target verificato localmente nella CI #183:
-
-```text
-true positive:  3
-false positive: 0
-true negative:  5
-false negative: 0
-precision:       1.00
-recall:          1.00
-```
-
-Il risultato vale per il golden set versionato. Non viene presentato come misura universale della qualità del web.
-
-### 2. Conservare le separazioni del gate
-
-```text
-score positivo ≠ pertinenza al topic
-trend recente ≠ claim commerciale
-anchor match ≠ verità fattuale
-```
-
-Regole:
-
-- il gate decide soltanto l'idoneità del segnale al lavoro editoriale;
-- non verifica prezzi, copertura, rete o condizioni commerciali;
-- il match richiede almeno un anchor, non tutte le parole della query;
-- low-positive pertinente resta idoneo con warning consultivo;
-- run discovery usa anchor `[]` e non viene bloccato;
-- nessun backfill dei run esistenti;
-- nessuna mutation o pubblicazione.
-
-### 3. Definition of Done della PR #46
-
-Prima del merge devono passare:
-
-- TypeScript strict e build Astro;
-- migrazione D1 `0019`;
-- smoke score zero e topic mismatch;
-- golden evaluation con `0 FP` e `0 FN`;
-- ingest end-to-end attraverso l'API in `workerd`;
-- segnale estraneo score `0.2` filtrato;
-- segnale Holafly score `0.2` ancora idoneo;
-- Container invariato;
-- tutti gli smoke Chromium della Control Room invariati;
-- nessuna nuova dipendenza runtime;
-- nessuna modifica a Workflow, Container, AI Gateway o Vertex AI;
-- nessuna modifica automatica a brief, claim, bundle o draft;
-- nessuna capacità di pubblicazione.
-
-### 4. Verifica dopo il merge
-
-Il deploy deve:
-
-- applicare la migrazione remota `0019`;
-- mantenere i run esistenti con anchor `[]`;
-- distribuire il normalizzatore per i nuovi run;
-- non avviare automaticamente un nuovo Workflow;
-- non creare dati editoriali di prova in produzione.
-
-La verifica funzionale completa avverrà sul primo nuovo run autorizzato. Fino ad allora si verifica deploy, migrazione e assenza di regressioni, senza produrre segnali artificiali.
-
-## Next
-
-### 5. Completare il dettaglio draft read-only
-
-Branch prevista:
 
 ```text
 feat/control-room-draft-detail-readonly
 ```
 
-Obiettivo:
+Obiettivo esclusivo:
 
-- corpo strutturato completo;
-- sezioni, FAQ e fonti;
-- provenance field-level;
-- claim collegati ai campi;
-- stato reale della pagina materializzata;
-- proxy GET-only on demand sotto Cloudflare Access;
-- separazione fra draft approved, pagina review e publication gate;
-- nessuna mutation o pubblicazione.
+- mantenere leggero lo snapshot aggregato;
+- caricare il dettaglio soltanto quando l’operatore apre una versione;
+- usare il GET backend esistente `editorial-draft-grounding`;
+- mediare la richiesta con un proxy server-side sotto Cloudflare Access;
+- mostrare corpo strutturato, FAQ, fonti e provenance field-level;
+- mostrare lo stato reale della pagina materializzata;
+- mantenere distinti stato draft, stato pagina e publication eligibility;
+- non introdurre generation, review action, materializzazione, mutation o pubblicazione.
 
-### 6. Audit di parità e rimozione legacy
+Architettura:
+
+```text
+inventario draft nello snapshot
+→ apertura esplicita di una versione
+→ GET /control-room-foundation/api/draft-detail?draftId=<id>
+→ validazione Cloudflare Access
+→ maintenance token soltanto server-side
+→ GET backend esistente
+→ contratto runtime separato
+```
+
+### 2. Definition of Done della PR #47
+
+Prima del merge devono passare:
+
+- TypeScript strict e build Astro;
+- migrazioni, quality smoke e golden evaluation invariati;
+- Container invariato;
+- runtime `workerd` con Access e proxy GET-only;
+- risposta anonima e JWT invalido rifiutati;
+- `POST` rifiutato con `405` e `Allow: GET`;
+- nessuna richiesta dettaglio prima dell’apertura;
+- body, blocchi, FAQ, fonti HTTPS e provenance validati;
+- corrispondenza tra inventario e dettaglio su ID, bundle, versione, slug e renderer;
+- errore del dettaglio isolato senza cancellare lo snapshot;
+- retry esplicito, tastiera e mobile;
+- tutti gli smoke precedenti invariati;
+- nessuna nuova dipendenza runtime;
+- nessuna modifica a D1, Workflow, Container, AI Gateway, Vertex AI o backend editoriale;
+- nessuna mutation o capacità di pubblicazione.
+
+### 3. Conservare le separazioni editoriali
+
+```text
+approved draft ≠ published page
+draft status ≠ materialized page status
+materialized page review ≠ publication eligibility
+preview read-only ≠ autorizzazione operativa
+```
+
+Il dettaglio mostra dati persistiti; non decide readiness, approvazione, materializzazione o pubblicazione.
+
+### 4. Verificare separatamente il topic-mismatch gate in produzione
+
+La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da confermare tramite il deploy automatico:
+
+- applicazione remota della migrazione `0019`;
+- normalizzatore con anchor attivo sui nuovi run;
+- nessun Workflow avviato automaticamente;
+- nessun dato editoriale artificiale creato in produzione.
+
+La verifica funzionale completa del gate avverrà sul primo nuovo run autorizzato. Non viene creato un run di prova soltanto per chiudere il checkpoint.
+
+## Next
+
+### 5. Audit di parità con la Control Room legacy
+
+Branch prevista:
 
 ```text
 chore/control-room-legacy-parity-audit
 ```
 
-La legacy viene rimossa soltanto quando ogni lettura necessaria e ogni guardrail sono presenti e verificati end-to-end.
+Obiettivo:
 
-### 7. Mutation operative soltanto dopo la parità
+- confrontare ogni lettura della legacy con la nuova Control Room;
+- verificare guardrail, errori, mobile, tastiera e percorsi Access;
+- registrare eventuali gap residui;
+- rimuovere la legacy soltanto quando il fallback non è più necessario;
+- non introdurre mutation durante l’audit.
+
+### 6. Azioni operative soltanto dopo la parità
 
 Ordine indicativo, una branch per capacità:
 
@@ -130,6 +114,7 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 ## Framework di evaluation
 
 - golden dataset + D1 evaluator: adottati con PR #45;
+- topic-anchor gate deterministico: PR #46;
 - Promptfoo: soltanto con un vero prompt, modello o grader semantico;
 - Evidently: reporting e drift su corpus significativo;
 - Great Expectations: data-quality multipipeline non già coperta;
@@ -145,7 +130,8 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - PR #39 + #40 — Page Readiness ed evidence bundle;
 - PR #42 — draft, preview e decisioni read-only;
 - PR #44 — queue e audit read-only;
-- PR #45 — golden quality evaluation e criteri di adozione framework.
+- PR #45 — golden quality evaluation e criteri di adozione framework;
+- PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere.
 
 ## Freeze immediato
 
@@ -154,4 +140,4 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation durante il topic-mismatch gate.
+- nessuna mutation durante dettaglio draft e audit di parità.

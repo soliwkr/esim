@@ -116,6 +116,12 @@ jobs:
           set -o pipefail
           npm run smoke:drafts 2>&1 | tee control-room-drafts-smoke.log
 
+      - name: Smoke-test Control Room complete draft detail
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run smoke:draft-detail 2>&1 | tee control-room-draft-detail-smoke.log
+
       - name: Smoke-test Control Room queue and audit
         shell: bash
         run: |
@@ -132,5 +138,6 @@ jobs:
             control-room-claims-smoke.log
             control-room-readiness-smoke.log
             control-room-drafts-smoke.log
+            control-room-draft-detail-smoke.log
             control-room-queue-audit-smoke.log
           if-no-files-found: warn

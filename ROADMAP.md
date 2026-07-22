@@ -45,7 +45,7 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quality gate operativo; topic-mismatch e osservabilità in completamento**
+**Stato: quality gate e evaluation implementati; verifica remota topic-mismatch e osservabilità ancora aperte**
 
 - [x] Roadmap, status, architettura, decisioni e next.
 - [x] Storico e stato dei run.
@@ -55,7 +55,8 @@ Ultimo aggiornamento: **22 luglio 2026**.
 - [x] Audit specifico di run, brief, claim e verifiche.
 - [x] Snapshot aggregato per dashboard.
 - [x] Golden evaluation versionata — PR #45.
-- [ ] Topic-mismatch gate — **PR #46 in verifica**.
+- [x] Topic-mismatch gate implementato e mergiato — PR #46.
+- [ ] Verificare la migrazione remota `0019` e il primo nuovo run autorizzato.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato oltre la vista aggregata corrente.
@@ -94,9 +95,9 @@ Decisione adottata:
 - Cleanlab con probabilità di modello e volume sufficiente;
 - nessun framework come wrapper decorativo di regole deterministiche.
 
-### Topic-mismatch gate — PR #46
+### Topic-mismatch gate — PR #46 mergiata
 
-La PR #46 introduce anchor informative per i nuovi run research e comparison:
+La PR #46, merge `215470ae`, introduce anchor informative per i nuovi run research e comparison:
 
 ```text
 query
@@ -106,7 +107,7 @@ query
 → nessun match: filtered + topic_mismatch
 ```
 
-CI #183:
+CI #188:
 
 ```text
 true positive:  3
@@ -117,7 +118,7 @@ precision:       1.00
 recall:          1.00
 ```
 
-Il risultato vale per il golden set. I run discovery persistono `[]`; i run esistenti non vengono riclassificati; nessun brief, claim, bundle o draft viene modificato automaticamente.
+Il risultato vale per il golden set. I run discovery persistono `[]`; i run esistenti non vengono riclassificati; nessun brief, claim, bundle o draft viene modificato automaticamente. Il deploy e la migrazione remota non sono ancora dichiarati verificati.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -154,7 +155,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 
 ## M4 — Frontend foundation e Control Room definitiva
 
-**Stato: parità read-only quasi completa**
+**Stato: parità read-only quasi completa; dettaglio draft PR #47 in verifica**
 
 ### M4.0 — Freeze legacy
 
@@ -186,6 +187,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 - [x] Secondo login applicativo rimosso.
 - [x] Snapshot automatico senza credenziali nel browser.
 - [x] API originale invariata per agenti e consumer legacy.
+- [ ] Secondo proxy GET-only on demand — PR #47 in verifica.
 
 ### M4.4 — Migrazione funzionale Control Room
 
@@ -195,28 +197,35 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 - [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
 - [x] Draft, preview e decisioni — PR #42 verificata.
 - [x] Queue e audit — PR #44 verificata.
-- [ ] Dettaglio draft completo on demand e read-only.
+- [ ] Dettaglio draft completo on demand e read-only — **PR #47 in verifica**.
 - [ ] Audit di parità con la Control Room legacy.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
 
-Separazioni verificate:
+Il dettaglio draft della PR #47 usa il contratto backend esistente e resta separato dallo snapshot:
+
+```text
+snapshot leggero con inventario
+→ apertura esplicita
+→ proxy Access-protected GET-only
+→ corpo, FAQ, fonti, provenance e stato pagina
+```
+
+Separazioni obbligatorie:
 
 ```text
 approved draft ≠ published page
 review draft ≠ publication eligibility
 editorial approval ≠ publication action
+draft status ≠ materialized page status
 queue status ≠ decisione editoriale
 failed task ≠ contenuto non valido
 completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-Gap read-only ancora da chiudere:
+Gap read-only residuo dopo PR #47:
 
-- corpo completo, FAQ e fonti del draft;
-- provenance field-level;
-- stato reale della pagina materializzata;
 - audit collegato univocamente alla versione del draft.
 
 **Criterio di uscita M4:** la nuova Control Room conserva tutte le letture e i guardrail necessari; la legacy può essere rimossa senza perdita funzionale. Le mutation vengono introdotte soltanto dopo questo audit.
@@ -279,8 +288,8 @@ Gap read-only ancora da chiudere:
 
 ## Ordine operativo attuale
 
-1. chiudere PR #46 e applicare la migrazione `0019`;
-2. aggiungere il dettaglio draft completo GET-only e read-only;
+1. chiudere la PR #47 sul dettaglio draft completo read-only;
+2. verificare separatamente il deploy remoto della migrazione `0019` senza creare dati artificiali;
 3. eseguire l'audit di parità e rimuovere la legacy soltanto quando sicuro;
 4. introdurre azioni operative una per branch;
 5. migrare il sito pubblico ad Astro;

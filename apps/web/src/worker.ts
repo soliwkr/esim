@@ -6,6 +6,7 @@ export { Last30DaysContainer } from '../../../src/last30days-container';
 export { RecentDemandWorkflow } from '../../../src/recent-demand-workflow';
 
 const CONTROL_ROOM_SNAPSHOT_PATH = '/control-room-foundation/api/snapshot';
+const CONTROL_ROOM_DRAFT_DETAIL_PATH = '/control-room-foundation/api/draft-detail';
 
 function isControlRoomRequest(pathname: string): boolean {
   return pathname === '/control-room-foundation'
@@ -27,6 +28,19 @@ function privateJson(data: unknown, status: number, extraHeaders?: HeadersInit):
   return Response.json(data, { status, headers });
 }
 
+function privateUpstream(upstream: Response): Response {
+  const headers = new Headers(upstream.headers);
+  headers.set('cache-control', 'no-store');
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('x-robots-tag', 'noindex, nofollow');
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers
+  });
+}
+
 async function controlRoomSnapshot(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'GET') {
     return privateJson({ ok: false, error: 'method_not_allowed' }, 405, { allow: 'GET' });
@@ -44,17 +58,33 @@ async function controlRoomSnapshot(request: Request, env: Env): Promise<Response
       authorization: `Bearer ${env.MAINTENANCE_TOKEN}`
     }
   });
-  const upstream = await backendWorker.fetch(upstreamRequest, env);
-  const headers = new Headers(upstream.headers);
-  headers.set('cache-control', 'no-store');
-  headers.set('x-content-type-options', 'nosniff');
-  headers.set('x-robots-tag', 'noindex, nofollow');
+  return privateUpstream(await backendWorker.fetch(upstreamRequest, env));
+}
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    statusText: upstream.statusText,
-    headers
+async function controlRoomDraftDetail(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'GET') {
+    return privateJson({ ok: false, error: 'method_not_allowed' }, 405, { allow: 'GET' });
+  }
+
+  if (!env.MAINTENANCE_TOKEN) {
+    return privateJson({ ok: false, error: 'control_room_draft_detail_unavailable' }, 503);
+  }
+
+  const draftId = Number.parseInt(new URL(request.url).searchParams.get('draftId') || '0', 10);
+  if (!Number.isInteger(draftId) || draftId <= 0) {
+    return privateJson({ ok: false, error: 'draftId_required' }, 400);
+  }
+
+  const upstreamUrl = new URL('/api/maintenance/editorial-draft-grounding', request.url);
+  upstreamUrl.searchParams.set('draftId', String(draftId));
+  const upstreamRequest = new Request(upstreamUrl, {
+    method: 'GET',
+    headers: {
+      accept: 'application/json',
+      authorization: `Bearer ${env.MAINTENANCE_TOKEN}`
+    }
   });
+  return privateUpstream(await backendWorker.fetch(upstreamRequest, env));
 }
 
 export default {
@@ -68,6 +98,10 @@ export default {
 
     if (pathname === CONTROL_ROOM_SNAPSHOT_PATH) {
       return controlRoomSnapshot(request, env);
+    }
+
+    if (pathname === CONTROL_ROOM_DRAFT_DETAIL_PATH) {
+      return controlRoomDraftDetail(request, env);
     }
 
     if (isAstroRequest(pathname)) {
