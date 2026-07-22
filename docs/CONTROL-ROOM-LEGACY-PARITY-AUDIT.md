@@ -2,21 +2,11 @@
 
 Data di riferimento: **22 luglio 2026**.
 
-Branch originaria dell'audit:
+Branch dell'audit e dei gap read-only:
 
 ```text
 chore/control-room-legacy-parity-audit
-```
-
-Branch di chiusura del linkage claim → task:
-
-```text
 fix/control-room-claim-task-linkage-readonly
-```
-
-Branch di chiusura del linkage audit → versione draft:
-
-```text
 fix/control-room-audit-draft-version-linkage-readonly
 ```
 
@@ -33,7 +23,7 @@ Lo scope comprende esclusivamente:
 - contratti runtime;
 - dipendenze residue che impediscono la rimozione della legacy.
 
-Non comprende l'introduzione di mutation, la modifica di Workflow, Container, AI Gateway, Vertex AI, gate editoriali o capacità di pubblicazione.
+Non comprende mutation, Workflow, Container, AI Gateway, Vertex AI, gate editoriali o capacità di pubblicazione.
 
 ## Fonti confrontate
 
@@ -43,78 +33,52 @@ Non comprende l'introduzione di mutation, la modifica di Workflow, Container, AI
 - `apps/web/src/lib/control-room-api.ts` — contratto runtime dello snapshot;
 - `apps/web/src/lib/draft-detail-contract.ts` — contratto del dettaglio draft;
 - `apps/web/src/components/control-room/*` — viste della React island;
-- `scripts/smoke-control-room-*.mjs` — smoke runtime e browser esistenti;
+- `scripts/smoke-control-room-*.mjs` — smoke runtime e browser;
 - `tests/fixtures/control-room-*.json` — payload canonici di test.
-
-## Criteri di classificazione
-
-| Esito | Significato |
-|---|---|
-| Parità | La nuova Control Room conserva la lettura legacy. |
-| Superata | La nuova Control Room espone la stessa informazione con più dettaglio o guardrail più forti. |
-| Gap nuova UI | Il backend espone già il dato, ma il contratto o la vista nuova non lo conserva. |
-| Gap condiviso | Il contratto backend non rende disponibile la lettura né alla legacy né alla nuova UI. Il client non deve inventarla. |
-| Mutation differita | La capacità modifica stato ed è esclusa dall'audit read-only. |
-
-## Inventario delle letture legacy
-
-La legacy legge un solo snapshot da `GET /api/maintenance/control-room` e mostra:
-
-1. dieci metriche overview;
-2. brief con score, stato, bundle, readiness e draft collegato;
-3. claim con soggetto, testo, stato, fonte, scadenza, stato task e ID task;
-4. queue con tipo, entità, priorità, stato ed errore;
-5. evidence bundle e inventario draft;
-6. audit recente con dominio, azione, attore, entità e timestamp;
-7. preview HTML del draft richiesta esplicitamente tramite endpoint GET.
-
-La nuova Control Room usa lo stesso snapshot, lo valida a runtime e aggiunge una risorsa separata per il dettaglio draft completo.
 
 ## Matrice di parità
 
-| Area legacy | Nuova Control Room | Esito | Evidenza |
-|---|---|---|---|
-| Token operativo inserito nel browser e conservato in `sessionStorage` | Cloudflare Access, validazione JWT nell'origine e maintenance token soltanto server-side | Superata | `apps/web/src/worker.ts`, `apps/web/src/lib/cloudflare-access.ts` |
-| Refresh manuale dello snapshot | Refresh esplicito di health e snapshot come risorse indipendenti | Superata | `ControlRoomApp.tsx` |
-| 10 metriche overview | Tutte le 19 metriche dello snapshot, capability, binding, timestamp e guardrail | Superata | `Overview.tsx`, `control-room-api.ts` |
-| Brief: ID, titolo, slug, priority, stato, bundle, readiness, draft | Tutti i campi legacy più run, segnali, score distinti, quality flag, note e dettaglio filtrabile | Superata | `RadarBriefs.tsx` |
-| Claim: ID, brief, soggetto, testo, stato, fonte, scadenza, ID task e stato task | Tutti i campi legacy più campo, domanda di verifica, evidence, note, trust, confidence, valore e stato temporale derivato | Superata | `control-room-api.ts`, `ClaimsSources.tsx` |
-| Evidence bundle: ID, slug, versione, readiness e review status | Quattro gate distinti, conteggi, warning strutturati, revisore e timestamp | Superata | `ReadinessEvidence.tsx` |
-| Draft: ID, slug, versione, stato e renderer | Inventario completo, bundle e brief canonici, claim usati/esclusi, autore, revisore, note, errori e timestamp | Superata | `DraftDecisions.tsx` |
-| Preview HTML del renderer legacy | Dettaglio on demand con corpo strutturato, FAQ, fonti, provenance, regole, metadati e stato pagina | Superata per l'ispezione editoriale | `DraftDetailReadonly.tsx`, `draft-detail-contract.ts` |
-| Queue: ID, tipo, entità, priorità, stato ed errore | Tutti i campi legacy più due date, tentativi, lock, payload e dettaglio | Superata | `QueueAudit.tsx` |
-| Audit: data, dominio, azione, attore ed entità | Tutti i campi legacy più chiave stabile, linkage draft canonico, dettagli JSON opachi e filtri | Superata | `src/control-room.ts`, `control-room-api.ts`, `QueueAudit.tsx` |
-| Messaggio `approved draft ≠ published page` | Stato draft, stato pagina materializzata e publication eligibility mostrati separatamente | Superata | `DraftDetailReadonly.tsx`, `Overview.tsx` |
-| Layout desktop con tabelle scrollabili | Layout desktop, Sheet mobile, focus da tastiera, dialog e stati vuoti | Superata | smoke UI, claim, readiness, draft, dettaglio, queue e audit |
-| Errore globale durante il caricamento | Health, snapshot e dettaglio draft falliscono in modo indipendente conservando dati validi precedenti | Superata | `ControlRoomApp.tsx`, `draft-detail-api.ts` |
+| Area legacy | Nuova Control Room | Esito |
+|---|---|---|
+| Token operativo in `sessionStorage` | Cloudflare Access e maintenance token soltanto server-side | Superata |
+| Refresh manuale dello snapshot | Health e snapshot indipendenti con refresh esplicito | Superata |
+| 10 metriche overview | Tutte le 19 metriche, capability, binding e timestamp | Superata |
+| Brief | Campi legacy più run, segnali, score, quality flag, note e filtri | Superata |
+| Claim | Campi legacy più verifica, evidence, trust, scadenza, `task_id` e stato task | Superata |
+| Evidence bundle | Quattro gate distinti, conteggi, warning, revisore e timestamp | Superata |
+| Draft | Inventario completo più relazioni, claim, revisione, errori e timestamp | Superata |
+| Preview HTML legacy | Dettaglio strutturato on demand con corpo, FAQ, fonti e provenance | Superata per l'ispezione editoriale |
+| Queue | Campi legacy più due date, tentativi, lock, payload e dettaglio | Superata |
+| Audit | Chiave stabile, linkage draft canonico, dettagli JSON opachi e filtri | Superata |
+| Guardrail pubblicazione | Stati draft, pagina e publication eligibility separati | Superata |
+| Desktop | Desktop, Sheet mobile, focus, tastiera e stati vuoti | Superata |
+| Errore globale | Errori parziali isolati con dati validi precedenti conservati | Superata |
 
 ## Gap chiuso: claim → task ID
 
-La query canonica dello snapshot espone già:
+La query canonica espone già:
 
 ```text
 q.id AS task_id
 q.status AS task_status
 ```
 
-La legacy mostra entrambi. L'audit aveva rilevato che il contratto `ControlRoomClaim` conservava soltanto `task_status`.
+La PR #50, merge `41a9beee`, conserva il dato senza modificare backend o D1:
 
-La PR #50, mergiata nel commit `41a9beee`, chiude il gap senza modificare backend o D1:
+- `task_id: number | null` nel contratto;
+- validazione come `null` o intero positivo;
+- fixture collegata ai task persistiti;
+- ID e stato task nel dettaglio claim;
+- payload invalidi rifiutati;
+- nessuna ricostruzione da `entity_key`.
 
-- aggiunge `task_id: number | null` al contratto;
-- accetta soltanto `null` o interi positivi nel parser runtime;
-- collega la fixture canonica ai task persistiti;
-- mostra ID e stato task nel dettaglio claim;
-- rifiuta payload con ID stringa, zero, negativo o non intero;
-- aggiorna smoke claim e controllo di parità.
-
-La CI #213 è completamente verde. Il browser non ricostruisce il collegamento da `entity_key` o da altri campi. La verifica visuale nel browser reale di produzione dietro Cloudflare Access resta separata e non è ancora certificata.
+CI #213 completamente verde. La verifica visuale nel browser reale resta aperta.
 
 ## Preview del draft
 
-La preview legacy apre HTML generato dall'endpoint `editorial-draft-preview`. La nuova Control Room non conserva la dipendenza visuale dal renderer HTML legacy.
+La preview legacy apre HTML generato dall'endpoint `editorial-draft-preview`. La nuova Control Room non conserva questa dipendenza visuale.
 
-Per la parità operativa necessaria, la vista nuova espone il contenuto persistito completo e la sua provenienza. Questo è sufficiente per verificare testo, claim, fonti, regole e stato editoriale. La futura anteprima visuale del sito deve appartenere al renderer pubblico Astro, non al template HTML legacy.
+Il dettaglio on demand espone contenuto persistito, claim, fonti, provenance, regole e stato editoriale; la futura anteprima visuale del sito deve appartenere al renderer pubblico Astro.
 
 Questa decisione non autorizza pubblicazione, materializzazione o modifica del draft.
 
@@ -128,7 +92,7 @@ editorial_review_draft_events.draft_id
 editorial_review_drafts.version
 ```
 
-Non è necessaria una migrazione D1. La branch `fix/control-room-audit-draft-version-linkage-readonly` estende esclusivamente la proiezione read-only dello snapshot:
+La PR #52, merge `35f56e82`, chiude il gap senza migrazione D1. Lo snapshot espone:
 
 ```text
 event_key
@@ -144,26 +108,24 @@ created_at
 
 Regole del contratto:
 
-- ogni evento espone una `event_key` stabile e univoca server-side;
-- gli eventi `draft` espongono `draft_id` e `draft_version` positivi;
-- gli altri domini espongono entrambi i campi come `null`;
-- la UI seleziona gli eventi tramite `event_key`;
+- ogni evento ha una `event_key` stabile e univoca server-side;
+- gli eventi `draft` hanno `draft_id` e `draft_version` positivi;
+- gli altri domini hanno entrambi i campi `null`;
+- la UI seleziona tramite `event_key`;
 - la UI non legge `details.draftId`, `details.version` o altri metadati opachi per ricostruire relazioni;
-- `details` resta visibile come JSON validato, non come comando o autorizzazione.
+- `details` resta JSON validato, non comando o autorizzazione.
 
-Le chiavi sono namespaced per dominio, ad esempio:
+Chiavi namespaced:
 
 ```text
-draft-event:12
-readiness-event:7
-claim-event:31
-research-run:5
-ai-run:4
+draft-event:<id>
+readiness-event:<id>
+claim-event:<id>
+research-run:<id>
+ai-run:<id>
 ```
 
-La fixture e gli smoke verificano chiavi vuote o duplicate, linkage mancante sui draft, linkage improprio sugli altri domini e tipi non validi.
-
-La chiusura tecnica è implementata sulla branch; CI e merge restano da completare prima di dichiararla operativa.
+CI #217 e CI finale #220 completamente verdi. Gli smoke verificano chiavi vuote o duplicate, linkage mancante sui draft, linkage improprio sugli altri domini e tipi non validi.
 
 ## Mutation legacy escluse
 
@@ -178,33 +140,38 @@ La legacy contiene ancora:
 - approvazione o richiesta modifiche al draft;
 - registrazione dell'esito di un claim atomico.
 
-Queste capacità non sono parità read-only. Verranno migrate una per branch, con conferma, idempotenza, audit e reload dello stato. La pubblicazione resta fuori scope.
+Queste capacità verranno migrate una per branch, con conferma, idempotenza, audit, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
 
 ## Verdetto
 
-Con la conservazione di `task_id` e il contratto audit canonico, la nuova Control Room raggiunge la parità sulle letture effettivamente mostrate dalla legacy e le supera per dettaglio, sicurezza, identità delle righe e isolamento dei guasti.
+La nuova Control Room ha **parità read-only completa in CI** rispetto alle letture operative necessarie della legacy e applica guardrail più forti.
 
-La rimozione della legacy **non è autorizzata** perché resta il fallback delle mutation operative non ancora migrate. La parità read-only, da sola, non autorizza la cancellazione del fallback.
+Non restano gap read-only noti. Restano aperte soltanto:
+
+- verifica visuale dei nuovi linkage nel browser reale dietro Access;
+- migrazione delle mutation operative.
+
+La rimozione della legacy **non è autorizzata** perché resta il fallback delle mutation non ancora migrate. La parità read-only, da sola, non autorizza la cancellazione del fallback.
 
 ## Verifica
 
 - PR #49: merge `e0a39fa9`, CI #209 verde;
 - PR #50: merge `41a9beee`, CI #213 verde;
-- linkage audit → versione draft: implementato sulla branch, CI ancora da eseguire;
+- PR #52: merge `35f56e82`, CI finale #220 verde;
 - verifica visuale in produzione dei nuovi linkage: ancora aperta.
 
-## Definition of Done verificabile
+## Definition of Done
 
-- [x] tutte le letture legacy sono mappate;
-- [x] lo snapshot resta il contratto canonico condiviso;
-- [x] il dettaglio draft resta una risorsa indipendente e GET-only;
-- [x] nessun token applicativo è gestito dal browser nuovo;
-- [x] Access protegge shell e proxy in modalità fail-closed;
-- [x] nessun accesso diretto a D1 dal browser;
+- [x] tutte le letture legacy mappate;
+- [x] snapshot canonico condiviso;
+- [x] dettaglio draft indipendente e GET-only;
+- [x] nessun token applicativo nel browser;
+- [x] Access fail-closed;
+- [x] nessun accesso diretto a D1;
 - [x] nessuna mutation o capacità di pubblicazione introdotta;
-- [x] `task_id` del claim conservato e mostrato senza euristiche;
-- [x] audit legato canonicamente alla versione draft senza migrazione o euristiche client;
-- [ ] CI della branch audit linkage verde;
+- [x] `task_id` conservato senza euristiche;
+- [x] audit legato canonicamente alla versione draft senza migrazione o euristiche;
+- [x] CI completa verde;
 - [ ] verifica browser reale dei nuovi linkage;
 - [ ] mutation operative migrate;
 - [ ] fallback legacy non più necessario;
