@@ -1,4 +1,5 @@
 import type { Env } from './types';
+import { extractTopicAnchors } from './research-topic';
 
 type Obj = Record<string, unknown>;
 type SignalType = 'question' | 'complaint' | 'comparison' | 'recommendation' | 'trend' | 'content_gap';
@@ -23,6 +24,7 @@ type Run = {
   schemaVersion: string;
   kind: 'research' | 'discovery' | 'comparison';
   query: string;
+  topicAnchors: string[];
   generatedAt: string;
   windowDays: number;
   sourceStatus: unknown;
@@ -122,6 +124,7 @@ async function standard(payload: Obj): Promise<Run> {
     schemaVersion: str(payload.schema_version, 30) || 'unknown',
     kind: 'research',
     query,
+    topicAnchors: extractTopicAnchors(query, 'research'),
     generatedAt: str(payload.generated_at, 80) || new Date().toISOString(),
     windowDays: Math.min(365, Math.max(1, int(payload.window_days, 30))),
     sourceStatus: obj(payload.source_status) || {},
@@ -163,6 +166,7 @@ async function discovery(payload: Obj): Promise<Run> {
     schemaVersion: str(payload.schema_version, 30) || 'unknown',
     kind: 'discovery',
     query,
+    topicAnchors: [],
     generatedAt: str(payload.generated_at, 80) || new Date().toISOString(),
     windowDays: Math.min(365, Math.max(1, int(payload.window_days, 30))),
     sourceStatus: obj(payload.source_status) || {},
@@ -190,10 +194,12 @@ async function comparison(payload: Obj): Promise<Run> {
     signals.push(...normalized.signals.map((signal) => ({ ...signal, topic: entity, type: 'comparison' as const })));
   }
 
+  const query = entities.join(' vs ') || 'confronto recente';
   return {
     schemaVersion: str(payload.schema_version, 30) || 'unknown',
     kind: 'comparison',
-    query: entities.join(' vs ') || 'confronto recente',
+    query,
+    topicAnchors: extractTopicAnchors(query, 'comparison'),
     generatedAt,
     windowDays,
     sourceStatus,
@@ -231,11 +237,12 @@ export async function ingestResearch(request: Request, env: Env): Promise<Respon
   const insertedRun = await env.DB.prepare(`
     INSERT INTO research_runs(
       source_system,schema_version,run_kind,query,generated_at,window_days,
-      source_status_json,result_count,warning_count,payload_hash
-    ) VALUES('last30days',?,?,?,?,?,?,?,?,?) RETURNING id
+      topic_anchors_json,source_status_json,result_count,warning_count,payload_hash
+    ) VALUES('last30days',?,?,?,?,?,?,?,?,?,?) RETURNING id
   `).bind(
     run.schemaVersion, run.kind, run.query, run.generatedAt, run.windowDays,
-    stringify(run.sourceStatus), run.signals.length, run.warnings.length, payloadHash
+    stringify(run.topicAnchors), stringify(run.sourceStatus), run.signals.length,
+    run.warnings.length, payloadHash
   ).first<{ id: number }>();
   if (!insertedRun) return json({ ok: false, error: 'research_run_insert_failed' }, 500);
 
