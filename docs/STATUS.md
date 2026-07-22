@@ -30,13 +30,13 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Overview e health | Operative e verificate | PR #32 |
 | Radar e brief | Operativi e verificati | PR #34 |
 | Claim, fonti e scadenze | Operativi e verificati | PR #37 |
-| Claim → task ID | Implementato e verificato in CI | PR #50, merge `41a9beee`, CI #213; verifica browser reale ancora aperta |
+| Claim → task ID | Implementato e verificato in CI | PR #50, merge `41a9beee`, CI #213; verifica browser reale aperta |
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
 | Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
-| Audit → versione draft | Implementato e verificato in CI | draft PR #52, CI #217; nessuna migrazione D1 |
+| Audit → versione draft | Implementato e verificato in CI | PR #52, merge `35f56e82`, CI finale #220; nessuna migrazione D1 |
 | Dettaglio draft completo UI | Operativo e verificato in produzione | PR #47, CI #198 e verifica browser reale |
-| Audit parità legacy | Read-only completa in CI | PR #49 + gap chiusi in PR #50 e draft PR #52 |
+| Parità read-only legacy | Completa in CI | PR #49 + PR #50 + PR #52; verifica visuale dei nuovi linkage aperta |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -124,7 +124,7 @@ Sono verificati in produzione:
 Sono verificati dalla CI ma non ancora attestati nel browser reale di produzione dietro Cloudflare Access:
 
 - rendering di `task_id` nel dettaglio claim — CI #213;
-- chiave audit stabile e linkage `draft_id` + `draft_version` — CI #217.
+- `event_key` audit e linkage `draft_id` + `draft_version` — CI finale #220.
 
 ## Dettaglio draft completo — checkpoint completato
 
@@ -145,14 +145,7 @@ Il custom Worker:
 - delega all’endpoint backend esistente `GET /api/maintenance/editorial-draft-grounding`;
 - imposta `no-store`, `noindex` e `nosniff`.
 
-La React island carica il dettaglio soltanto quando viene aperta una versione. Il contratto runtime separato valida:
-
-- identità e relazione con il record inventario;
-- corpo strutturato, FAQ e fonti HTTPS;
-- provenance dei campi principali, sezioni e FAQ;
-- claim usati/esclusi e regole di generazione;
-- stato draft e stato pagina materializzata;
-- metadati, usage e timestamp.
+La React island carica il dettaglio soltanto quando viene aperta una versione. Il contratto runtime separato valida identità, corpo strutturato, FAQ, fonti HTTPS, provenance, claim usati/esclusi, stato pagina, metadati e timestamp.
 
 La verifica visuale conferma che in produzione vengono renderizzati il corpo, i blocchi editoriali, i badge claim, le fonti e la provenance. Lo screenshot ricevuto era compresso e non viene usato per attestare valori testuali puntuali o lo stato della migrazione `0019`.
 
@@ -164,23 +157,21 @@ La PR #49 è mergiata nel commit `e0a39fa9` dopo la CI #209 completamente verde.
 
 Il gap `claim → task_id` è stato chiuso dalla PR #50:
 
-- contratto `ControlRoomClaim` esteso con `task_id: number | null`;
-- parser runtime limitato a `null` o intero positivo;
-- fixture collegata ai task persistiti;
-- ID e stato task mostrati nel dettaglio claim;
-- payload invalido rifiutato;
+- `task_id: number | null` nel contratto claim;
+- validazione limitata a `null` o intero positivo;
+- ID e stato task mostrati senza euristiche client;
 - CI #213 completamente verde.
 
-Il gap `audit → specifica versione draft` è chiuso sulla draft PR #52 senza migrazione D1:
+Il gap `audit → specifica versione draft` è stato chiuso dalla PR #52, merge `35f56e82`, senza migrazione D1:
 
 - lo schema esistente fornisce ID evento, `draft_id` e versione draft;
 - lo snapshot espone una `event_key` namespaced e univoca;
-- gli eventi draft espongono `draft_id` e `draft_version` positivi;
+- gli eventi draft espongono ID e versione positivi;
 - gli altri domini espongono entrambi i campi come `null`;
 - il client seleziona per `event_key` e non interpreta `details`;
-- CI #217 completamente verde, inclusi D1 locale, `workerd`, Queue/Audit e legacy parity.
+- CI #217 e CI finale #220 completamente verdi, inclusi D1 locale, `workerd`, Queue/Audit e legacy parity.
 
-La preview HTML legacy non viene mantenuta come dipendenza visuale. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview del sito deve appartenere al renderer pubblico Astro.
+Non restano gap read-only noti rispetto alle letture necessarie della legacy. La preview HTML legacy non viene mantenuta come dipendenza visuale: il dettaglio strutturato copre l’ispezione editoriale e una futura preview del sito deve appartenere al renderer pubblico Astro.
 
 La legacy non viene rimossa perché resta il fallback delle mutation operative non ancora migrate.
 
@@ -237,10 +228,8 @@ Il gate non è ancora dichiarato verificato in produzione finché non viene atte
 
 ## Prossimo checkpoint
 
-Prima chiudere e mergiare la PR #52. Poi:
-
 ```text
-azioni operative della Control Room, una capacità per branch
+definire esplicitamente la prima mutation della Control Room
 ```
 
-La prima mutation verrà scelta soltanto dopo il merge e richiederà conferma esplicita, idempotenza, audit, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
+Nessuna mutation viene avviata da questo checkpoint documentale. La capacità scelta dovrà avere branch dedicata, conferma esplicita, idempotenza, audit persistito, reload dello snapshot, gestione degli errori e test end-to-end. La pubblicazione resta fuori scope.
