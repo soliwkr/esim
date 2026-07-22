@@ -467,10 +467,13 @@
   ],
   "audit": [
     {
+      "event_key": "draft-event:901",
       "domain": "draft",
       "action": "approved",
       "actor": "fixture-reviewer",
       "entity": "esim-cina-senza-vpn",
+      "draft_id": 202,
+      "draft_version": 2,
       "details": {
         "draftId": 202,
         "version": 2,
@@ -479,10 +482,13 @@
       "created_at": "2026-07-18T07:45:00.000Z"
     },
     {
+      "event_key": "readiness-event:902",
       "domain": "readiness",
       "action": "approved_for_draft",
       "actor": "fixture-reviewer",
       "entity": "esim-cina-senza-vpn",
+      "draft_id": null,
+      "draft_version": null,
       "details": {
         "bundleId": 31,
         "publicationEligible": false,
@@ -491,10 +497,13 @@
       "created_at": "2026-07-18T07:20:00.000Z"
     },
     {
+      "event_key": "claim-event:903",
       "domain": "claim",
       "action": "verified",
       "actor": "fixture-reviewer",
       "entity": "claim:101",
+      "draft_id": null,
+      "draft_version": null,
       "details": {
         "sourceKind": "official_provider",
         "confidence": 1
@@ -502,10 +511,13 @@
       "created_at": "2026-07-18T07:00:00.000Z"
     },
     {
+      "event_key": "research-run:501",
       "domain": "research",
       "action": "completed",
       "actor": "system",
       "entity": "eSIM Cina problemi VPN",
+      "draft_id": null,
+      "draft_version": null,
       "details": {
         "runId": 501,
         "eligible": 2,
@@ -514,10 +526,13 @@
       "created_at": "2026-07-18T06:51:00.000Z"
     },
     {
+      "event_key": "ai-run:41",
       "domain": "ai_editorial",
       "action": "completed",
       "actor": "system",
       "entity": "ai-run:41",
+      "draft_id": null,
+      "draft_version": null,
       "details": {
         "model": "fixture-model",
         "briefCount": 1,
