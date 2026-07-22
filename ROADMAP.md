@@ -2,7 +2,7 @@
 
 Questa è la roadmap canonica del progetto `soliwkr/esim`. Descrive l'ordine con cui Senza Roaming passa da infrastruttura funzionante a proprietà editoriale, SEO e affiliate governabile.
 
-Ultimo aggiornamento: **21 luglio 2026**.
+Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Come leggere i documenti
 
@@ -10,6 +10,7 @@ Ultimo aggiornamento: **21 luglio 2026**.
 - [`docs/FRONTEND-PLAN.md`](docs/FRONTEND-PLAN.md) — migrazione frontend e Control Room;
 - [`docs/CAPABILITY-MAP.md`](docs/CAPABILITY-MAP.md) — layer del sistema;
 - [`docs/SKILL-REGISTRY.md`](docs/SKILL-REGISTRY.md) — skill, repository e servizi adottati;
+- [`docs/RESEARCH-QUALITY-EVALUATION.md`](docs/RESEARCH-QUALITY-EVALUATION.md) — golden dataset, metriche e soglie di adozione dei framework;
 - [`docs/STATUS.md`](docs/STATUS.md) — stato operativo reale;
 - [`docs/NEXT.md`](docs/NEXT.md) — lavoro immediatamente eseguibile.
 
@@ -44,7 +45,7 @@ Ultimo aggiornamento: **21 luglio 2026**.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quality gate operativo; osservabilità da completare**
+**Stato: quality gate operativo; evaluation e osservabilità in completamento**
 
 - [x] Roadmap, status, architettura, decisioni e next.
 - [x] Storico e stato dei run.
@@ -53,11 +54,13 @@ Ultimo aggiornamento: **21 luglio 2026**.
 - [x] Backfill reale e flag `zero_relevance` verificati in produzione.
 - [x] Audit specifico di run, brief, claim e verifiche.
 - [x] Snapshot aggregato per dashboard.
+- [ ] Golden evaluation versionata — **PR #45 in verifica**.
+- [ ] Topic-mismatch gate con zero falsi positivi sul golden set.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato oltre la vista aggregata corrente.
 
-### Quality checkpoint completato
+### Quality checkpoint score zero
 
 La PR #36 è mergiata, distribuita e verificata:
 
@@ -69,6 +72,31 @@ manual override            → preservato e auditabile
 ```
 
 Il record falso positivo osservato risulta filtrato. Nessun brief o claim è stato modificato automaticamente.
+
+### Quality evaluation spike
+
+La PR #45 aggiunge un golden dataset e misura il trigger D1 reale con confusion matrix.
+
+Baseline caratterizzata:
+
+```text
+true positive:  3
+false positive: 1
+true negative:  4
+false negative: 0
+precision:       0.75
+recall:          1.00
+```
+
+Il falso positivo residuo ha score positivo ma nessuna pertinenza semantica con la query.
+
+Decisione proposta:
+
+- usare subito golden dataset + evaluator D1 in CI;
+- usare Promptfoo quando esisterà un vero prompt, modello o grader semantico;
+- usare Evidently per report e drift quando il corpus sarà significativo;
+- usare Cleanlab quando esisteranno probabilità di modello e volume sufficiente;
+- non aggiungere framework come wrapper decorativi attorno a regole deterministiche.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -105,7 +133,7 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 
 ## M4 — Frontend foundation e Control Room definitiva
 
-**Stato: checkpoint attuale**
+**Stato: parità read-only quasi completa**
 
 ### M4.0 — Freeze legacy
 
@@ -126,7 +154,6 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 
 - [x] shadcn/ui installato e versionato.
 - [x] Shell dashboard responsive in una React island.
-- [x] Overview, claim preview e draft preview iniziale read-only.
 - [x] Hydration, loading, error, empty, tastiera e mobile verificati.
 - [ ] Confronto Mantine soltanto se emerge un vantaggio misurabile.
 
@@ -145,27 +172,12 @@ Il record falso positivo osservato risulta filtrato. Nessun brief o claim è sta
 - [x] Radar e brief — PR #34 verificata.
 - [x] Claim, fonti e scadenze — PR #37 verificata.
 - [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
-- [x] Draft, preview e decisioni — PR #42 verificata in produzione.
-- [ ] Queue e audit — **PR #44 in verifica**.
+- [x] Draft, preview e decisioni — PR #42 verificata.
+- [x] Queue e audit — PR #44, CI #174 e browser reale verificati.
+- [ ] Dettaglio draft completo on demand e read-only.
+- [ ] Audit di parità con la Control Room legacy.
 - [ ] Azioni operative autorizzate, una per branch.
 - [ ] Rimozione legacy dopo parità funzionale.
-
-#### Page Readiness — checkpoint completato
-
-La nuova UI mostra score, conteggi, warning strutturati e quattro gate distinti. La prima verifica reale ha rilevato una fixture non aderente; la hotfix #40 ha allineato parser, rendering, fixture e smoke al formato canonico `{ code, message?, ...metadata }`.
-
-#### Draft, preview e decisioni — checkpoint completato
-
-La PR #42 è mergiata nel commit `856da79`, ha superato la CI #157 ed è stata verificata nel browser reale.
-
-La UI usa soltanto i dati già presenti nello snapshot:
-
-- draft, versione, pagina, renderer e stato;
-- evidence bundle e brief collegati;
-- title e H1;
-- claim usati ed esclusi;
-- generatore, revisore, reviewed at, note, errore e timestamp;
-- publication eligibility del bundle mostrata separatamente.
 
 Separazioni verificate:
 
@@ -173,49 +185,20 @@ Separazioni verificate:
 approved draft ≠ published page
 review draft ≠ publication eligibility
 editorial approval ≠ publication action
-```
-
-Gap dichiarati e non ricostruiti:
-
-- corpo completo, FAQ e fonti;
-- provenance field-level;
-- stato della pagina materializzata;
-- audit collegato univocamente alla versione del draft.
-
-La PR non aggiunge endpoint, query D1, generazione, azioni di revisione, mutation o pubblicazione.
-
-#### Queue e audit — scope PR #44
-
-La PR #44 usa soltanto gli array `queue` e `audit` già presenti nello snapshot aggregato.
-
-Queue:
-
-- task `pending`, `processing` e `failed`;
-- task type, entity type, entity key, priorità e stato;
-- due at, tentativi, max attempts, lock e ultimo errore;
-- payload JSON e timestamp;
-- riepiloghi limitati ai record restituiti;
-- filtri e dettaglio read-only.
-
-Audit:
-
-- dominio, azione, attore, entità e timestamp;
-- dettagli JSON opachi;
-- filtri e dettaglio read-only;
-- limite esplicito: nessun ID evento e nessun legame univoco con una versione draft.
-
-Separazioni obbligatorie:
-
-```text
 queue status ≠ decisione editoriale
 failed task ≠ contenuto non valido
 completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-La PR non aggiunge endpoint, query D1, retry, complete, dismiss, avvio Workflow, mutation o pubblicazione.
+Gap read-only ancora da chiudere:
 
-**Criterio di uscita M4:** le operazioni quotidiane sono disponibili nella nuova UI con contratti verificati; la legacy può essere rimossa senza perdere guardrail o funzioni necessarie.
+- corpo completo, FAQ e fonti del draft;
+- provenance field-level;
+- stato reale della pagina materializzata;
+- audit collegato univocamente alla versione del draft.
+
+**Criterio di uscita M4:** la nuova Control Room conserva tutte le letture e i guardrail necessari; la legacy può essere rimossa senza perdita funzionale. Le mutation vengono introdotte soltanto dopo questo audit.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
@@ -275,13 +258,14 @@ La PR non aggiunge endpoint, query D1, retry, complete, dismiss, avvio Workflow,
 
 ## Ordine operativo attuale
 
-1. chiudere e verificare PR #44 su queue e audit read-only;
-2. decidere con scope esplicito se estendere il contratto draft per contenuto, provenance e stato pagina;
-3. introdurre azioni operative soltanto con branch dedicate;
-4. rimuovere la legacy soltanto dopo parità funzionale;
-5. migrare il sito pubblico ad Astro;
-6. collegare Search Console, consenso e analytics;
-7. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. chiudere la PR #45 sul golden quality evaluation;
+2. ridurre il falso positivo con `feat/research-topic-mismatch-gate`;
+3. aggiungere il dettaglio draft completo GET-only e read-only;
+4. eseguire l'audit di parità e rimuovere la legacy soltanto quando sicuro;
+5. introdurre azioni operative una per branch;
+6. migrare il sito pubblico ad Astro;
+7. collegare Search Console, consenso e analytics;
+8. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 
