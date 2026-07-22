@@ -214,10 +214,20 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-022 — Dettaglio draft on demand separato dallo snapshot
 
-**Stato:** proposta nella PR #47
+**Stato:** accettata e verificata in produzione con PR #47
 
 **Decisione:** mantenere nello snapshot aggregato soltanto l’inventario dei draft e caricare corpo completo, FAQ, fonti, provenance field-level e stato della pagina tramite una risorsa GET-only separata, richiesta soltanto quando l’operatore apre una versione.
 
 **Razionale:** includere tutti i corpi e le provenance nello snapshot iniziale aumenterebbe peso, tempo di validazione e raggio dei guasti. Il backend espone già il contratto necessario tramite `GET /api/maintenance/editorial-draft-grounding`; duplicare query D1 o creare un nuovo contratto editoriale non aggiungerebbe valore.
 
 **Conseguenza:** il custom Worker aggiunge `/control-room-foundation/api/draft-detail?draftId=<id>`, protetto da Cloudflare Access e mediato dal maintenance token server-side. Il client usa un contratto runtime dedicato; un errore del dettaglio non cancella inventario, overview o altre viste. Stato draft, stato pagina materializzata e publication eligibility restano distinti. Nessuna generation, review action, materializzazione o pubblicazione viene esposta.
+
+## ADR-023 — Parità legacy basata su capacità operative, non sul renderer HTML
+
+**Stato:** proposta nella PR #49
+
+**Decisione:** valutare la parità read-only della nuova Control Room in base ai dati canonici, alle relazioni, ai guardrail e alle capacità di ispezione necessarie all’operatore. Non conservare come requisito il template HTML della preview legacy; una futura preview visuale deve appartenere al renderer pubblico Astro.
+
+**Razionale:** la preview legacy dipende da HTML generato nel Worker e non rappresenta l’architettura frontend definitiva. Il dettaglio draft on demand espone già corpo strutturato, FAQ, fonti, provenance, regole e stato pagina senza duplicare il renderer legacy. Copiare il template produrrebbe parità visiva apparente ma nuovo debito tecnico.
+
+**Conseguenza:** i gap vengono classificati esplicitamente. Un dato già disponibile ma perso dalla nuova UI, come `task_id` del claim, richiede un fix read-only. Una relazione non canonica nel contratto, come audit → versione draft, richiede uno scope server-side separato e non può essere ricostruita con euristiche client. La legacy resta finché serve come fallback delle mutation; nessuna rimozione avviene sulla sola base della parità visiva.
