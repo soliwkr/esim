@@ -1,15 +1,16 @@
 {
   "schemaVersion": "1.0",
-  "description": "Golden set per misurare il quality gate D1 rispetto a decisioni editoriali umane. expectedCurrentGateEligible caratterizza il comportamento corrente; expectedEditorialEligible è la label umana canonica.",
+  "description": "Golden set per misurare il quality gate D1 rispetto a decisioni editoriali umane. expectedCurrentGateEligible caratterizza il comportamento del gate versionato; expectedEditorialEligible è la label umana canonica.",
   "run": {
     "query": "Holafly recent experiences",
+    "anchors": ["holafly"],
     "generatedAt": "2026-07-20T05:03:00.000Z",
     "windowDays": 30
   },
   "baseline": {
     "truePositive": 3,
-    "falsePositive": 1,
-    "trueNegative": 4,
+    "falsePositive": 0,
+    "trueNegative": 5,
     "falseNegative": 0
   },
   "cases": [
@@ -22,7 +23,7 @@
       "relevanceScore": 0,
       "expectedCurrentGateEligible": false,
       "expectedEditorialEligible": false,
-      "expectedFlags": ["zero_relevance"]
+      "expectedFlags": ["zero_relevance", "topic_mismatch"]
     },
     {
       "id": "irrelevant-low-positive-score",
@@ -31,9 +32,9 @@
       "source": "reddit",
       "publishedAt": "2026-07-03T02:00:00.000Z",
       "relevanceScore": 0.2,
-      "expectedCurrentGateEligible": true,
+      "expectedCurrentGateEligible": false,
       "expectedEditorialEligible": false,
-      "expectedFlags": []
+      "expectedFlags": ["topic_mismatch"]
     },
     {
       "id": "relevant-low-positive-score",
