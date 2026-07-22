@@ -91,12 +91,12 @@
       "expectedFlags": ["future_dated"]
     },
     {
-      "id": "irrelevant-negative-score",
+      "id": "second-irrelevant-zero-score",
       "title": "Restaurant experience in Madrid",
       "summary": "No relationship with eSIM, roaming or Holafly.",
       "source": "reddit",
       "publishedAt": "2026-07-11T02:00:00.000Z",
-      "relevanceScore": -0.1,
+      "relevanceScore": 0,
       "expectedCurrentGateEligible": false,
       "expectedEditorialEligible": false,
       "expectedFlags": ["zero_relevance"]
