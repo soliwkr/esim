@@ -78,7 +78,7 @@ CI #213 completamente verde. La verifica visuale nel browser reale resta aperta.
 
 La preview legacy apre HTML generato dall'endpoint `editorial-draft-preview`. La nuova Control Room non conserva questa dipendenza visuale.
 
-Il dettaglio on demand espone contenuto persistito, claim, fonti, provenance, regole e stato editoriale. Una futura preview visuale deve appartenere al renderer pubblico Astro.
+Il dettaglio on demand espone contenuto persistito, claim, fonti, provenance, regole e stato editoriale; la futura anteprima visuale del sito deve appartenere al renderer pubblico Astro.
 
 Questa decisione non autorizza pubblicazione, materializzazione o modifica del draft.
 
