@@ -89,7 +89,7 @@ richiesta
 → router backend per API e pagine non migrate
 ```
 
-Sono verificati prima della PR #47:
+Sono verificati:
 
 - export di Workflow e Container;
 - D1 e configurazione runtime;
@@ -98,9 +98,10 @@ Sono verificati prima della PR #47:
 - migrazioni D1;
 - 404, canonical, robots e sitemap esistenti;
 - assenza di route di pubblicazione automatica;
-- live smoke della shell e del proxy snapshot.
+- live smoke della shell e del proxy snapshot;
+- seconda risorsa GET-only del dettaglio draft, PR #47 e verifica in produzione.
 
-La PR #47 estende lo stesso perimetro con una seconda risorsa GET-only, senza introdurre un secondo Worker o un nuovo contratto backend.
+Il dettaglio draft estende lo stesso perimetro senza introdurre un secondo Worker o un nuovo contratto backend.
 
 ## Struttura incrementale
 
@@ -151,7 +152,9 @@ Ordine completato:
 3. claim, fonti e scadenze — **PR #37**;
 4. readiness ed evidence bundle — **PR #39 + hotfix #40**;
 5. draft, preview e decisioni — **PR #42**;
-6. queue e audit — **PR #44, CI #174 e verifica browser reale**.
+6. queue e audit — **PR #44, CI #174 e verifica browser reale**;
+7. dettaglio draft completo — **PR #47, CI #198 e verifica browser reale**;
+8. audit sistematico di parità legacy — **draft PR #49, CI #203 verde**.
 
 #### F3.1 — Overview e health
 
@@ -174,14 +177,22 @@ Ordine completato:
 
 #### F3.3 — Claim, fonti e scadenze
 
-**Stato: completata e verificata in produzione.**
+**Stato: operativa e verificata; un linkage read-only residuo.**
 
-- contratto claim completo;
+- contratto claim, fonti, verifica e scadenza validato a runtime;
 - filtri per stato, brief, fonte, verifica e scadenza;
 - fonte distinta dall'evidenza;
 - stato temporale separato dallo stato canonico;
+- `task_status` mostrato;
+- `task_id` già esposto dal backend ma non ancora conservato dal contratto React;
 - nessuna richiesta browser diversa da `GET`;
 - nessuna mutation o pubblicazione.
+
+Branch di chiusura prevista:
+
+```text
+fix/control-room-claim-task-linkage-readonly
+```
 
 #### F3.4 — Page Readiness ed evidence bundle
 
@@ -236,9 +247,15 @@ completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-### F3.7 — Dettaglio draft completo read-only
+Branch di chiusura del linkage prevista:
 
-**Stato: implementata nella PR #47, in verifica.**
+```text
+fix/control-room-audit-draft-version-linkage-readonly
+```
+
+#### F3.7 — Dettaglio draft completo read-only
+
+**Stato: completata e verificata in produzione con PR #47.**
 
 Branch:
 
@@ -283,28 +300,46 @@ Proprietà di isolamento:
 
 Non include generazione, revisione operativa, materializzazione, mutation o pubblicazione.
 
-### F3.8 — Audit di parità legacy
+#### F3.8 — Audit di parità legacy
 
-**Stato: prossimo checkpoint dopo la chiusura della PR #47.**
+**Stato: eseguito nella draft PR #49; CI #203 verde.**
 
-Branch prevista:
+Branch:
 
 ```text
 chore/control-room-legacy-parity-audit
 ```
 
+L’audit versiona una matrice tra legacy e nuova Control Room e verifica staticamente:
+
+- copertura delle letture operative;
+- guardrail equivalenti o più forti;
+- assenza di token applicativi nel browser;
+- Access e proxy GET-only;
+- assenza di mutation e accesso diretto a D1;
+- inventario delle mutation ancora ospitate dalla legacy.
+
+Verdetto:
+
+- quasi tutte le letture sono conservate o superate;
+- `claim → task_id` è un gap della nuova UI;
+- `audit → draft_id + draft_version` è un gap condiviso del contratto server-side;
+- il template HTML della preview legacy non è un requisito di parità;
+- una futura preview visuale appartiene al renderer pubblico Astro;
+- la legacy resta necessaria come fallback delle mutation.
+
 La vecchia Control Room viene rimossa soltanto quando:
 
 - ogni lettura necessaria è presente;
+- i linkage sono canonici e non euristici;
 - i guardrail sono equivalenti o più forti;
 - gli smoke end-to-end sono verdi;
+- le mutation operative sono migrate;
 - il fallback non è più necessario.
 
-Il gap read-only noto da valutare nell’audit è il collegamento univoco degli eventi audit a una specifica versione draft.
+#### F3.9 — Azioni operative
 
-### F3.9 — Azioni operative
-
-Solo dopo la parità read-only, una branch per capacità:
+Solo dopo la chiusura dei gap read-only, una branch per capacità:
 
 ```text
 decisione brief
@@ -350,15 +385,19 @@ Ogni mutation richiede conferma, audit, idempotenza, reload dello stato e test e
 - lo stato del draft non viene presentato come stato della pagina;
 - lo stato della queue non viene presentato come decisione editoriale;
 - un errore del dettaglio draft non invalida lo snapshot aggregato;
-- il dettaglio on demand non abilita materializzazione o pubblicazione.
+- il dettaglio on demand non abilita materializzazione o pubblicazione;
+- relazioni mancanti nel contratto non vengono ricostruite con euristiche client;
+- la legacy non viene rimossa finché resta il fallback delle mutation.
 
 ## Cosa non facciamo adesso
 
 - riscrivere il backend;
-- introdurre mutation prima della parità read-only;
+- introdurre mutation prima della chiusura dei gap read-only;
 - spostare subito tutte le directory;
 - pubblicare la pagina Cina;
 - costruire un design system proprietario da zero;
 - introdurre una libreria senza necessità dimostrata;
 - aggiungere nuove feature alla Control Room legacy;
-- duplicare query D1 già coperte dal contratto backend esistente.
+- duplicare query D1 già coperte dal contratto backend esistente;
+- copiare il renderer HTML legacy nella nuova Control Room;
+- rimuovere la legacy prima della migrazione delle mutation.
