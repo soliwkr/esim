@@ -234,7 +234,7 @@ try {
   await errorPage.goto(`${origin}/control-room-foundation`);
   const errorDialog = await openDetail(errorPage);
   await errorDialog.getByTestId('draft-detail-error').waitFor();
-  await errorDialog.getByText('Dettaglio draft non disponibile').waitFor();
+  await errorDialog.getByTestId('draft-detail-error').locator('[data-slot="alert-title"]').getByText('Dettaglio draft non disponibile', { exact: true }).waitFor();
   await errorDialog.getByRole('button', { name: 'Riprova' }).click();
   await errorDialog.getByTestId('draft-detail-error').waitFor();
   assert.equal(retries.count, 2);
