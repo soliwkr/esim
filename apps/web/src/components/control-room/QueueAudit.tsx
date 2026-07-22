@@ -45,11 +45,6 @@ import { cn } from "@/lib/utils"
 
 type QueueErrorFilter = "all" | "with_error" | "locked"
 
-type AuditEntry = {
-  event: ControlRoomAuditEvent
-  sourceIndex: number
-}
-
 function formatTimestamp(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
@@ -173,28 +168,34 @@ function AuditEventDetails({ event }: { event: ControlRoomAuditEvent }) {
           <Badge variant="outline">{event.domain}</Badge>
           <Badge variant="outline">{event.action}</Badge>
           <Badge variant="secondary">{event.actor}</Badge>
+          {event.draft_id !== null && event.draft_version !== null && (
+            <Badge variant="secondary">draft #{event.draft_id} · v{event.draft_version}</Badge>
+          )}
         </div>
 
         <Alert data-testid="audit-event-guardrail" className="border-emerald-200 bg-emerald-50/70">
           <ShieldCheck aria-hidden="true" />
           <AlertTitle>Evento audit ≠ autorizzazione operativa</AlertTitle>
           <AlertDescription>
-            L’evento registra un fatto storico aggregato. Lo snapshot non espone un ID evento né un collegamento univoco a una specifica versione del draft.
+            L’identità evento e l’eventuale collegamento alla versione draft arrivano dal contratto server-side. I dettagli JSON restano opachi e non vengono usati per ricostruire relazioni o autorizzazioni.
           </AlertDescription>
         </Alert>
 
         <dl className="grid gap-4 rounded-xl border bg-muted/25 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><dt className="text-muted-foreground">Identità evento</dt><dd className="mt-1 break-all font-mono text-xs">{event.event_key}</dd></div>
           <div><dt className="text-muted-foreground">Dominio</dt><dd className="mt-1 font-medium">{event.domain}</dd></div>
           <div><dt className="text-muted-foreground">Azione</dt><dd className="mt-1 font-medium">{event.action}</dd></div>
           <div><dt className="text-muted-foreground">Attore</dt><dd className="mt-1 font-medium">{event.actor}</dd></div>
           <div><dt className="text-muted-foreground">Entità</dt><dd className="mt-1 break-all font-medium">{event.entity}</dd></div>
+          <div><dt className="text-muted-foreground">Draft collegato</dt><dd className="mt-1 font-medium">{event.draft_id === null ? "—" : `#${event.draft_id}`}</dd></div>
+          <div><dt className="text-muted-foreground">Versione draft</dt><dd className="mt-1 font-medium">{event.draft_version === null ? "—" : `v${event.draft_version}`}</dd></div>
           <div className="sm:col-span-2"><dt className="text-muted-foreground">Creato</dt><dd className="mt-1 font-medium">{formatTimestamp(event.created_at)}</dd></div>
         </dl>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Dettagli normalizzati</CardTitle>
-            <CardDescription>Metadati opachi validati come JSON e mostrati senza ricostruire decisioni o relazioni.</CardDescription>
+            <CardDescription>Metadati opachi validati come JSON e mostrati senza derivare identità evento, linkage draft, decisioni o autorizzazioni.</CardDescription>
           </CardHeader>
           <CardContent>
             <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-4 text-xs leading-5">{jsonText(event.details)}</pre>
@@ -221,7 +222,7 @@ export function QueueAudit({
   const [auditDomain, setAuditDomain] = useState("all")
   const [auditAction, setAuditAction] = useState("all")
   const [auditActor, setAuditActor] = useState("all")
-  const [selectedAuditIndex, setSelectedAuditIndex] = useState<number | null>(null)
+  const [selectedAuditKey, setSelectedAuditKey] = useState<string | null>(null)
 
   const statuses = useMemo(() => Array.from(new Set(queue.map((task) => task.status))).sort(), [queue])
   const taskTypes = useMemo(() => Array.from(new Set(queue.map((task) => task.task_type))).sort(), [queue])
@@ -236,20 +237,19 @@ export function QueueAudit({
     return true
   }), [entityType, queue, queueError, queueStatus, taskType])
 
-  const auditEntries = useMemo<AuditEntry[]>(() => audit.map((event, sourceIndex) => ({ event, sourceIndex })), [audit])
   const domains = useMemo(() => Array.from(new Set(audit.map((event) => event.domain))).sort(), [audit])
   const actions = useMemo(() => Array.from(new Set(audit.map((event) => event.action))).sort(), [audit])
   const actors = useMemo(() => Array.from(new Set(audit.map((event) => event.actor))).sort(), [audit])
 
-  const visibleAudit = useMemo(() => auditEntries.filter(({ event }) => {
+  const visibleAudit = useMemo(() => audit.filter((event) => {
     if (auditDomain !== "all" && event.domain !== auditDomain) return false
     if (auditAction !== "all" && event.action !== auditAction) return false
     if (auditActor !== "all" && event.actor !== auditActor) return false
     return true
-  }), [auditAction, auditActor, auditDomain, auditEntries])
+  }), [audit, auditAction, auditActor, auditDomain])
 
   const selectedTask = queue.find((task) => task.id === selectedTaskId) || null
-  const selectedAudit = selectedAuditIndex === null ? null : audit[selectedAuditIndex] || null
+  const selectedAudit = selectedAuditKey === null ? null : audit.find((event) => event.event_key === selectedAuditKey) || null
 
   const pendingCount = queue.filter((task) => task.status === "pending").length
   const processingCount = queue.filter((task) => task.status === "processing").length
@@ -374,7 +374,7 @@ export function QueueAudit({
           <p className="text-sm font-medium text-primary">Audit aggregato</p>
           <h2 id="audit-title" className="text-2xl font-semibold tracking-tight">Eventi e traccia operativa</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Timeline read-only di eventi draft, readiness, claim, ricerca e run AI restituiti dal backend. Ordine e dettagli restano quelli dello snapshot.
+            Timeline read-only di eventi draft, readiness, claim, ricerca e run AI restituiti dal backend. Ordine, identità e collegamenti restano quelli dello snapshot.
           </p>
         </div>
 
@@ -382,7 +382,7 @@ export function QueueAudit({
           <ScrollText aria-hidden="true" />
           <AlertTitle>Audit event ≠ autorizzazione operativa</AlertTitle>
           <AlertDescription>
-            Il feed non espone un ID evento e non collega in modo univoco ogni riga a una versione draft. La UI non ricostruisce linkage mancanti.
+            Ogni evento ha una chiave stabile server-side. Gli eventi draft espongono ID e versione canonici; gli altri domini mantengono il linkage draft nullo. La UI non interpreta i dettagli JSON per ricostruire relazioni.
           </AlertDescription>
         </Alert>
 
@@ -434,19 +434,21 @@ export function QueueAudit({
                   <TableHead>Azione</TableHead>
                   <TableHead>Attore</TableHead>
                   <TableHead>Entità</TableHead>
+                  <TableHead>Draft</TableHead>
                   <TableHead className="text-right">Dettaglio</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleAudit.map(({ event, sourceIndex }) => (
-                  <TableRow key={`${event.created_at}-${event.domain}-${event.action}-${event.entity}-${sourceIndex}`}>
+                {visibleAudit.map((event) => (
+                  <TableRow key={event.event_key}>
                     <TableCell className="whitespace-nowrap">{formatTimestamp(event.created_at)}</TableCell>
                     <TableCell><Badge variant="outline">{event.domain}</Badge></TableCell>
                     <TableCell><Badge variant="secondary">{event.action}</Badge></TableCell>
                     <TableCell>{event.actor}</TableCell>
                     <TableCell className="max-w-xs break-all">{event.entity}</TableCell>
+                    <TableCell className="whitespace-nowrap">{event.draft_id === null || event.draft_version === null ? "—" : `#${event.draft_id} · v${event.draft_version}`}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="outline" size="sm" onClick={() => setSelectedAuditIndex(sourceIndex)} aria-label={`Apri evento audit ${sourceIndex + 1}`}>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedAuditKey(event.event_key)} aria-label={`Apri evento audit ${event.event_key}`}>
                         Apri
                       </Button>
                     </TableCell>
@@ -457,7 +459,7 @@ export function QueueAudit({
           </div>
         )}
 
-        <Sheet open={selectedAudit !== null} onOpenChange={(open) => { if (!open) setSelectedAuditIndex(null) }}>
+        <Sheet open={selectedAudit !== null} onOpenChange={(open) => { if (!open) setSelectedAuditKey(null) }}>
           {selectedAudit && <AuditEventDetails event={selectedAudit} />}
         </Sheet>
       </section>
