@@ -9,6 +9,10 @@ const paths = {
   app: 'apps/web/src/components/control-room/ControlRoomApp.tsx',
   overview: 'apps/web/src/components/control-room/Overview.tsx',
   radarBriefs: 'apps/web/src/components/control-room/RadarBriefs.tsx',
+  briefDecisionPanel: 'apps/web/src/components/control-room/BriefDecisionPanel.tsx',
+  briefDecisionApi: 'apps/web/src/lib/brief-decision-api.ts',
+  briefDecisionBackend: 'src/editorial-brief-decisions.ts',
+  briefDecisionMigration: 'migrations/0020_editorial_brief_decisions.sql',
   claims: 'apps/web/src/components/control-room/ClaimsSources.tsx',
   readiness: 'apps/web/src/components/control-room/ReadinessEvidence.tsx',
   drafts: 'apps/web/src/components/control-room/DraftDecisions.tsx',
@@ -129,7 +133,7 @@ assert.ok(source.worker.includes('requireCloudflareAccess(request, env)'));
 assert.ok(source.worker.includes('authorization: `Bearer ${env.MAINTENANCE_TOKEN}`'));
 assert.ok((source.worker.match(/request\.method !== 'GET'/g) || []).length >= 2);
 
-const browserSources = [
+const readOnlyBrowserSources = [
   source.app,
   source.overview,
   source.radarBriefs,
@@ -141,9 +145,15 @@ const browserSources = [
   source.api,
 ].join('\n');
 
-assert.doesNotMatch(browserSources, /sessionStorage|localStorage|Authorization|Bearer/);
-assert.doesNotMatch(browserSources, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
-assert.doesNotMatch(browserSources, /\bD1\b.*prepare\s*\(/i);
+assert.doesNotMatch(readOnlyBrowserSources, /sessionStorage|localStorage|Authorization|Bearer/);
+assert.doesNotMatch(readOnlyBrowserSources, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
+assert.doesNotMatch(readOnlyBrowserSources, /\bD1\b.*prepare\s*\(/i);
+
+const mutationBrowserSources = `${source.briefDecisionPanel}\n${source.briefDecisionApi}`;
+assert.doesNotMatch(mutationBrowserSources, /sessionStorage|localStorage|Authorization|Bearer|\bD1\b.*prepare\s*\(/i);
+assert.equal((source.briefDecisionApi.match(/method:\s*"POST"/g) || []).length, 1);
+assert.doesNotMatch(source.briefDecisionApi, /method:\s*"(?:PUT|PATCH|DELETE)"/i);
+assert.doesNotMatch(source.briefDecisionPanel, /\bfetch\s*\(|XMLHttpRequest/i);
 
 assert.ok(source.legacy.includes('/api/maintenance/editorial-draft-preview'));
 assert.doesNotMatch(source.worker, /editorial-draft-preview/);
@@ -178,21 +188,47 @@ assert.doesNotMatch(source.queueAudit, /details.*draftId|draftId.*details/);
 assert.match(source.audit, /Gap chiuso: audit → versione draft/);
 assert.match(source.audit, /fix\/control-room-audit-draft-version-linkage-readonly/);
 
+assert.ok(source.legacy.includes("name === 'acceptBrief'"));
+requireAll(source.worker, [
+  "'/control-room-foundation/api/brief-decision'",
+  'cloudflareAccessActor(request)',
+  'handleControlRoomBriefDecision(request, env',
+], 'Route decisione brief');
+requireAll(source.briefDecisionPanel, [
+  'brief.status === "proposed"',
+  'submitBriefDecision',
+  'Decisione ≠ conversione ≠ pubblicazione',
+  'dismissalReasonMissing',
+  'onDecisionApplied',
+], 'UI decisione brief');
+requireAll(source.briefDecisionBackend, [
+  "action === 'accepted' || body.action === 'dismissed'",
+  "before.brief.status !== 'proposed'",
+  'publicationTriggered: false',
+  'brief_decision_conflict',
+], 'Backend decisione brief');
+requireAll(source.briefDecisionMigration, [
+  'CREATE TABLE IF NOT EXISTS editorial_brief_events',
+  'trg_editorial_brief_status_transition',
+  'trg_editorial_brief_decision_audit',
+  'editorial_brief_events_append_only',
+], 'Migrazione decisione brief');
+assert.match(source.audit, /Mutation migrata: decisione brief/);
+
 requireAll(source.legacy, [
   "name === 'research'",
-  "name === 'acceptBrief'",
   "name === 'convertBrief'",
   "name === 'evaluate'",
   "name === 'approveBundle'",
   "name === 'generateDraft'",
   "name === 'approveDraft' || name === 'changesDraft'",
   "name === 'claimResult'",
-], 'Mutation legacy inventariate');
-assert.match(source.audit, /Mutation legacy escluse/);
+], 'Mutation legacy residue inventariate');
+assert.match(source.audit, /Mutation legacy ancora escluse/);
 assert.match(source.audit, /rimozione della legacy \*\*non è autorizzata\*\*/);
 
 console.log('Control Room legacy parity audit passed.');
 console.log('- letture legacy mappate contro la React island');
 console.log('- perimetro Access e assenza di credenziali browser verificati staticamente');
 console.log('- claim task_id e audit draft linkage conservati senza euristiche client');
-console.log('- mutation legacy inventariate e ancora escluse');
+console.log('- decisione brief migrata; mutation residue ancora inventariate nella legacy');
