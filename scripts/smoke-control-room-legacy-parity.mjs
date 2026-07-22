@@ -75,8 +75,9 @@ requireAll(source.claims, [
   'claim.source_url',
   'claim.source_label',
   'claim.valid_until',
+  'claim.task_id',
   'claim.task_status',
-], 'Parità claim salvo task ID');
+], 'Parità claim');
 
 requireAll(source.readiness, [
   'bundle.id',
@@ -149,10 +150,10 @@ assert.ok(source.snapshotBackend.includes('q.id AS task_id'));
 assert.ok(source.legacy.includes('claim.task_id'));
 const claimInterface = between(source.api, 'export interface ControlRoomClaim', 'export interface ControlRoomEvidenceWarning');
 const claimParser = between(source.api, 'function parseClaims', 'function parseEvidenceBundles');
-assert.doesNotMatch(claimInterface, /\btask_id\s*:/);
-assert.doesNotMatch(claimParser, /\btask_id\s*:/);
-assert.doesNotMatch(source.claims, /claim\.task_id/);
-assert.match(source.audit, /Gap nuova UI: claim → task ID/);
+assert.match(claimInterface, /\btask_id\s*:/);
+assert.match(claimParser, /task_id: requireNullablePositiveInteger/);
+assert.match(source.claims, /claim\.task_id/);
+assert.match(source.audit, /Gap chiuso: claim → task ID/);
 assert.match(source.audit, /fix\/control-room-claim-task-linkage-readonly/);
 
 const auditInterface = between(source.api, 'export interface ControlRoomAuditEvent', 'export interface ControlRoomCapabilities');
@@ -171,10 +172,10 @@ requireAll(source.legacy, [
   "name === 'claimResult'",
 ], 'Mutation legacy inventariate');
 assert.match(source.audit, /Mutation legacy escluse/);
-assert.match(source.audit, /rimozione della legacy \*\*non è autorizzata in questa branch\*\*/);
+assert.match(source.audit, /rimozione della legacy \*\*non è autorizzata\*\*/);
 
 console.log('Control Room legacy parity audit passed.');
 console.log('- letture legacy mappate contro la React island');
 console.log('- perimetro Access e assenza di credenziali browser verificati staticamente');
-console.log('- gap claim task_id e audit draft version documentati senza euristiche client');
+console.log('- claim task_id conservato e gap audit draft version ancora dichiarato');
 console.log('- mutation legacy inventariate e ancora escluse');
