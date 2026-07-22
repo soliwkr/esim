@@ -1,7 +1,9 @@
 PRAGMA foreign_keys = ON;
 
--- A brief decision is a single, human-controlled transition from proposed to
--- accepted or dismissed. The append-only event is the command and the audit.
+ALTER TABLE editorial_briefs ADD COLUMN decision_actor TEXT;
+ALTER TABLE editorial_briefs ADD COLUMN decided_at TEXT;
+
+-- One append-only human decision per brief. Conversion is a later, distinct gate.
 CREATE TABLE IF NOT EXISTS editorial_brief_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   brief_id INTEGER NOT NULL UNIQUE,
@@ -16,45 +18,67 @@ CREATE TABLE IF NOT EXISTS editorial_brief_events (
 CREATE INDEX IF NOT EXISTS idx_editorial_brief_events_created
   ON editorial_brief_events(created_at DESC, id DESC);
 
--- Preserve the already-observed human state without pretending that the original
--- actor or decision timestamp is known. New decisions use the strict triggers below.
+-- Preserve already-observed states without inventing the original actor or timestamp.
+UPDATE editorial_briefs
+SET decision_actor='migration-0020-backfill',
+    decided_at=CURRENT_TIMESTAMP
+WHERE status IN ('accepted','dismissed','converted')
+  AND decision_actor IS NULL;
+
 INSERT OR IGNORE INTO editorial_brief_events(
-  brief_id, action, actor, notes, details_json
+  brief_id, action, actor, notes, details_json, created_at
 )
 SELECT
   id,
   CASE WHEN status='dismissed' THEN 'dismissed' ELSE 'accepted' END,
-  'migration-0020-backfill',
+  COALESCE(NULLIF(trim(decision_actor),''),'migration-0020-backfill'),
   COALESCE(notes,''),
-  json_object('backfilled',1,'sourceStatus',status)
+  json_object('backfilled',1,'sourceStatus',status),
+  COALESCE(decided_at,CURRENT_TIMESTAMP)
 FROM editorial_briefs
 WHERE status IN ('accepted','dismissed','converted');
 
-CREATE TRIGGER IF NOT EXISTS trg_editorial_brief_decision_requires_proposed
-BEFORE INSERT ON editorial_brief_events
-WHEN NOT EXISTS (
-  SELECT 1 FROM editorial_briefs
-  WHERE id=NEW.brief_id AND status='proposed'
-)
+-- Legal state machine:
+-- proposed -> accepted | dismissed
+-- accepted -> converted
+-- retries that keep the same state remain harmless.
+CREATE TRIGGER IF NOT EXISTS trg_editorial_brief_status_transition
+BEFORE UPDATE OF status ON editorial_briefs
+WHEN NEW.status<>OLD.status
+  AND NOT (
+    (OLD.status='proposed' AND NEW.status IN ('accepted','dismissed'))
+    OR (OLD.status='accepted' AND NEW.status='converted')
+  )
 BEGIN
-  SELECT RAISE(ABORT, 'brief_decision_requires_proposed');
+  SELECT RAISE(ABORT, 'invalid_editorial_brief_transition');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_editorial_brief_decision_apply
-AFTER INSERT ON editorial_brief_events
+CREATE TRIGGER IF NOT EXISTS trg_editorial_brief_decision_audit
+AFTER UPDATE OF status ON editorial_briefs
+WHEN OLD.status='proposed' AND NEW.status IN ('accepted','dismissed')
 BEGIN
+  INSERT INTO editorial_brief_events(
+    brief_id, action, actor, notes, details_json, created_at
+  ) VALUES (
+    NEW.id,
+    NEW.status,
+    COALESCE(NULLIF(trim(NEW.decision_actor),''),'maintenance-api'),
+    COALESCE(NEW.notes,''),
+    json_object('backfilled',0,'sourceStatus',OLD.status),
+    COALESCE(NEW.decided_at,CURRENT_TIMESTAMP)
+  );
+
   UPDATE editorial_briefs
-  SET status=NEW.action,
-      notes=CASE WHEN NEW.notes<>'' THEN NEW.notes ELSE notes END,
-      updated_at=CURRENT_TIMESTAMP
-  WHERE id=NEW.brief_id AND status='proposed';
+  SET decision_actor=COALESCE(NULLIF(trim(NEW.decision_actor),''),'maintenance-api'),
+      decided_at=COALESCE(NEW.decided_at,CURRENT_TIMESTAMP)
+  WHERE id=NEW.id;
 
   UPDATE maintenance_queue
   SET status='cancelled',
       completed_at=CURRENT_TIMESTAMP,
       updated_at=CURRENT_TIMESTAMP
-  WHERE NEW.action='dismissed'
-    AND entity_key=('editorial-brief:' || NEW.brief_id)
+  WHERE NEW.status='dismissed'
+    AND entity_key=('editorial-brief:' || NEW.id)
     AND status IN ('pending','processing','failed');
 END;
 
