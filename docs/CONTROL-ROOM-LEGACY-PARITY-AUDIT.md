@@ -10,11 +10,17 @@ fix/control-room-claim-task-linkage-readonly
 fix/control-room-audit-draft-version-linkage-readonly
 ```
 
+Prima branch di mutation:
+
+```text
+feat/control-room-brief-decision-mutation
+```
+
 ## Scopo
 
 Questo audit confronta la Control Room legacy in `src/control-room-v3.ts` con la nuova Control Room Astro + React sotto `/control-room-foundation`.
 
-Lo scope comprende esclusivamente:
+La fase read-only comprende:
 
 - letture operative;
 - sessione e perimetro privato;
@@ -23,13 +29,13 @@ Lo scope comprende esclusivamente:
 - contratti runtime;
 - dipendenze residue che impediscono la rimozione della legacy.
 
-Non comprende mutation, Workflow, Container, AI Gateway, Vertex AI, gate editoriali o capacità di pubblicazione.
+La fase mutation procede una capacità per branch. La prima capacità è soltanto la decisione umana `proposed → accepted|dismissed`. Conversione, claim, readiness, draft, queue retry, materializzazione e pubblicazione restano escluse.
 
 ## Fonti confrontate
 
 - `src/control-room-v3.ts` — shell, letture e azioni della legacy;
 - `src/control-room.ts` — snapshot canonico condiviso;
-- `apps/web/src/worker.ts` — Access guard e proxy read-only;
+- `apps/web/src/worker.ts` — Access guard e route server-side;
 - `apps/web/src/lib/control-room-api.ts` — contratto runtime dello snapshot;
 - `apps/web/src/lib/draft-detail-contract.ts` — contratto del dettaglio draft;
 - `apps/web/src/components/control-room/*` — viste della React island;
@@ -127,12 +133,38 @@ ai-run:<id>
 
 CI #217 e CI finale #220 completamente verdi. Gli smoke verificano chiavi vuote o duplicate, linkage mancante sui draft, linkage improprio sugli altri domini e tipi non validi.
 
-## Mutation legacy escluse
+## Mutation migrata: decisione brief
+
+La branch `feat/control-room-brief-decision-mutation` introduce esclusivamente:
+
+```text
+proposed → accepted | dismissed
+accepted → converted  # resta capacità separata e non esposta da questa UI
+```
+
+Guardrail implementati:
+
+- un solo brief per richiesta;
+- conferma esplicita tramite AlertDialog accessibile;
+- attore derivato dal JWT Cloudflare Access già verificato, mai dal body browser;
+- evento `editorial_brief_events` append-only;
+- transizioni illegali bloccate da D1;
+- retry della stessa decisione idempotente;
+- motivo obbligatorio per `dismissed`;
+- task editoriale aperto cancellato soltanto sul rifiuto;
+- reload dello snapshot dopo esito;
+- risposta con `publicationTriggered: false`;
+- nessuna conversione, generazione claim, draft, materializzazione o pubblicazione.
+
+La migrazione `0020` conserva gli stati storici già osservati con un attore esplicitamente marcato come backfill, senza inventare l'identità originale.
+
+Questo checkpoint è **in implementazione**: CI, merge, migrazione remota e verifica browser reale non sono ancora dichiarati completati.
+
+## Mutation legacy ancora escluse
 
 La legacy contiene ancora:
 
 - avvio Workflow recent-demand;
-- accettazione brief;
 - conversione brief;
 - valutazione readiness;
 - approvazione bundle per draft;
@@ -146,19 +178,15 @@ Queste capacità verranno migrate una per branch, con conferma, idempotenza, aud
 
 La nuova Control Room ha **parità read-only completa in CI** rispetto alle letture operative necessarie della legacy e applica guardrail più forti.
 
-Non restano gap read-only noti. Restano aperte soltanto:
-
-- verifica visuale dei nuovi linkage nel browser reale dietro Access;
-- migrazione delle mutation operative.
-
-La rimozione della legacy **non è autorizzata** perché resta il fallback delle mutation non ancora migrate. La parità read-only, da sola, non autorizza la cancellazione del fallback.
+La decisione brief è la prima mutation in migrazione. La rimozione della legacy **non è autorizzata** perché resta il fallback delle mutation non ancora migrate.
 
 ## Verifica
 
 - PR #49: merge `e0a39fa9`, CI #209 verde;
 - PR #50: merge `41a9beee`, CI #213 verde;
 - PR #52: merge `35f56e82`, CI finale #220 verde;
-- verifica visuale in produzione dei nuovi linkage: ancora aperta.
+- branch decisione brief: CI e merge ancora aperti;
+- verifica visuale in produzione dei nuovi linkage e della mutation: ancora aperta.
 
 ## Definition of Done
 
@@ -168,11 +196,12 @@ La rimozione della legacy **non è autorizzata** perché resta il fallback delle
 - [x] nessun token applicativo nel browser;
 - [x] Access fail-closed;
 - [x] nessun accesso diretto a D1;
-- [x] nessuna mutation o capacità di pubblicazione introdotta;
 - [x] `task_id` conservato senza euristiche;
-- [x] audit legato canonicamente alla versione draft senza migrazione o euristiche;
-- [x] CI completa verde;
-- [ ] verifica browser reale dei nuovi linkage;
-- [ ] mutation operative migrate;
+- [x] audit legato canonicamente alla versione draft senza euristiche;
+- [x] decisione brief progettata con conferma, idempotenza e audit append-only;
+- [ ] CI completa della mutation verde;
+- [ ] migrazione `0020` applicata e verificata in produzione;
+- [ ] verifica browser reale della mutation;
+- [ ] mutation operative residue migrate;
 - [ ] fallback legacy non più necessario;
 - [ ] legacy rimossa.
