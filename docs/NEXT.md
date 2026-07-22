@@ -6,55 +6,39 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere l’audit di parità legacy
+### 1. Chiudere il linkage claim → task
 
 Branch:
-
-```text
-chore/control-room-legacy-parity-audit
-```
-
-Draft PR:
-
-```text
-#49
-```
-
-Stato verificato:
-
-- matrice completa versionata in `docs/CONTROL-ROOM-LEGACY-PARITY-AUDIT.md`;
-- smoke statico `smoke:legacy-parity` inserito nella pipeline esistente;
-- CI #203 completamente verde;
-- nessuna mutation, modifica backend o capacità di pubblicazione;
-- legacy conservata.
-
-Verdetto:
-
-- la nuova Control Room conserva o supera quasi tutte le letture legacy;
-- la parità read-only non è ancora formalmente chiusa per il `task_id` del claim;
-- il linkage audit → versione draft resta un gap condiviso del contratto server-side;
-- la rimozione della legacy non è autorizzata.
-
-### 2. Conservare il task ID collegato al claim
-
-Branch prevista:
 
 ```text
 fix/control-room-claim-task-linkage-readonly
 ```
 
+Draft PR:
+
+```text
+#50
+```
+
 Scope esclusivo:
 
-- aggiungere `task_id` nullable a `ControlRoomClaim`;
-- validarlo nel parser runtime;
-- inserirlo nella fixture canonica;
-- mostrarlo nel dettaglio claim insieme a `task_status`;
-- aggiornare lo smoke claim e il parity audit;
+- conservare `task_id` nullable nel contratto `ControlRoomClaim`;
+- accettare soltanto `null` o interi positivi nel parser runtime;
+- collegare la fixture canonica ai task persistiti;
+- mostrare ID e stato task nel dettaglio claim;
+- verificare rendering, payload invalido e parity audit;
 - non modificare query backend, D1 o mutation.
 
-Il dato esiste già nello snapshot canonico come `q.id AS task_id`; non deve essere ricostruito nel browser.
+Il dato esiste già nello snapshot canonico come `q.id AS task_id`; il browser non lo ricostruisce da `entity_key`.
 
-### 3. Rendere canonico il linkage audit → versione draft
+Stato corrente:
+
+- contratto, parser, vista, fixture e smoke aggiornati;
+- draft PR #50 aperta;
+- CI #211 in esecuzione;
+- nessuna mutation o capacità di pubblicazione introdotta.
+
+### 2. Rendere canonico il linkage audit → versione draft
 
 Branch successiva prevista:
 
@@ -69,7 +53,7 @@ Scope da mantenere separato:
 - mantenere il percorso GET-only;
 - non introdurre decisioni draft, mutation o pubblicazione.
 
-### 4. Verificare separatamente il topic-mismatch gate in produzione
+### 3. Verificare separatamente il topic-mismatch gate in produzione
 
 La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da confermare:
 
@@ -80,7 +64,7 @@ La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da conf
 
 La verifica funzionale completa del gate avverrà sul primo nuovo run autorizzato. Non viene creato un run di prova soltanto per chiudere il checkpoint.
 
-### 5. Conservare le separazioni editoriali
+### 4. Conservare le separazioni editoriali
 
 ```text
 approved draft ≠ published page
@@ -95,7 +79,7 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 
 ## Next
 
-### 6. Azioni operative soltanto dopo i gap read-only
+### 5. Azioni operative soltanto dopo i gap read-only
 
 Ordine indicativo, una branch per capacità:
 
@@ -130,11 +114,12 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - PR #44 — queue e audit read-only;
 - PR #45 — golden quality evaluation e criteri di adozione framework;
 - PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere;
-- PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale.
+- PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale;
+- PR #49 — audit di parità legacy, mergiato nel commit `e0a39fa9` dopo CI #209 verde.
 
 ## Checkpoint in review
 
-- PR #49 — audit di parità legacy, CI #203 verde; merge ancora non eseguito.
+- PR #50 — linkage read-only claim → task; CI #211 in esecuzione.
 
 ## Freeze immediato
 
@@ -143,5 +128,5 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation durante audit di parità e chiusura dei gap read-only;
+- nessuna mutation durante la chiusura dei gap read-only;
 - nessuna rimozione della legacy finché resta un fallback operativo.
