@@ -40,6 +40,7 @@ Non comprende l'introduzione di mutation, la modifica di D1, Workflow, Container
 |---|---|
 | Parità | La nuova Control Room conserva la lettura legacy. |
 | Superata | La nuova Control Room espone la stessa informazione con più dettaglio o guardrail più forti. |
+| Gap nuova UI | Il backend espone già il dato, ma il contratto o la vista nuova non lo conserva. |
 | Gap condiviso | Il contratto backend non rende disponibile la lettura né alla legacy né alla nuova UI. Il client non deve inventarla. |
 | Mutation differita | La capacità modifica stato ed è esclusa dall'audit read-only. |
 
@@ -49,7 +50,7 @@ La legacy legge un solo snapshot da `GET /api/maintenance/control-room` e mostra
 
 1. dieci metriche overview;
 2. brief con score, stato, bundle, readiness e draft collegato;
-3. claim con soggetto, testo, stato, fonte, scadenza e task;
+3. claim con soggetto, testo, stato, fonte, scadenza, stato task e ID task;
 4. queue con tipo, entità, priorità, stato ed errore;
 5. evidence bundle e inventario draft;
 6. audit recente con dominio, azione, attore, entità e timestamp;
@@ -65,7 +66,8 @@ La nuova Control Room usa lo stesso snapshot, lo valida a runtime e aggiunge una
 | Refresh manuale dello snapshot | Refresh esplicito di health e snapshot come risorse indipendenti | Superata | `ControlRoomApp.tsx` |
 | 10 metriche overview | Tutte le 19 metriche dello snapshot, capability, binding, timestamp e guardrail | Superata | `Overview.tsx`, `control-room-api.ts` |
 | Brief: ID, titolo, slug, priority, stato, bundle, readiness, draft | Tutti i campi legacy più run, segnali, score distinti, quality flag, note e dettaglio filtrabile | Superata | `RadarBriefs.tsx` |
-| Claim: ID, brief, soggetto, testo, stato, fonte, scadenza, task | Tutti i campi legacy più scope, campo, domanda di verifica, evidence, note, trust, confidence, valore e stato temporale derivato | Superata | `ClaimsSources.tsx` |
+| Claim: ID, brief, soggetto, testo, stato, fonte, scadenza e stato task | Tutti i campi legacy più campo, domanda di verifica, evidence, note, trust, confidence, valore e stato temporale derivato | Superata | `ClaimsSources.tsx` |
+| Claim: ID del task collegato | `task_id` è presente nello snapshot backend, ma viene scartato dal contratto React e non è mostrato | Gap nuova UI | `src/control-room.ts`, `control-room-api.ts`, `ClaimsSources.tsx` |
 | Evidence bundle: ID, slug, versione, readiness e review status | Quattro gate distinti, conteggi, warning strutturati, revisore e timestamp | Superata | `ReadinessEvidence.tsx` |
 | Draft: ID, slug, versione, stato e renderer | Inventario completo, bundle e brief canonici, claim usati/esclusi, autore, revisore, note, errori e timestamp | Superata | `DraftDecisions.tsx` |
 | Preview HTML del renderer legacy | Dettaglio on demand con corpo strutturato, FAQ, fonti, provenance, regole, metadati e stato pagina | Superata per l'ispezione editoriale | `DraftDetailReadonly.tsx`, `draft-detail-contract.ts` |
@@ -74,6 +76,29 @@ La nuova Control Room usa lo stesso snapshot, lo valida a runtime e aggiunge una
 | Messaggio `approved draft ≠ published page` | Stato draft, stato pagina materializzata e publication eligibility mostrati separatamente | Superata | `DraftDetailReadonly.tsx`, `Overview.tsx` |
 | Layout desktop con tabelle scrollabili | Layout desktop, Sheet mobile, focus da tastiera, dialog e stati vuoti | Superata | smoke UI, claim, readiness, draft, dettaglio, queue e audit |
 | Errore globale durante il caricamento | Health, snapshot e dettaglio draft falliscono in modo indipendente conservando dati validi precedenti | Superata | `ControlRoomApp.tsx`, `draft-detail-api.ts` |
+
+## Gap nuova UI: claim → task ID
+
+La query canonica dello snapshot espone già:
+
+```text
+q.id AS task_id
+q.status AS task_status
+```
+
+La legacy mostra entrambi. Il contratto `ControlRoomClaim` conserva soltanto `task_status`, quindi la nuova vista perde una lettura già disponibile senza necessità di modificare backend o D1.
+
+Conclusione:
+
+- è un gap reale di parità read-only;
+- non deve essere ricostruito da `entity_key` o da altre euristiche client;
+- va chiuso aggiungendo `task_id` nullable al contratto runtime, alla fixture, alla vista claim e allo smoke dedicato.
+
+Branch consigliata:
+
+```text
+fix/control-room-claim-task-linkage-readonly
+```
 
 ## Preview del draft
 
@@ -123,9 +148,13 @@ Queste capacità non sono parità read-only. Verranno migrate una per branch, co
 
 ## Verdetto
 
-La nuova Control Room ha **parità funzionale read-only** rispetto alle letture necessarie della legacy e applica guardrail più forti.
+L'audit dimostra che la nuova Control Room supera la legacy nella quasi totalità delle letture e nei guardrail, ma la parità funzionale read-only **non è ancora chiusa** perché l'ID del task collegato al claim viene perso nel contratto React.
 
-La rimozione della legacy **non è autorizzata in questa branch** perché resta il fallback delle mutation operative non ancora migrate. Il gap audit → versione draft resta aperto e deve essere chiuso nel contratto server-side, non nel client.
+La rimozione della legacy **non è autorizzata in questa branch** per tre ragioni distinte:
+
+1. il gap `claim → task_id` deve essere chiuso;
+2. il gap condiviso `audit → versione draft` deve essere risolto server-side;
+3. la legacy resta il fallback delle mutation operative non ancora migrate.
 
 ## Definition of Done verificabile
 
@@ -136,7 +165,9 @@ La rimozione della legacy **non è autorizzata in questa branch** perché resta 
 - [x] Access protegge shell e proxy in modalità fail-closed;
 - [x] nessun accesso diretto a D1 dal browser;
 - [x] nessuna mutation o capacità di pubblicazione introdotta;
-- [x] il gap di linkage audit è dichiarato senza ricostruzioni client;
+- [x] i gap sono dichiarati senza ricostruzioni client;
+- [ ] `task_id` del claim conservato e mostrato;
+- [ ] audit legato canonicamente alla versione draft;
 - [ ] smoke e CI della branch verdi;
 - [ ] mutation operative migrate;
 - [ ] fallback legacy non più necessario;
