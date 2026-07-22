@@ -10,12 +10,13 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | migrazioni versionate fino a `0018_research_zero_relevance_gate.sql` |
-| API manutenzione | Operativa | accesso riservato e contratto invariato |
+| Worker e D1 | Operativi | produzione fino a `0018`; migrazione `0019` in PR #46 |
+| API manutenzione | Operativa | accesso riservato; contratto invariato |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
-| Quality gate ricerca | Operativo e verificato | score zero filtrato con `zero_relevance` |
-| Quality evaluation | PR #45 in verifica | golden dataset e confusion matrix contro D1 reale |
+| Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
+| Golden quality evaluation | Operativa in CI | PR #45, dataset revisionato e confusion matrix |
+| Topic-mismatch gate | PR #46 in verifica | anchor deterministiche, CI #183 verde |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
@@ -37,8 +38,6 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
 
 ## Primo ciclo editoriale controllato
-
-Il primo ciclo ha completato:
 
 ```text
 recent demand
@@ -104,36 +103,19 @@ Cloudflare Access
 
 Sono verificati in produzione:
 
-- sessione con un solo login;
-- nessuna credenziale applicativa nel browser;
+- sessione con un solo login e nessuna credenziale applicativa nel browser;
 - overview e health;
 - radar, segnali e brief;
 - claim, fonti, verifiche e scadenze;
-- Page Readiness ed evidence bundle reali;
+- Page Readiness ed evidence bundle;
 - draft, versioni e decisioni di revisione read-only;
 - queue e audit aggregato read-only;
-- relazioni draft → evidence bundle → brief tramite ID canonici;
-- warning strutturati persistiti;
-- filtri e dettagli desktop/mobile;
-- contratti runtime delle viste chiuse;
+- filtri, dettagli, desktop, mobile e contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
 ### Queue e audit — checkpoint completato
 
 La PR #44 è mergiata nel commit `ea0600b2`, ha superato la CI #174 ed è stata verificata nel browser reale.
-
-Queue mostra come persistiti:
-
-- task `pending`, `processing` e `failed`;
-- tipo, entità, priorità, scadenza, tentativi e lock;
-- ultimo errore, payload e timestamp;
-- riepiloghi limitati ai record restituiti dallo snapshot.
-
-Audit mostra:
-
-- dominio, azione, attore, entità e timestamp;
-- dettagli JSON opachi;
-- limite esplicito: nessun ID evento e nessun legame univoco con una versione draft.
 
 Guardrail verificati:
 
@@ -144,24 +126,9 @@ completed task ≠ pagina pubblicata
 audit event ≠ autorizzazione operativa
 ```
 
-## Quality gate score zero
+## Quality evaluation — PR #45 completata
 
-La PR #36 è distribuita e verificata:
-
-```text
-relevance = 0              → filtered + zero_relevance
-0 < relevance < 0,35       → eligible + warning consultivo
-relevance = null           → nessun filtro automatico
-manual_quality_override    → decisione umana preservata
-```
-
-La migrazione conserva i record per audit e non modifica automaticamente brief, claim, readiness o draft.
-
-## PR #45 — Research quality golden evaluation
-
-La PR #45 è in verifica e non modifica il gate di produzione.
-
-Aggiunge:
+La PR #45 è mergiata nel commit `a918177` e aggiunge:
 
 ```text
 tests/fixtures/research-quality-golden.json
@@ -169,16 +136,7 @@ scripts/evaluate-research-quality-golden.mjs
 npm run eval:research-quality
 ```
 
-Il golden evaluator:
-
-- applica le migrazioni D1 locali;
-- inserisce otto segnali revisionati;
-- esegue il trigger canonico;
-- confronta l'output con il comportamento corrente e con label editoriali umane;
-- produce confusion matrix, precision e recall;
-- pulisce i record di test.
-
-Baseline attesa:
+Baseline del gate precedente:
 
 ```text
 true positive:  3
@@ -189,18 +147,56 @@ precision:       0.75
 recall:          1.00
 ```
 
-Il falso positivo residuo è un risultato estraneo al topic con score positivo `0.2`. La baseline lo rende misurabile; non lo considera corretto.
-
 Framework valutati:
 
-- Promptfoo: candidato quando esisterà un vero grader semantico o prompt/model comparison;
-- Evidently: candidato per reporting e drift su un corpus più ampio;
-- Great Expectations: non necessario per vincoli già coperti da D1 e runtime tests;
-- Cleanlab: da rivalutare con probabilità di modello e volume etichettato sufficiente.
+- Promptfoo quando esisterà un vero grader semantico o confronto prompt/modello;
+- Evidently per reporting e drift su un corpus più ampio;
+- Great Expectations soltanto per un data-quality layer multipipeline;
+- Cleanlab con probabilità di modello e volume etichettato sufficiente.
 
-Nessuno di questi framework viene inserito nel Worker durante lo spike.
+Nessuno di questi framework è stato inserito nel Worker.
 
-## Gap ancora aperti
+## Topic-mismatch gate — PR #46 in verifica
+
+La PR #46 introduce per i nuovi run research e comparison:
+
+```text
+query
+→ anchor informative
+→ research_runs.topic_anchors_json
+→ trigger D1 su title + summary
+→ nessun match: filtered + topic_mismatch
+```
+
+Esempio:
+
+```text
+Holafly recent experiences
+→ ["holafly"]
+```
+
+Proprietà verificate nella CI #183:
+
+- migrazione `0019` valida in D1;
+- score zero ancora filtrato;
+- risultato estraneo con score `0.2` filtrato con `topic_mismatch`;
+- risultato Holafly pertinente con score `0.2` ancora idoneo;
+- ingest reale attraverso l'API verificato in `workerd`;
+- golden set: `3 TP`, `0 FP`, `5 TN`, `0 FN`;
+- precision e recall `1.00` sul dataset versionato;
+- Container e tutti gli smoke della Control Room invariati.
+
+Limiti:
+
+- matching letterale di almeno un anchor;
+- nessuna comprensione di sinonimi, entità implicite o negazioni;
+- run discovery esenti tramite anchor `[]`;
+- run esistenti non riclassificati e nessun backfill;
+- nessuna modifica automatica a brief, claim, bundle o draft.
+
+Il gate non è ancora dichiarato operativo in produzione finché PR #46, deploy e migrazione remota non sono completati.
+
+## Gap aperti
 
 - corpo completo, FAQ, fonti e provenance field-level del draft non sono ancora nella nuova UI;
 - lo stato della pagina materializzata non è esposto nello snapshot aggregato;
@@ -212,17 +208,10 @@ Nessuno di questi framework viene inserito nel Worker durante lo spike.
 
 ## Prossimo checkpoint
 
-Dopo la PR #45:
+Prima chiudere PR #46 e verificare il deploy. Poi:
 
 ```text
-feat/research-topic-mismatch-gate
+feat/control-room-draft-detail-readonly
 ```
 
-Criterio di uscita:
-
-```text
-false positive: 1 → 0
-false negative: 0 → 0
-```
-
-La fase deve filtrare il topic mismatch con una regola auditabile, conservare i segnali rilevanti low-positive e non modificare automaticamente brief, claim, bundle o draft già esistenti.
+La fase successiva completa corpo, fonti, provenance e stato pagina tramite un proxy GET-only on demand, senza mutation o pubblicazione.
