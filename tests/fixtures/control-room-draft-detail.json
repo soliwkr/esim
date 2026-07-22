@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "draft": {
+    "id": 202,
+    "evidenceBundleId": 31,
+    "draftKey": "draft-detail-fixture-v2",
+    "version": 2,
+    "pageSlug": "esim-cina-senza-vpn",
+    "pageType": "guide",
+    "model": "gemini-2.5-flash",
+    "promptVersion": "editorial-page-draft-v2",
+    "status": "approved",
+    "page": {
+      "title": "eSIM in Cina: dichiarazioni dei provider e limiti delle prove | Senza Roaming",
+      "metaDescription": "Confronto prudente delle dichiarazioni ufficiali dei provider sulle eSIM in Cina.",
+      "eyebrow": "GUIDA ESIM",
+      "h1": "eSIM in Cina: cosa dichiarano i provider",
+      "directAnswer": "Airalo e Nomad dichiarano percorsi tecnici differenti; le fonti disponibili non costituiscono un test indipendente sul campo.",
+      "intro": "Questa guida distingue le dichiarazioni ufficiali dei provider dai risultati che richiedono ancora verifica first-party.",
+      "content": [
+        {
+          "type": "heading",
+          "text": "Cosa dichiarano le fonti ufficiali"
+        },
+        {
+          "type": "paragraph",
+          "text": "Airalo dichiara che il traffico del piano selezionato segue un percorso specifico documentato nella propria pagina ufficiale."
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "La dichiarazione appartiene al provider.",
+            "Non equivale a una prova first-party."
+          ]
+        },
+        {
+          "type": "callout",
+          "title": "Limite delle evidenze",
+          "text": "Il bundle non contiene ancora un test indipendente eseguito sul campo."
+        },
+        {
+          "type": "table",
+          "headers": ["Provider", "Tipo di evidenza"],
+          "rows": [
+            ["Airalo", "Dichiarazione ufficiale"],
+            ["Nomad", "Dichiarazione ufficiale"]
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "question": "Una eSIM evita sempre la VPN in Cina?",
+          "answer": "Le fonti ufficiali descrivono configurazioni specifiche, ma il bundle non dimostra un risultato universale."
+        },
+        {
+          "question": "La guida contiene test sul campo?",
+          "answer": "No. Il bundle corrente registra zero test first-party."
+        }
+      ],
+      "sources": [
+        {
+          "label": "Airalo · pagina ufficiale Cina",
+          "url": "https://www.airalo.com/china-esim"
+        },
+        {
+          "label": "Nomad · pagina ufficiale Cina",
+          "url": "https://www.getnomad.app/china-eSIM"
+        }
+      ]
+    },
+    "fieldClaimIds": {
+      "title": [101],
+      "meta_description": [101, 102],
+      "h1": [101],
+      "direct_answer": [101, 102],
+      "intro": [101, 102],
+      "section": {
+        "0": [101],
+        "1": [102]
+      },
+      "faq": {
+        "0": [103],
+        "1": [104]
+      }
+    },
+    "usedClaimIds": [101, 102, 103, 104],
+    "excludedClaimIds": [105],
+    "generationRules": [
+      "Usa soltanto claim verificati e correnti.",
+      "Non presentare dichiarazioni provider come test indipendenti.",
+      "Mantieni separati draft approval e publication gate."
+    ],
+    "responseId": "fixture-response-202",
+    "usage": {
+      "inputTokens": 1240,
+      "outputTokens": 680
+    },
+    "error": null,
+    "generatedBy": "editorial-renderer-v2",
+    "reviewedBy": "human-reviewer",
+    "reviewedAt": "2026-07-21T15:00:00.000Z",
+    "reviewNotes": "Approvato editorialmente; la pagina materializzata resta in review.",
+    "materializedPageStatus": "review",
+    "createdAt": "2026-07-21T14:00:00.000Z",
+    "updatedAt": "2026-07-21T15:00:00.000Z"
+  }
+}
