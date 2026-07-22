@@ -6,7 +6,7 @@ Frontend Astro di Senza Roaming e nuova Control Room privata.
 
 `apps/web/src/worker.ts` è il custom entrypoint del singolo Worker Cloudflare. Delega ad Astro `/astro-foundation` e `/control-room-foundation`; tutte le altre richieste continuano a usare il router backend in `src/index.ts`. Lo stesso modulo conserva gli export `RecentDemandWorkflow` e `Last30DaysContainer`.
 
-La Control Room è `noindex,nofollow` e `no-store`. Tutto il path `/control-room-foundation*` è fail-closed: prima di servire la shell o il proxy snapshot, il Worker richiede e valida l’identità emessa da Cloudflare Access.
+La Control Room è `noindex,nofollow` e `no-store`. Tutto il path `/control-room-foundation*` è fail-closed: prima di servire la shell o i proxy read-only, il Worker richiede e valida l’identità emessa da Cloudflare Access.
 
 ## UI
 
@@ -26,6 +26,7 @@ La island implementa:
 - claim, fonti e scadenze con filtri e dettaglio read-only;
 - Page Readiness ed evidence bundle con score, conteggi, warning e gate separati;
 - inventario draft con renderer, versione, stato, revisore, note e claim usati/esclusi;
+- dettaglio draft completo caricato on demand con corpo, FAQ, fonti, provenance field-level e stato pagina;
 - relazioni draft → evidence bundle → brief risolte soltanto tramite ID canonici già presenti;
 - maintenance queue con stato, priorità, tentativi, lock, errori, payload e timestamp;
 - audit aggregato con dominio, azione, attore, entità, dettagli e timestamp;
@@ -52,7 +53,7 @@ La vista readiness usa esclusivamente `evidenceBundles` già presente nello snap
 
 Ogni warning è un oggetto con `code`, `message` opzionale e metadati aggiuntivi opachi. Il client valida `code` e `message`, conserva gli altri campi e non li trasforma in una decisione propria.
 
-La vista draft usa soltanto `drafts`, `evidenceBundles` e `briefs` già presenti nello snapshot. Mostra:
+L’inventario draft usa soltanto `drafts`, `evidenceBundles` e `briefs` già presenti nello snapshot. Mostra:
 
 - pagina, versione, renderer e stato canonico del draft;
 - autore, revisore, timestamp e note di revisione;
@@ -60,6 +61,24 @@ La vista draft usa soltanto `drafts`, `evidenceBundles` e `briefs` già presenti
 - readiness score e publication eligibility del bundle;
 - title, H1 e claim usati/esclusi;
 - errore di generazione quando persistito.
+
+Il dettaglio completo è una risorsa separata e viene richiesto soltanto quando l’operatore apre una versione:
+
+```text
+GET /control-room-foundation/api/draft-detail?draftId=<id>
+```
+
+Il proxy valida Cloudflare Access, accetta soltanto `GET`, conserva il maintenance token server-side e delega all’endpoint backend esistente `GET /api/maintenance/editorial-draft-grounding`. Il client valida integralmente:
+
+- identità, versione, bundle, slug e renderer del draft selezionato;
+- title, meta description, H1, direct answer e intro;
+- blocchi `paragraph`, `heading`, `bullets`, `steps`, `table` e `callout`;
+- FAQ e fonti HTTPS;
+- provenance dei campi principali, sezioni e FAQ;
+- claim usati ed esclusi, regole di generazione e metadati tecnici;
+- `materializedPageStatus` distinto dallo stato draft e dal publication gate.
+
+Un errore del dettaglio non cancella l’inventario valido dello snapshot. Non viene effettuata alcuna richiesta finché una versione non viene aperta.
 
 La vista Queue/Audit usa esclusivamente gli array `queue` e `audit` già presenti nello snapshot:
 
@@ -75,27 +94,29 @@ Separazioni obbligatorie:
 approved draft ≠ published page
 review draft ≠ publication eligibility
 editorial approval ≠ publication action
+draft status ≠ materialized page status
 queue status ≠ decisione editoriale
 failed task ≠ contenuto non valido
 audit event ≠ autorizzazione operativa
 ```
 
-Lo snapshot aggregato non espone corpo completo, FAQ, fonti, provenance field-level, stato della pagina materializzata o audit legato univocamente a una versione del draft. La UI dichiara questi gap e non richiama endpoint separati né ricostruisce dati mancanti.
+L’audit aggregato non espone ancora un ID evento né un collegamento univoco con una specifica versione del draft. La UI dichiara questo limite e non ricostruisce relazioni mancanti.
 
-Non implementa avvio Workflow, accettazione o conversione brief, mutation claim, gestione fonti, valutazione readiness, approvazione bundle, generazione o revisione operativa dei draft, queue actions, accesso diretto a D1 o capacità di pubblicazione.
+Non implementa avvio Workflow, accettazione o conversione brief, mutation claim, gestione fonti, valutazione readiness, approvazione bundle, generazione o revisione operativa dei draft, materializzazione, queue actions, accesso diretto a D1 o capacità di pubblicazione.
 
 ## Dati e sessione server-side
 
 Dopo Access, il browser legge:
 
 - `GET /api/health`;
-- `GET /control-room-foundation/api/snapshot`.
+- `GET /control-room-foundation/api/snapshot`;
+- `GET /control-room-foundation/api/draft-detail?draftId=<id>` soltanto on demand.
 
-Il secondo endpoint è un proxy read-only interno al custom Worker entrypoint. Accetta soltanto `GET` e delega al contratto esistente `GET /api/maintenance/control-room` senza esporre credenziali al browser.
+I due endpoint sotto `/control-room-foundation/api/*` sono proxy read-only interni al custom Worker entrypoint. Accettano soltanto `GET` e delegano a contratti backend esistenti senza esporre credenziali al browser.
 
 Il browser non conserva token applicativi e non invia un header di autorizzazione verso l’API di manutenzione. L’API originale resta invariata per agenti e consumer legacy.
 
-`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle, draft base, queue e audit. `apps/web/src/lib/draft-contract.ts` valida integralmente i campi draft usati dalla vista decisionale.
+`apps/web/src/lib/control-room-api.ts` valida a runtime health, overview, run, segnali, brief, claim, evidence bundle, draft base, queue e audit. `apps/web/src/lib/draft-contract.ts` valida integralmente i campi dell’inventario draft. `apps/web/src/lib/draft-detail-contract.ts` valida il dettaglio completo on demand; `apps/web/src/lib/draft-detail-api.ts` gestisce la risorsa indipendente.
 
 Punteggi, stati, quality flags, confidence, gate e valori nullable vengono mostrati come persistiti. Il client non ricalcola Opportunity, Evidence, Priority, Readiness o decisioni editoriali.
 
@@ -111,20 +132,24 @@ npm run typecheck
 npm run build
 npm run db:migrate:local
 npm run smoke:quality
+npm run eval:research-quality
 npm run smoke:runtime
 npm run smoke:ui
 npm run smoke:claims
 npm run smoke:readiness
 npm run smoke:drafts
+npm run smoke:draft-detail
 npm run smoke:queue-audit
 ```
 
 Gli smoke generano credenziali Access effimere di test; nessuna chiave viene versionata.
 
-- `smoke:quality` verifica il gate D1 per score zero e low-positive relevance.
+- `smoke:quality` verifica il gate D1 per score zero, low-positive relevance e topic mismatch.
+- `eval:research-quality` confronta il trigger D1 con il golden set versionato.
 - `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array di dominio inclusi queue/audit, API originale, export, health e route di pubblicazione assenti.
 - `smoke:ui` verifica caricamento generale, viste migrate, errori parziali, tastiera e mobile.
 - `smoke:claims` verifica contratto claim, cinque filtri, fonte sicura, stato temporale, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
 - `smoke:readiness` verifica contratto bundle, warning strutturati, quattro filtri, gate separati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
-- `smoke:drafts` verifica contratto draft, tre filtri, decisione di revisione, relazioni bundle/brief, gap dichiarati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
+- `smoke:drafts` verifica contratto inventario draft, tre filtri, decisione di revisione, relazioni bundle/brief, empty state, tastiera, mobile e assenza di mutation.
+- `smoke:draft-detail` verifica Access, proxy GET-only, caricamento on demand, contratto completo, provenance, stato pagina, errore isolato, retry, mobile e assenza di mutation.
 - `smoke:queue-audit` verifica contratti queue/audit, filtri, dettaglio, payload JSON, gap di linkage, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
