@@ -23,7 +23,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Page Readiness backend | Operativa | primo bundle: score 77, draft sì, pubblicazione no |
 | Renderer editoriale v2 | Operativo | campi principali e sezioni legati a claim verificati |
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
-| Control Room legacy | Transitoria | fallback e bugfix critici soltanto |
+| Control Room legacy | Transitoria e ancora necessaria | fallback delle mutation; rimozione non autorizzata |
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
 | Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
 | Sessione server-side | Operativa | un solo login e snapshot automatico |
@@ -34,6 +34,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
 | Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
 | Dettaglio draft completo UI | Operativo e verificato in produzione | PR #47, CI #198 e verifica browser reale |
+| Audit parità legacy | Eseguito nella draft PR #49 | CI #203 verde; un gap UI e un gap condiviso ancora aperti |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -150,6 +151,23 @@ La verifica visuale conferma che in produzione vengono renderizzati il corpo, i 
 
 Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
 
+## Audit di parità legacy — draft PR #49
+
+La branch `chore/control-room-legacy-parity-audit` confronta sistematicamente la legacy con la nuova Control Room e versiona la matrice in `docs/CONTROL-ROOM-LEGACY-PARITY-AUDIT.md`.
+
+La CI #203 è completamente verde e include lo smoke `smoke:legacy-parity`, eseguito attraverso lo step Queue/Audit già presente.
+
+L’audit conferma che la nuova Control Room conserva o supera le letture legacy per overview, radar, brief, claim, readiness, draft, dettaglio completo, queue, audit, error isolation, Access, tastiera e mobile.
+
+Sono emersi due gap distinti:
+
+1. `claim → task_id`: il backend espone già il dato e la legacy lo mostra, ma il contratto React lo scarta. È un fix read-only della nuova UI.
+2. `audit → versione draft`: il contratto aggregato non espone un ID evento stabile né campi canonici `draft_id` e `draft_version`. Deve essere risolto server-side, senza euristiche client.
+
+La preview HTML legacy non viene mantenuta come dipendenza visuale. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview del sito deve appartenere al renderer pubblico Astro.
+
+La legacy non viene rimossa perché resta il fallback delle mutation operative non ancora migrate.
+
 ## Quality evaluation — PR #45 completata
 
 La PR #45 è mergiata nel commit `a918177` e misura il trigger D1 reale con un golden dataset versionato.
@@ -194,6 +212,7 @@ Il gate non è ancora dichiarato verificato in produzione finché non viene atte
 
 ## Gap aperti
 
+- il contratto React non conserva ancora `task_id` per i claim;
 - l'audit non è legato univocamente a una specifica versione draft;
 - health aggregato runtime e log errori unificati restano incompleti;
 - refresh automatico delle fonti scadute resta da completare;
@@ -204,7 +223,9 @@ Il gate non è ancora dichiarato verificato in produzione finché non viene atte
 ## Prossimo checkpoint
 
 ```text
-chore/control-room-legacy-parity-audit
+fix/control-room-claim-task-linkage-readonly
 ```
 
-L’audit confronterà nuova e vecchia Control Room senza introdurre mutation. La legacy verrà rimossa soltanto dopo parità funzionale verificata.
+Il prossimo fix conserva e mostra il `task_id` già presente nello snapshot backend, aggiorna contratto runtime, fixture, vista claim e smoke dedicato. Non modifica backend, D1 o mutation.
+
+Dopo questo fix viene affrontato separatamente il linkage read-only tra audit e specifica versione draft.

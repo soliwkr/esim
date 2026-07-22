@@ -6,41 +6,72 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Audit di parità con la Control Room legacy
+### 1. Chiudere l’audit di parità legacy
 
-Branch prevista:
+Branch:
 
 ```text
 chore/control-room-legacy-parity-audit
 ```
 
-Obiettivo esclusivo:
+Draft PR:
 
-- confrontare ogni lettura della legacy con la nuova Control Room;
-- verificare guardrail, errori, mobile, tastiera e percorsi Cloudflare Access;
-- registrare eventuali gap residui senza ricostruire dati mancanti nel client;
-- verificare in particolare il collegamento degli eventi audit a una specifica versione draft;
-- rimuovere la legacy soltanto quando il fallback non è più necessario;
-- non introdurre mutation durante l’audit.
+```text
+#49
+```
 
-### 2. Definition of Done dell’audit
+Stato verificato:
 
-Prima di proporre la rimozione della legacy devono risultare verificati:
+- matrice completa versionata in `docs/CONTROL-ROOM-LEGACY-PARITY-AUDIT.md`;
+- smoke statico `smoke:legacy-parity` inserito nella pipeline esistente;
+- CI #203 completamente verde;
+- nessuna mutation, modifica backend o capacità di pubblicazione;
+- legacy conservata.
 
-- parità di tutte le letture operative necessarie;
-- guardrail equivalenti o più forti;
-- nessuna credenziale applicativa nel browser;
-- Access fail-closed su shell e proxy;
-- loading, errori parziali, retry, empty state, tastiera e mobile;
-- snapshot e dettaglio draft come risorse indipendenti;
-- nessun accesso diretto a D1;
-- nessuna mutation o capacità di pubblicazione;
-- smoke end-to-end verdi;
-- fallback legacy non più necessario.
+Verdetto:
 
-### 3. Verificare separatamente il topic-mismatch gate in produzione
+- la nuova Control Room conserva o supera quasi tutte le letture legacy;
+- la parità read-only non è ancora formalmente chiusa per il `task_id` del claim;
+- il linkage audit → versione draft resta un gap condiviso del contratto server-side;
+- la rimozione della legacy non è autorizzata.
 
-La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da confermare tramite il deploy automatico:
+### 2. Conservare il task ID collegato al claim
+
+Branch prevista:
+
+```text
+fix/control-room-claim-task-linkage-readonly
+```
+
+Scope esclusivo:
+
+- aggiungere `task_id` nullable a `ControlRoomClaim`;
+- validarlo nel parser runtime;
+- inserirlo nella fixture canonica;
+- mostrarlo nel dettaglio claim insieme a `task_status`;
+- aggiornare lo smoke claim e il parity audit;
+- non modificare query backend, D1 o mutation.
+
+Il dato esiste già nello snapshot canonico come `q.id AS task_id`; non deve essere ricostruito nel browser.
+
+### 3. Rendere canonico il linkage audit → versione draft
+
+Branch successiva prevista:
+
+```text
+fix/control-room-audit-draft-version-linkage-readonly
+```
+
+Scope da mantenere separato:
+
+- aggiungere nel contratto server-side un’identità evento stabile o campi canonici sufficienti;
+- legare gli eventi draft a `draft_id` e `draft_version` senza leggere euristicamente `details` nel client;
+- mantenere il percorso GET-only;
+- non introdurre decisioni draft, mutation o pubblicazione.
+
+### 4. Verificare separatamente il topic-mismatch gate in produzione
+
+La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da confermare:
 
 - applicazione remota della migrazione `0019`;
 - normalizzatore con anchor attivo sui nuovi run;
@@ -49,7 +80,7 @@ La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da conf
 
 La verifica funzionale completa del gate avverrà sul primo nuovo run autorizzato. Non viene creato un run di prova soltanto per chiudere il checkpoint.
 
-### 4. Conservare le separazioni editoriali
+### 5. Conservare le separazioni editoriali
 
 ```text
 approved draft ≠ published page
@@ -64,7 +95,7 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 
 ## Next
 
-### 5. Azioni operative soltanto dopo la parità
+### 6. Azioni operative soltanto dopo i gap read-only
 
 Ordine indicativo, una branch per capacità:
 
@@ -101,6 +132,10 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere;
 - PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale.
 
+## Checkpoint in review
+
+- PR #49 — audit di parità legacy, CI #203 verde; merge ancora non eseguito.
+
 ## Freeze immediato
 
 - niente nuove pagine tramite template string nel Worker;
@@ -108,4 +143,5 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation durante audit di parità e verifica del topic-mismatch gate.
+- nessuna mutation durante audit di parità e chiusura dei gap read-only;
+- nessuna rimozione della legacy finché resta un fallback operativo.
