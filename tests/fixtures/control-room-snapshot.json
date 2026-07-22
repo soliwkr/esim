@@ -72,7 +72,10 @@
       "relevance_score": 0.91,
       "freshness_days": 2,
       "eligible_for_editorial": 1,
-      "quality_flags": ["question_match", "recent"],
+      "quality_flags": [
+        "question_match",
+        "recent"
+      ],
       "status": "eligible",
       "updated_at": "2026-07-18T06:52:00.000Z"
     },
@@ -88,7 +91,10 @@
       "relevance_score": 0.42,
       "freshness_days": 3,
       "eligible_for_editorial": 0,
-      "quality_flags": ["low_signal", "duplicate_topic"],
+      "quality_flags": [
+        "low_signal",
+        "duplicate_topic"
+      ],
       "status": "filtered",
       "updated_at": "2026-07-18T06:52:00.000Z"
     },
@@ -120,7 +126,9 @@
       "opportunity_score": 85,
       "evidence_score": 54,
       "priority_score": 63,
-      "quality_flags": ["provider_claims_required"],
+      "quality_flags": [
+        "provider_claims_required"
+      ],
       "status": "converted",
       "notes": "Fixture del primo ciclo editoriale controllato.",
       "created_at": "2026-07-18T07:00:00.000Z",
@@ -142,7 +150,9 @@
       "opportunity_score": 72,
       "evidence_score": 20,
       "priority_score": 38,
-      "quality_flags": ["evidence_gap"],
+      "quality_flags": [
+        "evidence_gap"
+      ],
       "status": "proposed",
       "notes": null,
       "created_at": "2026-07-17T07:00:00.000Z",
@@ -177,8 +187,11 @@
       "confidence": 1,
       "checked_at": "2026-07-18T07:00:00.000Z",
       "valid_until": "2099-08-18T07:00:00.000Z",
+      "task_id": 799,
       "task_status": "completed",
-      "required_source_kinds": ["official_provider"],
+      "required_source_kinds": [
+        "official_provider"
+      ],
       "value": true
     },
     {
@@ -202,8 +215,11 @@
       "confidence": null,
       "checked_at": null,
       "valid_until": null,
-      "task_status": "pending",
-      "required_source_kinds": ["official_provider"],
+      "task_id": 801,
+      "task_status": "processing",
+      "required_source_kinds": [
+        "official_provider"
+      ],
       "value": null
     },
     {
@@ -227,8 +243,11 @@
       "confidence": 0.8,
       "checked_at": "2000-01-01T10:00:00.000Z",
       "valid_until": "2000-02-01T10:00:00.000Z",
-      "task_status": "completed",
-      "required_source_kinds": ["official_provider"],
+      "task_id": 804,
+      "task_status": "pending",
+      "required_source_kinds": [
+        "official_provider"
+      ],
       "value": "outside_local_network"
     }
   ],
@@ -256,7 +275,9 @@
       "warnings": [
         {
           "code": "insufficient_claims",
-          "claimIds": [102],
+          "claimIds": [
+            102
+          ],
           "message": "Questi claim possono essere descritti soltanto come non dimostrati; non possono alimentare frasi fattuali."
         },
         {
@@ -323,8 +344,13 @@
       "status": "approved",
       "title": "eSIM in Cina: dichiarazioni dei provider e limiti delle prove",
       "h1": "eSIM in Cina senza VPN: cosa dichiarano i provider",
-      "used_claim_ids": [101],
-      "excluded_claim_ids": [102, 103],
+      "used_claim_ids": [
+        101
+      ],
+      "excluded_claim_ids": [
+        102,
+        103
+      ],
       "generated_by": "fixture-generator",
       "reviewed_by": "fixture-reviewer",
       "reviewed_at": "2026-07-18T07:45:00.000Z",
@@ -343,8 +369,13 @@
       "status": "superseded",
       "title": "Versione legacy sostituita",
       "h1": "Bozza legacy sostituita dal renderer grounded v2",
-      "used_claim_ids": [101],
-      "excluded_claim_ids": [102, 103],
+      "used_claim_ids": [
+        101
+      ],
+      "excluded_claim_ids": [
+        102,
+        103
+      ],
       "generated_by": "fixture-generator",
       "reviewed_by": null,
       "reviewed_at": null,
@@ -369,7 +400,9 @@
       "last_error": null,
       "payload": {
         "briefId": 702,
-        "candidateIds": [102],
+        "candidateIds": [
+          102
+        ],
         "reason": "source_required"
       },
       "created_at": "2026-07-18T07:35:00.000Z",
