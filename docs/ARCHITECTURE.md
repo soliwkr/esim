@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **21 luglio 2026**.
+Data di riferimento: **22 luglio 2026**.
 
 ## Scopo
 
@@ -24,13 +24,16 @@ Astro su Cloudflare
               ▼
 React island
               ├── letture tipizzate e validate
+              ├── snapshot aggregato
+              ├── risorse GET on demand
               ├── tabelle, filtri e dialog
               ├── mutation soltanto in fasi autorizzate
               └── nessun accesso diretto a D1
 
 Custom Cloudflare Worker entrypoint
       ├── Cloudflare Access guard
-      ├── proxy read-only della Control Room
+      ├── proxy snapshot read-only
+      ├── proxy dettaglio draft GET-only
       ├── handler Astro
       ├── API protette di manutenzione
       ├── redirect provider
@@ -202,8 +205,9 @@ La Control Room è specifica del dominio eSIM e deve gestire:
 - fonti e claim;
 - readiness;
 - draft e preview;
+- dettaglio completo del draft;
 - errori e audit;
-- operazioni manuali del Workflow.
+- operazioni manuali del Workflow nelle fasi autorizzate.
 
 Deve essere costruita sopra API stabili e protette. La Control Room HTML manuale è legacy transitoria; la versione definitiva è una React island dentro Astro.
 
@@ -219,7 +223,8 @@ apps/web/src/worker.ts
         ├── /astro-foundation → handler Astro
         ├── /control-room-foundation* → Access guard
         │       ├── pagina → handler Astro
-        │       └── /api/snapshot → proxy read-only
+        │       ├── /api/snapshot → proxy read-only
+        │       └── /api/draft-detail → proxy GET-only on demand
         └── tutte le altre route → src/index.ts
                                   ├── API e health
                                   ├── sito e Control Room legacy
@@ -237,7 +242,8 @@ browser autenticato
 → validazione dell’identità nel Worker
 → React island
 → GET /control-room-foundation/api/snapshot
-→ delega server-side all’API esistente
+→ GET /control-room-foundation/api/draft-detail?draftId=<id> on demand
+→ delega server-side alle API esistenti
 ```
 
 Conseguenze:
@@ -246,12 +252,14 @@ Conseguenze:
 - nessuna credenziale applicativa nel browser;
 - nessun token in HTML, URL, bundle o storage;
 - proxy GET-only e risposte `no-store` / `noindex`;
-- API originale invariata per agenti e consumer legacy;
-- nessuna mutation o capacità di pubblicazione introdotta dal proxy.
+- API originali invariate per agenti e consumer legacy;
+- nessuna mutation o capacità di pubblicazione introdotta dai proxy.
 
-## Contratti overview e health
+## Risorse della Control Room
 
-La nuova overview legge due risorse esistenti:
+### Health e snapshot
+
+La overview legge:
 
 ```text
 GET /api/health
@@ -264,12 +272,54 @@ Il client valida a runtime:
 - binding e capability attese;
 - timestamp dello snapshot;
 - 19 metriche overview;
-- collezioni claim e draft necessarie alla UI;
+- collezioni di dominio necessarie alla UI;
 - guardrail di pubblicazione disabilitata.
 
-Le risorse sono gestite in modo indipendente. Un errore health non nasconde lo snapshot; un errore snapshot non nasconde i dati health già validi. Il refresh conserva dati precedenti affidabili mentre segnala il fallimento parziale.
+Health e snapshot sono gestiti in modo indipendente. Un errore health non nasconde lo snapshot; un errore snapshot non nasconde i dati health già validi. Il refresh conserva dati precedenti affidabili mentre segnala il fallimento parziale.
 
 `/api/health` descrive soprattutto configurazione e binding. Non viene presentato come probe end-to-end di Workflow, Container, AI Gateway o provider esterni.
+
+### Dettaglio draft on demand
+
+Lo snapshot conserva soltanto l’inventario dei draft. Corpo completo e provenance non vengono caricati insieme alla dashboard iniziale.
+
+```text
+operatore seleziona una versione
+→ GET /control-room-foundation/api/draft-detail?draftId=<id>
+→ Access guard già applicato al path
+→ controllo metodo e draftId
+→ maintenance token aggiunto soltanto server-side
+→ GET /api/maintenance/editorial-draft-grounding?draftId=<id>
+→ risposta privata no-store/noindex
+→ validazione runtime dedicata nel client
+```
+
+Il backend esistente restituisce:
+
+- contenuto strutturato;
+- FAQ e fonti;
+- provenance dei campi principali, delle sezioni e delle FAQ;
+- claim usati ed esclusi;
+- regole e metadati di generazione;
+- stato della pagina materializzata;
+- revisore, note e timestamp.
+
+Il client verifica che ID, bundle, versione, slug e renderer corrispondano al record dell’inventario. Un mismatch viene rifiutato.
+
+Il dettaglio è una risorsa indipendente:
+
+- non viene richiesto prima dell’apertura;
+- può fallire senza cancellare snapshot, overview o inventario;
+- dispone di loading, errore e retry propri;
+- non abilita generazione, review action, materializzazione o pubblicazione.
+
+Separazioni:
+
+```text
+draft status ≠ materialized page status
+materialized page review ≠ publication eligibility
+approved draft ≠ published page
+```
 
 ## Confine con il futuro Command Center dello studio
 
@@ -294,12 +344,13 @@ OpenSEO è un servizio specialistico condiviso dello studio e non va fuso nel Wo
 ## Sicurezza
 
 - Le API operative restano protette server-side.
-- Cloudflare Access protegge la Control Room.
+- Cloudflare Access protegge la Control Room e tutti i proxy sotto il path.
 - Credenziali e link riservati restano configurazione non versionata.
 - Nessun token o dato sensibile viene inserito negli URL.
 - Le risposte di errore non espongono credenziali o payload completi di provider esterni.
 - Il frontend non contiene funzioni di pubblicazione automatica.
 - Il browser non accede direttamente a D1.
+- Le fonti mostrate dal dettaglio devono essere HTTPS.
 
 ## Deployment e verifica
 
@@ -310,17 +361,21 @@ GitHub Actions esegue:
 3. typecheck;
 4. build Astro e frontend;
 5. migrazioni D1;
-6. build e smoke test del Container;
-7. deploy Worker, Workflow, Container e asset;
-8. smoke test live di pagine, client e API essenziali.
+6. quality smoke e golden evaluation;
+7. build e smoke test del Container;
+8. runtime `workerd`;
+9. smoke Chromium delle viste di dominio;
+10. deploy Worker, Workflow, Container e asset su `main`;
+11. smoke live delle route essenziali.
 
-In pull request, gli smoke avviano il bundle in `workerd` e verificano:
+In pull request, gli smoke verificano:
 
 - route Astro e Access guard;
-- proxy snapshot e API originale;
-- contratto completo delle metriche overview;
+- proxy snapshot, proxy dettaglio draft e API originali;
+- contratti delle metriche e delle collezioni;
 - payload non validi rifiutati;
-- errori parziali health/snapshot;
+- errori parziali e risorse indipendenti;
+- caricamento on demand del draft;
 - hydration, tastiera e mobile;
 - assenza di mutation e route di pubblicazione.
 
