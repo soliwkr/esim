@@ -6,28 +6,7 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #52 sul linkage audit → versione draft
-
-Branch:
-
-```text
-fix/control-room-audit-draft-version-linkage-readonly
-```
-
-Stato verificato:
-
-- schema reale letto: ID evento e `draft_id` già persistiti;
-- versione ottenuta dal record draft collegato;
-- nessuna migrazione D1 introdotta;
-- `event_key`, `draft_id` e `draft_version` esposti dallo snapshot;
-- contratto runtime con chiavi uniche e linkage coerente per dominio;
-- UI selezionata tramite `event_key`;
-- `details` non usato per ricostruire relazioni;
-- CI #217 completamente verde.
-
-Prima del merge resta da verificare soltanto la diff finale della PR e mantenere esplicito che il browser reale di produzione non è ancora stato controllato.
-
-### 2. Verificare i linkage read-only nel browser reale
+### 1. Verificare i nuovi linkage nel browser reale
 
 Da controllare dietro Cloudflare Access:
 
@@ -37,7 +16,36 @@ Da controllare dietro Cloudflare Access:
 - eventi non-draft con linkage draft assente;
 - mobile, tastiera e apertura Sheet reali.
 
-Le CI #213 e #217 coprono già contratti, payload invalidi, desktop e mobile automatizzati. La verifica visuale non deve attestare valori che non risultano leggibili.
+Le CI #213 e #220 coprono contratti, payload invalidi, query D1, `workerd`, desktop e mobile automatizzati. La verifica visuale non deve attestare valori che non risultano leggibili.
+
+### 2. Definire la prima mutation della nuova Control Room
+
+Non restano gap read-only noti rispetto alle letture necessarie della legacy. La prima capacità operativa deve però essere scelta con uno scope esplicito prima di scrivere codice.
+
+Ordine indicativo:
+
+```text
+decisione brief
+→ conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
+```
+
+La branch verrà nominata soltanto dopo la scelta della capacità.
+
+Per ogni mutation sono obbligatori:
+
+- conferma esplicita dell’operatore;
+- endpoint e contratto esistenti verificati prima di modificarli;
+- idempotenza;
+- audit persistito;
+- reload dello snapshot dopo esito;
+- gestione di errore e retry;
+- test end-to-end;
+- nessuna pubblicazione implicita.
+
+La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
 
 ### 3. Verificare separatamente il topic-mismatch gate in produzione
 
@@ -63,43 +71,6 @@ audit event ≠ autorizzazione operativa
 
 La Control Room mostra dati persistiti; non decide readiness, approvazione, materializzazione o pubblicazione.
 
-## Next
-
-### 5. Azioni operative, una capacità per branch
-
-Dopo il merge della PR #52 non restano gap read-only noti rispetto alle letture legacy. Le mutation possono iniziare soltanto con scope esplicito.
-
-Ordine indicativo:
-
-```text
-decisione brief
-→ conversione brief
-→ operazioni claim
-→ decisione draft
-→ eventuale retry queue
-```
-
-Per ogni capacità sono obbligatori:
-
-- conferma esplicita dell’operatore;
-- idempotenza;
-- audit persistito;
-- reload dello snapshot dopo esito;
-- gestione di errore e retry;
-- test end-to-end;
-- nessuna pubblicazione implicita.
-
-La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
-
-## Framework di evaluation
-
-- golden dataset + D1 evaluator: adottati con PR #45;
-- topic-anchor gate deterministico: PR #46;
-- Promptfoo: soltanto con un vero prompt, modello o grader semantico;
-- Evidently: reporting e drift su corpus significativo;
-- Great Expectations: data-quality multipipeline non già coperta;
-- Cleanlab: probabilità di modello e volume etichettato sufficiente.
-
 ## Checkpoint completati
 
 - PR #31 — sessione server-side e un solo login Access;
@@ -114,11 +85,17 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere;
 - PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale;
 - PR #49 — audit di parità legacy, merge `e0a39fa9`, CI #209 verde;
-- PR #50 — linkage read-only claim → task, merge `41a9beee`, CI #213 verde.
+- PR #50 — linkage read-only claim → task, merge `41a9beee`, CI #213 verde;
+- PR #52 — linkage canonico audit → versione draft, merge `35f56e82`, CI finale #220 verde.
 
-## Checkpoint in review
+## Framework di evaluation
 
-- PR #52 — linkage canonico audit → versione draft, CI #217 verde.
+- golden dataset + D1 evaluator: adottati con PR #45;
+- topic-anchor gate deterministico: PR #46;
+- Promptfoo: soltanto con un vero prompt, modello o grader semantico;
+- Evidently: reporting e drift su corpus significativo;
+- Great Expectations: data-quality multipipeline non già coperta;
+- Cleanlab: probabilità di modello e volume etichettato sufficiente.
 
 ## Freeze immediato
 
@@ -127,5 +104,5 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation dentro la PR #52;
+- nessuna mutation senza scope esplicito e branch dedicata;
 - nessuna rimozione della legacy finché resta un fallback operativo.
