@@ -33,7 +33,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
 | Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
-| Dettaglio draft completo UI | PR #47 in verifica | GET-only on demand, contratto separato e stato pagina reale |
+| Dettaglio draft completo UI | Operativo e verificato in produzione | PR #47, CI #198 e verifica browser reale |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -90,15 +90,16 @@ La pagina pubblica continua a restituire `404` con `noindex, nofollow` nell’ul
 
 ## Control Room definitiva
 
-Architettura operativa verificata:
+Architettura operativa:
 
 ```text
 Cloudflare Access
 → validazione nell'origine
 → shell Astro
 → una React island
-→ proxy snapshot read-only
-→ API esistente
+→ snapshot read-only
+→ dettaglio draft GET-only on demand
+→ API esistenti
 → D1 soltanto server-side
 ```
 
@@ -111,95 +112,17 @@ Sono verificati in produzione:
 - Page Readiness ed evidence bundle;
 - draft, versioni e decisioni di revisione read-only;
 - queue e audit aggregato read-only;
+- dettaglio draft completo con corpo, sezioni, FAQ, fonti e provenance;
+- caricamento del dettaglio soltanto dopo apertura esplicita;
+- stato draft, stato pagina materializzata e publication eligibility separati;
 - filtri, dettagli, desktop, mobile e contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
-### Queue e audit — checkpoint completato
+## Dettaglio draft completo — checkpoint completato
 
-La PR #44 è mergiata nel commit `ea0600b2`, ha superato la CI #174 ed è stata verificata nel browser reale.
+La PR #47 è mergiata nel commit `2c790272`, ha superato la CI #198 ed è stata verificata nel browser reale il 22 luglio 2026.
 
-Guardrail verificati:
-
-```text
-queue status ≠ decisione editoriale
-failed task ≠ contenuto non valido
-completed task ≠ pagina pubblicata
-audit event ≠ autorizzazione operativa
-```
-
-## Quality evaluation — PR #45 completata
-
-La PR #45 è mergiata nel commit `a918177` e aggiunge:
-
-```text
-tests/fixtures/research-quality-golden.json
-scripts/evaluate-research-quality-golden.mjs
-npm run eval:research-quality
-```
-
-Baseline del gate precedente:
-
-```text
-true positive:  3
-false positive: 1
-true negative:  4
-false negative: 0
-precision:       0.75
-recall:          1.00
-```
-
-Framework valutati:
-
-- Promptfoo quando esisterà un vero grader semantico o confronto prompt/modello;
-- Evidently per reporting e drift su un corpus più ampio;
-- Great Expectations soltanto per un data-quality layer multipipeline;
-- Cleanlab con probabilità di modello e volume etichettato sufficiente.
-
-Nessuno di questi framework è stato inserito nel Worker.
-
-## Topic-mismatch gate — PR #46 mergiata
-
-La PR #46, merge `215470ae`, introduce per i nuovi run research e comparison:
-
-```text
-query
-→ anchor informative
-→ research_runs.topic_anchors_json
-→ trigger D1 su title + summary
-→ nessun match: filtered + topic_mismatch
-```
-
-Esempio:
-
-```text
-Holafly recent experiences
-→ ["holafly"]
-```
-
-Proprietà verificate nella CI #188:
-
-- migrazione `0019` valida in D1 locale;
-- score zero ancora filtrato;
-- risultato estraneo con score `0.2` filtrato con `topic_mismatch`;
-- risultato Holafly pertinente con score `0.2` ancora idoneo;
-- ingest reale attraverso l'API verificato in `workerd`;
-- golden set: `3 TP`, `0 FP`, `5 TN`, `0 FN`;
-- precision e recall `1.00` sul dataset versionato;
-- Container e tutti gli smoke della Control Room invariati.
-
-Limiti:
-
-- matching letterale di almeno un anchor;
-- nessuna comprensione di sinonimi, entità implicite o negazioni;
-- run discovery esenti tramite anchor `[]`;
-- run esistenti non riclassificati e nessun backfill;
-- nessuna modifica automatica a brief, claim, bundle o draft.
-
-Il gate non è ancora dichiarato verificato in produzione finché non viene attestata l’applicazione remota della migrazione `0019`. La prova funzionale completa avverrà sul primo nuovo run autorizzato, senza creare dati artificiali.
-
-## Dettaglio draft completo — PR #47 in verifica
-
-La PR #47 aggiunge una seconda risorsa privata e indipendente dallo snapshot:
+La risorsa privata è:
 
 ```text
 GET /control-room-foundation/api/draft-detail?draftId=<id>
@@ -214,7 +137,7 @@ Il custom Worker:
 - delega all’endpoint backend esistente `GET /api/maintenance/editorial-draft-grounding`;
 - imposta `no-store`, `noindex` e `nosniff`.
 
-La React island carica la risorsa soltanto quando viene aperta una versione. Il contratto runtime separato valida:
+La React island carica il dettaglio soltanto quando viene aperta una versione. Il contratto runtime separato valida:
 
 - identità e relazione con il record inventario;
 - corpo strutturato, FAQ e fonti HTTPS;
@@ -223,7 +146,51 @@ La React island carica la risorsa soltanto quando viene aperta una versione. Il 
 - stato draft e stato pagina materializzata;
 - metadati, usage e timestamp.
 
+La verifica visuale conferma che in produzione vengono renderizzati il corpo, i blocchi editoriali, i badge claim, le fonti e la provenance. Lo screenshot ricevuto era compresso e non viene usato per attestare valori testuali puntuali o lo stato della migrazione `0019`.
+
 Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
+
+## Quality evaluation — PR #45 completata
+
+La PR #45 è mergiata nel commit `a918177` e misura il trigger D1 reale con un golden dataset versionato.
+
+Baseline del gate precedente:
+
+```text
+true positive:  3
+false positive: 1
+true negative:  4
+false negative: 0
+precision:       0.75
+recall:          1.00
+```
+
+Nessun framework esterno è stato inserito nel Worker. Promptfoo, Evidently, Great Expectations e Cleanlab restano subordinati a un caso d’uso reale e misurabile.
+
+## Topic-mismatch gate — PR #46 mergiata
+
+La PR #46, merge `215470ae`, introduce per i nuovi run research e comparison:
+
+```text
+query
+→ anchor informative
+→ research_runs.topic_anchors_json
+→ trigger D1 su title + summary
+→ nessun match: filtered + topic_mismatch
+```
+
+Proprietà verificate nella CI #188:
+
+- migrazione `0019` valida in D1 locale;
+- score zero ancora filtrato;
+- risultato estraneo con score `0.2` filtrato con `topic_mismatch`;
+- risultato Holafly pertinente con score `0.2` ancora idoneo;
+- ingest reale attraverso l'API verificato in `workerd`;
+- golden set: `3 TP`, `0 FP`, `5 TN`, `0 FN`;
+- precision e recall `1.00` sul dataset versionato;
+- Container e tutti gli smoke della Control Room invariati.
+
+Il gate non è ancora dichiarato verificato in produzione finché non viene attestata l’applicazione remota della migrazione `0019`. La prova funzionale completa avverrà sul primo nuovo run autorizzato, senza creare dati artificiali.
 
 ## Gap aperti
 
@@ -235,8 +202,6 @@ Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’in
 - verifica remota della migrazione `0019` ancora aperta.
 
 ## Prossimo checkpoint
-
-Prima chiudere la PR #47 con CI completa e verifica nel browser reale. Poi:
 
 ```text
 chore/control-room-legacy-parity-audit

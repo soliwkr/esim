@@ -6,69 +6,39 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #47 sul dettaglio draft completo read-only
+### 1. Audit di parità con la Control Room legacy
 
-Branch:
+Branch prevista:
 
 ```text
-feat/control-room-draft-detail-readonly
+chore/control-room-legacy-parity-audit
 ```
 
 Obiettivo esclusivo:
 
-- mantenere leggero lo snapshot aggregato;
-- caricare il dettaglio soltanto quando l’operatore apre una versione;
-- usare il GET backend esistente `editorial-draft-grounding`;
-- mediare la richiesta con un proxy server-side sotto Cloudflare Access;
-- mostrare corpo strutturato, FAQ, fonti e provenance field-level;
-- mostrare lo stato reale della pagina materializzata;
-- mantenere distinti stato draft, stato pagina e publication eligibility;
-- non introdurre generation, review action, materializzazione, mutation o pubblicazione.
+- confrontare ogni lettura della legacy con la nuova Control Room;
+- verificare guardrail, errori, mobile, tastiera e percorsi Cloudflare Access;
+- registrare eventuali gap residui senza ricostruire dati mancanti nel client;
+- verificare in particolare il collegamento degli eventi audit a una specifica versione draft;
+- rimuovere la legacy soltanto quando il fallback non è più necessario;
+- non introdurre mutation durante l’audit.
 
-Architettura:
+### 2. Definition of Done dell’audit
 
-```text
-inventario draft nello snapshot
-→ apertura esplicita di una versione
-→ GET /control-room-foundation/api/draft-detail?draftId=<id>
-→ validazione Cloudflare Access
-→ maintenance token soltanto server-side
-→ GET backend esistente
-→ contratto runtime separato
-```
+Prima di proporre la rimozione della legacy devono risultare verificati:
 
-### 2. Definition of Done della PR #47
+- parità di tutte le letture operative necessarie;
+- guardrail equivalenti o più forti;
+- nessuna credenziale applicativa nel browser;
+- Access fail-closed su shell e proxy;
+- loading, errori parziali, retry, empty state, tastiera e mobile;
+- snapshot e dettaglio draft come risorse indipendenti;
+- nessun accesso diretto a D1;
+- nessuna mutation o capacità di pubblicazione;
+- smoke end-to-end verdi;
+- fallback legacy non più necessario.
 
-Prima del merge devono passare:
-
-- TypeScript strict e build Astro;
-- migrazioni, quality smoke e golden evaluation invariati;
-- Container invariato;
-- runtime `workerd` con Access e proxy GET-only;
-- risposta anonima e JWT invalido rifiutati;
-- `POST` rifiutato con `405` e `Allow: GET`;
-- nessuna richiesta dettaglio prima dell’apertura;
-- body, blocchi, FAQ, fonti HTTPS e provenance validati;
-- corrispondenza tra inventario e dettaglio su ID, bundle, versione, slug e renderer;
-- errore del dettaglio isolato senza cancellare lo snapshot;
-- retry esplicito, tastiera e mobile;
-- tutti gli smoke precedenti invariati;
-- nessuna nuova dipendenza runtime;
-- nessuna modifica a D1, Workflow, Container, AI Gateway, Vertex AI o backend editoriale;
-- nessuna mutation o capacità di pubblicazione.
-
-### 3. Conservare le separazioni editoriali
-
-```text
-approved draft ≠ published page
-draft status ≠ materialized page status
-materialized page review ≠ publication eligibility
-preview read-only ≠ autorizzazione operativa
-```
-
-Il dettaglio mostra dati persistiti; non decide readiness, approvazione, materializzazione o pubblicazione.
-
-### 4. Verificare separatamente il topic-mismatch gate in produzione
+### 3. Verificare separatamente il topic-mismatch gate in produzione
 
 La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da confermare tramite il deploy automatico:
 
@@ -79,25 +49,22 @@ La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da conf
 
 La verifica funzionale completa del gate avverrà sul primo nuovo run autorizzato. Non viene creato un run di prova soltanto per chiudere il checkpoint.
 
-## Next
-
-### 5. Audit di parità con la Control Room legacy
-
-Branch prevista:
+### 4. Conservare le separazioni editoriali
 
 ```text
-chore/control-room-legacy-parity-audit
+approved draft ≠ published page
+draft status ≠ materialized page status
+materialized page review ≠ publication eligibility
+preview read-only ≠ autorizzazione operativa
+queue status ≠ decisione editoriale
+audit event ≠ autorizzazione operativa
 ```
 
-Obiettivo:
+La Control Room mostra dati persistiti; non decide readiness, approvazione, materializzazione o pubblicazione.
 
-- confrontare ogni lettura della legacy con la nuova Control Room;
-- verificare guardrail, errori, mobile, tastiera e percorsi Access;
-- registrare eventuali gap residui;
-- rimuovere la legacy soltanto quando il fallback non è più necessario;
-- non introdurre mutation durante l’audit.
+## Next
 
-### 6. Azioni operative soltanto dopo la parità
+### 5. Azioni operative soltanto dopo la parità
 
 Ordine indicativo, una branch per capacità:
 
@@ -131,7 +98,8 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - PR #42 — draft, preview e decisioni read-only;
 - PR #44 — queue e audit read-only;
 - PR #45 — golden quality evaluation e criteri di adozione framework;
-- PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere.
+- PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere;
+- PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale.
 
 ## Freeze immediato
 
@@ -140,4 +108,4 @@ Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation durante dettaglio draft e audit di parità.
+- nessuna mutation durante audit di parità e verifica del topic-mismatch gate.
