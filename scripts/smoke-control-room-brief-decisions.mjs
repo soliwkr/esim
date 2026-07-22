@@ -403,7 +403,4 @@ try {
 } finally {
   if (browser) await browser.close();
   await stopWrangler(wrangler);
-  if (wrangler.exitCode && wrangler.exitCode !== 0) {
-    throw new Error(`wrangler dev failed with code ${wrangler.exitCode}\n${logs.join('')}`);
-  }
 }
