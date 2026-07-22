@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import {
+  ClipboardCheck,
   ClipboardList,
   FileCheck2,
   FileText,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { BriefDecisionPanel } from "@/components/control-room/BriefDecisionPanel"
 import { ClaimsSources } from "@/components/control-room/ClaimsSources"
 import { DraftDecisions } from "@/components/control-room/DraftDecisions"
 import { DraftDetailReadonly } from "@/components/control-room/DraftDetailReadonly"
@@ -57,6 +59,7 @@ const navigation = [
   { href: "#radar", label: "Radar", icon: RadioTower },
   { href: "#signals", label: "Segnali", icon: Search },
   { href: "#briefs", label: "Brief", icon: ClipboardList },
+  { href: "#brief-decisions", label: "Decisione brief", icon: ClipboardCheck },
   { href: "#claims", label: "Claim e fonti", icon: Rows3 },
   { href: "#readiness", label: "Readiness", icon: FileCheck2 },
   { href: "#draft", label: "Draft e decisioni", icon: FileText },
@@ -97,7 +100,7 @@ function Sidebar() {
       </div>
       <Navigation />
       <div className="absolute inset-x-5 bottom-5 rounded-xl border border-sidebar-border bg-sidebar-accent/60 p-3 text-xs leading-5 text-sidebar-foreground/75">
-        Migrazione operativa in sola lettura. Nessuna azione editoriale o di pubblicazione è disponibile.
+        Letture complete e decisione brief controllata. Conversione, draft e pubblicazione restano separate.
       </div>
     </aside>
   )
@@ -115,7 +118,7 @@ function MobileNavigation() {
       <SheetContent side="left" className="w-72 border-sidebar-border bg-sidebar text-sidebar-foreground">
         <SheetHeader className="text-left">
           <SheetTitle className="text-sidebar-foreground">Senza Roaming</SheetTitle>
-          <SheetDescription className="text-sidebar-foreground/65">Control Room in sola lettura</SheetDescription>
+          <SheetDescription className="text-sidebar-foreground/65">Control Room con decisione brief controllata</SheetDescription>
         </SheetHeader>
         <div className="px-4"><Navigation onNavigate={() => setOpen(false)} /></div>
       </SheetContent>
@@ -215,7 +218,7 @@ export function ControlRoomApp() {
             <MobileNavigation />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Control Room</p>
-              <p className="truncate text-xs text-muted-foreground">Overview, editoriale, queue e audit · sola lettura</p>
+              <p className="truncate text-xs text-muted-foreground">Letture operative e decisione brief · nessuna pubblicazione</p>
             </div>
             <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
               <ShieldCheck aria-hidden="true" className="size-3.5" />
@@ -249,6 +252,10 @@ export function ControlRoomApp() {
                     researchRuns={snapshotState.data.researchRuns}
                     signals={snapshotState.data.signals}
                     briefs={snapshotState.data.briefs}
+                  />
+                  <BriefDecisionPanel
+                    briefs={snapshotState.data.briefs}
+                    onDecisionApplied={() => load(false)}
                   />
                   <ClaimsSources claims={snapshotState.data.claims} />
                   <ReadinessEvidence bundles={snapshotState.data.evidenceBundles} />
