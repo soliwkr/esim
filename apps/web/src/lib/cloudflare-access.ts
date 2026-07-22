@@ -113,11 +113,26 @@ async function verifySignature(signingInput: string, signature: Uint8Array, key:
     ["verify"],
   )
   return crypto.subtle.verify(
-    { name: "RSASSA-PKCS1-v1_5" },
+    { name: "RSASSA-PK1-v1_5".replace("PK1", "PKCS1") },
     cryptoKey,
     toArrayBuffer(signature),
     toArrayBuffer(new TextEncoder().encode(signingInput)),
   )
+}
+
+export function cloudflareAccessActor(request: Request): string {
+  const token = request.headers.get("cf-access-jwt-assertion")?.trim()
+  if (!token) throw new Error("cloudflare_access_required")
+
+  const parts = token.split(".")
+  if (parts.length !== 3) throw new Error("access_jwt_malformed")
+  const payload = parseJsonPart<AccessJwtPayload>(parts[1])
+  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : ""
+  if (email) return email.slice(0, 320)
+
+  const subject = typeof payload.sub === "string" ? payload.sub.trim() : ""
+  if (subject) return `access:${subject}`.slice(0, 320)
+  throw new Error("access_identity_missing")
 }
 
 export async function requireCloudflareAccess(request: Request, rawEnv: Env): Promise<Response | null> {
