@@ -156,8 +156,8 @@ try {
   const dialog = page.getByRole('dialog');
   await dialog.getByText('Claim #101').waitFor();
   await dialog.getByText('task #799').waitFor();
-  await dialog.getByText('Task collegato').waitFor();
-  await dialog.getByText('Stato task').waitFor();
+  await dialog.getByText('Task collegato', { exact: true }).waitFor();
+  await dialog.getByText('Stato task', { exact: true }).waitFor();
   await dialog.getByText('Fonte ed evidenza restano distinte').waitFor();
   await dialog.getByText('Stato temporale, non stato canonico').waitFor();
   await dialog.getByRole('link', { name: 'Apri fonte' }).waitFor();
