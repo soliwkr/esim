@@ -109,6 +109,7 @@ export interface ControlRoomClaim {
   confidence: number | null
   checked_at: string | null
   valid_until: string | null
+  task_id: number | null
   task_status: string | null
   required_source_kinds: string[]
   value: unknown
@@ -274,6 +275,15 @@ function requireNonNegativeInteger(object: JsonObject, key: string): number {
 function requirePositiveInteger(object: JsonObject, key: string): number {
   const value = requireNumber(object, key)
   if (!Number.isInteger(value) || value <= 0) throw new Error(`Campo ${key} non valido`)
+  return value
+}
+
+function requireNullablePositiveInteger(object: JsonObject, key: string): number | null {
+  const value = object[key]
+  if (value === null) return null
+  if (!isFiniteNumber(value) || !Number.isInteger(value) || value <= 0) {
+    throw new Error(`Campo ${key} non valido`)
+  }
   return value
 }
 
@@ -498,6 +508,7 @@ function parseClaims(value: unknown): ControlRoomClaim[] {
       confidence: requireNullableNumber(record, "confidence"),
       checked_at: requireNullableTimestamp(record, "checked_at"),
       valid_until: requireNullableTimestamp(record, "valid_until"),
+      task_id: requireNullablePositiveInteger(record, "task_id"),
       task_status: requireNullableString(record, "task_status"),
       required_source_kinds: requireStringArray(record, "required_source_kinds"),
       value: record.value,
