@@ -191,3 +191,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** la Control Room ha mostrato un risultato su uno spettacolo comico associato al topic “Holafly recent experiences” con score zero ma eligibility positiva. Uno score esattamente nullo è una dichiarazione deterministica dell'upstream e non richiede un classificatore semantico per essere rifiutato.
 
 **Conseguenza:** `0 < relevance_score < 0,35` resta un warning consultivo; `NULL` non viene bloccato automaticamente per non escludere run discovery privi di score. La regola vive in D1, riallinea i conteggi dei run e dispone di uno smoke di regressione dedicato. Framework di evaluation esterni vengono valutati soltanto dopo la costruzione di un dataset revisionato.
+
+## ADR-020 — Golden evaluation prima di un framework semantico
+
+**Stato:** proposta nella PR #45
+
+**Decisione:** versionare un golden dataset di segnali revisionati e misurare il trigger D1 reale con confusion matrix in CI. Non introdurre un framework esterno finché non riduce complessità o valuta una capacità che il progetto possiede davvero.
+
+**Razionale:** il gate corrente è deterministico e vive nel database. Promptfoo è adatto quando esiste un prompt, modello o grader semantico da confrontare; Evidently e Cleanlab diventano utili con un corpus etichettato più ampio e output di modello. Great Expectations coprirebbe soprattutto vincoli strutturali già verificati da D1 e smoke runtime.
+
+**Conseguenza:** la baseline iniziale registra `3 TP`, `1 FP`, `4 TN`, `0 FN`, precision `0.75` e recall `1.00`. La fase successiva deve ridurre il falso positivo topic-mismatch senza introdurre falsi negativi. L'adozione futura di Promptfoo, Evidently, Great Expectations o Cleanlab richiede un criterio di ingresso documentato e resta fuori dal runtime di produzione finché non è necessaria.

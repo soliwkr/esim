@@ -2,176 +2,170 @@
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; la migrazione frontend vive in `docs/FRONTEND-PLAN.md`.
 
-Ultimo aggiornamento: **21 luglio 2026**.
+Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la PR #44 su queue e audit read-only
+### 1. Chiudere la PR #45 sul quality evaluation spike
 
 Branch:
 
 ```text
-feat/control-room-queue-audit
+spike/research-quality-evaluation
 ```
 
-La PR #44 migra nella nuova Control Room la lettura di `queue` e `audit` già presenti nello snapshot aggregato.
+Obiettivo esclusivo:
 
-Scope implementato e in verifica:
+- versionare un golden dataset di segnali revisionati;
+- eseguire il trigger D1 canonico sui casi reali di test;
+- misurare true positive, false positive, true negative e false negative;
+- registrare precision e recall in CI;
+- confrontare framework OSS maturi senza inserirli prematuramente nel runtime.
 
-#### Queue
-
-- ID task;
-- task type, entity type ed entity key;
-- priorità e stato canonico;
-- due at;
-- attempts e max attempts;
-- locked by;
-- last error;
-- payload JSON normalizzato;
-- created at e updated at;
-- filtri per stato, task type, entity type e condizione;
-- dettaglio accessibile in Sheet.
-
-#### Audit
-
-- domain;
-- action;
-- actor;
-- entity;
-- details JSON normalizzati;
-- created at;
-- filtri per dominio, azione e attore;
-- dettaglio accessibile in Sheet.
-
-La prima iterazione resta read-only. Non introduce claim mutation, draft action, gestione operativa della queue, nuovi endpoint o pubblicazione.
-
-### 2. Conservare le separazioni operative
-
-La UI rende esplicito che:
+Baseline prevista:
 
 ```text
-queue status ≠ decisione editoriale
-failed task ≠ contenuto non valido
-completed task ≠ pagina pubblicata
-audit event ≠ autorizzazione operativa
+true positive:  3
+false positive: 1
+true negative:  4
+false negative: 0
+precision:       0.75
+recall:          1.00
+```
+
+Il falso positivo noto è un risultato semanticamente estraneo con score positivo `0.2`. La PR #45 lo caratterizza ma non modifica il gate di produzione.
+
+### 2. Conservare la separazione fra gate ed evaluation
+
+```text
+quality gate di produzione
+≠
+framework di evaluation
 ```
 
 Regole:
 
-- stato, tentativi, errori e priorità vengono mostrati come persistiti;
-- i riepiloghi locali descrivono soltanto i record restituiti dalla query limitata dello snapshot;
-- il client non ricalcola priorità, retry o outcome;
-- payload e dettagli audit vengono trattati come JSON opaco validato;
-- lo snapshot non espone un ID evento audit né un legame univoco con una versione draft;
-- nessun linkage mancante viene ricostruito;
-- nessun pulsante retry, complete, dismiss, approve o publish viene introdotto;
-- nessuna richiesta browser diversa da `GET` viene aggiunta.
+- D1 continua a essere il confine deterministico corrente;
+- il golden evaluator usa il database locale reale dopo le migrazioni;
+- una baseline non trasforma un errore noto in comportamento desiderato;
+- la label editoriale umana resta distinta dal comportamento corrente del trigger;
+- nessun framework esterno entra nel Worker durante lo spike;
+- nessun record editoriale reale viene modificato.
 
-### 3. Definition of Done della PR #44
+### 3. Criteri di adozione dei framework
+
+#### Promptfoo
+
+Candidato principale quando esisterà un prompt, modello o grader semantico da valutare in Node e CI.
+
+#### Evidently
+
+Candidato per report, trend e drift quando il corpus etichettato avrà dimensione significativa.
+
+#### Great Expectations
+
+Da adottare soltanto se nasce un data-quality layer multipipeline non già coperto da D1, parser runtime e smoke.
+
+#### Cleanlab
+
+Da rivalutare quando esisteranno probabilità di classificazione e un dataset abbastanza ampio da cercare label errate e outlier.
+
+### 4. Definition of Done della PR #45
 
 Prima del merge devono passare:
 
 - TypeScript strict e build Astro;
-- migrazioni locali e quality gate invariati;
-- build e smoke del Container invariati;
-- runtime `workerd` con queue e audit reali;
-- smoke Chromium generale;
-- smoke claim, readiness e draft invariati;
-- smoke dedicato a queue e audit;
-- stati queue non ammessi rifiutati;
-- tentativi, timestamp, payload e dettagli non conformi rifiutati;
-- empty state, filtri, tastiera e mobile;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna credenziale o accesso diretto a D1;
-- nessuna route o azione di retry, completamento, approvazione o pubblicazione;
-- nessuna regressione su overview, radar, segnali, brief, claim, readiness e draft.
-
-### 4. Verificare il deploy reale
-
-Dopo il merge:
-
-- aprire `https://senzaroaming.it/control-room-foundation`;
-- verificare task reali pending, processing o failed quando presenti;
-- verificare tipo, entità, priorità, tentativi, lock, errore e payload;
-- verificare eventi audit reali del primo ciclo editoriale;
-- controllare dominio, azione, attore, entità, dettagli e timestamp;
-- controllare desktop e mobile;
-- confermare l’assenza di azioni operative e pubblicazione.
-
-### 5. Fase successiva
-
-Soltanto dopo la parità read-only di queue e audit:
-
-- decidere con scope esplicito se chiudere il gap draft su corpo, provenance e stato pagina;
-- progettare eventuali mutation una per branch;
-- mantenere approvazione editoriale e pubblicazione come gate separati;
-- valutare la rimozione della legacy soltanto dopo parità funzionale verificata.
-
-## Fuori scope immediato
-
-- retry, complete, dismiss o modifica dei task;
-- avvio Workflow dalla nuova UI;
-- generazione o rigenerazione draft;
-- approvazione o richiesta modifiche draft;
-- modifica claim, fonti o evidence bundle;
-- estensione di endpoint o query D1;
-- pubblicazione;
-- modifiche alla Control Room legacy;
-- migrazione del sito pubblico.
-
-## Checkpoint completati il 21 luglio 2026
-
-### Sessione server-side
-
-- PR #31 verificata;
-- un solo login Access;
-- proxy snapshot read-only;
-- nessuna credenziale applicativa nel browser.
-
-### Overview e health
-
-- PR #32 verificata;
-- metriche, capability, binding, timestamp e guardrail visibili;
-- errori parziali e contratti runtime verificati.
-
-### Radar e brief
-
-- PR #34 verificata;
-- run, segnali e brief visibili;
-- filtro run → segnali basato su `run_id`;
-- nessun linkage segnale → brief inventato.
-
-### Quality gate score zero
-
-- PR #36 verificata sul dato reale;
-- segnale con score zero filtrato;
-- flag `zero_relevance` e conteggi riallineati.
-
-### Claim, fonti e scadenze
-
-- PR #37 verificata;
-- cinque filtri e dettaglio read-only;
-- stato canonico e stato temporale separati;
-- fonte ed evidenza distinte.
-
-### Page Readiness ed evidence bundle
-
-- PR #39 e hotfix #40 verificate;
-- quattro gate distinti;
-- warning strutturati reali visibili;
-- fixture aderente al payload canonico;
+- migrazioni locali;
+- smoke `zero_relevance` esistente;
+- golden evaluation contro il trigger D1 reale;
+- confusion matrix uguale alla baseline registrata;
+- build e smoke Container invariati;
+- runtime `workerd` invariato;
+- tutti gli smoke Chromium della Control Room invariati;
+- nessuna nuova dipendenza runtime;
+- nessuna migrazione D1;
+- nessuna modifica a Worker, Workflow, Container, AI Gateway, Vertex AI o API;
 - nessuna mutation o pubblicazione.
 
-### Draft, preview e decisioni
+## Next
 
-- PR #42 mergiata nel commit `856da79`;
-- CI #157 completamente verde;
-- deploy e verifica browser reale completati;
-- draft `2`, versione `2`, renderer `editorial-page-draft-v2` e stato `approved` visibili;
-- bundle `1`, readiness `77` e publication eligibility negativa separati;
-- revisore, note, claim usati ed esclusi visibili;
-- gap su corpo, provenance e stato pagina dichiarato senza deduzioni;
-- nessuna mutation, generazione o pubblicazione.
+### 5. Ridurre il falso positivo topic-mismatch
+
+Branch prevista:
+
+```text
+feat/research-topic-mismatch-gate
+```
+
+Target misurabile:
+
+```text
+false positive: 1 → 0
+false negative: 0 → 0
+```
+
+Scope previsto:
+
+- ricavare anchor informative dalla query;
+- distinguere token di dominio da parole generiche come `recent`, `experience` e `review`;
+- richiedere evidenza del topic nel titolo o nel summary prima dell'eligibility automatica;
+- mantenere idoneo il segnale Holafly rilevante con score `0.2`;
+- aggiungere un flag auditabile come `topic_mismatch` quando il gate blocca;
+- non modificare automaticamente brief, claim, bundle o draft esistenti;
+- backfill soltanto con scope esplicito e test di regressione.
+
+L'eventuale uso di Promptfoo viene valutato in questa fase soltanto se viene introdotto un vero grader semantico. Non viene usato come wrapper decorativo attorno a regole deterministiche.
+
+### 6. Riprendere la parità completa della Control Room
+
+Dopo il quality checkpoint:
+
+```text
+feat/control-room-draft-detail-readonly
+```
+
+Obiettivo:
+
+- corpo completo del draft;
+- FAQ e fonti;
+- provenance field-level;
+- claim collegati ai campi;
+- stato reale della pagina materializzata;
+- proxy GET-only on demand sotto Cloudflare Access;
+- nessuna mutation o pubblicazione.
+
+Poi:
+
+```text
+chore/control-room-legacy-parity-audit
+```
+
+La legacy viene rimossa soltanto dopo parità funzionale verificata.
+
+### 7. Mutation operative soltanto dopo la parità
+
+Ordine indicativo, una branch per capacità:
+
+```text
+decisione brief
+→ conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
+```
+
+Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
+
+## Checkpoint completati
+
+- PR #31 — sessione server-side e un solo login Access;
+- PR #32 — overview e health;
+- PR #34 — radar e brief;
+- PR #36 — score zero filtrato con `zero_relevance`;
+- PR #37 — claim, fonti e scadenze;
+- PR #39 + #40 — Page Readiness ed evidence bundle;
+- PR #42 — draft, preview e decisioni read-only;
+- PR #44 — queue e audit read-only, CI #174 e verifica browser reale completate.
 
 ## Freeze immediato
 
@@ -180,4 +174,4 @@ Soltanto dopo la parità read-only di queue e audit:
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation nella fase queue e audit read-only.
+- nessuna mutation durante quality evaluation e topic-mismatch gate.

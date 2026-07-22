@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Golden set per misurare il quality gate D1 rispetto a decisioni editoriali umane. expectedCurrentGateEligible caratterizza il comportamento corrente; expectedEditorialEligible è la label umana canonica.",
+  "run": {
+    "query": "Holafly recent experiences",
+    "generatedAt": "2026-07-20T05:03:00.000Z",
+    "windowDays": 30
+  },
+  "baseline": {
+    "truePositive": 3,
+    "falsePositive": 1,
+    "trueNegative": 4,
+    "falseNegative": 0
+  },
+  "cases": [
+    {
+      "id": "irrelevant-zero-score",
+      "title": "Wanted to share a recent experience seeing Shane at the Aristocrat in Austin",
+      "summary": "A comedy show report unrelated to eSIM providers or travel connectivity.",
+      "source": "reddit",
+      "publishedAt": "2026-07-02T02:00:00.000Z",
+      "relevanceScore": 0,
+      "expectedCurrentGateEligible": false,
+      "expectedEditorialEligible": false,
+      "expectedFlags": ["zero_relevance"]
+    },
+    {
+      "id": "irrelevant-low-positive-score",
+      "title": "Recent experience at a live comedy show",
+      "summary": "The text uses the phrase recent experience but contains no eSIM, roaming, provider or connectivity evidence.",
+      "source": "reddit",
+      "publishedAt": "2026-07-03T02:00:00.000Z",
+      "relevanceScore": 0.2,
+      "expectedCurrentGateEligible": true,
+      "expectedEditorialEligible": false,
+      "expectedFlags": []
+    },
+    {
+      "id": "relevant-low-positive-score",
+      "title": "Holafly recent experience in Japan",
+      "summary": "A traveller reports activation, hotspot and speed behaviour for a Holafly eSIM.",
+      "source": "reddit",
+      "publishedAt": "2026-07-04T02:00:00.000Z",
+      "relevanceScore": 0.2,
+      "expectedCurrentGateEligible": true,
+      "expectedEditorialEligible": true,
+      "expectedFlags": []
+    },
+    {
+      "id": "relevant-high-score",
+      "title": "Holafly eSIM review after thirty days in Europe",
+      "summary": "The post describes setup, coverage, hotspot restrictions and support interactions.",
+      "source": "youtube",
+      "publishedAt": "2026-07-10T02:00:00.000Z",
+      "relevanceScore": 0.91,
+      "expectedCurrentGateEligible": true,
+      "expectedEditorialEligible": true,
+      "expectedFlags": []
+    },
+    {
+      "id": "relevant-missing-date",
+      "title": "Holafly activation and tethering experience",
+      "summary": "A relevant account whose publication date is unavailable and therefore requires human freshness review.",
+      "source": "forum",
+      "publishedAt": null,
+      "relevanceScore": 0.72,
+      "expectedCurrentGateEligible": true,
+      "expectedEditorialEligible": true,
+      "expectedFlags": ["missing_published_at"]
+    },
+    {
+      "id": "relevant-outside-window",
+      "title": "Holafly eSIM experience from last year",
+      "summary": "Relevant provider experience, but too old for the recent-demand window.",
+      "source": "reddit",
+      "publishedAt": "2026-05-01T02:00:00.000Z",
+      "relevanceScore": 0.88,
+      "expectedCurrentGateEligible": false,
+      "expectedEditorialEligible": false,
+      "expectedFlags": ["outside_recent_window"]
+    },
+    {
+      "id": "future-dated-result",
+      "title": "Holafly eSIM review dated in the future",
+      "summary": "Relevant-looking text with an impossible publication date relative to the run.",
+      "source": "reddit",
+      "publishedAt": "2026-07-25T02:00:00.000Z",
+      "relevanceScore": 0.83,
+      "expectedCurrentGateEligible": false,
+      "expectedEditorialEligible": false,
+      "expectedFlags": ["future_dated"]
+    },
+    {
+      "id": "second-irrelevant-zero-score",
+      "title": "Restaurant experience in Madrid",
+      "summary": "No relationship with eSIM, roaming or Holafly.",
+      "source": "reddit",
+      "publishedAt": "2026-07-11T02:00:00.000Z",
+      "relevanceScore": 0,
+      "expectedCurrentGateEligible": false,
+      "expectedEditorialEligible": false,
+      "expectedFlags": ["zero_relevance"]
+    }
+  ]
+}
