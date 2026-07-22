@@ -102,11 +102,14 @@ requireAll(source.queueAudit, [
   'task.priority',
   'task.status',
   'task.last_error',
+  'event.event_key',
   'event.created_at',
   'event.domain',
   'event.action',
   'event.actor',
   'event.entity',
+  'event.draft_id',
+  'event.draft_version',
 ], 'Parità queue e audit');
 
 requireAll(source.draftDetail, [
@@ -157,8 +160,22 @@ assert.match(source.audit, /Gap chiuso: claim → task ID/);
 assert.match(source.audit, /fix\/control-room-claim-task-linkage-readonly/);
 
 const auditInterface = between(source.api, 'export interface ControlRoomAuditEvent', 'export interface ControlRoomCapabilities');
-assert.doesNotMatch(auditInterface, /\bdraft_id\s*:|\bdraft_version\s*:|\bid\s*:/);
-assert.match(source.audit, /Gap condiviso: audit → versione draft/);
+const auditParser = between(source.api, 'function parseAudit', 'function parseControlRoomSnapshot');
+requireAll(auditInterface, ['event_key:', 'draft_id:', 'draft_version:'], 'Contratto audit canonico');
+requireAll(auditParser, [
+  'event_key: eventKey',
+  'draft_id: draftId',
+  'draft_version: draftVersion',
+  'domain === "draft"',
+], 'Parser audit canonico');
+requireAll(source.snapshotBackend, [
+  "('draft-event:' || e.id) AS event_key",
+  'e.draft_id AS draft_id',
+  'd.version AS draft_version',
+], 'Query audit canonica');
+assert.match(source.queueAudit, /setSelectedAuditKey\(event\.event_key\)/);
+assert.doesNotMatch(source.queueAudit, /details.*draftId|draftId.*details/);
+assert.match(source.audit, /Gap chiuso: audit → versione draft/);
 assert.match(source.audit, /fix\/control-room-audit-draft-version-linkage-readonly/);
 
 requireAll(source.legacy, [
@@ -177,5 +194,5 @@ assert.match(source.audit, /rimozione della legacy \*\*non è autorizzata\*\*/);
 console.log('Control Room legacy parity audit passed.');
 console.log('- letture legacy mappate contro la React island');
 console.log('- perimetro Access e assenza di credenziali browser verificati staticamente');
-console.log('- claim task_id conservato e gap audit draft version ancora dichiarato');
+console.log('- claim task_id e audit draft linkage conservati senza euristiche client');
 console.log('- mutation legacy inventariate e ancora escluse');

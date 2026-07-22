@@ -6,40 +6,38 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Rendere canonico il linkage audit → versione draft
+### 1. Chiudere la PR #52 sul linkage audit → versione draft
 
-Branch prevista:
+Branch:
 
 ```text
 fix/control-room-audit-draft-version-linkage-readonly
 ```
 
-Scope esclusivo:
+Stato verificato:
 
-- verificare la struttura reale della tabella e della query audit;
-- esporre un’identità evento stabile e campi canonici sufficienti per gli eventi draft;
-- legare gli eventi draft a `draft_id` e `draft_version` senza interpretare euristicamente `details` nel browser;
-- aggiornare contratto runtime, fixture, vista e smoke;
-- mantenere il percorso read-only e GET-only;
-- non introdurre decisioni draft, mutation, materializzazione o pubblicazione.
+- schema reale letto: ID evento e `draft_id` già persistiti;
+- versione ottenuta dal record draft collegato;
+- nessuna migrazione D1 introdotta;
+- `event_key`, `draft_id` e `draft_version` esposti dallo snapshot;
+- contratto runtime con chiavi uniche e linkage coerente per dominio;
+- UI selezionata tramite `event_key`;
+- `details` non usato per ricostruire relazioni;
+- CI #217 completamente verde.
 
-Prima di modificare il backend devono essere confermati i campi già disponibili. Non viene introdotta una migrazione D1 se la relazione può essere esposta dalla struttura persistita esistente.
+Prima del merge resta da verificare soltanto la diff finale della PR e mantenere esplicito che il browser reale di produzione non è ancora stato controllato.
 
-### 2. Verificare il linkage claim → task nel browser reale
+### 2. Verificare i linkage read-only nel browser reale
 
-La PR #50 è mergiata nel commit `41a9beee` e la CI #213 è completamente verde.
+Da controllare dietro Cloudflare Access:
 
-Sono verificati in CI:
+- claim con badge `task #<id>` e stato task;
+- evento audit con `event_key` stabile;
+- evento draft con ID e versione mostrati separatamente;
+- eventi non-draft con linkage draft assente;
+- mobile, tastiera e apertura Sheet reali.
 
-- `task_id: number | null` nel contratto claim;
-- validazione come `null` o intero positivo;
-- fixture collegata ai task persistiti;
-- badge e dettaglio con ID e stato task;
-- payload con ID stringa rifiutato;
-- parity audit aggiornato;
-- nessuna mutation o capacità di pubblicazione.
-
-Resta una verifica visuale nel browser reale dietro Cloudflare Access. Finché non viene eseguita, il rendering non viene dichiarato verificato in produzione.
+Le CI #213 e #217 coprono già contratti, payload invalidi, desktop e mobile automatizzati. La verifica visuale non deve attestare valori che non risultano leggibili.
 
 ### 3. Verificare separatamente il topic-mismatch gate in produzione
 
@@ -67,9 +65,11 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 
 ## Next
 
-### 5. Azioni operative soltanto dopo il linkage audit
+### 5. Azioni operative, una capacità per branch
 
-Ordine indicativo, una branch per capacità:
+Dopo il merge della PR #52 non restano gap read-only noti rispetto alle letture legacy. Le mutation possono iniziare soltanto con scope esplicito.
+
+Ordine indicativo:
 
 ```text
 decisione brief
@@ -79,7 +79,15 @@ decisione brief
 → eventuale retry queue
 ```
 
-Ogni mutation richiede conferma esplicita, audit, idempotenza, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
+Per ogni capacità sono obbligatori:
+
+- conferma esplicita dell’operatore;
+- idempotenza;
+- audit persistito;
+- reload dello snapshot dopo esito;
+- gestione di errore e retry;
+- test end-to-end;
+- nessuna pubblicazione implicita.
 
 La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
 
@@ -108,6 +116,10 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - PR #49 — audit di parità legacy, merge `e0a39fa9`, CI #209 verde;
 - PR #50 — linkage read-only claim → task, merge `41a9beee`, CI #213 verde.
 
+## Checkpoint in review
+
+- PR #52 — linkage canonico audit → versione draft, CI #217 verde.
+
 ## Freeze immediato
 
 - niente nuove pagine tramite template string nel Worker;
@@ -115,5 +127,5 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation durante la chiusura del linkage audit;
+- nessuna mutation dentro la PR #52;
 - nessuna rimozione della legacy finché resta un fallback operativo.

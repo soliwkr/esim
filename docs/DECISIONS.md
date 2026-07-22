@@ -224,10 +224,20 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-023 — Parità legacy basata su capacità operative, non sul renderer HTML
 
-**Stato:** accettata con PR #49; primo gap UI chiuso con PR #50
+**Stato:** accettata con PR #49; gap UI chiusi con PR #50 e draft PR #52
 
 **Decisione:** valutare la parità read-only della nuova Control Room in base ai dati canonici, alle relazioni, ai guardrail e alle capacità di ispezione necessarie all’operatore. Non conservare come requisito il template HTML della preview legacy; una futura preview visuale deve appartenere al renderer pubblico Astro.
 
 **Razionale:** la preview legacy dipende da HTML generato nel Worker e non rappresenta l’architettura frontend definitiva. Il dettaglio draft on demand espone già corpo strutturato, FAQ, fonti, provenance, regole e stato pagina senza duplicare il renderer legacy. Copiare il template produrrebbe parità visiva apparente ma nuovo debito tecnico.
 
-**Conseguenza:** i gap vengono classificati esplicitamente. Il dato `task_id` già disponibile nello snapshot è ora conservato dalla nuova UI tramite la PR #50, senza euristiche client. La relazione audit → versione draft resta uno scope server-side read-only separato. La legacy resta finché serve come fallback delle mutation; nessuna rimozione avviene sulla sola base della parità visiva.
+**Conseguenza:** i gap vengono classificati esplicitamente. `task_id` è conservato tramite PR #50; identità audit e linkage draft sono implementati nella draft PR #52. La legacy resta finché serve come fallback delle mutation; nessuna rimozione avviene sulla sola base della parità visiva.
+
+## ADR-024 — Identità audit e linkage draft derivati da relazioni canoniche
+
+**Stato:** accettata in CI con draft PR #52
+
+**Decisione:** esporre nello snapshot una `event_key` stabile per ogni evento audit e valorizzare `draft_id` e `draft_version` soltanto per il dominio `draft`. Ottenere il linkage dalle colonne relazionali persistite e dal join con `editorial_review_drafts`, non dal JSON `details`.
+
+**Razionale:** `editorial_review_draft_events` possiede già un ID evento e `draft_id`; il record draft possiede già `version`. Una migrazione D1 duplicata non aggiungerebbe informazione. Interpretare `details.draftId` nel browser renderebbe una struttura opaca un contratto implicito e fragile.
+
+**Conseguenza:** la query aggregata genera chiavi namespaced (`draft-event:*`, `readiness-event:*`, `claim-event:*`, `research-run:*`, `ai-run:*`). Il contratto runtime richiede chiavi uniche; per gli eventi draft richiede ID e versione positivi, per gli altri domini richiede entrambi null. La React island seleziona tramite `event_key`, mostra il linkage canonico e conserva `details` come JSON opaco. Nessuna migrazione, mutation o capacità di pubblicazione viene introdotta.

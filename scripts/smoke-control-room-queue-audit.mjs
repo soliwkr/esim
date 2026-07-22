@@ -14,21 +14,31 @@ const accessHeaders = { 'cf-access-jwt-assertion': access.token };
 const snapshotProxyPath = '/control-room-foundation/api/snapshot';
 const logs = [];
 
-const [fixture, healthFixture, componentSource, apiClientSource] = await Promise.all([
+const [fixture, healthFixture, componentSource, apiClientSource, backendSource] = await Promise.all([
   readFile('tests/fixtures/control-room-snapshot.json', 'utf8').then(JSON.parse),
   readFile('tests/fixtures/control-room-health.json', 'utf8').then(JSON.parse),
   readFile('apps/web/src/components/control-room/QueueAudit.tsx', 'utf8'),
-  readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
+  readFile('apps/web/src/lib/control-room-api.ts', 'utf8'),
+  readFile('src/control-room.ts', 'utf8')
 ]);
 
 assert.doesNotMatch(componentSource, /\bfetch\s*\(|XMLHttpRequest|sessionStorage|localStorage|Authorization|Bearer/i);
 assert.doesNotMatch(componentSource, /method\s*:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]/i);
 assert.match(componentSource, /Queue status ≠ decisione editoriale/);
 assert.match(componentSource, /Audit event ≠ autorizzazione operativa/);
+assert.match(componentSource, /event\.event_key/);
+assert.match(componentSource, /event\.draft_id/);
+assert.match(componentSource, /event\.draft_version/);
 assert.match(apiClientSource, /function parseQueue/);
 assert.match(apiClientSource, /function parseAudit/);
+assert.match(apiClientSource, /event_key: eventKey/);
+assert.match(apiClientSource, /draft_id: draftId/);
+assert.match(apiClientSource, /draft_version: draftVersion/);
 assert.match(apiClientSource, /queue:\s*parseQueue\(value\.queue\)/);
 assert.match(apiClientSource, /audit:\s*parseAudit\(value\.audit\)/);
+assert.match(backendSource, /\('draft-event:' \|\| e\.id\) AS event_key/);
+assert.match(backendSource, /e\.draft_id AS draft_id/);
+assert.match(backendSource, /d\.version AS draft_version/);
 
 function record(chunk) {
   const value = chunk.toString();
@@ -144,6 +154,20 @@ try {
   assert.equal(realProxyResponse.status, 200);
   assert.ok(Array.isArray(realProxySnapshot.queue));
   assert.ok(Array.isArray(realProxySnapshot.audit));
+  const realEventKeys = new Set();
+  for (const event of realProxySnapshot.audit) {
+    assert.equal(typeof event.event_key, 'string');
+    assert.ok(event.event_key.length > 0);
+    assert.equal(realEventKeys.has(event.event_key), false);
+    realEventKeys.add(event.event_key);
+    if (event.domain === 'draft') {
+      assert.ok(Number.isInteger(event.draft_id) && event.draft_id > 0);
+      assert.ok(Number.isInteger(event.draft_version) && event.draft_version > 0);
+    } else {
+      assert.equal(event.draft_id, null);
+      assert.equal(event.draft_version, null);
+    }
+  }
 
   browser = await chromium.launch({ headless: true });
 
@@ -200,15 +224,22 @@ try {
   await audit.getByText('Eventi e traccia operativa').waitFor();
   await audit.getByText('5 di 5 eventi visibili').waitFor();
   await audit.getByTestId('audit-guardrail').getByText('Audit event ≠ autorizzazione operativa').waitFor();
+  await audit.getByRole('row').filter({ hasText: '#202 · v2' }).waitFor();
 
-  const auditButton = audit.getByRole('button', { name: 'Apri evento audit 1' });
+  const auditButton = audit.getByRole('button', { name: 'Apri evento audit draft-event:901' });
   await auditButton.focus();
   await page.keyboard.press('Enter');
   dialog = page.getByRole('dialog');
   await dialog.getByRole('heading', { name: 'Evento audit', exact: true }).waitFor();
   await dialog.getByText('draft', { exact: true }).first().waitFor();
   await dialog.getByText('approved', { exact: true }).first().waitFor();
-  await dialog.locator('pre').filter({ hasText: '"draftId": 202' }).waitFor();
+  await dialog.getByText('draft #202 · v2', { exact: true }).waitFor();
+  await dialog.getByText('Identità evento', { exact: true }).waitFor();
+  await dialog.getByText('draft-event:901', { exact: true }).waitFor();
+  await dialog.getByText('Draft collegato', { exact: true }).waitFor();
+  await dialog.getByText('#202', { exact: true }).waitFor();
+  await dialog.getByText('Versione draft', { exact: true }).waitFor();
+  await dialog.getByText('v2', { exact: true }).waitFor();
   await dialog.getByTestId('audit-event-guardrail').waitFor();
   await page.keyboard.press('Escape');
   await dialog.waitFor({ state: 'hidden' });
@@ -216,6 +247,7 @@ try {
   await choose(page, 'Filtra audit per dominio', 'claim');
   await audit.getByText('1 di 5 eventi visibili').waitFor();
   await audit.getByText('claim:101').waitFor();
+  await audit.getByText('—', { exact: true }).waitFor();
 
   await choose(page, 'Filtra audit per dominio', 'Tutti i domini');
   await choose(page, 'Filtra audit per azione', 'completed');
@@ -240,6 +272,26 @@ try {
   await expectInvalidSnapshot(browser, {
     ...fixture,
     queue: [{ ...fixture.queue[0], payload: undefined }]
+  });
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    audit: [{ ...fixture.audit[0], event_key: '' }]
+  });
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    audit: [fixture.audit[0], { ...fixture.audit[1], event_key: fixture.audit[0].event_key }]
+  });
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    audit: [{ ...fixture.audit[0], draft_id: null }]
+  });
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    audit: [{ ...fixture.audit[0], draft_version: '2' }]
+  });
+  await expectInvalidSnapshot(browser, {
+    ...fixture,
+    audit: [{ ...fixture.audit[1], draft_id: 202, draft_version: 2 }]
   });
   await expectInvalidSnapshot(browser, {
     ...fixture,
@@ -271,7 +323,7 @@ try {
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room queue and audit contracts, filters, details and guardrails smoke passed.');
+  console.log('Control Room queue and canonical audit linkage contracts, filters, details and guardrails smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));

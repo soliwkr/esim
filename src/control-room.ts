@@ -125,22 +125,25 @@ async function controlRoomData(env: Env): Promise<Response> {
 
   const audit = await env.DB.prepare(`
     SELECT * FROM (
-      SELECT 'draft' AS domain,e.action AS action,e.actor AS actor,d.page_slug AS entity,
+      SELECT ('draft-event:' || e.id) AS event_key,'draft' AS domain,e.action AS action,
+             e.actor AS actor,d.page_slug AS entity,e.draft_id AS draft_id,d.version AS draft_version,
              e.details_json AS details_json,e.created_at AS created_at
       FROM editorial_review_draft_events e JOIN editorial_review_drafts d ON d.id=e.draft_id
       UNION ALL
-      SELECT 'readiness',e.action,e.actor,b.page_slug,e.details_json,e.created_at
+      SELECT ('readiness-event:' || e.id),'readiness',e.action,e.actor,b.page_slug,
+             NULL,NULL,e.details_json,e.created_at
       FROM page_readiness_events e JOIN page_evidence_bundles b ON b.id=e.bundle_id
       UNION ALL
-      SELECT 'claim',e.action,e.actor,('claim:' || e.candidate_id),e.details_json,e.created_at
+      SELECT ('claim-event:' || e.id),'claim',e.action,e.actor,('claim:' || e.candidate_id),
+             NULL,NULL,e.details_json,e.created_at
       FROM editorial_claim_events e
       UNION ALL
-      SELECT 'research','completed','system',query,
-             json_object('runId',id,'eligible',eligible_count,'filtered',filtered_count),created_at
+      SELECT ('research-run:' || id),'research','completed','system',query,
+             NULL,NULL,json_object('runId',id,'eligible',eligible_count,'filtered',filtered_count),created_at
       FROM research_runs
       UNION ALL
-      SELECT 'ai_editorial',status,'system',('ai-run:' || id),
-             json_object('model',model,'briefCount',brief_count,'error',error_message),created_at
+      SELECT ('ai-run:' || id),'ai_editorial',status,'system',('ai-run:' || id),
+             NULL,NULL,json_object('model',model,'briefCount',brief_count,'error',error_message),created_at
       FROM ai_editorial_runs
     ) ORDER BY created_at DESC LIMIT 80
   `).all<Obj>();
@@ -172,7 +175,8 @@ async function controlRoomData(env: Env): Promise<Response> {
 const PAGE = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Senza Roaming Control Room</title><style>
 :root{color-scheme:dark;--bg:#0b0d10;--panel:#13171c;--line:#28303a;--text:#f3f5f7;--muted:#9da8b5;--accent:#ffcc66;--good:#69d391;--bad:#ff7a7a;--blue:#79b8ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,sans-serif}header{position:sticky;top:0;z-index:3;background:rgba(11,13,16,.95);border-bottom:1px solid var(--line);padding:16px 22px;backdrop-filter:blur(12px)}h1,h2,h3,p{margin-top:0}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.brand{font-size:19px;font-weight:800;margin-right:auto}.status,.muted{color:var(--muted)}main{max-width:1500px;margin:auto;padding:22px}.grid{display:grid;gap:14px}.cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:18px}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}.metric{font-size:27px;font-weight:800}.label{color:var(--muted)}.panels{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}.wide{grid-column:1/-1}button,input,select,textarea{font:inherit;color:var(--text);background:#0d1116;border:1px solid var(--line);border-radius:8px;padding:9px 11px}button{cursor:pointer;background:#1c2530}button.primary{background:#5b4315;border-color:#9e7629;color:#fff2cf}input,textarea,select{width:100%}textarea{min-height:72px;resize:vertical}.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.tablewrap{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:760px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line);vertical-align:top}th{position:sticky;top:0;background:#171c22}.pill{display:inline-block;padding:2px 7px;border:1px solid var(--line);border-radius:99px;font-size:12px}.verified,.approved,.completed{color:var(--good)}.failed,.contradicted{color:var(--bad)}.pending,.review,.proposed{color:var(--accent)}a{color:var(--blue)}pre{white-space:pre-wrap;word-break:break-word}.notice{padding:10px;border-left:3px solid var(--accent);background:#17130b;margin-bottom:14px}.log{max-height:160px;overflow:auto;color:var(--muted);font-family:ui-monospace,monospace}
 </style></head><body><header><div class="top"><div class="brand">Senza Roaming · Control Room</div><input id="token" type="password" autocomplete="off" placeholder="Maintenance token" style="max-width:280px"><button id="save" class="primary">Apri sessione</button><button id="lock">Blocca</button><button id="refresh">Aggiorna</button><span id="status" class="status">Sessione bloccata</span></div></header><main><div class="notice"><strong>Nessuna pubblicazione automatica.</strong> Un draft approvato resta una pagina in <code>review</code>.</div><section id="cards" class="grid cards"></section><section class="grid panels">
-<div class="panel"><h2>Avvia ricerca recente</h2><label>Query, una per riga<textarea id="researchQueries">eSIM Cina problemi\neSIM viaggio VPN</textarea></label><div class="actions"><button data-action="research" class="primary">Avvia Workflow</button></div></div>
+<div class="panel"><h2>Avvia ricerca recente</h2><label>Query, una per riga<textarea id="researchQueries">eSIM Cina problemi
+eSIM viaggio VPN</textarea></label><div class="actions"><button data-action="research" class="primary">Avvia Workflow</button></div></div>
 <div class="panel"><h2>Brief e readiness</h2><div class="formgrid"><label>Brief ID<input id="briefId" type="number" min="1"></label><label>Bundle ID<input id="bundleId" type="number" min="1"></label></div><div class="actions"><button data-action="acceptBrief">Accetta brief</button><button data-action="convertBrief">Converti in task</button><button data-action="evaluate">Valuta readiness</button><button data-action="approveBundle">Approva per draft</button><button data-action="generateDraft" class="primary">Genera draft</button></div></div>
 <div class="panel"><h2>Revisione draft</h2><div class="formgrid"><label>Draft ID<input id="draftId" type="number" min="1"></label><label>Note<input id="draftNotes" value="Bozza verificata editorialmente; l’approvazione non autorizza la pubblicazione."></label></div><div class="actions"><button data-action="approveDraft" class="primary">Approva draft</button><button data-action="changesDraft">Richiedi modifiche</button><button data-action="previewDraft">Apri preview</button></div></div>
 <div class="panel"><h2>Esito claim atomico</h2><div class="formgrid"><label>Candidate ID<input id="candidateId" type="number" min="1"></label><label>Esito<select id="claimOutcome"><option>verified</option><option>contradicted</option><option>insufficient</option><option>dismissed</option></select></label><label>Source kind<select id="sourceKind"><option>official_provider</option><option>official_help</option><option>official_terms</option><option>regulator</option><option>manufacturer</option><option>first_party_test</option></select></label><label>Freshness giorni<input id="freshnessDays" type="number" value="14" min="1"></label></div><label>URL fonte<input id="sourceUrl" placeholder="https://..."></label><label>Etichetta fonte<input id="sourceLabel"></label><label>Valore verificato JSON<textarea id="claimValue">{}</textarea></label><label>Evidenza<textarea id="claimEvidence"></textarea></label><label>Note<textarea id="claimNotes"></textarea></label><div class="actions"><button data-action="claimResult" class="primary">Registra esito</button></div></div>
