@@ -23,7 +23,7 @@ La island implementa:
 - run del radar filtrabili con dettaglio read-only;
 - segnali recenti filtrabili per run e idoneità;
 - brief ordinati dal backend con punteggi, readiness e draft collegati;
-- claim, fonti e scadenze con filtri e dettaglio read-only;
+- claim, fonti, scadenze e task collegati con filtri e dettaglio read-only;
 - Page Readiness ed evidence bundle con score, conteggi, warning e gate separati;
 - inventario draft con renderer, versione, stato, revisore, note e claim usati/esclusi;
 - dettaglio draft completo caricato on demand con corpo, FAQ, fonti, provenance field-level e stato pagina;
@@ -39,9 +39,10 @@ La vista claim mostra soltanto campi già esposti dal backend:
 - brief, soggetto, campo, testo e domanda di verifica;
 - stato canonico, evidence e note;
 - fonte, URL, trust level e source kinds richiesti;
-- verification status, confidence, checked at, valid until e task status.
+- verification status, confidence, checked at e valid until;
+- `task_id` e `task_status` persistiti.
 
-Lo stato temporale `valida`, `scaduta` o `senza scadenza` deriva da `valid_until` e non modifica lo stato canonico del claim. Fonte ed evidenza restano concetti distinti; una dichiarazione ufficiale non viene presentata come test indipendente.
+`task_id` viene validato come `null` o intero positivo e non viene ricostruito da `entity_key` o da altri campi. Lo stato temporale `valida`, `scaduta` o `senza scadenza` deriva da `valid_until` e non modifica lo stato canonico del claim. Fonte ed evidenza restano concetti distinti; una dichiarazione ufficiale non viene presentata come test indipendente.
 
 La vista readiness usa esclusivamente `evidenceBundles` già presente nello snapshot. Mostra come persistiti:
 
@@ -140,6 +141,7 @@ npm run smoke:readiness
 npm run smoke:drafts
 npm run smoke:draft-detail
 npm run smoke:queue-audit
+npm run smoke:legacy-parity
 ```
 
 Gli smoke generano credenziali Access effimere di test; nessuna chiave viene versionata.
@@ -148,8 +150,8 @@ Gli smoke generano credenziali Access effimere di test; nessuna chiave viene ver
 - `eval:research-quality` confronta il trigger D1 con il golden set versionato.
 - `smoke:runtime` verifica bundle, Access, proxy GET-only, metriche overview, array di dominio inclusi queue/audit, API originale, export, health e route di pubblicazione assenti.
 - `smoke:ui` verifica caricamento generale, viste migrate, errori parziali, tastiera e mobile.
-- `smoke:claims` verifica contratto claim, cinque filtri, fonte sicura, stato temporale, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
+- `smoke:claims` verifica contratto claim incluso `task_id`, cinque filtri, fonte sicura, stato temporale, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
 - `smoke:readiness` verifica contratto bundle, warning strutturati, quattro filtri, gate separati, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
 - `smoke:drafts` verifica contratto inventario draft, tre filtri, decisione di revisione, relazioni bundle/brief, empty state, tastiera, mobile e assenza di mutation.
 - `smoke:draft-detail` verifica Access, proxy GET-only, caricamento on demand, contratto completo, provenance, stato pagina, errore isolato, retry, mobile e assenza di mutation.
-- `smoke:queue-audit` verifica contratti queue/audit, filtri, dettaglio, payload JSON, gap di linkage, empty state, tastiera, mobile e assenza di fetch o mutation nel componente.
+- `smoke:queue-audit` verifica contratti queue/audit, filtri, dettaglio, payload JSON, gap di linkage, empty state, tastiera, mobile e assenza di fetch o mutation nel componente; esegue anche `smoke:legacy-parity`.

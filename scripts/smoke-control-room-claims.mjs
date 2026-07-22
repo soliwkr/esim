@@ -27,10 +27,13 @@ async function verifyStaticContract() {
   assert.match(claimsComponent, /Stato temporale, non stato canonico/);
   assert.match(claimsComponent, /Fonte ed evidenza restano distinte/);
   assert.match(claimsComponent, /Filtra per scadenza/);
+  assert.match(claimsComponent, /claim\.task_id/);
+  assert.match(claimsComponent, /Task collegato/);
   assert.match(controlRoomApiClient, /function parseClaims/);
   assert.match(controlRoomApiClient, /required_source_kinds: requireStringArray/);
   assert.match(controlRoomApiClient, /valid_until: requireNullableTimestamp/);
   assert.match(controlRoomApiClient, /trust_level: requireNullableNumber/);
+  assert.match(controlRoomApiClient, /task_id: requireNullablePositiveInteger/);
 }
 
 await verifyStaticContract();
@@ -152,6 +155,9 @@ try {
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog');
   await dialog.getByText('Claim #101').waitFor();
+  await dialog.getByText('task #799').waitFor();
+  await dialog.getByText('Task collegato', { exact: true }).waitFor();
+  await dialog.getByText('Stato task', { exact: true }).waitFor();
   await dialog.getByText('Fonte ed evidenza restano distinte').waitFor();
   await dialog.getByText('Stato temporale, non stato canonico').waitFor();
   await dialog.getByRole('link', { name: 'Apri fonte' }).waitFor();
@@ -192,7 +198,7 @@ try {
   const invalidPage = await invalidContext.newPage();
   await mockApis(invalidPage, {
     ...fixture,
-    claims: [{ ...fixture.claims[0], trust_level: 'high' }]
+    claims: [{ ...fixture.claims[0], task_id: '799' }]
   });
   await invalidPage.goto(`${origin}/control-room-foundation`);
   await invalidPage.getByTestId('snapshot-error').waitFor();
@@ -211,7 +217,7 @@ try {
   await mobilePage.keyboard.press('Escape');
   await mobileContext.close();
 
-  console.log('Control Room claims, sources, expiry, filters and contract smoke passed.');
+  console.log('Control Room claims, task linkage, sources, expiry, filters and contract smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));

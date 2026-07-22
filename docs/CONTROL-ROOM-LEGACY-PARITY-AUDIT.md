@@ -2,10 +2,16 @@
 
 Data di riferimento: **22 luglio 2026**.
 
-Branch:
+Branch originaria dell'audit:
 
 ```text
 chore/control-room-legacy-parity-audit
+```
+
+Branch di chiusura del linkage claim → task:
+
+```text
+fix/control-room-claim-task-linkage-readonly
 ```
 
 ## Scopo
@@ -66,8 +72,7 @@ La nuova Control Room usa lo stesso snapshot, lo valida a runtime e aggiunge una
 | Refresh manuale dello snapshot | Refresh esplicito di health e snapshot come risorse indipendenti | Superata | `ControlRoomApp.tsx` |
 | 10 metriche overview | Tutte le 19 metriche dello snapshot, capability, binding, timestamp e guardrail | Superata | `Overview.tsx`, `control-room-api.ts` |
 | Brief: ID, titolo, slug, priority, stato, bundle, readiness, draft | Tutti i campi legacy più run, segnali, score distinti, quality flag, note e dettaglio filtrabile | Superata | `RadarBriefs.tsx` |
-| Claim: ID, brief, soggetto, testo, stato, fonte, scadenza e stato task | Tutti i campi legacy più campo, domanda di verifica, evidence, note, trust, confidence, valore e stato temporale derivato | Superata | `ClaimsSources.tsx` |
-| Claim: ID del task collegato | `task_id` è presente nello snapshot backend, ma viene scartato dal contratto React e non è mostrato | Gap nuova UI | `src/control-room.ts`, `control-room-api.ts`, `ClaimsSources.tsx` |
+| Claim: ID, brief, soggetto, testo, stato, fonte, scadenza, ID task e stato task | Tutti i campi legacy più campo, domanda di verifica, evidence, note, trust, confidence, valore e stato temporale derivato | Superata | `control-room-api.ts`, `ClaimsSources.tsx` |
 | Evidence bundle: ID, slug, versione, readiness e review status | Quattro gate distinti, conteggi, warning strutturati, revisore e timestamp | Superata | `ReadinessEvidence.tsx` |
 | Draft: ID, slug, versione, stato e renderer | Inventario completo, bundle e brief canonici, claim usati/esclusi, autore, revisore, note, errori e timestamp | Superata | `DraftDecisions.tsx` |
 | Preview HTML del renderer legacy | Dettaglio on demand con corpo strutturato, FAQ, fonti, provenance, regole, metadati e stato pagina | Superata per l'ispezione editoriale | `DraftDetailReadonly.tsx`, `draft-detail-contract.ts` |
@@ -77,7 +82,7 @@ La nuova Control Room usa lo stesso snapshot, lo valida a runtime e aggiunge una
 | Layout desktop con tabelle scrollabili | Layout desktop, Sheet mobile, focus da tastiera, dialog e stati vuoti | Superata | smoke UI, claim, readiness, draft, dettaglio, queue e audit |
 | Errore globale durante il caricamento | Health, snapshot e dettaglio draft falliscono in modo indipendente conservando dati validi precedenti | Superata | `ControlRoomApp.tsx`, `draft-detail-api.ts` |
 
-## Gap nuova UI: claim → task ID
+## Gap chiuso: claim → task ID
 
 La query canonica dello snapshot espone già:
 
@@ -86,19 +91,18 @@ q.id AS task_id
 q.status AS task_status
 ```
 
-La legacy mostra entrambi. Il contratto `ControlRoomClaim` conserva soltanto `task_status`, quindi la nuova vista perde una lettura già disponibile senza necessità di modificare backend o D1.
+La legacy mostra entrambi. L'audit aveva rilevato che il contratto `ControlRoomClaim` conservava soltanto `task_status`.
 
-Conclusione:
+La branch `fix/control-room-claim-task-linkage-readonly` chiude il gap senza modificare backend o D1:
 
-- è un gap reale di parità read-only;
-- non deve essere ricostruito da `entity_key` o da altre euristiche client;
-- va chiuso aggiungendo `task_id` nullable al contratto runtime, alla fixture, alla vista claim e allo smoke dedicato.
+- aggiunge `task_id: number | null` al contratto;
+- accetta soltanto `null` o interi positivi nel parser runtime;
+- collega la fixture canonica ai task persistiti;
+- mostra ID e stato task nel dettaglio claim;
+- rifiuta payload con ID stringa, zero, negativo o non intero;
+- aggiorna smoke claim e controllo di parità.
 
-Branch consigliata:
-
-```text
-fix/control-room-claim-task-linkage-readonly
-```
+Il browser non ricostruisce il collegamento da `entity_key` o da altri campi.
 
 ## Preview del draft
 
@@ -125,7 +129,7 @@ Conclusione:
 - non deve essere risolto con euristiche nel browser;
 - deve essere affrontato con uno scope backend read-only esplicito prima di introdurre mutation sui draft.
 
-Branch consigliata:
+Branch successiva:
 
 ```text
 fix/control-room-audit-draft-version-linkage-readonly
@@ -148,17 +152,20 @@ Queste capacità non sono parità read-only. Verranno migrate una per branch, co
 
 ## Verdetto
 
-L'audit dimostra che la nuova Control Room supera la legacy nella quasi totalità delle letture e nei guardrail, ma la parità funzionale read-only **non è ancora chiusa** perché l'ID del task collegato al claim viene perso nel contratto React.
+Con la conservazione di `task_id`, la nuova Control Room raggiunge la parità sulle letture effettivamente mostrate dalla legacy e le supera per dettaglio, sicurezza e isolamento dei guasti.
 
-La rimozione della legacy **non è autorizzata in questa branch** per tre ragioni distinte:
+Resta aperto il gap condiviso `audit → versione draft`, che richiede un contratto server-side canonico ma non rappresenta una perdita rispetto alla legacy.
 
-1. il gap `claim → task_id` deve essere chiuso;
-2. il gap condiviso `audit → versione draft` deve essere risolto server-side;
-3. la legacy resta il fallback delle mutation operative non ancora migrate.
+La rimozione della legacy **non è autorizzata** per due ragioni distinte:
+
+1. il linkage audit → versione draft deve diventare canonico prima delle mutation draft;
+2. la legacy resta il fallback delle mutation operative non ancora migrate.
 
 ## Verifica
 
-La CI #203 ha superato typecheck, build, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room. Lo smoke Queue/Audit esegue anche `smoke:legacy-parity`.
+La CI #203 della PR #49 ha superato typecheck, build, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room.
+
+La branch di chiusura del linkage claim → task deve superare nuovamente la CI completa prima del merge.
 
 ## Definition of Done verificabile
 
@@ -169,9 +176,8 @@ La CI #203 ha superato typecheck, build, migrazioni D1 locali, quality gate, gol
 - [x] Access protegge shell e proxy in modalità fail-closed;
 - [x] nessun accesso diretto a D1 dal browser;
 - [x] nessuna mutation o capacità di pubblicazione introdotta;
-- [x] i gap sono dichiarati senza ricostruzioni client;
-- [x] smoke e CI della branch verdi;
-- [ ] `task_id` del claim conservato e mostrato;
+- [x] `task_id` del claim conservato e mostrato senza euristiche;
+- [ ] CI della branch di chiusura verde;
 - [ ] audit legato canonicamente alla versione draft;
 - [ ] mutation operative migrate;
 - [ ] fallback legacy non più necessario;
