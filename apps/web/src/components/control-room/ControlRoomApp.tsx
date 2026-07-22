@@ -18,6 +18,7 @@ import { toast } from "sonner"
 
 import { ClaimsSources } from "@/components/control-room/ClaimsSources"
 import { DraftDecisions } from "@/components/control-room/DraftDecisions"
+import { DraftDetailReadonly } from "@/components/control-room/DraftDetailReadonly"
 import { Overview } from "@/components/control-room/Overview"
 import { QueueAudit } from "@/components/control-room/QueueAudit"
 import { RadarBriefs } from "@/components/control-room/RadarBriefs"
@@ -59,6 +60,7 @@ const navigation = [
   { href: "#claims", label: "Claim e fonti", icon: Rows3 },
   { href: "#readiness", label: "Readiness", icon: FileCheck2 },
   { href: "#draft", label: "Draft e decisioni", icon: FileText },
+  { href: "#draft-detail", label: "Dettaglio draft", icon: FileText },
   { href: "#queue", label: "Queue", icon: ListChecks },
   { href: "#audit", label: "Audit", icon: ScrollText },
 ]
@@ -254,6 +256,10 @@ export function ControlRoomApp() {
                     drafts={snapshotState.data.drafts}
                     bundles={snapshotState.data.evidenceBundles}
                     briefs={snapshotState.data.briefs}
+                  />
+                  <DraftDetailReadonly
+                    drafts={snapshotState.data.drafts}
+                    bundles={snapshotState.data.evidenceBundles}
                   />
                   <QueueAudit queue={snapshotState.data.queue} audit={snapshotState.data.audit} />
                 </>
