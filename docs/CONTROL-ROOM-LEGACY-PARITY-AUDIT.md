@@ -156,6 +156,10 @@ La rimozione della legacy **non è autorizzata in questa branch** per tre ragion
 2. il gap condiviso `audit → versione draft` deve essere risolto server-side;
 3. la legacy resta il fallback delle mutation operative non ancora migrate.
 
+## Verifica
+
+La CI #203 ha superato typecheck, build, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room. Lo smoke Queue/Audit esegue anche `smoke:legacy-parity`.
+
 ## Definition of Done verificabile
 
 - [x] tutte le letture legacy sono mappate;
@@ -166,9 +170,9 @@ La rimozione della legacy **non è autorizzata in questa branch** per tre ragion
 - [x] nessun accesso diretto a D1 dal browser;
 - [x] nessuna mutation o capacità di pubblicazione introdotta;
 - [x] i gap sono dichiarati senza ricostruzioni client;
+- [x] smoke e CI della branch verdi;
 - [ ] `task_id` del claim conservato e mostrato;
 - [ ] audit legato canonicamente alla versione draft;
-- [ ] smoke e CI della branch verdi;
 - [ ] mutation operative migrate;
 - [ ] fallback legacy non più necessario;
 - [ ] legacy rimossa.
