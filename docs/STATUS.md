@@ -10,8 +10,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | produzione verificata fino a `0018`; `0019` mergiata, verifica remota ancora aperta |
-| API manutenzione | Operativa | accesso riservato; snapshot read-only esteso senza nuove route |
+| Worker e D1 | Operativi | produzione verificata fino a `0018`; `0019` mergiata ma non attestata; `0020` soltanto sulla branch mutation |
+| API manutenzione | Operativa | accesso riservato; contratti esistenti preservati |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
@@ -37,6 +37,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Audit → versione draft | Implementato e verificato in CI | PR #52, merge `35f56e82`, CI finale #220; nessuna migrazione D1 |
 | Dettaglio draft completo UI | Operativo e verificato in produzione | PR #47, CI #198 e verifica browser reale |
 | Parità read-only legacy | Completa in CI | PR #49 + PR #50 + PR #52; verifica visuale dei nuovi linkage aperta |
+| Decisione brief mutation | In implementazione | branch `feat/control-room-brief-decision-mutation`; CI, merge e migrazione remota aperti |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -93,7 +94,7 @@ La pagina pubblica continua a restituire `404` con `noindex, nofollow` nell’ul
 
 ## Control Room definitiva
 
-Architettura operativa:
+Architettura operativa in produzione:
 
 ```text
 Cloudflare Access
@@ -119,7 +120,7 @@ Sono verificati in produzione:
 - caricamento del dettaglio soltanto dopo apertura esplicita;
 - stato draft, stato pagina materializzata e publication eligibility separati;
 - filtri, dettagli, desktop, mobile e contratti runtime;
-- nessuna mutation o capacità di pubblicazione.
+- nessuna mutation nella nuova UI e nessuna capacità di pubblicazione.
 
 Sono verificati dalla CI ma non ancora attestati nel browser reale di produzione dietro Cloudflare Access:
 
@@ -136,20 +137,9 @@ La risorsa privata è:
 GET /control-room-foundation/api/draft-detail?draftId=<id>
 ```
 
-Il custom Worker:
+Il custom Worker richiede Cloudflare Access, accetta soltanto `GET`, valida un `draftId` positivo, conserva il maintenance token server-side, delega all’endpoint backend esistente e imposta `no-store`, `noindex` e `nosniff`.
 
-- richiede Cloudflare Access prima della route;
-- accetta soltanto `GET`;
-- valida un `draftId` intero positivo;
-- usa il maintenance token soltanto server-side;
-- delega all’endpoint backend esistente `GET /api/maintenance/editorial-draft-grounding`;
-- imposta `no-store`, `noindex` e `nosniff`.
-
-La React island carica il dettaglio soltanto quando viene aperta una versione. Il contratto runtime separato valida identità, corpo strutturato, FAQ, fonti HTTPS, provenance, claim usati/esclusi, stato pagina, metadati e timestamp.
-
-La verifica visuale conferma che in produzione vengono renderizzati il corpo, i blocchi editoriali, i badge claim, le fonti e la provenance. Lo screenshot ricevuto era compresso e non viene usato per attestare valori testuali puntuali o lo stato della migrazione `0019`.
-
-Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
+La React island carica il dettaglio soltanto quando viene aperta una versione. Un errore resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
 
 ## Audit di parità legacy — letture chiuse in CI
 
@@ -166,70 +156,73 @@ Il gap `audit → specifica versione draft` è stato chiuso dalla PR #52, merge 
 
 - lo schema esistente fornisce ID evento, `draft_id` e versione draft;
 - lo snapshot espone una `event_key` namespaced e univoca;
-- gli eventi draft espongono ID e versione positivi;
-- gli altri domini espongono entrambi i campi come `null`;
 - il client seleziona per `event_key` e non interpreta `details`;
-- CI #217 e CI finale #220 completamente verdi, inclusi D1 locale, `workerd`, Queue/Audit e legacy parity.
+- CI #217 e CI finale #220 completamente verdi.
 
-Non restano gap read-only noti rispetto alle letture necessarie della legacy. La preview HTML legacy non viene mantenuta come dipendenza visuale: il dettaglio strutturato copre l’ispezione editoriale e una futura preview del sito deve appartenere al renderer pubblico Astro.
+Non restano gap read-only noti. La legacy non viene rimossa perché resta il fallback delle mutation operative non ancora migrate.
 
-La legacy non viene rimossa perché resta il fallback delle mutation operative non ancora migrate.
+## Decisione brief — checkpoint in implementazione
+
+Branch:
+
+```text
+feat/control-room-brief-decision-mutation
+```
+
+Lo scope è limitato a:
+
+```text
+proposed → accepted | dismissed
+```
+
+La branch introduce:
+
+- una route privata `POST /control-room-foundation/api/brief-decision`;
+- attore derivato dal JWT Access già verificato;
+- conferma accessibile prima dell’invio;
+- migrazione `0020` con state machine D1;
+- audit append-only per la decisione;
+- retry idempotente e conflitto sulla decisione opposta;
+- motivo obbligatorio per il rifiuto;
+- reload dello snapshot;
+- risposta che attesta `publicationTriggered: false`;
+- smoke endpoint reale e browser.
+
+Non sono ancora verificati o operativi in produzione:
+
+- CI della branch;
+- merge;
+- applicazione remota di `0020`;
+- comportamento nel browser reale dietro Access.
+
+Conversione brief e tutte le mutation successive restano escluse.
 
 ## Quality evaluation — PR #45 completata
 
-La PR #45 è mergiata nel commit `a918177` e misura il trigger D1 reale con un golden dataset versionato.
-
-Baseline del gate precedente:
-
-```text
-true positive:  3
-false positive: 1
-true negative:  4
-false negative: 0
-precision:       0.75
-recall:          1.00
-```
+La PR #45 è mergiata nel commit `a918177` e misura il trigger D1 reale con un golden dataset versionato. La baseline iniziale era `3 TP`, `1 FP`, `4 TN`, `0 FN`, precision `0.75`, recall `1.00`.
 
 Nessun framework esterno è stato inserito nel Worker. Promptfoo, Evidently, Great Expectations e Cleanlab restano subordinati a un caso d’uso reale e misurabile.
 
 ## Topic-mismatch gate — PR #46 mergiata
 
-La PR #46, merge `215470ae`, introduce per i nuovi run research e comparison:
+La PR #46, merge `215470ae`, introduce anchor informative per i nuovi run research e comparison. La CI #188 verifica score zero, `topic_mismatch`, risultato Holafly pertinente, ingest `workerd`, golden set `3 TP`, `0 FP`, `5 TN`, `0 FN`, precision e recall `1.00`.
 
-```text
-query
-→ anchor informative
-→ research_runs.topic_anchors_json
-→ trigger D1 su title + summary
-→ nessun match: filtered + topic_mismatch
-```
-
-Proprietà verificate nella CI #188:
-
-- migrazione `0019` valida in D1 locale;
-- score zero ancora filtrato;
-- risultato estraneo con score `0.2` filtrato con `topic_mismatch`;
-- risultato Holafly pertinente con score `0.2` ancora idoneo;
-- ingest reale attraverso l'API verificato in `workerd`;
-- golden set: `3 TP`, `0 FP`, `5 TN`, `0 FN`;
-- precision e recall `1.00` sul dataset versionato;
-- Container e tutti gli smoke della Control Room invariati.
-
-Il gate non è ancora dichiarato verificato in produzione finché non viene attestata l’applicazione remota della migrazione `0019`. La prova funzionale completa avverrà sul primo nuovo run autorizzato, senza creare dati artificiali.
+Il gate non è ancora dichiarato verificato in produzione finché non viene attestata l’applicazione remota della migrazione `0019`.
 
 ## Gap aperti
 
+- CI, merge e verifica remota della mutation decisione brief;
 - verifica browser reale dei linkage claim → task e audit → versione draft;
 - health aggregato runtime e log errori unificati restano incompleti;
 - refresh automatico delle fonti scadute resta da completare;
 - Search Console, CMP e analytics non sono configurati;
-- la Control Room legacy non è ancora rimossa perché ospita mutation;
+- la Control Room legacy non è ancora rimossa perché ospita mutation residue;
 - verifica remota della migrazione `0019` ancora aperta.
 
 ## Prossimo checkpoint
 
 ```text
-definire esplicitamente la prima mutation della Control Room
+feat/control-room-brief-decision-mutation
 ```
 
-Nessuna mutation viene avviata da questo checkpoint documentale. La capacità scelta dovrà avere branch dedicata, conferma esplicita, idempotenza, audit persistito, reload dello snapshot, gestione degli errori e test end-to-end. La pubblicazione resta fuori scope.
+La branch deve superare typecheck, migrazione D1 locale, runtime `workerd`, smoke endpoint/browser e legacy parity prima di essere proposta per il merge. La pubblicazione resta fuori scope.
