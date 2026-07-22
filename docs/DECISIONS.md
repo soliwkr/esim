@@ -166,11 +166,11 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Stato:** accettata e verificata in produzione
 
-**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama endpoint read-only sotto `/control-room-foundation*`; il custom Worker valida nuovamente l'identità e delega a contratti backend esistenti.
+**Decisione:** il browser della nuova Control Room non gestisce il token operativo. Dopo Cloudflare Access richiama endpoint protetti sotto `/control-room-foundation*`; il custom Worker valida nuovamente l'identità e media letture e mutation autorizzate.
 
 **Razionale:** chiedere un secondo token all'operatore rende l'accesso macchinoso e trasferisce inutilmente una credenziale nel browser.
 
-**Conseguenza:** campo token, storage applicativo e header di autorizzazione dal browser sono rimossi. I proxy accettano soltanto `GET`; le API originali restano disponibili per agenti e consumer legacy.
+**Conseguenza:** campo token, storage applicativo e header di autorizzazione dal browser sono rimossi. Le letture restano `GET`; ogni mutation richiede una route esplicita, un contratto dedicato e l’identità Access verificata. Le API originali restano disponibili per agenti e consumer legacy.
 
 ## ADR-018 — Contratti runtime e guasti parziali nella Control Room
 
@@ -241,3 +241,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** `editorial_review_draft_events` possiede già un ID evento e `draft_id`; il record draft possiede già `version`. Una migrazione D1 duplicata non aggiungerebbe informazione. Interpretare `details.draftId` nel browser renderebbe una struttura opaca un contratto implicito e fragile.
 
 **Conseguenza:** la query aggregata genera chiavi namespaced (`draft-event:*`, `readiness-event:*`, `claim-event:*`, `research-run:*`, `ai-run:*`). Il contratto runtime richiede chiavi uniche; per gli eventi draft richiede ID e versione positivi, per gli altri domini richiede entrambi null. La React island seleziona tramite `event_key`, mostra il linkage canonico e conserva `details` come JSON opaco. PR #52 è mergiata nel commit `35f56e82` dopo CI finale #220 verde. Nessuna migrazione, mutation o capacità di pubblicazione è stata introdotta.
+
+## ADR-025 — Mutation una capacità per branch con identità Access e state machine D1
+
+**Stato:** proposta sulla branch `feat/control-room-brief-decision-mutation`
+
+**Decisione:** migrare le mutation della Control Room una per volta. Ogni capacità usa una route privata dedicata, deriva l’attore dal JWT Cloudflare Access già verificato, richiede conferma esplicita nel client e delega a D1 la validità della transizione e l’audit append-only.
+
+**Razionale:** un form browser non è un’autorità editoriale. Idempotenza, concorrenza e transizioni terminali devono restare verificabili server-side. Accettare insieme più capacità renderebbe ambiguo quale azione ha causato un cambiamento e allargherebbe il raggio di errore.
+
+**Conseguenza:** la prima applicazione è `proposed → accepted|dismissed` sui brief. Il browser invia soltanto `briefId`, azione e note; non può scegliere l’attore. D1 conserva `editorial_brief_events`, blocca transizioni illegali e mantiene `accepted → converted` come gate successivo. Il client usa un AlertDialog, impedisce il rifiuto senza motivo e ricarica lo snapshot dopo l’esito. Il contratto attesta `publicationTriggered: false`. Conversione, claim, readiness, draft, queue retry, materializzazione e pubblicazione restano fuori dalla branch. La decisione diventa accettata soltanto dopo CI, merge e verifica remota della migrazione `0020`.
