@@ -6,7 +6,49 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Verificare i nuovi linkage nel browser reale
+### 1. Completare la mutation di decisione brief
+
+Branch attiva:
+
+```text
+feat/control-room-brief-decision-mutation
+```
+
+Scope esclusivo:
+
+```text
+proposed → accepted | dismissed
+```
+
+Obblighi implementati da verificare in CI:
+
+- un solo brief per richiesta;
+- conferma esplicita dell’operatore;
+- attore derivato dal JWT Cloudflare Access verificato;
+- state machine applicata da D1;
+- audit append-only `editorial_brief_events`;
+- retry della stessa decisione idempotente;
+- conflitto sulla decisione opposta;
+- motivo obbligatorio per il rifiuto;
+- cancellazione del task editoriale aperto soltanto su `dismissed`;
+- reload dello snapshot dopo esito;
+- test endpoint reale e browser;
+- `publicationTriggered: false` nel contratto.
+
+Non include:
+
+- conversione brief;
+- generazione o verifica claim;
+- readiness o approvazione bundle;
+- generazione o decisione draft;
+- materializzazione;
+- retry queue;
+- pubblicazione;
+- rimozione della legacy.
+
+La migrazione `0020` deve superare D1 locale e runtime `workerd`. Non viene applicata in produzione e non viene dichiarata operativa finché la PR non è mergiata e la migrazione remota non è verificata.
+
+### 2. Verificare i nuovi linkage nel browser reale
 
 Da controllare dietro Cloudflare Access:
 
@@ -17,35 +59,6 @@ Da controllare dietro Cloudflare Access:
 - mobile, tastiera e apertura Sheet reali.
 
 Le CI #213 e #220 coprono contratti, payload invalidi, query D1, `workerd`, desktop e mobile automatizzati. La verifica visuale non deve attestare valori che non risultano leggibili.
-
-### 2. Definire la prima mutation della nuova Control Room
-
-Non restano gap read-only noti rispetto alle letture necessarie della legacy. La prima capacità operativa deve però essere scelta con uno scope esplicito prima di scrivere codice.
-
-Ordine indicativo:
-
-```text
-decisione brief
-→ conversione brief
-→ operazioni claim
-→ decisione draft
-→ eventuale retry queue
-```
-
-La branch verrà nominata soltanto dopo la scelta della capacità.
-
-Per ogni mutation sono obbligatori:
-
-- conferma esplicita dell’operatore;
-- endpoint e contratto esistenti verificati prima di modificarli;
-- idempotenza;
-- audit persistito;
-- reload dello snapshot dopo esito;
-- gestione di errore e retry;
-- test end-to-end;
-- nessuna pubblicazione implicita.
-
-La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
 
 ### 3. Verificare separatamente il topic-mismatch gate in produzione
 
@@ -61,15 +74,29 @@ La verifica funzionale completa del gate avverrà sul primo nuovo run autorizzat
 ### 4. Conservare le separazioni editoriali
 
 ```text
+brief accepted ≠ brief converted
+brief dismissed ≠ contenuto cancellato altrove
 approved draft ≠ published page
 draft status ≠ materialized page status
 materialized page review ≠ publication eligibility
-preview read-only ≠ autorizzazione operativa
 queue status ≠ decisione editoriale
 audit event ≠ autorizzazione operativa
 ```
 
-La Control Room mostra dati persistiti; non decide readiness, approvazione, materializzazione o pubblicazione.
+## Next
+
+Dopo il merge e la verifica della decisione brief:
+
+```text
+conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
+```
+
+Ogni capacità richiede una nuova branch, conferma esplicita, idempotenza, audit persistito, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
+
+La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
 
 ## Checkpoint completati
 
@@ -104,5 +131,5 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation senza scope esplicito e branch dedicata;
+- nessuna mutation diversa dalla decisione brief in questa branch;
 - nessuna rimozione della legacy finché resta un fallback operativo.
