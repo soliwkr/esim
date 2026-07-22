@@ -59,7 +59,7 @@ const navigation = [
   { href: "#radar", label: "Radar", icon: RadioTower },
   { href: "#signals", label: "Segnali", icon: Search },
   { href: "#briefs", label: "Brief", icon: ClipboardList },
-  { href: "#brief-decisions", label: "Decisione brief", icon: ClipboardCheck },
+  { href: "#brief-decisions", label: "Operazioni", icon: ClipboardCheck },
   { href: "#claims", label: "Claim e fonti", icon: Rows3 },
   { href: "#readiness", label: "Readiness", icon: FileCheck2 },
   { href: "#draft", label: "Draft e decisioni", icon: FileText },
