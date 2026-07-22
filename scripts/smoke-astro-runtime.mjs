@@ -47,6 +47,8 @@ async function verifyBuildContract() {
     backendRouter,
     customEntrypoint,
     accessGuard,
+    researchNormalizer,
+    researchTopic,
     controlRoomIsland,
     overviewComponent,
     radarBriefsComponent,
@@ -62,6 +64,8 @@ async function verifyBuildContract() {
     readFile('src/index.ts', 'utf8'),
     readFile('apps/web/src/worker.ts', 'utf8'),
     readFile('apps/web/src/lib/cloudflare-access.ts', 'utf8'),
+    readFile('src/research.ts', 'utf8'),
+    readFile('src/research-topic.ts', 'utf8'),
     readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/Overview.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/RadarBriefs.tsx', 'utf8'),
@@ -103,6 +107,10 @@ async function verifyBuildContract() {
   assert.match(controlRoomApiClient, /parseAudit/);
   assert.match(controlRoomApiClient, /parseControlRoomSnapshot/);
   assert.match(controlRoomApiClient, /control-room-foundation\/api\/snapshot/);
+  assert.match(researchNormalizer, /extractTopicAnchors/);
+  assert.match(researchNormalizer, /topic_anchors_json/);
+  assert.match(researchTopic, /GENERIC_QUERY_TERMS/);
+  assert.match(researchTopic, /kind === 'discovery'/);
   assert.match(radarBriefsComponent, /Segnale, non prova commerciale/);
   assert.match(radarBriefsComponent, /Linkage non ricostruito/);
   assert.match(draftComponent, /Approved draft ≠ published page/);
@@ -308,10 +316,72 @@ try {
     assert.ok(Array.isArray(snapshot[key]), `Missing maintenance ${key} array`);
   }
 
+  const researchPayload = {
+    schema_version: '1.0',
+    query: 'Holafly recent experiences',
+    generated_at: '2026-07-20T05:03:00.000Z',
+    window_days: 30,
+    source_status: {},
+    warnings: [],
+    clusters: [],
+    results: [
+      {
+        candidate_id: 'runtime-topic-mismatch-positive-score',
+        title: 'Recent experience at a live comedy show',
+        summary: 'The result contains no provider name or travel-connectivity evidence.',
+        source: 'reddit',
+        url: 'https://example.test/runtime-topic-mismatch-positive-score',
+        published_at: '2026-07-03T02:00:00.000Z',
+        engagement: {},
+        relevance_score: 0.2
+      },
+      {
+        candidate_id: 'runtime-holafly-low-positive',
+        title: 'Holafly recent experience in Japan',
+        summary: 'A traveller reports activation and hotspot behaviour for the Holafly eSIM.',
+        source: 'reddit',
+        url: 'https://example.test/runtime-holafly-low-positive',
+        published_at: '2026-07-04T02:00:00.000Z',
+        engagement: {},
+        relevance_score: 0.2
+      }
+    ]
+  };
+
+  const ingestResponse = await fetch(`${origin}/api/maintenance/research-ingest`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${maintenanceToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(researchPayload)
+  });
+  const ingest = await ingestResponse.json();
+  assert.ok([200, 201].includes(ingestResponse.status));
+  assert.equal(ingest.ok, true);
+  assert.ok(Number.isInteger(Number(ingest.runId)));
+
+  const signalsResponse = await fetch(
+    `${origin}/api/maintenance/research-signals?eligibility=all&limit=100`,
+    { headers: { authorization: `Bearer ${maintenanceToken}` } }
+  );
+  const signals = await signalsResponse.json();
+  assert.equal(signalsResponse.status, 200);
+  assert.equal(signals.ok, true);
+  const ingestedSignals = signals.signals.filter((signal) => Number(signal.run_id) === Number(ingest.runId));
+  const mismatchSignal = ingestedSignals.find((signal) => signal.title === researchPayload.results[0].title);
+  const relevantSignal = ingestedSignals.find((signal) => signal.title === researchPayload.results[1].title);
+  assert.ok(mismatchSignal);
+  assert.ok(relevantSignal);
+  assert.equal(mismatchSignal.eligible, false);
+  assert.ok(mismatchSignal.quality_flags.includes('topic_mismatch'));
+  assert.equal(relevantSignal.eligible, true);
+  assert.equal(relevantSignal.quality_flags.includes('topic_mismatch'), false);
+
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
 
-  console.log('Astro/Cloudflare runtime, Access, domain contracts and snapshot proxy smoke passed.');
+  console.log('Astro/Cloudflare runtime, Access, topic gate, domain contracts and snapshot proxy smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));

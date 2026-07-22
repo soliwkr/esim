@@ -51,6 +51,11 @@ function validateFixture() {
   assert.equal(fixture.schemaVersion, '1.0');
   assert.ok(Array.isArray(fixture.cases) && fixture.cases.length > 0);
   assert.equal(typeof fixture.run.query, 'string');
+  assert.ok(Array.isArray(fixture.run.anchors) && fixture.run.anchors.length > 0);
+  for (const anchor of fixture.run.anchors) {
+    assert.equal(typeof anchor, 'string');
+    assert.ok(anchor.length >= 3);
+  }
   assert.equal(typeof fixture.run.generatedAt, 'string');
   assert.ok(Number.isInteger(fixture.run.windowDays) && fixture.run.windowDays > 0);
 
@@ -79,20 +84,25 @@ try {
   execute(`
     INSERT INTO research_runs(
       source_system,schema_version,run_kind,query,generated_at,window_days,
-      source_status_json,result_count,warning_count,payload_hash
+      topic_anchors_json,source_status_json,result_count,warning_count,payload_hash
     ) VALUES(
       'golden_fixture','1.0','research',${sqlString(fixture.run.query)},
-      ${sqlString(fixture.run.generatedAt)},${fixture.run.windowDays},'{}',
+      ${sqlString(fixture.run.generatedAt)},${fixture.run.windowDays},
+      ${sqlString(JSON.stringify(fixture.run.anchors))},'{}',
       ${fixture.cases.length},0,${sqlString(payloadHash)}
     );
   `);
 
   const runRows = lastResult(execute(`
-    SELECT id FROM research_runs WHERE payload_hash=${sqlString(payloadHash)} LIMIT 1;
+    SELECT id,topic_anchors_json
+    FROM research_runs
+    WHERE payload_hash=${sqlString(payloadHash)}
+    LIMIT 1;
   `));
   assert.equal(runRows.length, 1);
   runId = Number(runRows[0].id);
   assert.ok(Number.isInteger(runId) && runId > 0);
+  assert.deepEqual(JSON.parse(String(runRows[0].topic_anchors_json)), fixture.run.anchors);
 
   for (const entry of fixture.cases) {
     execute(`
@@ -176,16 +186,20 @@ try {
   const precision = precisionDenominator ? confusion.truePositive / precisionDenominator : 1;
   const recall = recallDenominator ? confusion.truePositive / recallDenominator : 1;
 
+  assert.equal(precision, 1);
+  assert.equal(recall, 1);
+
   console.log(JSON.stringify({
     fixture: fixturePath,
     cases: fixture.cases.length,
+    anchors: fixture.run.anchors,
     confusion,
     precision,
     recall,
     knownFalsePositives: falsePositiveIds,
     knownFalseNegatives: falseNegativeIds,
   }, null, 2));
-  console.log('Research quality golden evaluation passed against the recorded baseline.');
+  console.log('Research topic-anchor gate passed the human-labelled golden set.');
 } finally {
   cleanup();
 }
