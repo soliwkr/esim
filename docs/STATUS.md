@@ -11,7 +11,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
 | Worker e D1 | Operativi | produzione verificata fino a `0018`; `0019` mergiata, verifica remota ancora aperta |
-| API manutenzione | Operativa | accesso riservato; contratti editoriali esistenti invariati |
+| API manutenzione | Operativa | accesso riservato; contratti editoriali esistenti invariati salvo linkage audit ancora da completare |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
@@ -30,11 +30,12 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Overview e health | Operative e verificate | PR #32 |
 | Radar e brief | Operativi e verificati | PR #34 |
 | Claim, fonti e scadenze | Operativi e verificati | PR #37 |
+| Claim → task ID | Implementato e verificato in CI | PR #50, merge `41a9beee`, CI #213; verifica browser reale ancora aperta |
 | Page Readiness ed evidence bundle UI | Operativa e verificata | PR #39 + hotfix #40 |
 | Draft, preview e decisioni UI | Operativa e verificata | PR #42 |
 | Queue e audit UI | Operative e verificate | PR #44, CI #174 e verifica browser reale |
 | Dettaglio draft completo UI | Operativo e verificato in produzione | PR #47, CI #198 e verifica browser reale |
-| Audit parità legacy | Eseguito nella draft PR #49 | CI #203 verde; un gap UI e un gap condiviso ancora aperti |
+| Audit parità legacy | Completato | PR #49, merge `e0a39fa9`; resta il linkage audit → versione draft |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -119,6 +120,8 @@ Sono verificati in produzione:
 - filtri, dettagli, desktop, mobile e contratti runtime;
 - nessuna mutation o capacità di pubblicazione.
 
+Il nuovo rendering di `task_id` nel dettaglio claim è verificato dalla CI #213 ma non è ancora attestato nel browser reale di produzione dietro Cloudflare Access.
+
 ## Dettaglio draft completo — checkpoint completato
 
 La PR #47 è mergiata nel commit `2c790272`, ha superato la CI #198 ed è stata verificata nel browser reale il 22 luglio 2026.
@@ -151,18 +154,22 @@ La verifica visuale conferma che in produzione vengono renderizzati il corpo, i 
 
 Un errore del dettaglio resta confinato nel relativo Sheet e non cancella l’inventario valido dello snapshot. Nessuna generation, review action, materializzazione o pubblicazione è presente.
 
-## Audit di parità legacy — draft PR #49
+## Audit di parità legacy — checkpoint completato
 
-La branch `chore/control-room-legacy-parity-audit` confronta sistematicamente la legacy con la nuova Control Room e versiona la matrice in `docs/CONTROL-ROOM-LEGACY-PARITY-AUDIT.md`.
-
-La CI #203 è completamente verde e include lo smoke `smoke:legacy-parity`, eseguito attraverso lo step Queue/Audit già presente.
+La PR #49 è mergiata nel commit `e0a39fa9` dopo la CI #209 completamente verde. La matrice è versionata in `docs/CONTROL-ROOM-LEGACY-PARITY-AUDIT.md` e lo smoke `smoke:legacy-parity` resta nella pipeline.
 
 L’audit conferma che la nuova Control Room conserva o supera le letture legacy per overview, radar, brief, claim, readiness, draft, dettaglio completo, queue, audit, error isolation, Access, tastiera e mobile.
 
-Sono emersi due gap distinti:
+Il gap `claim → task_id` è stato chiuso dalla PR #50:
 
-1. `claim → task_id`: il backend espone già il dato e la legacy lo mostra, ma il contratto React lo scarta. È un fix read-only della nuova UI.
-2. `audit → versione draft`: il contratto aggregato non espone un ID evento stabile né campi canonici `draft_id` e `draft_version`. Deve essere risolto server-side, senza euristiche client.
+- contratto `ControlRoomClaim` esteso con `task_id: number | null`;
+- parser runtime limitato a `null` o intero positivo;
+- fixture collegata ai task persistiti;
+- ID e stato task mostrati nel dettaglio claim;
+- payload invalido rifiutato;
+- CI #213 completamente verde.
+
+Resta un solo gap read-only condiviso: il contratto audit aggregato non espone ancora un’identità evento stabile né campi canonici `draft_id` e `draft_version`. Deve essere risolto server-side senza euristiche nel browser.
 
 La preview HTML legacy non viene mantenuta come dipendenza visuale. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview del sito deve appartenere al renderer pubblico Astro.
 
@@ -212,8 +219,8 @@ Il gate non è ancora dichiarato verificato in produzione finché non viene atte
 
 ## Gap aperti
 
-- il contratto React non conserva ancora `task_id` per i claim;
 - l'audit non è legato univocamente a una specifica versione draft;
+- verifica browser reale del linkage claim → task ancora aperta;
 - health aggregato runtime e log errori unificati restano incompleti;
 - refresh automatico delle fonti scadute resta da completare;
 - Search Console, CMP e analytics non sono configurati;
@@ -223,9 +230,7 @@ Il gate non è ancora dichiarato verificato in produzione finché non viene atte
 ## Prossimo checkpoint
 
 ```text
-fix/control-room-claim-task-linkage-readonly
+fix/control-room-audit-draft-version-linkage-readonly
 ```
 
-Il prossimo fix conserva e mostra il `task_id` già presente nello snapshot backend, aggiorna contratto runtime, fixture, vista claim e smoke dedicato. Non modifica backend, D1 o mutation.
-
-Dopo questo fix viene affrontato separatamente il linkage read-only tra audit e specifica versione draft.
+Il prossimo lavoro rende canonico il collegamento tra evento audit e specifica versione draft con uno scope server-side read-only, senza mutation, pubblicazione o ricostruzioni euristiche nel client.
