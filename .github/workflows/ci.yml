@@ -54,6 +54,9 @@ jobs:
       - name: Smoke-test research quality gate
         run: npm run smoke:quality
 
+      - name: Evaluate research gate against golden labels
+        run: npm run eval:research-quality
+
       - name: Build last30days container
         run: docker build --platform linux/amd64 -t senza-roaming-last30days:ci containers/last30days
 
