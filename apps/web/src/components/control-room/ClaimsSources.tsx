@@ -112,13 +112,14 @@ function ClaimDetails({ claim }: { claim: ControlRoomClaim }) {
     <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
       <SheetHeader>
         <SheetTitle>Claim #{claim.id}</SheetTitle>
-        <SheetDescription>Fonte, verifica e scadenza dallo snapshot canonico, in sola lettura.</SheetDescription>
+        <SheetDescription>Fonte, verifica, scadenza e task collegato dallo snapshot canonico, in sola lettura.</SheetDescription>
       </SheetHeader>
       <div className="space-y-6 px-4 pb-6 text-sm">
         <div className="flex flex-wrap gap-2">
           <StatusBadge status={claim.status} />
           <ExpiryBadge validUntil={claim.valid_until} />
           {claim.verification_status && <StatusBadge status={claim.verification_status} />}
+          {claim.task_id !== null && <Badge variant="secondary">task #{claim.task_id}</Badge>}
           {claim.task_status && <Badge variant="outline">task: {claim.task_status}</Badge>}
         </div>
 
@@ -132,6 +133,8 @@ function ClaimDetails({ claim }: { claim: ControlRoomClaim }) {
           <DetailItem label="Soggetto">{[claim.subject_type, claim.subject_key].filter(Boolean).join(" · ") || "—"}</DetailItem>
           <DetailItem label="Campo">{claim.field_name || "—"}</DetailItem>
           <DetailItem label="Stato canonico">{claim.status}</DetailItem>
+          <DetailItem label="Task collegato">{claim.task_id === null ? "—" : `#${claim.task_id}`}</DetailItem>
+          <DetailItem label="Stato task">{claim.task_status || "—"}</DetailItem>
           <DetailItem label="Creato">{formatDateTime(claim.created_at)}</DetailItem>
           <DetailItem label="Aggiornato">{formatDateTime(claim.updated_at)}</DetailItem>
         </DetailGrid>
