@@ -105,6 +105,13 @@ async function postDecision(briefId, action, notes, headers = accessHeaders) {
   return { response, body };
 }
 
+async function readSnapshot() {
+  const response = await fetch(`${origin}${snapshotPath}`, { headers: accessHeaders });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  return body;
+}
+
 function updatedFixture(action) {
   return {
     ...fixture,
@@ -206,6 +213,8 @@ let browser;
 
 try {
   await waitForRuntime(wrangler);
+  const beforeSnapshot = await readSnapshot();
+  const publishedBefore = beforeSnapshot.overview.pages_published;
 
   const anonymous = await postDecision(acceptBriefId, 'accepted', 'Anonymous attempt', {});
   assert.equal(anonymous.response.status, 403);
@@ -257,14 +266,12 @@ try {
   assert.equal(dismissed.body.brief.status, 'dismissed');
   assert.equal(dismissed.body.decision.actor, 'runtime-smoke@example.test');
 
-  const snapshotResponse = await fetch(`${origin}${snapshotPath}`, { headers: accessHeaders });
-  const snapshot = await snapshotResponse.json();
-  assert.equal(snapshotResponse.status, 200);
+  const snapshot = await readSnapshot();
   assert.equal(snapshot.briefs.find((brief) => brief.id === acceptBriefId)?.status, 'accepted');
   assert.equal(snapshot.briefs.find((brief) => brief.id === dismissBriefId)?.status, 'dismissed');
   assert.ok(snapshot.queue.some((task) => task.entity_key === `editorial-brief:${acceptBriefId}`));
   assert.equal(snapshot.queue.some((task) => task.entity_key === `editorial-brief:${dismissBriefId}`), false);
-  assert.equal(snapshot.overview.pages_published, 0);
+  assert.equal(snapshot.overview.pages_published, publishedBefore);
 
   browser = await chromium.launch({ headless: true });
 
@@ -399,7 +406,7 @@ try {
   console.log('- Access actor derived server-side and never accepted from the browser');
   console.log('- proposed -> accepted|dismissed enforced with append-only audit');
   console.log('- retry idempotency, conflict and dismissal reason verified');
-  console.log('- explicit confirmation, snapshot reload and zero publication verified');
+  console.log('- explicit confirmation, snapshot reload and unchanged publication count verified');
 } finally {
   if (browser) await browser.close();
   await stopWrangler(wrangler);
