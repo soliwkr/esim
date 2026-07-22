@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS editorial_brief_events (
   brief_id INTEGER NOT NULL UNIQUE,
   action TEXT NOT NULL CHECK(action IN ('accepted','dismissed')),
   actor TEXT NOT NULL CHECK(length(trim(actor)) BETWEEN 1 AND 320),
-  notes TEXT NOT NULL DEFAULT '' CHECK(length(notes) <= 2000),
+  notes TEXT NOT NULL DEFAULT '' CHECK(length(notes) <= 4000),
   details_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(details_json)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(brief_id) REFERENCES editorial_briefs(id) ON DELETE CASCADE
