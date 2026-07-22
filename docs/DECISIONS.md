@@ -224,10 +224,10 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-023 — Parità legacy basata su capacità operative, non sul renderer HTML
 
-**Stato:** proposta nella PR #49
+**Stato:** accettata con PR #49; primo gap UI chiuso con PR #50
 
 **Decisione:** valutare la parità read-only della nuova Control Room in base ai dati canonici, alle relazioni, ai guardrail e alle capacità di ispezione necessarie all’operatore. Non conservare come requisito il template HTML della preview legacy; una futura preview visuale deve appartenere al renderer pubblico Astro.
 
 **Razionale:** la preview legacy dipende da HTML generato nel Worker e non rappresenta l’architettura frontend definitiva. Il dettaglio draft on demand espone già corpo strutturato, FAQ, fonti, provenance, regole e stato pagina senza duplicare il renderer legacy. Copiare il template produrrebbe parità visiva apparente ma nuovo debito tecnico.
 
-**Conseguenza:** i gap vengono classificati esplicitamente. Un dato già disponibile ma perso dalla nuova UI, come `task_id` del claim, richiede un fix read-only. Una relazione non canonica nel contratto, come audit → versione draft, richiede uno scope server-side separato e non può essere ricostruita con euristiche client. La legacy resta finché serve come fallback delle mutation; nessuna rimozione avviene sulla sola base della parità visiva.
+**Conseguenza:** i gap vengono classificati esplicitamente. Il dato `task_id` già disponibile nello snapshot è ora conservato dalla nuova UI tramite la PR #50, senza euristiche client. La relazione audit → versione draft resta uno scope server-side read-only separato. La legacy resta finché serve come fallback delle mutation; nessuna rimozione avviene sulla sola base della parità visiva.
