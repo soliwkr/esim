@@ -1,6 +1,6 @@
 # Piano frontend
 
-Data di riferimento: **22 luglio 2026**.
+Data di riferimento: **23 luglio 2026**.
 
 ## Decisione
 
@@ -92,9 +92,9 @@ Sono verificati:
 - assenza di route di pubblicazione automatica;
 - shell e proxy snapshot;
 - dettaglio draft GET-only on demand;
-- prima route mutabile limitata alla decisione brief, verificata in CI #230.
+- prima route mutabile limitata alla decisione brief, verificata in CI #237 e in produzione con checkpoint #244.
 
-La route mutabile non è ancora dichiarata operativa in produzione finché PR #54, migrazione remota `0020` e verifica browser reale non sono chiuse.
+La route è operativa dietro Cloudflare Access. Il checkpoint non ha eseguito decisioni reali e ha confermato `publicationAutomation: false`.
 
 ## Struttura incrementale
 
@@ -255,7 +255,7 @@ Guardrail:
 - risposta con `publicationTriggered: false`;
 - conteggio delle pagine pubblicate invariato.
 
-CI #230 completamente verde:
+CI finale #237 completamente verde:
 
 - typecheck e build;
 - migrazione D1 locale `0020`;
@@ -267,14 +267,17 @@ CI #230 completamente verde:
 - desktop e mobile;
 - regressioni delle altre viste e legacy parity.
 
-Ancora aperti:
+Checkpoint produttivo #244 completato:
 
-- review e merge PR #54;
-- applicazione remota `0020`;
-- deploy operativo;
-- verifica browser reale dietro Access.
+- PR #54 mergiata nel commit `15ea0445`;
+- migrazione `0020` registrata nella D1 remota;
+- tabella, colonne e trigger verificati;
+- Control Room e snapshot autenticati `200`;
+- guardrail ed empty state verificati nel browser reale;
+- nessun POST browser e nessuna decisione reale;
+- pagine pubblicate invariate e pubblicazione automatica disabilitata.
 
-La branch non include conversione, claim, readiness, bundle, draft, materializzazione, queue retry o pubblicazione.
+La PR non include conversione, claim, readiness, bundle, draft, materializzazione, queue retry o pubblicazione.
 
 ### F4 — Migrare il sito pubblico
 

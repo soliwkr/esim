@@ -2,7 +2,7 @@
 
 Questa è la roadmap canonica del progetto `soliwkr/esim`. Descrive l'ordine con cui Senza Roaming passa da infrastruttura funzionante a proprietà editoriale, SEO e affiliate governabile.
 
-Ultimo aggiornamento: **22 luglio 2026**.
+Ultimo aggiornamento: **23 luglio 2026**.
 
 ## Come leggere i documenti
 
@@ -155,7 +155,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 
 ## M4 — Frontend foundation e Control Room definitiva
 
-**Stato: parità read-only completa; prima mutation verificata in CI, produzione ancora aperta**
+**Stato: parità read-only completa; prima mutation verificata in produzione**
 
 ### M4.0 — Freeze legacy
 
@@ -201,8 +201,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 - [x] Audit sistematico di parità legacy — PR #49, CI #209.
 - [x] Linkage claim → task — PR #50, CI #213.
 - [x] Linkage audit → versione draft — PR #52, CI #220.
-- [x] Decisione brief implementata e verificata in CI — draft PR #54, CI #230.
-- [ ] Merge PR #54, applicazione remota `0020` e verifica browser reale.
+- [x] Decisione brief mergiata e verificata in produzione — PR #54, merge `15ea0445`, CI finale #237, checkpoint produttivo #244.
 - [ ] Verifica visuale in produzione dei due linkage read-only recenti.
 - [ ] Conversione brief.
 - [ ] Operazioni claim.
@@ -299,16 +298,14 @@ La preview HTML legacy non è un requisito della nuova architettura. Il dettagli
 
 ## Ordine operativo attuale
 
-1. chiudere la review della draft PR #54 e rieseguire la CI finale;
-2. autorizzare separatamente merge, deploy e migrazione remota `0020`;
-3. verificare nel browser reale decisione brief e linkage read-only recenti;
-4. verificare separatamente la migrazione remota `0019` senza dati artificiali;
-5. migrare la conversione brief come capacità distinta;
-6. migrare le mutation residue una per branch;
-7. rimuovere la legacy soltanto quando il fallback non serve più;
-8. migrare il sito pubblico ad Astro;
-9. collegare Search Console, consenso e analytics;
-10. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. verificare visivamente in produzione i linkage claim → task e audit → versione draft;
+2. verificare funzionalmente il topic-mismatch sul primo nuovo run autorizzato, senza dati artificiali;
+3. migrare la conversione brief come capacità distinta;
+4. migrare le mutation residue una per branch;
+5. rimuovere la legacy soltanto quando il fallback non serve più;
+6. migrare il sito pubblico ad Astro;
+7. collegare Search Console, consenso e analytics;
+8. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 

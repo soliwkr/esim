@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **22 luglio 2026**.
+Data di riferimento: **23 luglio 2026**.
 
 ## Scopo
 
@@ -371,7 +371,7 @@ La migrazione `0020_editorial_brief_decisions.sql`:
 
 Il rifiuto richiede una motivazione. Una decisione opposta o incompatibile restituisce conflitto. Nessuna decisione brief genera claim, draft, materializzazione o pubblicazione.
 
-La capacità è verificata in CI #230 sulla draft PR #54. Merge, migrazione remota `0020`, deploy e verifica browser reale restano separati e non sono ancora attestati.
+La capacità è mergiata con PR #54 ed è verificata dalla CI finale #237 e dal checkpoint produttivo #244. La migrazione `0020`, Access, snapshot, guardrail ed empty state sono attestati in produzione; nessuna decisione reale è stata eseguita.
 
 ## Confine con il futuro Command Center dello studio
 

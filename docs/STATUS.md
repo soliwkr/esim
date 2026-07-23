@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **22 luglio 2026**.
+Data di riferimento: **23 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -10,7 +10,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | produzione verificata fino a `0018`; `0019` mergiata ma non attestata; `0020` soltanto sulla branch mutation |
+| Worker e D1 | Operativi | stack remoto allineato fino a `0020`; verifica funzionale del topic-mismatch sul prossimo run ancora aperta |
 | API manutenzione | Operativa | accesso riservato; contratti legacy preservati |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
@@ -33,7 +33,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Audit → versione draft | Verificato in CI | PR #52, merge `35f56e82`, CI finale #220; browser reale aperto |
 | Dettaglio draft completo | Verificato in produzione | PR #47, CI #198 |
 | Parità read-only legacy | Completa in CI | PR #49 + #50 + #52 |
-| Decisione brief mutation | Implementata e verificata in CI | draft PR #54, CI #230; merge, `0020` remota e browser reale aperti |
+| Decisione brief mutation | Operativa e verificata in produzione | PR #54, merge `15ea0445`, CI #237, checkpoint #244; nessuna decisione reale eseguita |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -99,11 +99,12 @@ Cloudflare Access
 → una React island
 → snapshot read-only
 → dettaglio draft GET-only on demand
+→ decisione brief POST controllata
 → API esistenti
 → D1 soltanto server-side
 ```
 
-Sono verificati in produzione sessione, overview, radar, brief, claim, readiness, inventario draft, queue/audit, dettaglio draft completo, desktop/mobile e separazione fra stato draft, pagina materializzata e publication eligibility.
+Sono verificati in produzione sessione, overview, radar, brief, claim, readiness, inventario draft, queue/audit, dettaglio draft completo, desktop/mobile, route e UI della decisione brief e separazione fra stato draft, pagina materializzata e publication eligibility.
 
 Sono verificati in CI ma non ancora attestati nel browser reale di produzione:
 
@@ -112,7 +113,7 @@ Sono verificati in CI ma non ancora attestati nel browser reale di produzione:
 
 Non restano gap read-only noti rispetto alle letture necessarie della legacy.
 
-## Decisione brief — draft PR #54
+## Decisione brief — PR #54 in produzione
 
 Branch:
 
@@ -126,7 +127,7 @@ Scope esclusivo:
 proposed → accepted | dismissed
 ```
 
-Implementazione verificata dalla CI #230:
+Implementazione verificata dalla CI finale #237 e dal checkpoint produttivo #244:
 
 - route privata `POST /control-room-foundation/api/brief-decision`;
 - attore derivato dal JWT Cloudflare Access già verificato;
@@ -144,15 +145,20 @@ Implementazione verificata dalla CI #230:
 - test endpoint reale e browser desktop/mobile;
 - regressioni claim, readiness, draft, dettaglio, queue/audit e legacy parity verdi.
 
-La CI #230 ha superato typecheck, build Astro, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room.
+La CI finale #237 ha superato typecheck, build Astro, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room.
 
-Non sono ancora operativi o verificati in produzione:
+Il checkpoint produttivo #244 ha attestato:
 
-- merge della PR #54;
-- applicazione remota della migrazione `0020`;
-- route e UI nel browser reale dietro Access.
+- migrazione `0020` registrata nella D1 remota, senza migrazioni residue;
+- tabella `editorial_brief_events`, colonne `decision_actor` / `decided_at` e trigger attesi presenti;
+- pagine `published` invariate: `4 → 4`;
+- stati brief invariati: un solo brief `converted`;
+- Access anonimo `302`, pagina e snapshot autenticati `200`;
+- `publicationAutomation: false`;
+- nessuna richiesta browser non-GET;
+- nessuna decisione su brief reali.
 
-Conversione brief, claim, readiness, bundle, draft, queue retry, materializzazione e pubblicazione restano escluse.
+La Control Room reale mostra correttamente l’empty state perché non esistono brief `proposed`. Conversione brief, claim, readiness, bundle, draft, queue retry, materializzazione e pubblicazione restano escluse.
 
 ## Dettaglio draft completo
 
@@ -170,7 +176,7 @@ Il proxy richiede Access, accetta soltanto `GET`, conserva il maintenance token 
 - PR #50: claim → task, merge `41a9beee`, CI #213;
 - PR #52: audit → versione draft, merge `35f56e82`, CI #220.
 
-La prima mutation in migrazione è la decisione brief. La legacy resta il fallback per avvio Workflow, conversione brief, operazioni claim, readiness/bundle, generazione e decisione draft e altre azioni non ancora migrate.
+La prima mutation migrata e verificata è la decisione brief. La legacy resta il fallback per avvio Workflow, conversione brief, operazioni claim, readiness/bundle, generazione e decisione draft e altre azioni non ancora migrate.
 
 ## Topic-mismatch gate
 
@@ -178,9 +184,8 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota `0019` e 
 
 ## Gap aperti
 
-- review e merge della PR #54;
-- applicazione e verifica remota di `0020`;
-- verifica browser reale della decisione brief e dei due linkage read-only recenti;
+- verifica browser reale dei due linkage read-only recenti;
+- prima decisione reale soltanto quando esisterà un brief `proposed` e sarà autorizzata;
 - verifica remota di `0019`;
 - health aggregato e log errori unificati;
 - refresh automatico delle fonti scadute;
@@ -190,7 +195,8 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota `0019` e 
 ## Prossimo checkpoint
 
 ```text
-review della draft PR #54
+verifica visuale dei linkage read-only recenti
+→ conversione brief come capacità separata
 ```
 
-La PR non viene dichiarata operativa né mergiata finché il contenuto definitivo non supera una CI finale. La migrazione remota e il deploy pubblico richiedono autorizzazione separata.
+La decisione brief è operativa, ma non è stata eseguita su dati reali. Nessuna capacità successiva viene attivata implicitamente.

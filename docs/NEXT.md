@@ -2,63 +2,26 @@
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; la migrazione frontend vive in `docs/FRONTEND-PLAN.md`.
 
-Ultimo aggiornamento: **22 luglio 2026**.
+Ultimo aggiornamento: **23 luglio 2026**.
 
 ## Now
 
-### 1. Chiudere la review della draft PR #54
+### 1. Checkpoint decisione brief completato
 
-Branch:
+PR #54 è mergiata nel commit `15ea0445`. La CI finale #237 e il checkpoint produttivo #244 attestano:
 
-```text
-feat/control-room-brief-decision-mutation
-```
+- migrazione remota `0020` registrata;
+- state machine e audit append-only presenti in D1;
+- Access e snapshot operativi;
+- UI reale con guardrail e empty state;
+- pagine pubblicate e stati brief invariati;
+- automazione di pubblicazione disabilitata;
+- zero richieste browser non-GET;
+- zero decisioni su brief reali.
 
-Scope esclusivo:
+La capacità è disponibile soltanto per futuri brief `proposed`. Conversione, claim, readiness, bundle, draft, materializzazione, queue retry, pubblicazione e rimozione della legacy restano escluse.
 
-```text
-proposed → accepted | dismissed
-```
-
-La CI #230 è completamente verde e verifica:
-
-- un solo brief per richiesta;
-- conferma esplicita dell’operatore;
-- attore derivato dal JWT Cloudflare Access;
-- state machine D1;
-- audit append-only `editorial_brief_events`;
-- retry della stessa decisione idempotente;
-- conflitto sulla decisione opposta;
-- motivo obbligatorio per il rifiuto;
-- cancellazione del task editoriale aperto soltanto su `dismissed`;
-- reload dello snapshot;
-- endpoint reale e browser desktop/mobile;
-- conteggio pubblicazioni invariato;
-- `publicationTriggered: false`;
-- regressioni delle altre viste e legacy parity.
-
-Prima del merge:
-
-- riallineare ROADMAP, FRONTEND-PLAN, STATUS, NEXT, DECISIONS e README;
-- rieseguire la CI sul contenuto definitivo;
-- mantenere esplicito che `0020` non è applicata remotamente;
-- non dichiarare la mutation operativa in produzione.
-
-La branch non include conversione brief, claim, readiness, bundle, draft, materializzazione, queue retry, pubblicazione o rimozione della legacy.
-
-### 2. Gate produttivo separato
-
-Dopo un eventuale merge della PR #54 restano separati:
-
-- deploy del codice operativo su `main`;
-- applicazione remota della migrazione `0020`;
-- verifica browser reale dietro Cloudflare Access;
-- conferma che accept e dismiss non attivino conversione o pubblicazione;
-- controllo dell’audit persistito e della queue reale.
-
-Merge, migrazione remota e deploy richiedono autorizzazione esplicita. La CI locale non sostituisce la verifica produttiva.
-
-### 3. Verificare i linkage read-only nel browser reale
+### 2. Verificare i linkage read-only nel browser reale
 
 Da controllare dietro Access:
 
@@ -70,7 +33,7 @@ Da controllare dietro Access:
 
 Le CI #213 e #220 coprono contratti, D1 locale, `workerd`, desktop e mobile automatizzati.
 
-### 4. Verificare separatamente il topic-mismatch gate
+### 3. Verificare separatamente il topic-mismatch gate
 
 La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Restano:
 
@@ -95,7 +58,7 @@ audit event ≠ autorizzazione operativa
 
 ## Next
 
-Soltanto dopo merge, migrazione remota e verifica della decisione brief:
+Dopo il checkpoint documentale e mantenendo una branch separata:
 
 ```text
 conversione brief
@@ -123,7 +86,8 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - PR #47 — dettaglio draft completo, CI #198 e verifica browser reale;
 - PR #49 — audit legacy, merge `e0a39fa9`, CI #209;
 - PR #50 — claim → task, merge `41a9beee`, CI #213;
-- PR #52 — audit → versione draft, merge `35f56e82`, CI #220.
+- PR #52 — audit → versione draft, merge `35f56e82`, CI #220;
+- PR #54 — decisione brief, merge `15ea0445`, CI #237 e checkpoint produttivo #244.
 
 ## Checkpoint in review
 
@@ -136,5 +100,5 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation diversa dalla decisione brief nella PR #54;
+- ogni nuova mutation richiede una nuova branch e uno scope esclusivo;
 - nessuna rimozione della legacy finché resta un fallback operativo.
