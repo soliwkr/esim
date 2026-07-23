@@ -1,349 +1,295 @@
 # Senza Roaming — Roadmap
 
-Questa è la roadmap canonica del progetto `soliwkr/esim`. Descrive l'ordine con cui Senza Roaming passa da infrastruttura funzionante a proprietà editoriale, SEO e affiliate governabile.
-
 Ultimo aggiornamento: **23 luglio 2026**.
 
-## Come leggere i documenti
+Questa è la roadmap canonica del repository `soliwkr/esim`.
 
-- [`ROADMAP.md`](ROADMAP.md) — ordine dei blocchi e criteri di uscita;
-- [`docs/FRONTEND-PLAN.md`](docs/FRONTEND-PLAN.md) — migrazione frontend e Control Room;
-- [`docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`](docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md) — separazione operativa fra M4 e M5;
-- [`docs/CAPABILITY-MAP.md`](docs/CAPABILITY-MAP.md) — layer del sistema;
-- [`docs/SKILL-REGISTRY.md`](docs/SKILL-REGISTRY.md) — skill, repository e servizi adottati;
-- [`docs/RESEARCH-QUALITY-EVALUATION.md`](docs/RESEARCH-QUALITY-EVALUATION.md) — golden dataset, metriche e soglie di adozione dei framework;
-- [`docs/STATUS.md`](docs/STATUS.md) — stato operativo reale;
-- [`docs/NEXT.md`](docs/NEXT.md) — lavoro immediatamente eseguibile.
+## Documenti operativi
+
+- `ROADMAP.md` — ordine dei blocchi e criteri di uscita;
+- `docs/STATUS.md` — stato reale verificato;
+- `docs/NEXT.md` — lavoro immediatamente eseguibile;
+- `docs/ARCHITECTURE.md` — confini tecnici;
+- `docs/DECISIONS.md` — decisioni accettate;
+- `docs/FRONTEND-PLAN.md` — migrazione Astro e Control Room;
+- `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
+- `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — scope della prossima slice pubblica.
 
 ## Principi non negoziabili
 
-1. L'AI non pubblica direttamente.
-2. Community e trend generano opportunità editoriali, non claim commerciali.
-3. Prezzi, copertura, rete, hotspot, fair use, durata, attivazione, routing e accesso richiedono fonti identificabili e data di verifica.
-4. Un requisito generale non è un claim verificato.
-5. Ogni automazione deve essere osservabile, idempotente e protetta.
-6. Il repository è la memoria canonica.
-7. Senza Roaming resta un execution project autonomo.
-8. Una capacità viene adottata soltanto se migliora una decisione e ha un criterio di successo.
-9. Non si riscrivono componenti generici già risolti da librerie mature.
-10. Il sito pubblico resta content-first.
-11. Una preview frontend non equivale a un cutover pubblico.
+1. L’AI non pubblica direttamente.
+2. Brief, claim, readiness, draft, materializzazione e pubblicazione sono gate distinti.
+3. Prezzo, copertura, rete, hotspot, fair use, durata e attivazione richiedono fonti identificabili e data di verifica.
+4. Un claim insufficiente o scaduto non alimenta testo fattuale.
+5. Il browser non accede direttamente a D1.
+6. Una capacità mutabile usa branch, conferma, identità verificata, state machine, audit e test.
+7. Il sito pubblico resta content-first e progressivamente migliorabile.
+8. Una preview Astro non equivale a un cutover.
+9. Una route pubblicata non equivale a una pagina pubblicabile.
+10. Il repository è la memoria canonica.
 
 ## M0 — Fondazioni tecniche
 
-**Stato: completato, salvo verifica canonica `www`**
+**Stato: completato, salvo verifica definitiva `www → apex`.**
 
-- [x] Worker pubblico su Cloudflare.
-- [x] D1 con migrazioni versionate.
-- [x] Deploy automatico da GitHub Actions.
-- [x] Dominio principale collegato.
-- [x] Container `last30days` operativo.
-- [x] Cloudflare Workflow per il radar.
-- [x] Endpoint protetti di manutenzione.
-- [x] Vere 404 e noindex.
-- [x] Redirect `www → apex` implementato.
-- [x] Primo run end-to-end e ingest in D1.
-- [ ] Verificare definitivamente il `308` in produzione.
+- [x] Worker pubblico Cloudflare;
+- [x] D1 con migrazioni versionate;
+- [x] deploy automatico;
+- [x] dominio principale;
+- [x] Container `last30days`;
+- [x] Workflow recent-demand;
+- [x] endpoint di manutenzione protetti;
+- [x] vere 404 e noindex;
+- [x] primo ciclo end-to-end;
+- [ ] ricontrollare il redirect 308 `www`.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quality gate e evaluation implementati; verifica funzionale topic-mismatch e osservabilità ancora aperte**
+**Stato: quality gate operativo; osservabilità avanzata ancora aperta.**
 
-- [x] Roadmap, status, architettura, decisioni e next.
-- [x] Storico e stato dei run.
-- [x] Quality gate freshness `eligible` / `filtered`.
-- [x] Score zero come failure deterministica.
-- [x] Backfill reale e flag `zero_relevance` verificati in produzione.
-- [x] Audit specifico di run, brief, claim e verifiche.
-- [x] Snapshot aggregato per dashboard.
-- [x] Golden evaluation versionata — PR #45.
-- [x] Topic-mismatch gate implementato e mergiato — PR #46.
-- [x] Stack remoto allineato fino alla migrazione `0020`.
-- [x] Audit repository esterni e gap analysis — PR #57.
-- [ ] Verificare il topic-mismatch sul primo nuovo run autorizzato.
-- [ ] Health aggregato runtime completo.
-- [ ] Log errori recenti in una singola interfaccia.
-- [ ] Audit log unificato oltre la vista aggregata corrente.
-
-### Quality checkpoint score zero
-
-La PR #36 è mergiata, distribuita e verificata:
-
-```text
-relevance = 0              → filtered + zero_relevance
-0 < relevance < 0,35       → eligible + warning
-relevance = null           → nessun filtro automatico
-manual override            → preservato e auditabile
-```
-
-### Golden evaluation — checkpoint completato
-
-La PR #45 è mergiata nel commit `a918177` e misura il trigger D1 reale con un golden dataset versionato.
-
-Baseline del gate precedente:
-
-```text
-true positive:  3
-false positive: 1
-true negative:  4
-false negative: 0
-precision:       0.75
-recall:          1.00
-```
-
-Decisione adottata:
-
-- golden dataset + evaluator D1 in CI;
-- Promptfoo quando esisterà un vero prompt, modello o grader semantico;
-- Evidently per report e drift su un corpus significativo;
-- Cleanlab con probabilità di modello e volume sufficiente;
-- nessun framework come wrapper decorativo di regole deterministiche.
-
-### Topic-mismatch gate — PR #46 mergiata
-
-La PR #46, merge `215470ae`, introduce anchor informative per i nuovi run research e comparison:
-
-```text
-query
-→ anchor normalizzate
-→ topic_anchors_json
-→ trigger D1 su title + summary
-→ nessun match: filtered + topic_mismatch
-```
-
-CI #188:
-
-```text
-true positive:  3
-false positive: 0
-true negative:  5
-false negative: 0
-precision:       1.00
-recall:          1.00
-```
-
-Il risultato vale per il golden set. I run discovery persistono `[]`; i run esistenti non vengono riclassificati; nessun brief, claim, bundle o draft viene modificato automaticamente. Resta da osservare il primo nuovo run autorizzato.
+- [x] documentazione canonica;
+- [x] storico run e audit;
+- [x] filtro freshness;
+- [x] score zero deterministico;
+- [x] golden evaluation in CI;
+- [x] topic-mismatch gate;
+- [x] snapshot aggregato Control Room;
+- [x] audit repository esterni;
+- [ ] verificare topic-mismatch sul primo nuovo run autorizzato;
+- [ ] health runtime aggregato;
+- [ ] log errori unificati;
+- [ ] audit log unificato oltre la vista corrente.
 
 ## M2 — Motore AI editoriale controllato
 
-**Stato: nucleo v1 completato in produzione**
+**Stato: nucleo v1 operativo.**
 
-- [x] AI Gateway e Vertex AI BYOK.
-- [x] Input limitato ai segnali idonei.
-- [x] Output strutturato e validato.
-- [x] Opportunity, Evidence e Priority Score.
-- [x] Brief persistiti e provenienza nel backend.
-- [x] Accettazione umana e conversione in requisiti e task.
-- [x] Decomposizione in claim atomici.
-- [x] Matching soggetto claim/fonte.
-- [x] Esiti verificati, contraddetti, insufficienti e dismiss.
-- [x] Primo evidence set: 5 verified, 1 insufficient.
-- [x] Nessuna pubblicazione automatica.
-- [ ] Deduplicazione semantica storica.
-- [ ] Trust Score con prove ufficiali, first-party e indipendenti.
+- [x] AI Gateway e Vertex AI;
+- [x] input limitato ai segnali idonei;
+- [x] output strutturato;
+- [x] opportunity, evidence e priority score;
+- [x] brief persistiti;
+- [x] accettazione e conversione umana legacy;
+- [x] claim atomici;
+- [x] matching claim/fonte;
+- [x] esiti verified, contradicted, insufficient e dismissed;
+- [x] primo evidence set;
+- [x] nessuna pubblicazione automatica;
+- [ ] deduplicazione semantica storica;
+- [ ] Trust Score con fonti ufficiali, indipendenti e first-party.
 
 ## M3 — Page Readiness e draft grounded
 
-**Stato: completato e verificato in produzione**
+**Stato: completato e verificato.**
 
-- [x] Aggregazione claim verificati, insufficienti, conflitti e scadenze.
-- [x] Separazione dichiarazioni provider e test first-party.
-- [x] `readyForReviewDraft` separato da `readyForPublication`.
-- [x] Evidence bundle versionato.
-- [x] Provenienza claim per campi, sezioni e FAQ.
-- [x] Blocco dei claim insufficienti come fatti.
-- [x] Conflitti documentali preservati per scope.
-- [x] Materializzazione soltanto in `review`.
-- [x] Primo draft Cina v2 grounded.
-- [x] Approvazione editoriale senza pubblicazione.
+- [x] aggregazione claim e conflitti;
+- [x] separazione `readyForReviewDraft` / `readyForPublication`;
+- [x] evidence bundle versionato;
+- [x] provenance per campi, sezioni e FAQ;
+- [x] esclusione dei claim insufficienti;
+- [x] materializzazione soltanto in `review`;
+- [x] primo draft grounded;
+- [x] approvazione editoriale senza pubblicazione.
 
-## M4 — Frontend foundation e Control Room definitiva
+## M4 — Control Room definitiva
 
-**Stato: parità read-only completa; prima mutation verificata in produzione; mutation residue in corso**
+**Stato: parità read-only completa; prima mutation in produzione; mutation residue aperte.**
 
-### M4.0 — Freeze legacy
+### Foundation e sicurezza
 
-- [x] Control Room HTML manuale riconosciuta come transitoria.
-- [x] Legacy limitata a fallback e bugfix critici.
-- [x] Nessuna nuova funzione importante costruita con HTML e DOM manuale.
+- [x] Astro shell e React island;
+- [x] shadcn/ui;
+- [x] custom Worker entrypoint;
+- [x] Cloudflare Access;
+- [x] validazione origine;
+- [x] sessione server-side;
+- [x] nessuna credenziale applicativa nel browser;
+- [x] API legacy preservate.
 
-### M4.1 — Astro e Cloudflare
+### Letture migrate
 
-- [x] `apps/web` con Astro e React integration.
-- [x] Custom Worker entrypoint.
-- [x] API, D1, Workflow e Container nello stesso execution plane.
-- [x] Build e smoke runtime dentro `workerd`.
-- [x] Deploy automatico e live smoke.
-- [x] Un solo Worker.
+- [x] overview e health;
+- [x] radar, segnali e brief;
+- [x] claim, fonti, scadenze e task;
+- [x] readiness ed evidence bundle;
+- [x] draft e dettaglio on demand;
+- [x] queue e audit;
+- [x] linkage claim → task;
+- [x] linkage audit → versione draft;
+- [x] audit sistematico di parità legacy.
 
-### M4.2 — UI foundation
+### Mutation
 
-- [x] shadcn/ui installato e versionato.
-- [x] Shell dashboard responsive in una React island.
-- [x] Hydration, loading, error, empty, tastiera e mobile verificati.
-- [ ] Confronto Mantine soltanto se emerge un vantaggio misurabile.
+- [x] decisione brief `proposed → accepted | dismissed`;
+- [ ] conversione brief `accepted → converted`;
+- [ ] operazioni claim;
+- [ ] decisione draft;
+- [ ] eventuale retry queue;
+- [ ] rimozione legacy privata dopo parità mutabile.
 
-### M4.3 — Perimetro privato e sessione
-
-- [x] Cloudflare Access.
-- [x] Validazione dell'identità nell'origine.
-- [x] Sessione mediata dal Worker.
-- [x] Secondo login applicativo rimosso.
-- [x] Snapshot automatico senza credenziali nel browser.
-- [x] API originale preservata per agenti e consumer legacy.
-- [x] Proxy GET-only del dettaglio draft — PR #47 verificata in produzione.
-
-### M4.4 — Migrazione funzionale Control Room
-
-- [x] Overview e health — PR #32.
-- [x] Radar e brief — PR #34.
-- [x] Claim, fonti e scadenze — PR #37.
-- [x] Page Readiness ed evidence bundle — PR #39 + #40.
-- [x] Draft, preview e decisioni read-only — PR #42.
-- [x] Queue e audit — PR #44.
-- [x] Dettaglio draft completo on demand — PR #47.
-- [x] Audit sistematico di parità legacy — PR #49, CI #209.
-- [x] Linkage claim → task — PR #50, CI #213.
-- [x] Linkage audit → versione draft — PR #52, CI #220.
-- [x] Decisione brief verificata in produzione — PR #54, CI #237, checkpoint #244.
-- [ ] Verifica visuale in produzione dei due linkage read-only recenti.
-- [ ] Conversione brief.
-- [ ] Operazioni claim.
-- [ ] Decisione draft.
-- [ ] Eventuale retry queue.
-- [ ] Rimozione legacy dopo migrazione completa delle mutation.
-
-Linkage canonici read-only:
-
-```text
-claim → task_id + task_status
-audit event_key → draft_id + draft_version
-```
-
-Prima mutation:
-
-```text
-proposed → accepted | dismissed
-accepted → converted  # gate distinto, non esposto dalla PR #54
-```
-
-Guardrail della PR #54:
-
-- route privata dedicata;
-- attore derivato dal JWT Access, non dal body;
-- conferma esplicita;
-- state machine D1;
-- audit append-only;
-- retry idempotente e conflitto sulla decisione opposta;
-- motivo obbligatorio per il rifiuto;
-- reload dello snapshot;
-- conteggio pubblicazioni invariato;
-- `publicationTriggered: false`.
-
-La preview HTML legacy non è un requisito della nuova architettura. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview visuale appartiene al renderer pubblico Astro.
-
-**Criterio di uscita M4:** le mutation operative necessarie sono migrate con conferma, identità verificata, idempotenza, audit e test; il fallback legacy non è più necessario. Soltanto allora la legacy Control Room può essere rimossa.
+**Criterio di uscita M4:** tutte le mutation necessarie sono migrate e la legacy non è più un fallback operativo.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
-**Stato: track parallela autorizzata; prima slice non ancora implementata**
+**Stato: track parallela attiva; shell e trust pages in preview produttiva.**
 
-La track è regolata da `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
+### M5.0 — Public shell
 
-- [ ] Trasformare `/astro-foundation` in preview noindex del shell pubblico.
-- [ ] Introdurre layout, metadata, home preview e navigazione riusabili.
-- [ ] Migrare pagine statiche e trust.
-- [ ] Migrare listing destinazioni, guide e confronti.
-- [ ] Migrare pagina articolo e preview grounded.
-- [ ] Conservare canonical, sitemap, schema e vere 404.
-- [ ] Migliorare mobile, gerarchia e internal linking.
-- [ ] Pubblicare soltanto contenuti supportati da evidence set.
-- [ ] Eseguire un piccolo catalogo pilot prima della scala.
-- [ ] Preparare un cutover apex separato con rollback.
-- [ ] Eliminare renderer HTML, CSS e JavaScript manuali soltanto dopo il cutover verificato.
+- [x] `/astro-foundation` trasformata in preview noindex;
+- [x] layout, metadata, header, menu e footer riusabili;
+- [x] raw HTML utile senza JavaScript;
+- [x] mobile e tastiera verificati;
+- [x] apice `/` invariato;
+- [x] preview fuori sitemap;
+- [x] checkpoint mobile in produzione.
 
-Guardrail della track parallela:
+### M5.1 — Trust pages
 
-```text
-M5 preview ≠ public cutover
-M5 progress ≠ M4 completato
-route Astro ≠ pagina pubblicabile
-```
+- [x] Metodo editoriale preview;
+- [x] Trasparenza preview;
+- [x] Privacy preview;
+- [x] componente condiviso;
+- [x] navigazione preview-aware;
+- [x] route canoniche legacy preservate;
+- [x] CI completa;
+- [x] checkpoint mobile produttivo 3/3.
 
-La prima PR M5 non cambia `/`, non rimuove il renderer legacy, non modifica D1 e non attiva affiliazioni o analytics.
+### M5.2 — Homepage candidata
+
+**Prossima branch:** `feat/public-homepage-candidate`.
+
+- [ ] leggere server-side soltanto righe `published`;
+- [ ] condividere il read model con la legacy senza query divergenti;
+- [ ] renderizzare guide in evidenza e destinazioni principali;
+- [ ] preservare raw HTML, noindex, no-store e sitemap exclusion;
+- [ ] mantenere `/` sul renderer legacy;
+- [ ] verificare fixture published/review ed empty state;
+- [ ] checkpoint visuale live.
+
+Scope: `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md`.
+
+### M5.3 — Listing e architettura informativa
+
+- [ ] Destinazioni preview;
+- [ ] Guide preview;
+- [ ] Confronti preview;
+- [ ] internal linking deterministico;
+- [ ] route matrix e fail-fast.
+
+### M5.4 — Renderer editoriale Astro
+
+- [ ] pagina articolo grounded;
+- [ ] blocchi strutturati, non HTML AI grezzo;
+- [ ] provenance e fonti;
+- [ ] claim esclusi non presentati come fatti;
+- [ ] related links deterministici.
+
+### M5.5 — Parità SEO
+
+- [ ] canonical;
+- [ ] sitemap;
+- [ ] robots;
+- [ ] schema;
+- [ ] disclosure condizionale;
+- [ ] redirect provider;
+- [ ] vere 404;
+- [ ] drift/regression test.
+
+### M5.6 — Catalogo pilot
+
+- [ ] piccolo set di pagine con intento distinto;
+- [ ] evidence e publication eligibility richieste;
+- [ ] nessuna generazione massiva;
+- [ ] verifica indicizzazione e click prima della scala.
+
+### M5.7 — Cutover apex
+
+- [ ] PR separata e autorizzazione esplicita;
+- [ ] confronto route e metadata;
+- [ ] schema, sitemap e 404 validi;
+- [ ] provider redirect preservati;
+- [ ] rollback documentato;
+- [ ] nessuna pagina review esposta;
+- [ ] rimozione renderer legacy solo dopo verifica.
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: pianificato dopo la stabilizzazione delle route pubbliche M5**
+**Stato: infrastruttura esterna preparata; integrazione non avviata.**
 
-- [ ] Google Search Console e sitemap.
-- [ ] CMP e consenso.
-- [ ] GA4 e GTM.
-- [ ] Eventi canonici e definizioni uniche delle metriche.
-- [ ] Report query, landing, CTR e indicizzazione.
-- [ ] Registro esperimenti e CRO su dati osservabili.
+L’operatore ha dichiarato creati GTM, GA4, Search Console e un service account con accesso. Nessuna credenziale è configurata nel repository.
 
-## M7 — Intelligence SEO e trend condivisa
+- [ ] CMP;
+- [ ] Consent Mode;
+- [ ] dizionario eventi canonico;
+- [ ] GTM;
+- [ ] GA4;
+- [ ] Search Console e sitemap;
+- [ ] verifica dati reali;
+- [ ] report query, landing, CTR e indicizzazione;
+- [ ] registro esperimenti.
 
-**Stato: direzione presa, implementazione separata**
+M6 parte soltanto dopo la stabilizzazione delle route pubbliche. Nessun tracking sulle preview noindex.
 
-- [ ] OpenSEO come servizio dello studio.
-- [ ] Search Console collegata.
-- [ ] Rank tracking, competitor set e audit.
-- [ ] Trends MCP per momentum e stagionalità.
-- [ ] Opportunity Score v2.
+## M7 — Intelligence SEO condivisa
+
+**Stato: pianificato.**
+
+- [ ] Search Console collegata operativamente;
+- [ ] rank tracking e competitor set;
+- [ ] Trends per momentum e stagionalità;
+- [ ] opportunity score v2;
+- [ ] audit tecnico, editoriale e GEO.
 
 ## M8 — Monetizzazione controllata
 
-**Stato: non avviato**
+**Stato: non avviato.**
 
-- [ ] Programmi affiliate ufficiali.
-- [ ] Disclosure visibile.
-- [ ] Link come configurazione riservata.
-- [ ] Attivazione esplicita della modalità affiliate.
-- [ ] Tracking privacy-first e attribuzione.
-- [ ] Revenue Score dopo dati sufficienti.
+- [ ] programmi affiliate ufficiali;
+- [ ] disclosure visibile;
+- [ ] link come configurazione riservata;
+- [ ] attivazione esplicita affiliate mode;
+- [ ] tracking privacy-first;
+- [ ] revenue score dopo dati sufficienti.
 
-## M9 — Crescita e manutenzione continua
+## M9 — Crescita e manutenzione
 
-**Stato: futuro**
+**Stato: futuro.**
 
-- [ ] Ciclo settimanale della domanda recente.
-- [ ] Refresh automatico delle fonti scadute.
-- [ ] Discovery mensile di cluster.
-- [ ] Aggiornamento delle pagine in perdita.
-- [ ] Audit tecnico, editoriale e GEO.
-- [ ] Espansione internazionale dopo stabilità italiana.
+- [ ] ciclo settimanale della domanda;
+- [ ] refresh fonti scadute;
+- [ ] discovery mensile cluster;
+- [ ] aggiornamento pagine in perdita;
+- [ ] espansione internazionale dopo stabilità italiana.
 
 ## Ordine operativo attuale
 
-Due track possono procedere in parallelo, sempre su branch separate:
+### Track A — M4
 
-### Track A — M4 operativa
+```text
+conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
+→ rimozione legacy privata
+```
 
-1. verificare visivamente in produzione i linkage claim → task e audit → versione draft;
-2. verificare funzionalmente il topic-mismatch sul primo nuovo run autorizzato;
-3. migrare la conversione brief come capacità distinta;
-4. migrare operazioni claim, decisione draft ed eventuale retry queue una capacità per branch;
-5. rimuovere la legacy Control Room soltanto quando il fallback non serve più.
+### Track B — M5
 
-### Track B — M5 pubblica
+```text
+homepage candidata
+→ listing
+→ renderer articolo
+→ parità SEO
+→ catalogo pilot
+→ cutover apex separato
+```
 
-1. costruire il shell pubblico noindex su `/astro-foundation`;
-2. migrare trust, statiche e renderer editoriali una slice per branch;
-3. verificare canonical, sitemap, schema, internal linking e 404;
-4. validare un piccolo catalogo pilot;
-5. effettuare il cutover dell’apice soltanto con una PR separata e rollback.
+### Dopo M5 stabile
 
-Dopo la stabilizzazione M5:
-
-1. collegare Search Console, consenso e analytics;
-2. attivare affiliazioni soltanto dopo quality gate e misurazione.
-
-## Regola di aggiornamento
-
-- cambia ordine o rilascio → `ROADMAP.md`;
-- cambia il piano frontend → `docs/FRONTEND-PLAN.md`;
-- cambia una scelta architetturale → `docs/DECISIONS.md`;
-- cambia ciò che è realmente operativo → `docs/STATUS.md`;
-- cambia il lavoro immediato → `docs/NEXT.md`.
+```text
+CMP e Consent Mode
+→ GTM / GA4
+→ Search Console
+→ misurazione
+→ monetizzazione controllata
+```

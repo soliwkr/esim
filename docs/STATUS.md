@@ -10,39 +10,24 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve il Worker |
 | Dominio `www` | Operativo da ricontrollare | redirect 308 implementato e distribuito |
-| Worker e D1 | Operativi | stack remoto allineato fino a `0020`; verifica funzionale del topic-mismatch sul prossimo run ancora aperta |
+| Worker e D1 | Operativi | stack remoto allineato fino a `0020`; verifica topic-mismatch sul prossimo run ancora aperta |
 | API manutenzione | Operativa | accesso riservato; contratti legacy preservati |
 | Deploy | Automatico per modifiche operative su `main` | modifiche documentali escluse |
-| Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
-| Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
-| Golden quality evaluation | Operativa in CI | PR #45 |
-| Topic-mismatch gate | Mergiato, verifica funzionale aperta | PR #46, CI #188; primo nuovo run ancora da osservare |
+| Workflow e Container | Operativi | primo ciclo recent-demand completato end-to-end |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
-| Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
-| Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
-| Page Readiness backend | Operativa | primo bundle: score 77, draft sì, pubblicazione no |
-| Renderer editoriale v2 | Operativo | campi e sezioni legati a claim verificati |
-| Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
-| Control Room legacy | Transitoria e necessaria | fallback delle mutation residue; rimozione non autorizzata |
-| Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
-| Track parallela M5 | Autorizzata | PR #58, merge `431bf7b`, CI #262 |
-| Public shell Astro | Mergiato e visibile in produzione su mobile | PR #59, merge `1b7bfa7`, CI finale #266; verifica live desktop e header HTTP ancora aperta |
-| Trust pages Astro | Implementate e verificate in CI, produzione non ancora attestata | PR #61, CI #271; tre route preview noindex, route legacy invariate |
-| Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
-| Sessione server-side | Operativa | un solo login e nessuna credenziale applicativa nel browser |
-| Overview, radar e brief | Operativi e verificati | PR #32 e #34 |
-| Claim → task ID | Verificato in CI | PR #50, CI #213; browser reale aperto |
-| Readiness, draft, queue e audit | Operativi e verificati | PR #39, #40, #42 e #44 |
-| Audit → versione draft | Verificato in CI | PR #52, CI #220; browser reale aperto |
-| Dettaglio draft completo | Verificato in produzione | PR #47, CI #198 |
-| Parità read-only legacy | Completa in CI | PR #49 + #50 + #52 |
-| Decisione brief mutation | Operativa e verificata in produzione | PR #54, CI #237, checkpoint #244; nessuna decisione reale eseguita |
-| Audit repository esterni | Completato e mergiato | PR #57, merge `5dc7587`, CI #260; zero codice importato |
-| Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
-| Affiliazioni | Disabilitate | modalità affiliate non attiva |
-| Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
+| Quality gate | Operativo | score zero, golden evaluation e topic-mismatch implementati |
+| Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione automatica |
+| Primo draft | Approvato editorialmente | draft `2`; pagina materializzata ancora `review` |
+| Control Room nuova | Operativa | parità read-only completa; prima mutation verificata in produzione |
+| Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
+| Track M5 | Autorizzata in parallelo | ADR-026, PR #58 |
+| Public shell Astro | In produzione come preview mobile | PR #59; `/` resta legacy |
+| Trust pages Astro | In produzione e verificate su mobile | PR #61; 3 route preview su 3 osservate |
+| Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
+| Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati dall’operatore; nessun codice collegato al sito |
+| Service account Google | Preparato esternamente, non configurato | accesso dichiarato dall’operatore; nessuna credenziale nel repository |
 
-## Primo ciclo editoriale controllato
+## Ciclo editoriale controllato
 
 ```text
 recent demand
@@ -50,209 +35,129 @@ recent demand
 → accettazione umana
 → claim atomici
 → fonti ufficiali
-→ esiti verificati
+→ verifiche
 → Page Readiness
 → evidence bundle
-→ draft v2 grounded
+→ draft grounded
 → approvazione editoriale
 ```
 
-Nessuno di questi passaggi ha pubblicato la pagina.
+Nessuno di questi passaggi pubblica autonomamente una pagina.
 
-Evidence set Cina:
-
-```text
-claim atomici: 6
-verified:       5
-insufficient:   1
-pending:        0
-```
-
-Evidence bundle `1`:
+Stato del primo ciclo:
 
 ```text
+claim:                  6
+verified:               5
+insufficient:           1
 readiness score:        77
 review draft eligible:  true
 publication eligible:   false
-verified:               5
-insufficient:           1
-conflicts:              1
-first-party tests:      0
-```
-
-Draft corrente:
-
-```text
-id:                     2
-version:                2
-renderer:               editorial-page-draft-v2
-status:                 approved
+draft:                  2 / version 2 / approved
 materialized page:      review
 ```
 
-La pagina pubblica continua a restituire `404` con `noindex, nofollow` nell’ultima verifica documentata.
+La pagina Cina non è autorizzata alla pubblicazione.
 
-## Control Room in produzione
+## Control Room
 
-Architettura verificata:
+Architettura corrente:
 
 ```text
 Cloudflare Access
-→ validazione nell'origine
+→ validazione origine
 → shell Astro
 → una React island
-→ snapshot read-only
-→ dettaglio draft GET-only on demand
-→ decisione brief POST controllata
-→ API esistenti
+→ snapshot server-side
+→ dettaglio draft GET-only
+→ mutation dedicate
 → D1 soltanto server-side
 ```
 
-Sono verificati in produzione sessione, overview, radar, brief, claim, readiness, inventario draft, queue/audit, dettaglio draft completo, desktop/mobile, route e UI della decisione brief e separazione fra stato draft, pagina materializzata e publication eligibility.
+Completato:
 
-Sono verificati in CI ma non ancora attestati nel browser reale di produzione:
+- overview e health;
+- radar, segnali e brief;
+- claim, fonti, scadenze e task collegati;
+- Page Readiness ed evidence bundle;
+- inventario e dettaglio draft;
+- queue e audit;
+- linkage claim → task;
+- linkage audit → ID/versione draft;
+- decisione brief `proposed → accepted | dismissed`.
 
-- rendering `task_id` nel dettaglio claim — CI #213;
-- `event_key` audit e linkage `draft_id` + `draft_version` — CI #220.
+La decisione brief è verificata in produzione con:
 
-Non restano gap read-only noti rispetto alle letture necessarie della legacy.
+- identità derivata da Cloudflare Access;
+- conferma esplicita;
+- motivo obbligatorio per il rifiuto;
+- state machine D1;
+- audit append-only;
+- retry idempotente;
+- conflitto sulla decisione opposta;
+- `publicationTriggered: false`;
+- conteggio delle pagine pubblicate invariato.
 
-## Decisione brief — PR #54 in produzione
-
-Scope esclusivo:
+Mutation ancora nella legacy:
 
 ```text
-proposed → accepted | dismissed
+conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
 ```
 
-Implementazione verificata dalla CI finale #237 e dal checkpoint produttivo #244:
+M4 non è completato e la legacy privata non può ancora essere rimossa.
 
-- route privata `POST /control-room-foundation/api/brief-decision`;
-- attore derivato dal JWT Cloudflare Access;
-- body browser limitato a `briefId`, azione e note;
-- conferma tramite AlertDialog accessibile;
-- motivo obbligatorio per il rifiuto;
-- migrazione remota `0020` con state machine D1;
-- evento `editorial_brief_events` append-only;
-- retry della stessa decisione idempotente;
-- conflitto sulla decisione opposta;
-- cancellazione del task editoriale aperto soltanto su `dismissed`;
-- reload dello snapshot dopo esito;
-- `publicationTriggered: false` nel contratto;
-- conteggio delle pagine pubblicate invariato;
-- test endpoint reale e browser desktop/mobile;
-- regressioni delle altre viste e legacy parity verdi.
+## Audit repository esterni
 
-Il checkpoint produttivo #244 ha attestato:
+PR #57 è mergiata con CI verde.
 
-- migrazione `0020` registrata nella D1 remota, senza migrazioni residue;
-- tabella, colonne e trigger attesi presenti;
-- pagine `published` invariate: `4 → 4`;
-- stati brief invariati: un solo brief `converted`;
-- Access anonimo `302`, pagina e snapshot autenticati `200`;
-- `publicationAutomation: false`;
-- nessuna richiesta browser non-GET;
-- nessuna decisione su brief reali.
+Risultato:
 
-Conversione brief, claim, readiness, bundle, draft, queue retry, materializzazione e pubblicazione restano escluse.
-
-## Audit repository esterni — PR #57
-
-La PR #57 è stata mergiata con squash commit `5dc7587` dopo CI #260 completamente verde.
-
-Risultato operativo:
-
-- 71 repository iniziali e una wave finale classificati;
-- Ahmeego analizzato come architettura di prodotto, trust e tool-led distribution;
-- MGC reale analizzato da archivio sanitizzato come caso strategico e corpus negativo;
-- primitive candidate ristrette a slug, route, schema, fail-fast e quality gate;
-- nessun motore pSEO, agente, CRM, marketplace o publisher adottato;
+- repository esterni classificati;
+- Ahmeego studiato come modello trust/tool/content;
+- MGC reale usato come corpus negativo di sicurezza, privacy, SEO e claim;
+- candidate ristrette a slug, route, schema, fail-fast e quality gate;
 - zero codice esterno copiato;
 - zero dati cliente o credenziali versionati;
-- nessuna modifica backend, runtime, deploy o publication state.
+- nessun nuovo runtime adottato.
 
-La conclusione consente di sviluppare il frontend pubblico senza riaprire l’architettura backend.
+## Frontend pubblico Astro
 
-## Track parallela M5 — PR #58
+### Track parallela
 
-La PR #58 è mergiata nel commit `431bf7b` dopo CI #262 verde e registra ADR-026.
+PR #58 autorizza M5 in parallelo alle mutation M4 residue.
 
-```text
-Track A — mutation M4 residue
-Track B — frontend pubblico Astro M5
-```
-
-Questa autorizzazione non cambia lo stato delle route pubbliche e non chiude M4:
-
-- l’apice resta sul renderer legacy;
-- nessuna pagina review viene pubblicata;
-- nessuna affiliazione viene attivata;
-- la legacy Control Room resta necessaria;
-- il cutover pubblico richiede una PR separata.
-
-## Public shell Astro — PR #59
-
-La prima slice M5 sostituisce la pagina-spike `/astro-foundation` con una preview reale del futuro shell pubblico.
-
-Implementazione:
+Restano separati:
 
 ```text
-PublicLayout.astro
-├── metadata e canonical
-├── skip link
-├── PublicHeader.astro
-├── slot di contenuto
-└── PublicFooter.astro
-
-astro-foundation.astro
-└── homepage preview statica non commerciale
+preview M5 ≠ cutover pubblico
+progressi M5 ≠ completamento M4
+draft approvato ≠ pagina pubblicata
 ```
 
-Caratteristiche verificate dalla CI finale #266:
+### Public shell — PR #59
 
-- contenuto primario nel raw HTML;
-- nessuna island React e nessuno script richiesto;
-- header e navigazione desktop;
-- menu mobile progressivo basato su `details`/`summary`;
-- footer con Metodo, Trasparenza e Privacy;
-- stili pubblici isolati da quelli della Control Room;
-- canonical `https://senzaroaming.it/astro-foundation`;
-- meta e header `noindex,nofollow`;
-- `Cache-Control: no-store`;
-- preview esclusa da `/sitemap.xml`;
-- primo Tab sullo skip link;
-- nessun overflow orizzontale a 390 px;
-- apice `/` ancora servito dal renderer legacy;
-- route di pubblicazione ancora assenti;
-- typecheck, build, D1, quality gate, Container, `workerd` e tutte le regressioni Control Room verdi.
+`/astro-foundation` è una preview Astro:
 
-Esclusioni mantenute:
+- raw HTML utile senza JavaScript;
+- nessuna island React;
+- layout, header, menu mobile e footer condivisi;
+- canonical preview;
+- `noindex,nofollow`;
+- `no-store`;
+- esclusione dalla sitemap;
+- apice `/` ancora legacy;
+- nessun provider, prezzo o affiliazione.
 
-- nessuna modifica a `apps/web/src/worker.ts`;
-- nessun accesso pubblico a D1;
-- nessun claim dinamico, provider o prezzo;
-- nessuna affiliazione;
-- nessuna CMP o analytics;
-- nessuna pubblicazione o mutation.
+Uno screenshot reale mobile ha verificato hero, CTA, percorsi, card, sezione metodo e assenza di overflow visibile.
 
-### Checkpoint visuale mobile in produzione
+Restano da attestare esternamente desktop live e header HTTP; i relativi contratti sono coperti dalla CI.
 
-Uno screenshot reale del 23 luglio 2026 attesta che `/astro-foundation` è servita dal dominio pubblico e renderizza correttamente su mobile:
+### Trust pages — PR #61
 
-- banner preview non indicizzata;
-- brand e controllo `Apri menu`;
-- hero e CTA;
-- card delle quattro domande;
-- percorsi Destinazioni, Guide pratiche e Confronti;
-- inizio della sezione Metodo;
-- nessun taglio laterale o overflow visibile;
-- spaziatura e gerarchia coerenti nella porzione osservata.
-
-Lo screenshot non certifica header HTTP, canonical, sitemap o la parte inferiore non visibile della pagina. Tali contratti restano coperti dalla CI #266; una verifica esterna live di header e desktop rimane aperta. Nessun cutover dell’apice è autorizzato.
-
-## Trust pages Astro preview — PR #61
-
-La seconda slice M5 aggiunge tre route statiche e namespaced:
+Route preview:
 
 ```text
 /astro-foundation/metodo
@@ -260,76 +165,83 @@ La seconda slice M5 aggiunge tre route statiche e namespaced:
 /astro-foundation/privacy
 ```
 
-Architettura:
+Verificato in CI:
 
-```text
-PublicLayout
-→ PublicHeader / PublicFooter preview-aware
-→ TrustPage.astro condiviso
-→ contenuto specifico Metodo | Trasparenza | Privacy
-```
-
-Caratteristiche verificate dalla CI #271:
-
-- tre route `200` in `workerd`;
-- contenuto essenziale presente nel raw HTML;
-- nessuna island React e nessuno script richiesto;
-- canonical self-reference per ogni route preview;
+- `200` in `workerd`;
+- contenuto essenziale in raw HTML;
+- canonical self-reference;
 - meta e header `noindex,nofollow`;
-- `Cache-Control: no-store` e `X-Content-Type-Options: nosniff`;
-- brand, Metodo e footer mantengono la navigazione dentro `/astro-foundation`;
-- Destinazioni, Guide e Confronti continuano a puntare alle route pubbliche legacy;
-- `/metodo`, `/trasparenza` e `/privacy` restano servite dal backend legacy;
-- tutte le preview restano escluse dalla sitemap;
-- desktop, mobile, skip link, `aria-current`, navigazione tra pagine e assenza di overflow verificati;
-- typecheck, build, migrazioni D1, quality gate, Container, runtime e tutte le regressioni Control Room verdi.
+- `Cache-Control: no-store`;
+- nessuna island o script richiesto;
+- navigazione confinata nel namespace preview;
+- route canoniche legacy ancora operative;
+- esclusione dalla sitemap;
+- desktop, mobile, tastiera, `aria-current` e overflow;
+- tutte le regressioni Control Room.
 
-Il primo run CI #270 ha bloccato una verifica sorgente rimasta legata alla vecchia ownership degli header. Il contratto è stato riallineato a `PublicLayout`; la prova HTTP reale è rimasta invariata e la CI successiva #271 è completamente verde.
+Verificato visualmente in produzione mobile il 23 luglio 2026:
 
-Esclusioni mantenute:
+- Metodo editoriale;
+- Trasparenza;
+- Privacy;
+- pagina corrente evidenziata;
+- header, banner preview e navigazione interna;
+- card responsive e gerarchia tipografica;
+- nessun overflow orizzontale visibile nelle porzioni osservate.
 
-- nessuna modifica a `apps/web/src/worker.ts` o al routing dell’apice;
-- nessuna sostituzione delle route trust canoniche;
-- nessun backend, D1, Workflow, Container o publication state modificato;
-- nessuna CMP, GA4, GTM o Search Console;
-- affiliazioni ancora disabilitate;
-- nessuna mutation Control Room.
+Il checkpoint produttivo mobile delle trust pages è quindi **completo 3/3**.
 
-La produzione delle tre route preview non è ancora attestata. Il merge e un checkpoint visuale/live restano necessari prima della slice successiva.
+Le route canoniche `/metodo`, `/trasparenza` e `/privacy` non sono state sostituite.
 
-## Parità legacy
+## Google measurement stack
 
-- PR #49: audit sistematico, merge `e0a39fa9`, CI #209;
-- PR #50: claim → task, merge `41a9beee`, CI #213;
-- PR #52: audit → versione draft, merge `35f56e82`, CI #220.
+L’operatore ha dichiarato di avere già creato:
 
-La prima mutation migrata è la decisione brief. La legacy resta il fallback per avvio Workflow, conversione brief, operazioni claim, readiness/bundle, generazione e decisione draft e altre azioni non ancora migrate.
+- container Google Tag Manager;
+- proprietà Google Analytics 4;
+- proprietà Search Console;
+- service account aggiunto alle proprietà.
 
-## Topic-mismatch gate
+Questo stato è preparatorio e non ancora verificato dal repository.
 
-La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è allineata nello stack; il primo nuovo run autorizzato non è ancora stato osservato funzionalmente.
+Non sono configurati nel sito:
+
+- CMP;
+- Consent Mode;
+- snippet GTM;
+- eventi GA4;
+- invio sitemap tramite API;
+- credenziali service account.
+
+Regole:
+
+- nessuna chiave o JSON del service account in chat o GitHub;
+- configurazione solo in uno scope M6 esplicito;
+- tracking non attivato sulle preview noindex;
+- consenso, dizionario eventi e privacy devono essere progettati insieme.
 
 ## Gap aperti
 
-- merge e checkpoint produttivo delle tre trust pages preview;
-- verifica live desktop e header/canonical/sitemap del public shell preview;
-- verifica browser reale dei due linkage read-only recenti;
-- prima decisione reale soltanto quando esisterà un brief `proposed` e sarà autorizzata;
-- primo nuovo run per la verifica topic-mismatch;
-- health aggregato e log errori unificati;
-- refresh automatico delle fonti scadute;
-- conversione brief e mutation residue M4;
-- candidato homepage Astro e successive slice M5;
-- Search Console, CMP e analytics;
-- successiva rimozione della legacy soltanto dopo i rispettivi criteri di uscita.
+- candidato homepage Astro con catalogo `published` server-side;
+- listing preview Destinazioni, Guide e Confronti;
+- renderer articolo grounded Astro;
+- parità canonical, sitemap, schema, 404 e redirect provider;
+- piccolo catalogo pilot;
+- PR separata di cutover apex;
+- desktop live e header HTTP della preview;
+- linkage recenti della Control Room nel browser reale;
+- topic-mismatch sul primo nuovo run autorizzato;
+- conversione brief e mutation M4 residue;
+- CMP, GTM, GA4 e Search Console in M6;
+- rimozione legacy soltanto dopo i rispettivi criteri di uscita.
 
 ## Prossimo checkpoint
 
 ```text
-PR #61 trust pages — CI #271 verde
-→ merge
-→ verifica live /astro-foundation/{metodo,trasparenza,privacy}
-→ definizione della slice candidato homepage Astro
+trust pages mobile 3/3 verificate
+→ branch feat/public-homepage-candidate
+→ catalogo published-only server-side
+→ verifica CI e preview live
 ```
 
-In parallelo e su branch distinta può procedere la conversione brief. Nessuna capacità successiva viene attivata implicitamente.
+Lo scope vincolante è in `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md`.

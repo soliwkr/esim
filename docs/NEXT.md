@@ -1,34 +1,14 @@
 # Prossime azioni
 
-Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; la migrazione frontend vive in `docs/FRONTEND-PLAN.md`.
-
 Ultimo aggiornamento: **23 luglio 2026**.
+
+Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; il piano frontend vive in `docs/FRONTEND-PLAN.md`.
 
 ## Now
 
-### 1. Public shell Astro verificato su mobile
+### 1. Trust pages Astro: checkpoint produttivo completato
 
-La PR #59 è mergiata nel commit `1b7bfa7`, la CI finale #266 è completamente verde e uno screenshot reale del 23 luglio 2026 conferma `/astro-foundation` su mobile.
-
-Sono attestati visivamente:
-
-- banner preview non indicizzata;
-- brand e controllo `Apri menu`;
-- hero, CTA e card delle quattro domande;
-- percorsi Destinazioni, Guide pratiche e Confronti;
-- inizio della sezione Metodo;
-- nessun taglio laterale o overflow visibile;
-- gerarchia, spaziatura e leggibilità coerenti nella porzione osservata.
-
-Lo screenshot non prova header HTTP, canonical, sitemap, desktop live o la parte inferiore non visibile. Questi contratti sono coperti dalla CI #266; la verifica esterna live residuale resta aperta.
-
-### 2. Chiudere la seconda slice M5 — trust pages
-
-PR aperta:
-
-```text
-#61 — feat/public-trust-pages
-```
+PR #61 è mergiata nel commit `2c0caf5d`; la CI finale #273 è completamente verde.
 
 Route preview:
 
@@ -38,63 +18,115 @@ Route preview:
 /astro-foundation/privacy
 ```
 
-Implementazione completata:
+Gli screenshot reali del 23 luglio 2026 attestano tutte e tre le route su mobile:
 
-- `TrustPage.astro` condiviso;
-- stili responsive dedicati;
-- Metodo, Trasparenza e Privacy in raw HTML Astro;
-- ownership di noindex/no-store/security headers centralizzata in `PublicLayout`;
-- brand, Metodo e footer confinati nel namespace preview;
-- Destinazioni, Guide e Confronti ancora collegati alle route legacy;
-- canonical self-reference per ogni preview;
-- nessuna island React e nessun JavaScript richiesto;
-- nessuna modifica a Worker routing, backend, D1, Workflow, Container o publication state;
-- nessuna CMP, analytics, Search Console o affiliazione.
+- header e banner preview;
+- hero e contenuto principale;
+- pagina corrente evidenziata;
+- navigazione interna tra le pagine di fiducia;
+- card responsive;
+- nessun overflow orizzontale visibile nelle porzioni osservate.
 
-CI #271 completamente verde:
+Il checkpoint mobile è quindi **3/3 completato**.
 
-- typecheck e build Astro;
-- migrazioni D1;
-- quality gate e golden evaluation;
-- Container;
-- `workerd` con public shell, tre trust preview e tre route legacy;
-- canonical, noindex/no-store, sitemap e raw HTML;
-- desktop, mobile, tastiera, `aria-current`, navigazione e overflow;
-- tutte le regressioni Control Room.
+Restano distinti:
 
-Il primo run #270 ha correttamente bloccato una verifica sorgente rimasta legata alla vecchia ownership degli header. Il contratto è stato riallineato a `PublicLayout`; la prova HTTP reale è rimasta attiva.
+- header HTTP, canonical e sitemap: verificati in CI;
+- desktop live: ancora da osservare esternamente;
+- route canoniche `/metodo`, `/trasparenza` e `/privacy`: ancora legacy.
 
-Passi immediati:
+### 2. Avviare la terza slice M5
 
-1. attendere la CI finale del commit documentale;
-2. rendere pronta e mergiare la PR #61;
-3. verificare le tre route preview in produzione su mobile e desktop;
-4. non sostituire `/metodo`, `/trasparenza` o `/privacy` durante il checkpoint.
-
-### 3. Definire la terza slice M5 dopo il checkpoint live
-
-Direzione canonica:
+Branch:
 
 ```text
-candidato homepage Astro
-→ listing destinazioni/guide/confronti
+feat/public-homepage-candidate
 ```
 
-La branch e lo scope definitivo vengono fissati soltanto dopo il checkpoint produttivo della PR #61.
+Scope vincolante:
 
-La slice candidato homepage deve chiarire almeno:
+```text
+docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md
+```
 
-- quali dati pubblicati leggere server-side senza accesso D1 dal browser;
-- come mantenere HTML content-first e JavaScript minimo;
-- come preservare semanticamente home, navigation e card legacy;
-- come separare preview, route canonica e cutover;
-- quali contratti di canonical, sitemap, schema, 404 e rollback bloccheranno il passaggio successivo.
+Obiettivo:
 
-Non è autorizzato alcun cutover dell’apice.
+- evolvere `/astro-foundation` da shell statica a candidata homepage;
+- leggere server-side soltanto pagine `published`;
+- mostrare guide in evidenza e destinazioni principali;
+- mantenere raw HTML e JavaScript non necessario;
+- mantenere apice e route canoniche sul renderer legacy.
+
+Read model ammesso:
+
+```text
+slug
+page_type
+title
+meta_description
+cluster
+```
+
+Query semantiche da preservare:
+
+```text
+featured:     status='published' AND featured=1, limit 9
+destinations: status='published' AND page_type='destination', limit 6
+```
+
+La branch può estrarre il read model pubblico in un modulo server-only condiviso tra legacy e Astro, purché:
+
+- non aggiunga API pubbliche;
+- non esponga D1 al browser;
+- non modifichi stati editoriali;
+- non duplichi la logica in due query divergenti;
+- non pubblichi righe `review`;
+- non inventi contenuti quando il catalogo è vuoto.
+
+Criteri di accettazione:
+
+- fixture `published` presenti nel raw HTML;
+- fixture `review` assenti;
+- card collegate alle route canoniche legacy;
+- empty state reale e non commerciale;
+- `noindex`, `no-store` e sitemap exclusion preservati;
+- `/` ancora legacy;
+- desktop, mobile, tastiera e overflow verdi;
+- tutte le suite Control Room verdi.
+
+### 3. Non attivare ancora Google measurement
+
+L’operatore ha preparato esternamente:
+
+- Google Tag Manager;
+- Google Analytics 4;
+- Search Console;
+- service account con accesso alle proprietà.
+
+Questo non autorizza ancora l’integrazione.
+
+M6 resta successiva alla stabilizzazione delle route pubbliche:
+
+```text
+CMP
+→ Consent Mode
+→ dizionario eventi
+→ GTM
+→ GA4
+→ Search Console / sitemap
+→ verifica dei dati
+```
+
+Regole immediate:
+
+- nessun JSON o private key in chat o GitHub;
+- nessuna credenziale nel frontend;
+- nessun tracking sulle preview noindex;
+- nessuna configurazione del service account fuori da una branch M6 esplicita.
 
 ### 4. Continuare M4 su branch separate
 
-La track pubblica non chiude M4. L’ordine delle mutation resta:
+Ordine delle mutation residue:
 
 ```text
 conversione brief
@@ -103,78 +135,69 @@ conversione brief
 → eventuale retry queue
 ```
 
-Ogni capacità richiede una branch separata, conferma esplicita, identità Access, state machine server-side, audit persistito, idempotenza, reload e test end-to-end.
+Ogni capacità richiede:
 
-### 5. Verifiche operative ancora aperte
+- branch esclusiva;
+- route privata;
+- identità Cloudflare Access;
+- conferma esplicita;
+- state machine server-side;
+- audit persistito;
+- idempotenza;
+- reload dello stato;
+- test end-to-end.
 
-Da completare senza bloccare M5:
+## Verifiche operative aperte
 
-- trust pages preview in produzione dopo il merge della PR #61;
-- desktop live e header/canonical/sitemap del public shell;
-- linkage claim → task nel browser reale dietro Access;
+Da completare senza bloccare la homepage candidata:
+
+- desktop live e header HTTP delle preview;
+- linkage claim → task nel browser reale;
 - linkage audit → ID/versione draft nel browser reale;
 - topic-mismatch sul primo nuovo run autorizzato;
-- nessun Workflow avviato soltanto per produrre dati artificiali di test.
+- redirect `www → apex` definitivo;
+- nessun Workflow avviato soltanto per produrre dati artificiali.
 
 ## Separazioni obbligatorie
 
 ```text
-M5 preview ≠ public cutover
-M5 progress ≠ M4 completato
-preview trust page ≠ route canonica migrata
-CI verde ≠ verifica produttiva completata
+preview M5 ≠ cutover pubblico
+homepage candidata ≠ apice migrato
+published row ≠ review row
+progressi M5 ≠ M4 completato
+GA4/GTM creati ≠ tracking attivo
+service account creato ≠ credenziale configurata
 brief accepted ≠ brief converted
 approved draft ≠ published page
-draft status ≠ materialized page status
-materialized page review ≠ publication eligibility
-queue status ≠ decisione editoriale
-audit event ≠ autorizzazione operativa
 ```
 
 ## Track successive M5
 
-Dopo le trust pages e il relativo checkpoint live, una branch per slice:
+Dopo il checkpoint live della homepage candidata:
 
 ```text
-candidato homepage Astro
-→ listing destinazioni/guide/confronti
+listing Destinazioni / Guide / Confronti
 → renderer articolo grounded
-→ parità canonical/sitemap/schema/404
+→ parità canonical / sitemap / schema / 404
 → piccolo catalogo pilot
 → PR separata di cutover apex
 ```
 
-M6 — CMP, GA4, GTM e Search Console — parte soltanto dopo che il frontend pubblico ha route e contratti stabili.
+## Checkpoint completati recenti
 
-## Checkpoint completati
-
-- PR #31 — sessione server-side e un solo login Access;
-- PR #32 — overview e health;
-- PR #34 — radar e brief;
-- PR #36 — score zero filtrato con `zero_relevance`;
-- PR #37 — claim, fonti e scadenze;
-- PR #39 + #40 — Page Readiness ed evidence bundle;
-- PR #42 — draft, preview e decisioni read-only;
-- PR #44 — queue e audit read-only;
-- PR #45 — golden quality evaluation;
-- PR #46 — topic-mismatch gate mergiato; verifica funzionale sul prossimo run aperta;
-- PR #47 — dettaglio draft completo, CI #198 e verifica browser reale;
-- PR #49 — audit legacy, merge `e0a39fa9`, CI #209;
-- PR #50 — claim → task, merge `41a9beee`, CI #213;
-- PR #52 — audit → versione draft, merge `35f56e82`, CI #220;
-- PR #54 — decisione brief, merge `15ea0445`, CI #237 e checkpoint produttivo #244;
-- PR #57 — audit repository esterni, merge `5dc7587`, CI #260;
-- PR #58 — track M5 parallela, merge `431bf7b`, CI #262;
-- PR #59 — public shell preview, merge `1b7bfa7`, CI finale #266 e checkpoint visuale mobile in produzione;
-- PR #60 — checkpoint mobile del public shell, merge `21485b8`, CI #268.
+- PR #54 — decisione brief, produzione verificata;
+- PR #57 — audit repository esterni;
+- PR #58 — track M5 parallela;
+- PR #59 — public shell preview;
+- PR #60 — checkpoint mobile public shell;
+- PR #61 — trust pages preview, CI #273 e checkpoint mobile 3/3.
 
 ## Freeze immediato
 
-- niente nuove pagine tramite template string nel Worker;
-- niente ampliamenti sostanziali della Control Room legacy;
-- browser senza accesso diretto a D1;
-- nessuna pubblicazione automatica;
-- nessun secret o dato personale in URL, HTML, JavaScript client, storage, log o repository;
-- ogni nuova mutation richiede una branch e uno scope esclusivo;
-- nessun cutover apex o delle route trust nella PR #61;
-- nessuna rimozione della legacy finché resta un fallback operativo.
+- niente HTML applicativo nuovo nel Worker;
+- niente accesso browser a D1;
+- niente pubblicazione automatica;
+- niente secret o PII in URL, HTML, JavaScript client, storage, log o repository;
+- niente affiliazioni o tracking anticipati;
+- niente cutover dell’apice nella homepage candidate;
+- nessuna rimozione legacy finché resta un fallback operativo.
