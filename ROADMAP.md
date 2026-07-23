@@ -13,7 +13,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/DECISIONS.md` — decisioni accettate;
 - `docs/FRONTEND-PLAN.md` — migrazione Astro e Control Room;
 - `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
-- `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — implementazione homepage candidata.
+- `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — implementazione homepage candidata;
+- `docs/PUBLIC-LISTING-PREVIEWS.md` — implementazione listing preview.
 
 ## Principi non negoziabili
 
