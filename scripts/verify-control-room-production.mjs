@@ -226,7 +226,6 @@ const summary = {
   authenticatedSnapshotStatus: snapshotResponse.status,
   publicationAutomation: snapshot.capabilities?.publicationAutomation,
   browserNonGetRequests: nonGetRequests,
-  proposedBriefsVisible: proposedCount,
   realBriefDecisionsExecuted: 0,
 };
 await writeFile(`${artifactDir}/summary.json`, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
