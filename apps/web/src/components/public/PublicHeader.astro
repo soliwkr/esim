@@ -1,0 +1,35 @@
+---
+const navigation = [
+  { href: '/destinazioni', label: 'Destinazioni' },
+  { href: '/guide', label: 'Guide' },
+  { href: '/confronti', label: 'Confronti' },
+  { href: '/metodo', label: 'Metodo' },
+]
+---
+
+<header class="site-header" data-public-header>
+  <div class="public-container header-inner">
+    <a class="brand" href="/" aria-label="Senza Roaming, torna alla home">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <rect width="48" height="48" rx="14" fill="currentColor" />
+        <path d="M10 29.5c6-13.5 19-16.5 28-9-6.8.2-12.8 2.6-16.7 7.8 5.4-2.2 10.6-2.1 15.7.2-8.8 9.6-20.1 9.8-27 .9Z" fill="white" />
+        <circle cx="33" cy="16" r="3.4" fill="var(--public-sun)" />
+      </svg>
+      <span class="brand-copy">
+        <strong>Senza Roaming</strong>
+        <span>eSIM spiegate bene</span>
+      </span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Navigazione principale">
+      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+
+    <details class="mobile-menu">
+      <summary>Apri menu</summary>
+      <nav aria-label="Navigazione mobile">
+        {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+      </nav>
+    </details>
+  </div>
+</header>
