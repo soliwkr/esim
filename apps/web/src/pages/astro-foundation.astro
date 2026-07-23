@@ -1,17 +1,22 @@
 ---
+import { env } from 'cloudflare:workers'
+import { loadPublicHomepageCards } from '../../../../src/public-page-cards'
+import PublicPageCardGrid from '../components/public/PublicPageCardGrid.astro'
 import PublicLayout from '../layouts/PublicLayout.astro'
 
 // PublicLayout owns the noindex, nofollow response contract for every preview route.
+// D1 is read only on the server; no binding or catalog payload is exposed to browser code.
+const { featured, destinations } = await loadPublicHomepageCards(env.DB)
 ---
 
 <PublicLayout
-  title="Senza Roaming — public shell preview"
-  description="Preview non indicizzabile del futuro frontend pubblico Astro di Senza Roaming."
+  title="Senza Roaming — homepage Astro candidate"
+  description="Preview non indicizzabile della futura homepage Astro di Senza Roaming, alimentata soltanto dal catalogo pubblicato."
   canonicalPath="/astro-foundation"
   previewBase="/astro-foundation"
   noindex
 >
-  <div class="preview-band" data-public-shell="astro-preview">
+  <div class="preview-band" data-public-shell="astro-preview" data-homepage-candidate>
     Preview Astro · non indicizzata · il sito pubblico attuale non cambia
   </div>
 
@@ -80,6 +85,22 @@ import PublicLayout from '../layouts/PublicLayout.astro'
       </div>
     </div>
   </section>
+
+  <PublicPageCardGrid
+    id="featured-guides"
+    eyebrow="Dal catalogo pubblicato"
+    title="Guide essenziali"
+    description="Soltanto pagine già pubblicate entrano in questa selezione. Draft e contenuti in review restano esclusi."
+    items={featured}
+  />
+
+  <PublicPageCardGrid
+    id="main-destinations"
+    eyebrow="Partenze frequenti"
+    title="Destinazioni principali"
+    description="Guide pubblicate organizzate per destinazione, ordinate dallo stesso read model usato dal sito corrente."
+    items={destinations}
+  />
 
   <section class="public-section method-section" aria-labelledby="method-title">
     <div class="public-container">
