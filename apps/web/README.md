@@ -8,9 +8,37 @@ Frontend Astro di Senza Roaming e nuova Control Room privata.
 
 La Control Room è `noindex,nofollow` e `no-store`. Tutto il path `/control-room-foundation*` è fail-closed: il Worker richiede e valida l’identità emessa da Cloudflare Access prima di servire shell, letture o mutation autorizzate.
 
-## UI
+## Public shell preview
 
-Astro fornisce la shell SSR e monta un solo root React con `client:load`. shadcn/ui è configurato da `components.json`; i componenti generati sono versionati sotto `src/components/ui` e lo stile Tailwind 4 vive in `src/styles/globals.css`.
+`/astro-foundation` è la prima slice M5 del frontend pubblico Astro.
+
+La route:
+
+- rende layout, header, navigazione, footer e contenuto primario come HTML Astro;
+- non monta React e non richiede JavaScript per essere utile;
+- usa stili pubblici isolati in `src/styles/public.css`;
+- espone metadata e canonical tramite `src/layouts/PublicLayout.astro`;
+- resta `noindex,nofollow` e `no-store`;
+- non è inclusa nella sitemap pubblica;
+- collega soltanto route pubbliche già esistenti;
+- non legge D1 e non espone claim commerciali dinamici;
+- non cambia `/`, che continua a usare il renderer legacy.
+
+Componenti:
+
+```text
+src/layouts/PublicLayout.astro
+src/components/public/PublicHeader.astro
+src/components/public/PublicFooter.astro
+src/styles/public.css
+src/pages/astro-foundation.astro
+```
+
+Il cutover dell’apice richiede una PR separata. Preview M5, stato editoriale e pubblicazione restano capacità distinte.
+
+## UI Control Room
+
+Astro fornisce la shell SSR e monta un solo root React con `client:load`. shadcn/ui è configurato da `components.json`; i componenti generati sono versionati sotto `src/components/ui` e lo stile Tailwind 4 della Control Room vive in `src/styles/globals.css`.
 
 La island implementa:
 
@@ -95,6 +123,7 @@ accepted → converted
 ## Separazioni obbligatorie
 
 ```text
+M5 preview ≠ public cutover
 brief accepted ≠ brief converted
 brief dismissed ≠ pubblicazione o cancellazione globale
 approved draft ≠ published page
@@ -136,6 +165,7 @@ npm run db:migrate:local
 npm run smoke:quality
 npm run eval:research-quality
 npm run smoke:runtime
+npm run smoke:public-shell
 npm run smoke:ui
 npm run smoke:brief-decisions
 npm run smoke:claims
@@ -148,10 +178,11 @@ npm run smoke:legacy-parity
 
 Gli smoke generano credenziali Access effimere; nessuna chiave viene versionata.
 
-- `smoke:runtime` verifica bundle, Access, proxy, API originale, export, health e route di pubblicazione assenti.
+- `smoke:runtime` verifica bundle, public shell statico, Access, proxy, API originale, export, health, topic gate e route di pubblicazione assenti; include `smoke:public-shell`.
+- `smoke:public-shell` verifica raw HTML, canonical, noindex, sitemap exclusion, assenza di island/script, tastiera, menu mobile e overflow.
 - `smoke:ui` verifica la Control Room generale e include `smoke:brief-decisions`.
 - `smoke:brief-decisions` usa D1 locale migrato e `workerd`: Access anonimo negato, attore server-side, accept, dismiss, motivo obbligatorio, retry idempotente, conflitto, queue, conferme desktop/mobile, reload e conteggio pubblicazioni invariato.
 - gli smoke claim, readiness, draft, dettaglio e queue/audit verificano le rispettive viste e i contratti di regressione.
 - `smoke:legacy-parity` verifica letture complete, prima mutation migrata e inventario delle mutation ancora nella legacy.
 
-La CI finale #237 è verde. PR #54, migrazione remota `0020` e Control Room reale dietro Access sono verificati dal checkpoint produttivo #244; nessuna decisione su brief reali è stata eseguita.
+PR #54, migrazione remota `0020` e Control Room reale dietro Access sono verificati dal checkpoint produttivo #244; nessuna decisione su brief reali è stata eseguita.
