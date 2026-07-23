@@ -192,7 +192,7 @@ try {
   }
   if (!loaded) throw lastError || new Error('Control Room did not become ready');
 
-  await page.getByText('Decisioni operative', { exact: true }).waitFor({ state: 'visible' });
+  await page.getByRole('link', { name: 'Operazioni', exact: true }).waitFor({ state: 'visible' });
   const proposedCards = page.locator('[data-testid^="brief-decision-"]');
   const proposedCount = await proposedCards.count();
   if (proposedCount === 0) {
