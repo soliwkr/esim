@@ -27,6 +27,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
 | Track parallela M5 | Autorizzata | PR #58, merge `431bf7b`, CI #262 |
 | Public shell Astro | Mergiato e visibile in produzione su mobile | PR #59, merge `1b7bfa7`, CI finale #266; verifica live desktop e header HTTP ancora aperta |
+| Trust pages Astro | Implementate e verificate in CI, produzione non ancora attestata | PR #61, CI #271; tre route preview noindex, route legacy invariate |
 | Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
 | Sessione server-side | Operativa | un solo login e nessuna credenziale applicativa nel browser |
 | Overview, radar e brief | Operativi e verificati | PR #32 e #34 |
@@ -249,6 +250,53 @@ Uno screenshot reale del 23 luglio 2026 attesta che `/astro-foundation` è servi
 
 Lo screenshot non certifica header HTTP, canonical, sitemap o la parte inferiore non visibile della pagina. Tali contratti restano coperti dalla CI #266; una verifica esterna live di header e desktop rimane aperta. Nessun cutover dell’apice è autorizzato.
 
+## Trust pages Astro preview — PR #61
+
+La seconda slice M5 aggiunge tre route statiche e namespaced:
+
+```text
+/astro-foundation/metodo
+/astro-foundation/trasparenza
+/astro-foundation/privacy
+```
+
+Architettura:
+
+```text
+PublicLayout
+→ PublicHeader / PublicFooter preview-aware
+→ TrustPage.astro condiviso
+→ contenuto specifico Metodo | Trasparenza | Privacy
+```
+
+Caratteristiche verificate dalla CI #271:
+
+- tre route `200` in `workerd`;
+- contenuto essenziale presente nel raw HTML;
+- nessuna island React e nessuno script richiesto;
+- canonical self-reference per ogni route preview;
+- meta e header `noindex,nofollow`;
+- `Cache-Control: no-store` e `X-Content-Type-Options: nosniff`;
+- brand, Metodo e footer mantengono la navigazione dentro `/astro-foundation`;
+- Destinazioni, Guide e Confronti continuano a puntare alle route pubbliche legacy;
+- `/metodo`, `/trasparenza` e `/privacy` restano servite dal backend legacy;
+- tutte le preview restano escluse dalla sitemap;
+- desktop, mobile, skip link, `aria-current`, navigazione tra pagine e assenza di overflow verificati;
+- typecheck, build, migrazioni D1, quality gate, Container, runtime e tutte le regressioni Control Room verdi.
+
+Il primo run CI #270 ha bloccato una verifica sorgente rimasta legata alla vecchia ownership degli header. Il contratto è stato riallineato a `PublicLayout`; la prova HTTP reale è rimasta invariata e la CI successiva #271 è completamente verde.
+
+Esclusioni mantenute:
+
+- nessuna modifica a `apps/web/src/worker.ts` o al routing dell’apice;
+- nessuna sostituzione delle route trust canoniche;
+- nessun backend, D1, Workflow, Container o publication state modificato;
+- nessuna CMP, GA4, GTM o Search Console;
+- affiliazioni ancora disabilitate;
+- nessuna mutation Control Room.
+
+La produzione delle tre route preview non è ancora attestata. Il merge e un checkpoint visuale/live restano necessari prima della slice successiva.
+
 ## Parità legacy
 
 - PR #49: audit sistematico, merge `e0a39fa9`, CI #209;
@@ -263,6 +311,7 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è alline
 
 ## Gap aperti
 
+- merge e checkpoint produttivo delle tre trust pages preview;
 - verifica live desktop e header/canonical/sitemap del public shell preview;
 - verifica browser reale dei due linkage read-only recenti;
 - prima decisione reale soltanto quando esisterà un brief `proposed` e sarà autorizzata;
@@ -270,16 +319,17 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è alline
 - health aggregato e log errori unificati;
 - refresh automatico delle fonti scadute;
 - conversione brief e mutation residue M4;
-- trust pages e successive slice M5;
+- candidato homepage Astro e successive slice M5;
 - Search Console, CMP e analytics;
 - successiva rimozione della legacy soltanto dopo i rispettivi criteri di uscita.
 
 ## Prossimo checkpoint
 
 ```text
-checkpoint visuale mobile PR #59 documentato
-→ branch feat/public-trust-pages
-→ preview namespaced di Metodo, Trasparenza e Privacy
+PR #61 trust pages — CI #271 verde
+→ merge
+→ verifica live /astro-foundation/{metodo,trasparenza,privacy}
+→ definizione della slice candidato homepage Astro
 ```
 
 In parallelo e su branch distinta può procedere la conversione brief. Nessuna capacità successiva viene attivata implicitamente.
