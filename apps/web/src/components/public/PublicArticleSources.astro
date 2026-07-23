@@ -1,0 +1,67 @@
+---
+import type { PublicArticleSource } from '../../../../../src/public-article'
+
+interface Props {
+  sources: PublicArticleSource[]
+  sourceCheckedAt: string | null
+  updatedAt: string
+}
+
+const { sources, sourceCheckedAt, updatedAt } = Astro.props
+
+function formatDate(value: string | null): string | null {
+  if (!value) return null
+  const isoLike = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+    ? `${value.replace(' ', 'T')}Z`
+    : value
+  const parsed = new Date(isoLike)
+  if (!Number.isFinite(parsed.getTime())) return null
+  return new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(parsed)
+}
+
+const checkedLabel = formatDate(sourceCheckedAt)
+const updatedLabel = formatDate(updatedAt)
+---
+
+<section class="article-sources" aria-labelledby="article-sources-title" data-article-sources>
+  <div class="article-sources-copy">
+    <p class="eyebrow">Fonti e provenienza</p>
+    <h2 id="article-sources-title">Cosa sostiene questa pagina</h2>
+    <p>
+      Le fonti elencate sono documenti o pagine ufficiali. Le dichiarazioni dei provider non
+      equivalgono a un test indipendente sul campo.
+    </p>
+    <dl class="article-dates">
+      {checkedLabel && (
+        <div>
+          <dt>Fonti controllate</dt>
+          <dd>{checkedLabel}</dd>
+        </div>
+      )}
+      {updatedLabel && (
+        <div>
+          <dt>Pagina aggiornata</dt>
+          <dd>{updatedLabel}</dd>
+        </div>
+      )}
+    </dl>
+  </div>
+
+  {sources.length > 0 ? (
+    <ul class="article-source-list">
+      {sources.map((source) => (
+        <li>
+          <a href={source.url} rel="noopener noreferrer">{source.label}</a>
+          <span>{new URL(source.url).hostname}</span>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="article-source-empty">Nessun collegamento HTTPS pubblico è disponibile per questa pagina.</p>
+  )}
+</section>
