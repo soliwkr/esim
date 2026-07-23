@@ -26,7 +26,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue; rimozione non autorizzata |
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
 | Track parallela M5 | Autorizzata | PR #58, merge `431bf7b`, CI #262 |
-| Public shell Astro | Implementato e verificato in CI | PR #59, CI #264; checkpoint produttivo ancora aperto |
+| Public shell Astro | Mergiato e visibile in produzione su mobile | PR #59, merge `1b7bfa7`, CI finale #266; verifica live desktop e header HTTP ancora aperta |
 | Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
 | Sessione server-side | Operativa | un solo login e nessuna credenziale applicativa nel browser |
 | Overview, radar e brief | Operativi e verificati | PR #32 e #34 |
@@ -207,7 +207,7 @@ astro-foundation.astro
 └── homepage preview statica non commerciale
 ```
 
-Caratteristiche verificate in CI #264:
+Caratteristiche verificate dalla CI finale #266:
 
 - contenuto primario nel raw HTML;
 - nessuna island React e nessuno script richiesto;
@@ -234,7 +234,20 @@ Esclusioni mantenute:
 - nessuna CMP o analytics;
 - nessuna pubblicazione o mutation.
 
-Il checkpoint produttivo resta aperto fino al deploy da `main` e alla verifica reale desktop/mobile di `/astro-foundation`. Nessun cutover dell’apice è autorizzato.
+### Checkpoint visuale mobile in produzione
+
+Uno screenshot reale del 23 luglio 2026 attesta che `/astro-foundation` è servita dal dominio pubblico e renderizza correttamente su mobile:
+
+- banner preview non indicizzata;
+- brand e controllo `Apri menu`;
+- hero e CTA;
+- card delle quattro domande;
+- percorsi Destinazioni, Guide pratiche e Confronti;
+- inizio della sezione Metodo;
+- nessun taglio laterale o overflow visibile;
+- spaziatura e gerarchia coerenti nella porzione osservata.
+
+Lo screenshot non certifica header HTTP, canonical, sitemap o la parte inferiore non visibile della pagina. Tali contratti restano coperti dalla CI #266; una verifica esterna live di header e desktop rimane aperta. Nessun cutover dell’apice è autorizzato.
 
 ## Parità legacy
 
@@ -250,7 +263,7 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è alline
 
 ## Gap aperti
 
-- checkpoint produttivo desktop/mobile del public shell preview;
+- verifica live desktop e header/canonical/sitemap del public shell preview;
 - verifica browser reale dei due linkage read-only recenti;
 - prima decisione reale soltanto quando esisterà un brief `proposed` e sarà autorizzata;
 - primo nuovo run per la verifica topic-mismatch;
@@ -264,10 +277,9 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è alline
 ## Prossimo checkpoint
 
 ```text
-merge PR #59
-→ deploy automatico
-→ verifica reale /astro-foundation
+checkpoint visuale mobile PR #59 documentato
 → branch feat/public-trust-pages
+→ preview namespaced di Metodo, Trasparenza e Privacy
 ```
 
 In parallelo e su branch distinta può procedere la conversione brief. Nessuna capacità successiva viene attivata implicitamente.
