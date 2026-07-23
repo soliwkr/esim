@@ -1,66 +1,168 @@
 ---
-import { RuntimeBadge } from '../components/RuntimeBadge';
+import PublicLayout from '../layouts/PublicLayout.astro'
+
+Astro.response.headers.set('Cache-Control', 'no-store')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+Astro.response.headers.set('X-Content-Type-Options', 'nosniff')
+Astro.response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 ---
 
-<!doctype html>
-<html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="robots" content="noindex,nofollow" />
-    <title>Astro frontend foundation | Senza Roaming</title>
-  </head>
-  <body>
-    <main>
-      <p class="eyebrow">Senza Roaming · spike non pubblico</p>
-      <h1>Astro e backend condividono lo stesso Worker.</h1>
-      <p>
-        Questa pagina verifica la fondazione Astro. API, D1, Workflow, Container,
-        AI e gate editoriali restano nell'execution plane esistente.
-      </p>
-      <RuntimeBadge client:idle />
-    </main>
-  </body>
-</html>
+<PublicLayout
+  title="Senza Roaming — public shell preview"
+  description="Preview non indicizzabile del futuro frontend pubblico Astro di Senza Roaming."
+  canonicalPath="/astro-foundation"
+  noindex
+>
+  <div class="preview-band" data-public-shell="astro-preview">
+    Preview Astro · non indicizzata · il sito pubblico attuale non cambia
+  </div>
 
-<style>
-  :global(*) { box-sizing: border-box; }
-  :global(body) {
-    margin: 0;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 2rem;
-    color: #16201d;
-    background: #f4f1e9;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-  }
-  main {
-    width: min(42rem, 100%);
-    padding: clamp(2rem, 7vw, 4.5rem);
-    border: 1px solid #c8c1b4;
-    border-radius: 1.5rem;
-    background: #fffdf8;
-    box-shadow: 0 1.5rem 4rem rgb(31 45 39 / 10%);
-  }
-  .eyebrow {
-    margin: 0 0 1rem;
-    color: #6d756f;
-    font-size: .75rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-  }
-  h1 { margin: 0; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.02; }
-  p { line-height: 1.65; }
-  :global(.runtime-badge) {
-    display: inline-flex;
-    margin-top: 1rem;
-    padding: .55rem .8rem;
-    border-radius: 999px;
-    color: #f8fff9;
-    background: #17613f;
-    font-size: .85rem;
-    font-weight: 700;
-  }
-</style>
+  <section class="public-hero" aria-labelledby="hero-title">
+    <div class="public-container hero-grid">
+      <div>
+        <p class="eyebrow">Internet in viaggio, senza improvvisare</p>
+        <h1 id="hero-title">Trova la eSIM giusta prima di partire.</h1>
+        <p class="hero-lead">
+          Guide italiane su destinazioni, telefoni compatibili e provider. Mettiamo in ordine dati,
+          durata, hotspot, attivazione e limiti reali senza fingere che un piano vada bene per tutti.
+        </p>
+        <div class="hero-actions">
+          <a class="public-button" href="/destinazioni">Scegli la destinazione</a>
+          <a class="public-button secondary" href="/guide">Capisci come funziona</a>
+        </div>
+      </div>
+
+      <aside class="decision-card" aria-labelledby="decision-title">
+        <p class="card-kicker">Prima della scelta</p>
+        <h2 id="decision-title">Quattro domande valgono più di cento offerte.</h2>
+        <ol class="decision-list">
+          <li><span>1</span><div>Il telefono supporta davvero la eSIM?</div></li>
+          <li><span>2</span><div>Dove andrai e per quanti giorni?</div></li>
+          <li><span>3</span><div>Quanti dati, hotspot e chiamate ti servono?</div></li>
+          <li><span>4</span><div>Quali limiti sono dichiarati nelle condizioni?</div></li>
+        </ol>
+      </aside>
+    </div>
+  </section>
+
+  <section class="public-section" aria-labelledby="start-title">
+    <div class="public-container">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Da dove iniziare</p>
+          <h2 id="start-title">Una strada diversa per ogni domanda.</h2>
+        </div>
+        <p>
+          Non moltiplichiamo pagine cambiando soltanto il nome di un Paese. Ogni sezione deve aiutare
+          una decisione distinta e restare utile anche senza acquistare nulla.
+        </p>
+      </div>
+
+      <div class="route-grid">
+        <a class="route-card" href="/destinazioni">
+          <span class="route-index">01 · DOVE VAI</span>
+          <h3>Destinazioni</h3>
+          <p>Parti dal Paese, dalla durata del viaggio e dalle condizioni che possono cambiare sul posto.</p>
+          <span class="route-arrow">Esplora le destinazioni →</span>
+        </a>
+
+        <a class="route-card" href="/guide">
+          <span class="route-index">02 · COME FUNZIONA</span>
+          <h3>Guide pratiche</h3>
+          <p>Compatibilità, installazione, attivazione, hotspot, consumi e problemi prima della partenza.</p>
+          <span class="route-arrow">Leggi le guide →</span>
+        </a>
+
+        <a class="route-card" href="/confronti">
+          <span class="route-index">03 · COSA CAMBIA</span>
+          <h3>Confronti</h3>
+          <p>Metti a confronto opzioni e limiti senza trasformare una commissione in una classifica automatica.</p>
+          <span class="route-arrow">Vai ai confronti →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="public-section method-section" aria-labelledby="method-title">
+    <div class="public-container">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Il metodo</p>
+          <h2 id="method-title">La pagina arriva dopo le prove.</h2>
+        </div>
+        <p>
+          Un testo può essere chiaro e ancora non essere pubblicabile. Fonti, claim, scadenze e revisione
+          restano passaggi distinti.
+        </p>
+      </div>
+
+      <div class="method-grid">
+        <article class="method-step">
+          <span>01</span>
+          <h3>Domanda reale</h3>
+          <p>Partiamo da un problema o da un intento riconoscibile, non dal bisogno di creare nuove URL.</p>
+        </article>
+        <article class="method-step">
+          <span>02</span>
+          <h3>Fonti datate</h3>
+          <p>Prezzo, durata, rete, hotspot e fair use richiedono una fonte identificabile e una data.</p>
+        </article>
+        <article class="method-step">
+          <span>03</span>
+          <h3>Claim separati</h3>
+          <p>Ogni fatto viene verificato singolarmente. Un claim insufficiente non alimenta il testo fattuale.</p>
+        </article>
+        <article class="method-step">
+          <span>04</span>
+          <h3>Revisione umana</h3>
+          <p>Brief accettato, draft approvato e pagina pubblicata rimangono tre decisioni diverse.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="public-section trust-section" aria-labelledby="trust-title">
+    <div class="public-container trust-grid">
+      <div class="trust-copy">
+        <p class="eyebrow">Trasparenza operativa</p>
+        <h2 id="trust-title">Meno promesse. Più stato visibile.</h2>
+        <p>
+          Questa preview mostra il futuro involucro pubblico. Non pubblica contenuti in review, non attiva
+          affiliazioni e non sostituisce ancora il renderer corrente.
+        </p>
+      </div>
+
+      <ul class="trust-list">
+        <li>
+          <strong>Nessuna pubblicazione autonoma</strong>
+          <span>L’AI può aiutare ricerca e draft, ma non promuove una pagina a pubblicata.</span>
+        </li>
+        <li>
+          <strong>Informazioni con scadenza</strong>
+          <span>Le condizioni commerciali vengono trattate come dati verificati in un momento preciso.</span>
+        </li>
+        <li>
+          <strong>Affiliazioni ancora disabilitate</strong>
+          <span>Monetizzazione, disclosure e misurazione devono essere pronte insieme.</span>
+        </li>
+        <li>
+          <strong>Preview isolata</strong>
+          <span>L’apice e tutte le route canoniche continuano a essere servite dal sistema pubblico esistente.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="final-cta" aria-labelledby="cta-title">
+    <div class="public-container cta-panel">
+      <div>
+        <h2 id="cta-title">Vuoi vedere come controlliamo le informazioni?</h2>
+        <p>
+          Il metodo editoriale descrive cosa può diventare un fatto pubblico, cosa resta escluso e perché
+          un draft approvato non equivale a una pagina pubblicata.
+        </p>
+      </div>
+      <a class="public-button" href="/metodo">Leggi il metodo</a>
+    </div>
+  </section>
+</PublicLayout>
