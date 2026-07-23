@@ -20,7 +20,7 @@ La route:
 - espone metadata e canonical tramite `src/layouts/PublicLayout.astro`;
 - resta `noindex,nofollow` e `no-store`;
 - non è inclusa nella sitemap pubblica;
-- collega soltanto route pubbliche già esistenti;
+- collega soltanto route pubbliche già esistenti o route preview namespaced;
 - non legge D1 e non espone claim commerciali dinamici;
 - non cambia `/`, che continua a usare il renderer legacy.
 
@@ -35,6 +35,35 @@ src/pages/astro-foundation.astro
 ```
 
 Il cutover dell’apice richiede una PR separata. Preview M5, stato editoriale e pubblicazione restano capacità distinte.
+
+## Trust page previews
+
+La seconda slice M5 aggiunge tre pagine statiche sotto il namespace preview:
+
+```text
+/astro-foundation/metodo
+/astro-foundation/trasparenza
+/astro-foundation/privacy
+```
+
+Le route:
+
+- riusano `PublicLayout`, header, footer e token pubblici;
+- usano il componente condiviso `src/components/public/TrustPage.astro`;
+- hanno contenuto primario nel raw HTML e nessuna island React;
+- ricevono `noindex,nofollow`, `no-store`, `nosniff` e canonical self-reference dal layout;
+- restano escluse dalla sitemap legacy;
+- mantengono `/metodo`, `/trasparenza` e `/privacy` sul renderer backend;
+- non introducono CMP, GA4, GTM, Search Console o affiliazioni;
+- non modificano backend, D1, Workflow, Container o publication state.
+
+Stili dedicati:
+
+```text
+src/styles/trust-pages.css
+```
+
+Quando `previewBase="/astro-foundation"` è passato a `PublicLayout`, brand, Metodo e link footer restano nel namespace preview. Destinazioni, Guide e Confronti continuano a collegare le route pubbliche legacy.
 
 ## UI Control Room
 
@@ -124,6 +153,7 @@ accepted → converted
 
 ```text
 M5 preview ≠ public cutover
+preview trust page ≠ route canonica migrata
 brief accepted ≠ brief converted
 brief dismissed ≠ pubblicazione o cancellazione globale
 approved draft ≠ published page
@@ -166,6 +196,7 @@ npm run smoke:quality
 npm run eval:research-quality
 npm run smoke:runtime
 npm run smoke:public-shell
+npm run smoke:public-trust-pages
 npm run smoke:ui
 npm run smoke:brief-decisions
 npm run smoke:claims
@@ -178,8 +209,9 @@ npm run smoke:legacy-parity
 
 Gli smoke generano credenziali Access effimere; nessuna chiave viene versionata.
 
-- `smoke:runtime` verifica bundle, public shell statico, Access, proxy, API originale, export, health, topic gate e route di pubblicazione assenti; include `smoke:public-shell`.
+- `smoke:runtime` verifica bundle, public shell statico, Access, proxy, API originale, export, health, topic gate e route di pubblicazione assenti; include gli smoke public shell e trust pages.
 - `smoke:public-shell` verifica raw HTML, canonical, noindex, sitemap exclusion, assenza di island/script, tastiera, menu mobile e overflow.
+- `smoke:public-trust-pages` verifica le tre route preview, canonical/noindex/no-store, navigazione namespaced, route legacy intatte, sitemap, desktop/mobile, tastiera e assenza di JavaScript.
 - `smoke:ui` verifica la Control Room generale e include `smoke:brief-decisions`.
 - `smoke:brief-decisions` usa D1 locale migrato e `workerd`: Access anonimo negato, attore server-side, accept, dismiss, motivo obbligatorio, retry idempotente, conflitto, queue, conferme desktop/mobile, reload e conteggio pubblicazioni invariato.
 - gli smoke claim, readiness, draft, dettaglio e queue/audit verificano le rispettive viste e i contratti di regressione.
