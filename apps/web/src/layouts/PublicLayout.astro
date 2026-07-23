@@ -1,0 +1,50 @@
+---
+import PublicFooter from '../components/public/PublicFooter.astro'
+import PublicHeader from '../components/public/PublicHeader.astro'
+import '../styles/public.css'
+
+interface Props {
+  title: string
+  description: string
+  canonicalPath: string
+  noindex?: boolean
+}
+
+const {
+  title,
+  description,
+  canonicalPath,
+  noindex = false,
+} = Astro.props
+
+const base = Astro.site ?? new URL(Astro.url.origin)
+const canonicalUrl = new URL(canonicalPath, base).toString()
+const robots = noindex ? 'noindex,nofollow' : 'index,follow'
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="og:site_name" content="Senza Roaming" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta name="theme-color" content="#073f43" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#contenuto">Vai al contenuto</a>
+    <PublicHeader />
+    <main id="contenuto" tabindex="-1">
+      <slot />
+    </main>
+    <PublicFooter />
+  </body>
+</html>
