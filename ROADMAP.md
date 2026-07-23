@@ -14,7 +14,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/FRONTEND-PLAN.md` — migrazione Astro e Control Room;
 - `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
 - `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — implementazione homepage candidata;
-- `docs/PUBLIC-LISTING-PREVIEWS.md` — implementazione listing preview.
+- `docs/PUBLIC-LISTING-PREVIEWS.md` — implementazione e checkpoint listing preview;
+- `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — scope autorizzato del renderer articolo Astro.
 
 ## Principi non negoziabili
 
@@ -120,7 +121,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: track parallela attiva; shell, trust pages e homepage candidata verificate in produzione; listing preview verdi in CI con checkpoint live aperto.**
+**Stato: track parallela attiva; shell, trust pages, homepage candidata e listing preview verificate in produzione; renderer articolo Astro autorizzato come prossima slice isolata.**
 
 ### M5.0 — Public shell
 
@@ -170,16 +171,25 @@ Branch: `feat/public-listing-previews`.
 - [x] stesso read model published-only;
 - [x] internal linking deterministico;
 - [x] route matrix e fail-fast;
-- [x] CI #291 completamente verde;
-- [ ] merge, deploy e checkpoint visuale live.
+- [x] CI #291 applicativa e CI #296 finale completamente verdi;
+- [x] PR #65 mergiata nel commit `2483fbfd1327754a1a526e8c3e6b201a412e610d`;
+- [x] deploy e risposte `200` delle tre route;
+- [x] checkpoint visuale live mobile/narrow 3/3 e desktop largo su Guide.
 
 ### M5.4 — Renderer editoriale Astro
 
+Branch autorizzata: `feat/public-article-renderer`.
+
+- [ ] route articolo preview published-only nel namespace `/astro-foundation`;
+- [ ] read model server-only condiviso con il renderer legacy;
 - [ ] pagina articolo grounded;
 - [ ] blocchi strutturati, non HTML AI grezzo;
-- [ ] provenance e fonti;
+- [ ] provenance pubblica e fonti HTTPS senza esporre dati operativi interni;
 - [ ] claim esclusi non presentati come fatti;
-- [ ] related links deterministici.
+- [ ] related links deterministici;
+- [ ] vera 404 per slug assente, `review` o `draft`;
+- [ ] noindex, no-store e sitemap exclusion;
+- [ ] route canoniche articolo ancora legacy.
 
 ### M5.5 — Parità SEO
 
@@ -268,8 +278,7 @@ conversione brief
 ### Track B — M5
 
 ```text
-checkpoint live listing preview
-→ renderer articolo
+renderer articolo preview
 → parità SEO
 → catalogo pilot
 → cutover apex separato
