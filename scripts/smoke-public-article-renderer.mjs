@@ -291,6 +291,8 @@ async function verifyBrowser() {
     await desktop.getByRole('heading', { level: 1, name: 'Articolo pubblico smoke' }).waitFor();
     assert.equal(await desktop.getByRole('heading', { level: 1 }).count(), 1);
     assert.equal(await desktop.locator('script').count(), 0);
+    await desktop.keyboard.press('Tab');
+    assert.equal(await desktop.locator('.skip-link').evaluate((element) => element === document.activeElement), true);
     assert.equal(await desktop.getByRole('link', { name: 'Fonte ufficiale sicura' }).count(), 1);
     assert.equal(await desktop.getByRole('link', { name: 'Fonte HTTP da scartare' }).count(), 0);
     await desktop.getByRole('button', { name: 'La eSIM si attiva da sola?' }).click();
@@ -299,9 +301,6 @@ async function verifyBrowser() {
       await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       true,
     );
-    await desktop.keyboard.press('Home');
-    await desktop.keyboard.press('Tab');
-    assert.equal(await desktop.locator('.skip-link').evaluate((element) => element === document.activeElement), true);
     await desktop.close();
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
