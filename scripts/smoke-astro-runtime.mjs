@@ -49,6 +49,8 @@ async function verifyBuildContract() {
     accessGuard,
     researchNormalizer,
     researchTopic,
+    publicPage,
+    publicLayout,
     controlRoomIsland,
     overviewComponent,
     radarBriefsComponent,
@@ -66,6 +68,8 @@ async function verifyBuildContract() {
     readFile('apps/web/src/lib/cloudflare-access.ts', 'utf8'),
     readFile('src/research.ts', 'utf8'),
     readFile('src/research-topic.ts', 'utf8'),
+    readFile('apps/web/src/pages/astro-foundation.astro', 'utf8'),
+    readFile('apps/web/src/layouts/PublicLayout.astro', 'utf8'),
     readFile('apps/web/src/components/control-room/ControlRoomApp.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/Overview.tsx', 'utf8'),
     readFile('apps/web/src/components/control-room/RadarBriefs.tsx', 'utf8'),
@@ -76,6 +80,7 @@ async function verifyBuildContract() {
     readFile('apps/web/src/lib/draft-contract.ts', 'utf8'),
     readFile('apps/web/src/lib/control-room-api.ts', 'utf8')
   ]);
+
   const config = JSON.parse(configRaw);
   const controlRoomClient = [
     controlRoomIsland,
@@ -123,14 +128,18 @@ async function verifyBuildContract() {
   assert.match(customEntrypoint, /MAINTENANCE_TOKEN/);
   assert.match(accessGuard, /cf-access-jwt-assertion/i);
   assert.ok(config.assets?.run_worker_first?.includes('/control-room-foundation'));
+
+  assert.match(publicPage, /data-public-shell="astro-preview"/);
+  assert.match(publicPage, /noindex, nofollow/);
+  assert.doesNotMatch(publicPage, /client:(?:load|idle|visible|media|only)/);
+  assert.match(publicLayout, /<link rel="canonical"/);
+  assert.match(publicLayout, /Vai al contenuto/);
 }
 
 async function waitForRuntime(child, timeoutMs = 180_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`wrangler dev exited with code ${child.exitCode}`);
-    }
+    if (child.exitCode !== null) throw new Error(`wrangler dev exited with code ${child.exitCode}`);
     try {
       const response = await fetch(`${origin}/api/health`);
       if (response.ok) return;
@@ -144,7 +153,6 @@ async function waitForRuntime(child, timeoutMs = 180_000) {
 
 async function expectNotFound(path, maxAttempts = 5) {
   let lastStatus = 0;
-
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const response = await fetch(`${origin}${path}`, {
       method: 'POST',
@@ -155,13 +163,10 @@ async function expectNotFound(path, maxAttempts = 5) {
       body: '{}'
     });
     lastStatus = response.status;
-
     if (lastStatus === 404) return;
     if (lastStatus !== 503) break;
-
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-
   assert.equal(lastStatus, 404, `${path} unexpectedly resolved with ${lastStatus}`);
 }
 
@@ -197,11 +202,8 @@ wrangler.stderr.on('data', record);
 
 function signalWrangler(signal) {
   if (wrangler.exitCode !== null || !wrangler.pid) return;
-  if (process.platform === 'win32') {
-    wrangler.kill(signal);
-  } else {
-    process.kill(-wrangler.pid, signal);
-  }
+  if (process.platform === 'win32') wrangler.kill(signal);
+  else process.kill(-wrangler.pid, signal);
 }
 
 async function stopWrangler() {
@@ -226,9 +228,12 @@ try {
   const pageResponse = await fetch(`${origin}/astro-foundation`);
   const page = await pageResponse.text();
   assert.equal(pageResponse.status, 200);
-  assert.match(page, /Astro e backend condividono lo stesso Worker\./);
-  assert.match(page, /<astro-island/);
+  assert.match(pageResponse.headers.get('x-robots-tag') || '', /noindex/);
+  assert.match(pageResponse.headers.get('cache-control') || '', /no-store/);
+  assert.match(page, /data-public-shell="astro-preview"/);
+  assert.match(page, /Trova la eSIM giusta prima di partire\./);
   assert.match(page, /noindex,nofollow/);
+  assert.doesNotMatch(page, /<astro-island/);
 
   const anonymousControlRoom = await fetch(`${origin}/control-room-foundation`);
   assert.equal(anonymousControlRoom.status, 403);
@@ -381,7 +386,7 @@ try {
   await expectNotFound('/api/maintenance/publish');
   await expectNotFound('/api/maintenance/pages/publish');
 
-  console.log('Astro/Cloudflare runtime, Access, topic gate, domain contracts and snapshot proxy smoke passed.');
+  console.log('Astro/Cloudflare runtime, static public shell, Access, topic gate, domain contracts and snapshot proxy smoke passed.');
 } catch (error) {
   console.error(error);
   console.error(logs.join('').slice(-12_000));
