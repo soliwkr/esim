@@ -150,14 +150,14 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function startRuntime(persistPath, port) {
+function startRuntime(persistPath, runtimePort) {
   const logs = [];
   const child = spawn(process.execPath, [
     'node_modules/wrangler/bin/wrangler.js',
     'dev',
     '--config', configPath,
     '--persist-to', persistPath,
-    '--port', String(port),
+    '--port', String(runtimePort),
     '--ip', '127.0.0.1',
   ], {
     env: {
@@ -256,7 +256,10 @@ async function verifyPopulatedListings() {
       );
       assert.doesNotMatch(catalog, new RegExp(`Listing ${listing.type} review hidden`));
       assert.doesNotMatch(catalog, /Listing guide draft hidden/);
-      assert.match(catalog, new RegExp(`href="\\/smoke-listing-${listing.type}-2"`));
+      assert.match(
+        catalog,
+        new RegExp(`href="\\/astro-foundation\\/articoli\\/smoke-listing-${listing.type}-2"`),
+      );
 
       for (const expected of listings) {
         assert.match(html, new RegExp(`href="\\/astro-foundation\\/${expected.segment}"`));
@@ -272,6 +275,8 @@ async function verifyPopulatedListings() {
         `Listing ${listing.type} 1`,
       ]);
       assert.doesNotMatch(legacyHtml, new RegExp(`Listing ${listing.type} review hidden`));
+      assert.match(legacyHtml, new RegExp(`href="\\/smoke-listing-${listing.type}-2"`));
+      assert.doesNotMatch(legacyHtml, /astro-foundation\/articoli/);
     }
 
     const homepageResponse = await fetch(`${origin}/astro-foundation`);
@@ -280,7 +285,7 @@ async function verifyPopulatedListings() {
     for (const listing of listings) {
       assert.match(homepage, new RegExp(`href="\\/astro-foundation\\/${listing.segment}"`));
     }
-    assert.match(homepage, /href="\/smoke-listing-guide-2"/);
+    assert.match(homepage, /href="\/astro-foundation\/articoli\/smoke-listing-guide-2"/);
 
     const sitemapResponse = await fetch(`${origin}/sitemap.xml`);
     const sitemap = await sitemapResponse.text();
@@ -348,9 +353,9 @@ async function verifyPopulatedListings() {
 }
 
 async function verifyEmptyListings() {
-  const port = basePort + 1;
-  const origin = `http://127.0.0.1:${port}`;
-  const runtime = startRuntime(emptyState, port);
+  const emptyPort = basePort + 1;
+  const origin = `http://127.0.0.1:${emptyPort}`;
+  const runtime = startRuntime(emptyState, emptyPort);
   let browser;
 
   try {
