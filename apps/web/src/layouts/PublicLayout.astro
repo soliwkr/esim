@@ -8,6 +8,7 @@ interface Props {
   description: string
   canonicalPath: string
   noindex?: boolean
+  previewBase?: string
 }
 
 const {
@@ -15,11 +16,19 @@ const {
   description,
   canonicalPath,
   noindex = false,
+  previewBase,
 } = Astro.props
 
 const base = Astro.site ?? new URL(Astro.url.origin)
 const canonicalUrl = new URL(canonicalPath, base).toString()
 const robots = noindex ? 'noindex,nofollow' : 'index,follow'
+
+if (noindex) {
+  Astro.response.headers.set('Cache-Control', 'no-store')
+  Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  Astro.response.headers.set('X-Content-Type-Options', 'nosniff')
+  Astro.response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+}
 ---
 
 <!doctype html>
@@ -41,10 +50,10 @@ const robots = noindex ? 'noindex,nofollow' : 'index,follow'
   </head>
   <body>
     <a class="skip-link" href="#contenuto">Vai al contenuto</a>
-    <PublicHeader />
+    <PublicHeader previewBase={previewBase} />
     <main id="contenuto" tabindex="-1">
       <slot />
     </main>
-    <PublicFooter />
+    <PublicFooter previewBase={previewBase} />
   </body>
 </html>
