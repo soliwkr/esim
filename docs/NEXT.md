@@ -6,42 +6,62 @@ Ultimo aggiornamento: **23 luglio 2026**.
 
 ## Now
 
-### 1. Audit repository esterni completato
+### 1. Track parallela M5 autorizzata
 
-La PR #57 è mergiata nel commit `5dc7587` dopo CI #260 completamente verde.
+La PR #58 è mergiata nel commit `431bf7b` dopo CI #262 completamente verde.
 
-Il checkpoint documenta:
-
-- capacità riusabili limitate e loro provenienza;
-- gap reali rispetto al codice Senza Roaming;
-- Ahmeego come riferimento di prodotto e trust, non come dipendenza;
-- MGC come caso reale e corpus negativo di sicurezza, privacy, SEO e claim;
-- nessun codice esterno importato;
-- nessuna modifica runtime o pubblicazione.
-
-### 2. Avviare M5 come track parallela controllata
-
-La decisione operativa è descritta in `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
-
-Prima branch implementativa prevista:
+La decisione operativa vive in `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`:
 
 ```text
-feat/public-astro-shell
+Track A — mutation M4 residue
+Track B — frontend pubblico Astro M5
 ```
 
-Scope esclusivo:
+M5 può avanzare senza dichiarare M4 completato. Il cutover dell’apice e la rimozione delle due superfici legacy restano decisioni separate.
 
-- trasformare `/astro-foundation` da spike a preview noindex del shell pubblico;
-- introdurre layout, metadata, header, footer, navigazione e token pubblici riusabili;
-- comporre una prima homepage preview con copy statico non commerciale;
-- mantenere `/` e tutte le route pubbliche correnti sul renderer legacy;
-- non modificare backend, D1, Workflow, Container, gate editoriali o route di pubblicazione;
-- non attivare affiliazioni, analytics o Search Console;
-- aggiungere build e browser smoke dedicati.
+### 2. Chiudere il checkpoint del public shell preview
 
-Il cutover dell’apice resta una PR separata con rollback e autorizzazione esplicita.
+La PR #59 implementa la prima slice M5 e ha superato CI #264:
 
-### 3. Continuare M4 su branch separate
+- `/astro-foundation` trasformato in preview noindex del shell pubblico;
+- layout documento e metadata Astro riusabili;
+- header, navigazione progressiva e footer in Astro puro;
+- token e stili pubblici isolati dalla Control Room;
+- homepage preview statica e non commerciale;
+- contenuto primario disponibile nel raw HTML;
+- nessuna island React e nessun JavaScript richiesto;
+- canonical self-reference, `noindex,nofollow`, `no-store` e header di sicurezza;
+- apice `/` ancora servito dal renderer legacy;
+- `/astro-foundation` escluso dalla sitemap;
+- smoke desktop, primo Tab, menu mobile, overflow, runtime e regressioni Control Room verdi.
+
+Dopo il merge:
+
+1. attendere il deploy automatico;
+2. verificare in produzione `/astro-foundation` su desktop e mobile;
+3. verificare header `noindex`/`no-store`, canonical e sitemap reale;
+4. non cambiare `/` durante questo checkpoint.
+
+### 3. Preparare la seconda slice M5
+
+Branch separata, dopo il checkpoint produttivo della preview:
+
+```text
+feat/public-trust-pages
+```
+
+Scope candidato:
+
+- migrare in Astro Metodo editoriale, Trasparenza e Privacy;
+- riusare `PublicLayout`, header e footer;
+- preservare contenuto e semantica delle route legacy;
+- mantenere le nuove route Astro dietro un namespace preview finché la parità non è verificata;
+- nessuna CMP, analytics, affiliazione o mutation;
+- test di metadata, canonical, raw HTML, mobile e tastiera.
+
+La forma definitiva della branch viene confermata dopo la verifica visuale della PR #59.
+
+### 4. Continuare M4 su branch separate
 
 La track pubblica non chiude M4. L’ordine delle mutation resta:
 
@@ -54,9 +74,9 @@ conversione brief
 
 Ogni capacità richiede una branch separata, conferma esplicita, identità Access, state machine server-side, audit persistito, idempotenza, reload e test end-to-end.
 
-### 4. Verifiche operative ancora aperte
+### 5. Verifiche operative ancora aperte
 
-Da completare senza bloccare la preview M5:
+Da completare senza bloccare M5:
 
 - linkage claim → task nel browser reale dietro Access;
 - linkage audit → ID/versione draft nel browser reale;
@@ -78,11 +98,10 @@ audit event ≠ autorizzazione operativa
 
 ## Track successive M5
 
-Dopo l’accettazione del shell preview, una branch per slice:
+Dopo il public shell e le trust pages, una branch per slice:
 
 ```text
-trust e metodologia
-→ candidato homepage Astro
+candidato homepage Astro
 → listing destinazioni/guide/confronti
 → renderer articolo grounded
 → parità canonical/sitemap/schema/404
@@ -109,7 +128,9 @@ M6 — CMP, GA4, GTM e Search Console — parte soltanto dopo che il frontend pu
 - PR #50 — claim → task, merge `41a9beee`, CI #213;
 - PR #52 — audit → versione draft, merge `35f56e82`, CI #220;
 - PR #54 — decisione brief, merge `15ea0445`, CI #237 e checkpoint produttivo #244;
-- PR #57 — audit repository esterni, merge `5dc7587`, CI #260.
+- PR #57 — audit repository esterni, merge `5dc7587`, CI #260;
+- PR #58 — track M5 parallela, merge `431bf7b`, CI #262;
+- PR #59 — public shell preview, CI #264; checkpoint produttivo aperto.
 
 ## Freeze immediato
 
@@ -119,5 +140,5 @@ M6 — CMP, GA4, GTM e Search Console — parte soltanto dopo che il frontend pu
 - nessuna pubblicazione automatica;
 - nessun secret o dato personale in URL, HTML, JavaScript client, storage, log o repository;
 - ogni nuova mutation richiede una branch e uno scope esclusivo;
-- nessun cutover apex nella prima slice M5;
+- nessun cutover apex durante il checkpoint del public shell;
 - nessuna rimozione della legacy finché resta un fallback operativo.
