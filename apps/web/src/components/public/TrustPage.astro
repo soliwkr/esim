@@ -1,0 +1,77 @@
+---
+import '../../styles/trust-pages.css'
+
+interface Props {
+  eyebrow: string
+  title: string
+  lead: string
+  current: 'metodo' | 'trasparenza' | 'privacy'
+}
+
+const { eyebrow, title, lead, current } = Astro.props
+const pages = [
+  {
+    key: 'metodo',
+    href: '/astro-foundation/metodo',
+    label: 'Metodo editoriale',
+    description: 'Come una domanda diventa una pagina revisionata.',
+  },
+  {
+    key: 'trasparenza',
+    href: '/astro-foundation/trasparenza',
+    label: 'Trasparenza',
+    description: 'AI, affiliazioni, fonti e conflitti di interesse.',
+  },
+  {
+    key: 'privacy',
+    href: '/astro-foundation/privacy',
+    label: 'Privacy',
+    description: 'Quali dati non raccogliamo e cosa resta da attivare.',
+  },
+] as const
+---
+
+<div class="preview-band" data-public-trust-page={current}>
+  Preview Astro · non indicizzata · la route pubblica attuale non cambia
+</div>
+
+<section class="trust-page-hero" aria-labelledby="trust-page-title">
+  <div class="public-container trust-page-hero-inner">
+    <p class="eyebrow">{eyebrow}</p>
+    <h1 id="trust-page-title">{title}</h1>
+    <p class="trust-page-lead">{lead}</p>
+  </div>
+</section>
+
+<section class="trust-page-section">
+  <div class="public-container trust-page-layout">
+    <article class="trust-page-prose">
+      <slot />
+    </article>
+
+    <aside class="trust-page-aside" aria-labelledby="trust-navigation-title">
+      <p class="trust-aside-kicker">In questa preview</p>
+      <h2 id="trust-navigation-title">Le pagine di fiducia</h2>
+      <nav aria-label="Pagine di fiducia preview">
+        {pages.map((page) => (
+          <a
+            class:list={['trust-page-link', { active: page.key === current }]}
+            href={page.href}
+            aria-current={page.key === current ? 'page' : undefined}
+          >
+            <strong>{page.label}</strong>
+            <span>{page.description}</span>
+          </a>
+        ))}
+      </nav>
+
+      <div class="trust-preview-note">
+        <strong>Preview isolata</strong>
+        <p>
+          Le route canoniche `/metodo`, `/trasparenza` e `/privacy` restano servite dal renderer pubblico
+          esistente. Nessun contenuto in review viene pubblicato da queste pagine.
+        </p>
+      </div>
+    </aside>
+  </div>
+</section>
