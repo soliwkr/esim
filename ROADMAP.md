@@ -119,7 +119,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: track parallela attiva; shell e trust pages live; homepage candidata verde in CI.**
+**Stato: track parallela attiva; shell, trust pages e homepage candidata verificate in produzione; listing preview prossime.**
 
 ### M5.0 — Public shell
 
@@ -155,12 +155,13 @@ Branch: `feat/public-homepage-candidate`.
 - [x] fixture published/review/draft;
 - [x] empty state;
 - [x] desktop, mobile, tastiera, 404 e regressioni Control Room;
-- [x] CI #279 verde;
-- [ ] merge e checkpoint visuale live sul catalogo remoto.
+- [x] CI finale #284 verde;
+- [x] PR #63 mergiata nel commit `7ba767d`;
+- [x] checkpoint visuale live desktop e mobile sul catalogo remoto.
 
 ### M5.3 — Listing preview
 
-**Bloccato fino al checkpoint live M5.2.**
+**Sbloccato dal checkpoint live M5.2. Prossima branch: `feat/public-listing-previews`.**
 
 - [ ] Destinazioni preview;
 - [ ] Guide preview;
@@ -264,8 +265,7 @@ conversione brief
 ### Track B — M5
 
 ```text
-checkpoint live homepage candidata
-→ listing preview
+listing preview
 → renderer articolo
 → parità SEO
 → catalogo pilot
