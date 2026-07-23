@@ -6,29 +6,12 @@ Ultimo aggiornamento: **23 luglio 2026**.
 
 ## Now
 
-### 1. Public shell Astro mergiato
+### 1. Public shell Astro verificato su mobile
 
-La PR #59 è mergiata nel commit `1b7bfa7` e la CI finale #266 è completamente verde.
+La PR #59 è mergiata nel commit `1b7bfa7`, la CI finale #266 è completamente verde e uno screenshot reale del 23 luglio 2026 conferma `/astro-foundation` su mobile.
 
-La prima slice M5 include:
+Sono attestati visivamente:
 
-- `/astro-foundation` come preview noindex del shell pubblico;
-- layout documento e metadata Astro riusabili;
-- header, navigazione progressiva e footer in Astro puro;
-- token e stili pubblici isolati dalla Control Room;
-- homepage preview statica e non commerciale;
-- contenuto primario disponibile nel raw HTML;
-- nessuna island React e nessun JavaScript richiesto;
-- canonical self-reference, `noindex,nofollow`, `no-store` e header di sicurezza;
-- apice `/` ancora servito dal renderer legacy;
-- `/astro-foundation` escluso dalla sitemap;
-- smoke desktop, primo Tab, menu mobile, overflow, runtime e regressioni Control Room verdi.
-
-### 2. Checkpoint visuale mobile in produzione completato
-
-Uno screenshot reale del 23 luglio 2026 conferma su mobile:
-
-- route `/astro-foundation` realmente servita dal dominio pubblico;
 - banner preview non indicizzata;
 - brand e controllo `Apri menu`;
 - hero, CTA e card delle quattro domande;
@@ -37,36 +20,77 @@ Uno screenshot reale del 23 luglio 2026 conferma su mobile:
 - nessun taglio laterale o overflow visibile;
 - gerarchia, spaziatura e leggibilità coerenti nella porzione osservata.
 
-Lo screenshot non prova header HTTP, canonical, sitemap, desktop live o la parte inferiore non visibile. Questi contratti sono coperti dalla CI #266; la verifica esterna live residuale resta aperta senza bloccare la seconda slice M5.
+Lo screenshot non prova header HTTP, canonical, sitemap, desktop live o la parte inferiore non visibile. Questi contratti sono coperti dalla CI #266; la verifica esterna live residuale resta aperta.
 
-### 3. Avviare la seconda slice M5
+### 2. Chiudere la seconda slice M5 — trust pages
 
-Branch separata:
+PR aperta:
 
 ```text
-feat/public-trust-pages
+#61 — feat/public-trust-pages
 ```
 
-Scope autorizzato:
+Route preview:
 
-- migrare in Astro Metodo editoriale, Trasparenza e Privacy;
-- riusare `PublicLayout`, header, footer e token pubblici;
-- preservare contenuto, significato e link delle route legacy;
-- servire le nuove pagine sotto un namespace preview, senza sostituire le route canoniche;
-- aggiungere metadata, canonical preview, raw HTML, mobile e tastiera;
-- nessuna CMP, analytics, Search Console, affiliazione o mutation;
-- nessuna modifica a backend, D1, Workflow, Container o publication state;
-- nessun cutover dell’apice o delle route trust legacy.
+```text
+/astro-foundation/metodo
+/astro-foundation/trasparenza
+/astro-foundation/privacy
+```
 
-Criteri di accettazione:
+Implementazione completata:
 
-- tre route Astro preview distinte e noindex;
-- contenuto essenziale presente senza JavaScript;
-- header/footer condivisi senza duplicare il shell;
-- route legacy `/metodo`, `/trasparenza` e `/privacy` ancora servite dal backend;
-- preview escluse dalla sitemap;
-- desktop/mobile, tastiera, overflow e metadata verificati;
-- tutte le suite runtime e Control Room ancora verdi.
+- `TrustPage.astro` condiviso;
+- stili responsive dedicati;
+- Metodo, Trasparenza e Privacy in raw HTML Astro;
+- ownership di noindex/no-store/security headers centralizzata in `PublicLayout`;
+- brand, Metodo e footer confinati nel namespace preview;
+- Destinazioni, Guide e Confronti ancora collegati alle route legacy;
+- canonical self-reference per ogni preview;
+- nessuna island React e nessun JavaScript richiesto;
+- nessuna modifica a Worker routing, backend, D1, Workflow, Container o publication state;
+- nessuna CMP, analytics, Search Console o affiliazione.
+
+CI #271 completamente verde:
+
+- typecheck e build Astro;
+- migrazioni D1;
+- quality gate e golden evaluation;
+- Container;
+- `workerd` con public shell, tre trust preview e tre route legacy;
+- canonical, noindex/no-store, sitemap e raw HTML;
+- desktop, mobile, tastiera, `aria-current`, navigazione e overflow;
+- tutte le regressioni Control Room.
+
+Il primo run #270 ha correttamente bloccato una verifica sorgente rimasta legata alla vecchia ownership degli header. Il contratto è stato riallineato a `PublicLayout`; la prova HTTP reale è rimasta attiva.
+
+Passi immediati:
+
+1. attendere la CI finale del commit documentale;
+2. rendere pronta e mergiare la PR #61;
+3. verificare le tre route preview in produzione su mobile e desktop;
+4. non sostituire `/metodo`, `/trasparenza` o `/privacy` durante il checkpoint.
+
+### 3. Definire la terza slice M5 dopo il checkpoint live
+
+Direzione canonica:
+
+```text
+candidato homepage Astro
+→ listing destinazioni/guide/confronti
+```
+
+La branch e lo scope definitivo vengono fissati soltanto dopo il checkpoint produttivo della PR #61.
+
+La slice candidato homepage deve chiarire almeno:
+
+- quali dati pubblicati leggere server-side senza accesso D1 dal browser;
+- come mantenere HTML content-first e JavaScript minimo;
+- come preservare semanticamente home, navigation e card legacy;
+- come separare preview, route canonica e cutover;
+- quali contratti di canonical, sitemap, schema, 404 e rollback bloccheranno il passaggio successivo.
+
+Non è autorizzato alcun cutover dell’apice.
 
 ### 4. Continuare M4 su branch separate
 
@@ -85,6 +109,7 @@ Ogni capacità richiede una branch separata, conferma esplicita, identità Acces
 
 Da completare senza bloccare M5:
 
+- trust pages preview in produzione dopo il merge della PR #61;
 - desktop live e header/canonical/sitemap del public shell;
 - linkage claim → task nel browser reale dietro Access;
 - linkage audit → ID/versione draft nel browser reale;
@@ -97,6 +122,7 @@ Da completare senza bloccare M5:
 M5 preview ≠ public cutover
 M5 progress ≠ M4 completato
 preview trust page ≠ route canonica migrata
+CI verde ≠ verifica produttiva completata
 brief accepted ≠ brief converted
 approved draft ≠ published page
 draft status ≠ materialized page status
@@ -107,7 +133,7 @@ audit event ≠ autorizzazione operativa
 
 ## Track successive M5
 
-Dopo le trust pages, una branch per slice:
+Dopo le trust pages e il relativo checkpoint live, una branch per slice:
 
 ```text
 candidato homepage Astro
@@ -139,7 +165,8 @@ M6 — CMP, GA4, GTM e Search Console — parte soltanto dopo che il frontend pu
 - PR #54 — decisione brief, merge `15ea0445`, CI #237 e checkpoint produttivo #244;
 - PR #57 — audit repository esterni, merge `5dc7587`, CI #260;
 - PR #58 — track M5 parallela, merge `431bf7b`, CI #262;
-- PR #59 — public shell preview, merge `1b7bfa7`, CI finale #266 e checkpoint visuale mobile in produzione.
+- PR #59 — public shell preview, merge `1b7bfa7`, CI finale #266 e checkpoint visuale mobile in produzione;
+- PR #60 — checkpoint mobile del public shell, merge `21485b8`, CI #268.
 
 ## Freeze immediato
 
@@ -149,5 +176,5 @@ M6 — CMP, GA4, GTM e Search Console — parte soltanto dopo che il frontend pu
 - nessuna pubblicazione automatica;
 - nessun secret o dato personale in URL, HTML, JavaScript client, storage, log o repository;
 - ogni nuova mutation richiede una branch e uno scope esclusivo;
-- nessun cutover apex o delle route trust nella seconda slice M5;
+- nessun cutover apex o delle route trust nella PR #61;
 - nessuna rimozione della legacy finché resta un fallback operativo.

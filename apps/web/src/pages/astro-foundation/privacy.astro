@@ -1,0 +1,81 @@
+---
+import TrustPage from '../../components/public/TrustPage.astro'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+---
+
+<PublicLayout
+  title="Privacy preview | Senza Roaming"
+  description="Preview non indicizzabile delle informazioni privacy attuali di Senza Roaming."
+  canonicalPath="/astro-foundation/privacy"
+  previewBase="/astro-foundation"
+  noindex
+>
+  <TrustPage
+    eyebrow="Privacy"
+    title="Raccogliere meno, spiegare meglio."
+    lead="Questa preview conserva il contenuto essenziale della pagina privacy attuale. Non introduce CMP, analytics o nuovi trattamenti di dati."
+    current="privacy"
+  >
+    <section aria-labelledby="privacy-dati">
+      <div class="trust-intro-card">
+        <p class="trust-card-label">Dati non richiesti</p>
+        <h2 id="privacy-dati">Non chiediamo dati bancari, documenti, nomi o indirizzi email.</h2>
+        <p>
+          Il sito pubblico corrente non richiede questi dati per leggere guide, confronti o pagine sulle
+          destinazioni. Questa migrazione frontend non modifica il modello di raccolta dati.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="privacy-redirect">
+      <h2 id="privacy-redirect">Cosa registra il redirect verso un provider</h2>
+      <p>
+        Il percorso di redirect conserva soltanto le informazioni operative già dichiarate dalla pagina
+        privacy legacy:
+      </p>
+      <ul>
+        <li>pagina di origine;</li>
+        <li>provider selezionato;</li>
+        <li>posizione del pulsante;</li>
+        <li>data del click.</li>
+      </ul>
+      <p>
+        Non vengono salvati indirizzi IP né user agent nel contratto attuale descritto dalla pagina legacy.
+      </p>
+    </section>
+
+    <section aria-labelledby="privacy-strumenti">
+      <div class="trust-status-card">
+        <p class="trust-card-label">Stato attuale</p>
+        <h2 id="privacy-strumenti">CMP, GA4 e GTM non sono ancora attivi.</h2>
+        <p>
+          Consenso, analytics e Search Console appartengono a una fase successiva. Non vengono introdotti da
+          questa preview e richiederanno configurazione, documentazione e verifica separate prima del lancio
+          commerciale.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="privacy-confini">
+      <h2 id="privacy-confini">Confini di questa pagina preview</h2>
+      <div class="trust-principle-grid">
+        <article class="trust-principle">
+          <h3>Nessun nuovo tracker</h3>
+          <p>La route è HTML Astro statico e non aggiunge script di analytics o marketing.</p>
+        </article>
+        <article class="trust-principle">
+          <h3>Nessun form</h3>
+          <p>Non raccoglie dati dell’utente e non invia mutation al backend.</p>
+        </article>
+        <article class="trust-principle">
+          <h3>Route non canonica</h3>
+          <p>La pagina resta noindex dentro il namespace preview.</p>
+        </article>
+        <article class="trust-principle">
+          <h3>Aggiornamento separato</h3>
+          <p>La versione legale definitiva verrà rivista quando saranno attivati consenso e misurazione.</p>
+        </article>
+      </div>
+    </section>
+  </TrustPage>
+</PublicLayout>

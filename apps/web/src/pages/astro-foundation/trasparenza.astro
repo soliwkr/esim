@@ -1,0 +1,83 @@
+---
+import TrustPage from '../../components/public/TrustPage.astro'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+---
+
+<PublicLayout
+  title="Trasparenza editoriale preview | Senza Roaming"
+  description="Preview non indicizzabile dei principi di trasparenza editoriale, AI e affiliazione di Senza Roaming."
+  canonicalPath="/astro-foundation/trasparenza"
+  previewBase="/astro-foundation"
+  noindex
+>
+  <TrustPage
+    eyebrow="Trasparenza editoriale"
+    title="Una commissione non decide la classifica."
+    lead="Senza Roaming può in futuro usare programmi affiliati ufficiali, ma monetizzazione, disclosure e misurazione devono essere pronte insieme e non sostituiscono la verifica dei fatti."
+    current="trasparenza"
+  >
+    <section aria-labelledby="trasparenza-indipendenza">
+      <div class="trust-intro-card">
+        <p class="trust-card-label">Indipendenza</p>
+        <h2 id="trasparenza-indipendenza">Il lettore deve capire perché una pagina dice ciò che dice.</h2>
+        <p>
+          Possiamo ricevere commissioni tramite programmi affiliati ufficiali, senza costi aggiuntivi per il
+          lettore. La presenza o l’importo di una commissione non determina automaticamente la posizione di
+          un provider o la conclusione di un confronto.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="trasparenza-stato">
+      <div class="trust-status-card">
+        <p class="trust-card-label">Stato attuale</p>
+        <h2 id="trasparenza-stato">Affiliazioni ancora disabilitate.</h2>
+        <p>
+          La modalità affiliate non è attiva. Prima dell’attivazione servono programmi ufficiali, disclosure
+          visibile, tracking privacy-first, definizioni uniche degli eventi e controlli editoriali stabili.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="trasparenza-valutazione">
+      <h2 id="trasparenza-valutazione">Cosa valutiamo davvero</h2>
+      <p>
+        Le pagine possono considerare dati, durata, hotspot, rete, velocità dichiarata, fair use, attivazione,
+        assistenza e prezzo verificato. Ogni affermazione fattuale deve restare collegata alla propria fonte e
+        alla data di controllo.
+      </p>
+      <div class="trust-principle-grid">
+        <article class="trust-principle">
+          <h3>Fonte ufficiale</h3>
+          <p>Serve per condizioni commerciali e caratteristiche dichiarate dal provider.</p>
+        </article>
+        <article class="trust-principle">
+          <h3>Prova indipendente</h3>
+          <p>Non viene sostituita da una dichiarazione del provider o da una singola testimonianza.</p>
+        </article>
+        <article class="trust-principle">
+          <h3>Conflitto conservato</h3>
+          <p>Fonti in disaccordo non vengono fuse in una certezza artificiale.</p>
+        </article>
+        <article class="trust-principle">
+          <h3>Dato scaduto</h3>
+          <p>Una condizione non aggiornata non alimenta automaticamente nuovo testo fattuale.</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="trasparenza-ai">
+      <h2 id="trasparenza-ai">L’AI non pubblica autonomamente</h2>
+      <p>
+        L’AI può aiutare ricerca, brief e draft strutturati. Non può promuovere direttamente una pagina a
+        pubblicata. Accettazione del brief, conversione, approvazione del draft e pubblicazione restano gate
+        distinti e auditabili.
+      </p>
+      <ul>
+        <li>Un brief accettato non genera automaticamente una pagina.</li>
+        <li>Un draft approvato non equivale a contenuto pubblicato.</li>
+        <li>Un claim insufficiente o scaduto non viene presentato come fatto.</li>
+      </ul>
+    </section>
+  </TrustPage>
+</PublicLayout>
