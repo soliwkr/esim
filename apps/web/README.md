@@ -147,6 +147,16 @@ Gli header preview sono applicati da `src/lib/public-preview-response.ts` sia
 nel layout sia nel frontmatter delle route statiche, così il contratto della risposta
 non dipende dalla profondità di composizione dei componenti.
 
+Dedicated verification:
+
+```bash
+npm run smoke:public-listing-previews
+```
+
+Lo smoke usa due stati D1 temporanei isolati e verifica matrice delle tre route,
+published-only, ordine, parità legacy, link canonici, empty state, sitemap exclusion,
+vera 404, header preview, raw HTML, desktop, mobile e overflow.
+
 ## UI Control Room
 
 Astro fornisce la shell SSR e monta un solo root React con `client:load`. shadcn/ui è configurato da `components.json`; i componenti sorgente vivono sotto `src/components/ui` e lo stile Tailwind 4 privato in `src/styles/globals.css`.
@@ -245,7 +255,3 @@ Verifica:
 
 PR #54 e migrazione remota `0020` restano il checkpoint produttivo della prima mutation. La homepage candidata non modifica D1, stati editoriali o capacità di pubblicazione.
 
-
-`smoke:public-listing-previews` usa due stati D1 temporanei isolati e verifica matrice
-delle tre route, published-only, ordine, parità legacy, link canonici, empty state,
-sitemap exclusion, vera 404, header preview, raw HTML, desktop, mobile e overflow.
