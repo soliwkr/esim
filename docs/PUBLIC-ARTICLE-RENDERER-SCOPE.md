@@ -1,10 +1,11 @@
-# Public article renderer — authorized scope
+# Public article renderer — scope and implementation record
 
 Date: 2026-07-23
 
-Status: authorized after the production checkpoint of PR #65. This document
-defines the exclusive scope of the next M5 slice. It does not authorize canonical
-article migration, SEO parity, publication, analytics, affiliates or apex cutover.
+Status: implemented in draft PR #67. Application CI #302 is fully green. The
+final documentation-head CI, merge, deployment and live visual checkpoint are
+still pending. This document does not authorize canonical article migration, SEO
+parity, publication, analytics, affiliates or apex cutover.
 
 ## Branch
 
@@ -12,8 +13,38 @@ article migration, SEO parity, publication, analytics, affiliates or apex cutove
 feat/public-article-renderer
 ```
 
-The pull request starts as draft because it introduces the first editorial article
+The pull request started as draft because it introduces the first editorial article
 renderer in the Astro public frontend and broadens the shared public read model.
+
+## Implementation checkpoint
+
+PR #67 implements the planned scope through:
+
+```text
+src/public-article.ts
+apps/web/src/pages/astro-foundation/articoli/[slug].astro
+apps/web/src/components/public/PublicArticlePage.astro
+apps/web/src/components/public/PublicArticleBlocks.astro
+apps/web/src/components/public/PublicArticleFaq.astro
+apps/web/src/components/public/PublicArticleSources.astro
+apps/web/src/components/public/PublicRelatedArticles.astro
+apps/web/src/styles/public-article.css
+scripts/smoke-public-article-renderer.mjs
+```
+
+Verified by application CI #302:
+
+- typecheck and Astro/Worker build;
+- local D1 migrations;
+- research quality gate and golden evaluation;
+- Container build and smoke;
+- all public runtime smokes, including the article renderer;
+- all Control Room suites.
+
+CI #300 initially found that Playwright did not expose the native FAQ `summary`
+with the role expected by the accessibility smoke. The native `details`/`summary`
+structure was preserved, the role was made explicit and the same assertion passed
+in CI #302. No acceptance check was removed or weakened.
 
 ## Objective
 
@@ -36,8 +67,7 @@ without browser access to D1 and without exposing any `review` or `draft` row.
 /astro-foundation/articoli/[slug]
 ```
 
-The explicit `articoli/` segment is required for this slice. It avoids collisions
-with:
+The explicit `articoli/` segment avoids collisions with:
 
 ```text
 /astro-foundation
@@ -59,7 +89,7 @@ and continues to be served by the legacy renderer.
 
 ## Route ownership
 
-The custom Worker may delegate the new namespaced route to Astro. It must not:
+The custom Worker delegates the new namespaced route to Astro. It does not:
 
 - intercept canonical `/{slug}` routes;
 - change the apex;
@@ -72,14 +102,14 @@ the preview route.
 
 ## Shared server-only read model
 
-Extract the current legacy article query into a typed module shared by the legacy
-renderer and Astro. Candidate module:
+The legacy article query is extracted into a typed module shared by the legacy
+renderer and Astro:
 
 ```text
 src/public-article.ts
 ```
 
-The module owns fixed functions such as:
+The module owns fixed functions:
 
 ```text
 loadPublishedArticle(DB, slug)
@@ -139,10 +169,10 @@ Typescript types alone are not sufficient. The shared module validates:
 - dates as strings safe for display;
 - related rows against the existing public card contract.
 
-Invalid required article data fails closed. It must not be rendered through
-`set:html`, passed to the legacy renderer or silently converted into invented copy.
-The preview response for a structurally invalid published row should be an explicit
-server error with `no-store` and no factual article body.
+Invalid required article data fails closed. It is not rendered through `set:html`,
+passed to the legacy renderer or silently converted into invented copy. The
+preview response for a structurally invalid published row is an explicit 500 with
+`no-store` and a generic body that contains no article facts.
 
 ## Allowed structured blocks
 
@@ -158,7 +188,7 @@ callout
 ```
 
 Each type is rendered by an Astro component or an explicit component branch.
-Editorial content must never use:
+Editorial content never uses:
 
 - `set:html`;
 - `innerHTML`;
@@ -166,7 +196,7 @@ Editorial content must never use:
 - markdown converted without a strict schema;
 - arbitrary tag names or attributes from the database.
 
-Expected component boundary:
+Implemented component boundary:
 
 ```text
 PublicArticlePage.astro
@@ -175,8 +205,6 @@ PublicArticleFaq.astro
 PublicArticleSources.astro
 PublicRelatedArticles.astro
 ```
-
-Names may change if the final structure remains equally explicit and testable.
 
 ## Article composition
 
@@ -193,7 +221,7 @@ The raw HTML preview includes, in order:
 9. public provenance and sources;
 10. deterministic related articles.
 
-The page must remain useful with JavaScript disabled. No React island is allowed.
+The page remains useful with JavaScript disabled. No React island is present.
 
 ## Public provenance boundary
 
@@ -205,16 +233,16 @@ source_checked_at
 updated_at
 ```
 
-This slice may render a public provenance panel containing:
+The rendered public provenance panel contains:
 
 - the date sources were checked when present;
 - the page update date when present;
-- only the valid HTTPS sources persisted with the published page;
+- only valid HTTPS sources persisted with the published page;
 - clear wording that provider documents are official declarations, not independent
   field tests;
 - structured limitation callouts already present in `content_json`.
 
-This slice must not expose:
+The slice does not expose:
 
 - internal claim IDs;
 - `editorial_review_draft_field_claims` rows;
@@ -232,7 +260,7 @@ contract makes it safely available, it requires a separate explicit scope.
 Only `https:` URLs are rendered as links. Invalid, empty or non-HTTPS sources are
 omitted from the link list and never copied into an `href`.
 
-Source labels are escaped as text. Links use at least:
+Source labels are escaped as text. Links use:
 
 ```text
 rel="noopener noreferrer"
@@ -245,7 +273,7 @@ The absence of a valid source list does not authorize invented citations.
 The renderer consumes the materialized `published` page. It does not recalculate
 claim validity, readiness or publication eligibility.
 
-It must preserve these distinctions:
+It preserves these distinctions:
 
 ```text
 provider declaration ≠ independent test
@@ -257,7 +285,7 @@ excluded claim ≠ factual page copy
 Callout blocks such as “Cosa non è dimostrato”, source conflicts and evidence
 limitations are rendered as limitations, not promoted into affirmative claims.
 
-The renderer must not read an excluded claim and must not synthesize facts from
+The renderer does not read an excluded claim and does not synthesize facts from
 briefs, draft metadata or related pages.
 
 ## Related links
@@ -273,10 +301,10 @@ Related articles are:
 
 No recommendation score, provider ranking or semantic inference is introduced.
 
-## Preview navigation changes allowed
+## Preview navigation changes
 
-Inside this branch only, public preview cards may move from canonical legacy
-article URLs to:
+Inside this branch only, public preview cards move from canonical legacy article
+URLs to:
 
 ```text
 /astro-foundation/articoli/{slug}
@@ -290,9 +318,9 @@ This applies to:
 - Confronti preview cards;
 - related article links in the article preview.
 
-The shared legacy card renderer must continue to emit canonical `/{slug}` links.
-The implementation should use an explicit link-builder option rather than string
-replacement after rendering.
+The shared legacy card renderer continues to emit canonical `/{slug}` links. The
+implementation uses the explicit optional `articleBase` link builder rather than
+string replacement after rendering.
 
 ## Metadata and response isolation
 
@@ -313,13 +341,13 @@ part of this branch.
 
 ## Styling and accessibility
 
-Add isolated public article styles, for example:
+The implementation adds:
 
 ```text
 apps/web/src/styles/public-article.css
 ```
 
-Requirements:
+Verified requirements:
 
 - readable measure and hierarchy on wide screens;
 - no horizontal page overflow;
@@ -330,12 +358,12 @@ Requirements:
 - FAQ rendered with native `details` and `summary`;
 - source links distinguishable from body text;
 - related cards usable by keyboard;
-- layout remains coherent at narrow, mobile and desktop widths;
-- reduced-motion preferences preserved where motion exists.
+- layout coherent at mobile and desktop widths;
+- no required animation or client runtime.
 
 ## Dedicated smoke
 
-Add:
+Implemented command:
 
 ```text
 npm run smoke:public-article-renderer
@@ -343,7 +371,7 @@ npm run smoke:public-article-renderer
 
 The smoke uses isolated temporary D1 state and a real `workerd`/Chromium path.
 
-Minimum fixtures:
+Fixtures:
 
 1. one complete `published` article containing every allowed block type;
 2. one `review` row with a known slug;
@@ -381,6 +409,8 @@ The dedicated smoke verifies:
   green;
 - no publication route or mutation is introduced.
 
+All checks above passed in CI #302.
+
 ## Explicit exclusions
 
 This branch does not:
@@ -405,7 +435,8 @@ This branch does not:
 ## Exit gate
 
 ```text
-implementation PR green
+application CI #302 green
+→ final CI on canonical documentation head
 → merge and automatic deploy
 → verify one real published article preview on desktop and mobile
 → verify listing/home preview navigation reaches the namespaced article
