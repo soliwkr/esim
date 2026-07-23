@@ -193,12 +193,12 @@ try {
   if (!loaded) throw lastError || new Error('Control Room did not become ready');
 
   await page.getByRole('link', { name: 'Operazioni', exact: true }).waitFor({ state: 'visible' });
-  const proposedCards = page.locator('[data-testid^="brief-decision-"]');
-  const proposedCount = await proposedCards.count();
+  const acceptButtons = page.getByRole('button', { name: /^Accetta brief / });
+  const proposedCount = await acceptButtons.count();
   if (proposedCount === 0) {
     await page.getByText('Nessun brief proposto da decidere').waitFor({ state: 'visible' });
   } else {
-    await page.getByRole('button', { name: /^Accetta brief / }).first().waitFor({ state: 'visible' });
+    await acceptButtons.first().waitFor({ state: 'visible' });
     await page.getByRole('button', { name: /^Rifiuta brief / }).first().waitFor({ state: 'visible' });
   }
 
@@ -226,6 +226,7 @@ const summary = {
   authenticatedSnapshotStatus: snapshotResponse.status,
   publicationAutomation: snapshot.capabilities?.publicationAutomation,
   browserNonGetRequests: nonGetRequests,
+  proposedBriefsVisible: proposedCount,
   realBriefDecisionsExecuted: 0,
 };
 await writeFile(`${artifactDir}/summary.json`, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
