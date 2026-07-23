@@ -20,7 +20,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Public shell Astro | In produzione come preview | PR #59; `/` resta legacy |
 | Trust pages Astro | In produzione e verificate su mobile | PR #61; checkpoint 3/3 |
 | Homepage candidata Astro | Verificata in produzione desktop e mobile | PR #63 mergiata; CI finale #284 verde |
-| Listing Astro | Verificati in CI, live da osservare | PR #65 draft; CI #291 verde |
+| Listing Astro | Verificati in produzione desktop e narrow/mobile | PR #65 mergiata in `2483fbf`; CI finale #296 verde |
+| Renderer articolo Astro | Autorizzato, non implementato | prossima branch `feat/public-article-renderer` |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -229,7 +230,7 @@ ORDER BY featured DESC, updated_at DESC
 LIMIT 100
 ```
 
-Implementato e verificato dalla CI #291:
+Implementato e verificato dalla CI applicativa #291 e dalla CI finale #296:
 
 - tre route statiche noindex/no-store e fuori sitemap;
 - navigazione del namespace preview tra home, listing e trust pages;
@@ -248,13 +249,35 @@ propagati attraverso il nuovo componente annidato. Il contratto è stato estratt
 in `public-preview-response.ts` e applicato anche dal frontmatter delle tre route;
 la stessa asserzione header è poi passata senza essere indebolita.
 
-Non ancora verificato:
+Produzione verificata:
 
-- deploy del commit finale su `main`;
-- resa visuale desktop e mobile con il catalogo D1 remoto.
+- PR #65 mergiata su `main` nel commit `2483fbfd1327754a1a526e8c3e6b201a412e610d`;
+- CI finale #296 completamente verde;
+- tutte e tre le route hanno risposto `200` dopo il deploy;
+- Destinazioni mostra correttamente l’empty state remoto “Non ci sono ancora destinazioni pubblicate”;
+- Guide mostra le card pubblicate remote con titoli e contenuti leggibili;
+- Confronti mostra la card pubblicata remota;
+- header, banner preview, breadcrumb e navigazione tra i tre listing restano nel namespace `/astro-foundation`;
+- lo stato corrente è evidenziato correttamente su Destinazioni, Guide e Confronti;
+- negli screenshot narrow/mobile non è visibile overflow orizzontale;
+- lo screenshot desktop largo di Guide mostra hero e contratto affiancati, navigazione a tre colonne e tre card pubblicate nella prima riga.
+
+Lo screenshot narrow di Guide è appena sopra il breakpoint `560px` e mostra quindi due colonne, comportamento previsto dal CSS responsive; la CI continua ad attestare la singola colonna sotto il breakpoint mobile. Gli screenshot non sostituiscono le verifiche tecniche di noindex/no-store, published-only, sitemap exclusion e vere 404.
 
 Le route canoniche `/destinazioni`, `/guide` e `/confronti` restano legacy.
 Nessun cutover dell’apice è autorizzato.
+
+### Renderer articolo — scope successivo
+
+La prossima slice autorizzata è:
+
+```text
+feat/public-article-renderer
+```
+
+Scope canonico: `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md`.
+
+La slice deve restare una preview noindex e published-only. Non può leggere o rendere pagine `review`, cambiare le route articolo canoniche, modificare D1, introdurre pubblicazione, attivare analytics o affiliazioni.
 
 ## Google measurement stack
 
@@ -277,7 +300,6 @@ Regole:
 
 ## Gap aperti
 
-- checkpoint visuale live delle tre listing preview;
 - renderer articolo grounded Astro;
 - parità canonical, sitemap, schema, 404 e redirect provider;
 - piccolo catalogo pilot;
@@ -291,8 +313,9 @@ Regole:
 ## Prossimo checkpoint
 
 ```text
-PR #65 e CI #291 verdi
-→ merge e deploy da main
-→ verificare le tre listing preview sul catalogo remoto
-→ soltanto dopo autorizzare il renderer articolo Astro
+listing preview verificate in produzione
+→ branch feat/public-article-renderer
+→ renderer published-only nel namespace preview
+→ smoke D1/workerd/Chromium dedicato
+→ merge, deploy e checkpoint visuale su un articolo pubblicato
 ```
