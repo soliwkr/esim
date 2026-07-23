@@ -1,0 +1,48 @@
+---
+import type { ContentBlock } from '../../../../../src/types'
+
+interface Props {
+  blocks: ContentBlock[]
+}
+
+const { blocks } = Astro.props
+---
+
+<div class="article-blocks" data-article-blocks>
+  {blocks.map((block) => (
+    <>
+      {block.type === 'paragraph' && <p>{block.text}</p>}
+      {block.type === 'heading' && <h2>{block.text}</h2>}
+      {block.type === 'bullets' && (
+        <ul>
+          {block.items.map((item) => <li>{item}</li>)}
+        </ul>
+      )}
+      {block.type === 'steps' && (
+        <ol>
+          {block.items.map((item) => <li>{item}</li>)}
+        </ol>
+      )}
+      {block.type === 'table' && (
+        <div class="article-table-wrap" tabindex="0" aria-label="Tabella scorrevole">
+          <table>
+            <thead>
+              <tr>{block.headers.map((header) => <th scope="col">{header}</th>)}</tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row) => (
+                <tr>{row.map((cell) => <td>{cell}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {block.type === 'callout' && (
+        <aside class="article-callout" aria-label={block.title}>
+          <h2>{block.title}</h2>
+          <p>{block.text}</p>
+        </aside>
+      )}
+    </>
+  ))}
+</div>
