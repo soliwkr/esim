@@ -1,11 +1,7 @@
 import type { ContentBlock, Env, FaqItem, PageCard, PageRow } from './types';
+import { loadPublishedListingCards, loadPublicHomepageCards } from './public-page-cards';
 import { affiliateEnabled, esc, safeJsonParse, siteBase } from './utils';
 import { layout, renderBlocks, renderFaq } from './render';
-
-async function cards(env: Env, clause: string, limit = 24): Promise<PageCard[]> {
-  const result = await env.DB.prepare(`SELECT slug,page_type,title,meta_description,cluster FROM pages WHERE ${clause} ORDER BY featured DESC,updated_at DESC LIMIT ?`).bind(limit).all<PageCard>();
-  return result.results;
-}
 
 function cardsHtml(items: PageCard[]): string {
   if (!items.length) return '<p class="lead">I contenuti sono in preparazione.</p>';
@@ -13,8 +9,7 @@ function cardsHtml(items: PageCard[]): string {
 }
 
 export async function home(env: Env): Promise<Response> {
-  const featured = await cards(env, "status='published' AND featured=1", 9);
-  const destinations = await cards(env, "status='published' AND page_type='destination'", 6);
+  const { featured, destinations } = await loadPublicHomepageCards(env.DB);
   const content = `<main><section class="hero"><div class="wrap"><div class="eyebrow">Internet in viaggio, senza improvvisare</div><h1>Trova la eSIM giusta prima di partire.</h1><p class="lead">Guide italiane su destinazioni, telefoni compatibili e provider. Confrontiamo dati, durata, hotspot, attivazione e limiti reali senza fingere che un piano vada bene per tutti.</p><div class="actions"><a class="cta" href="/migliore-esim">Confronta le eSIM</a><a class="cta secondary" href="/destinazioni">Scegli la destinazione</a></div></div></section><section class="section"><div class="wrap"><div class="eyebrow">Da dove iniziare</div><h2>Guide essenziali</h2><div class="grid">${cardsHtml(featured)}</div></div></section><section class="section alt"><div class="wrap"><div class="eyebrow">Partenze frequenti</div><h2>Destinazioni principali</h2><div class="grid">${cardsHtml(destinations)}</div></div></section></main>`;
   return layout(env, {
     title: `eSIM da viaggio: guide e confronti | ${env.SITE_NAME}`,
@@ -31,7 +26,7 @@ export async function listing(env: Env, type: 'destination' | 'guide' | 'compari
     comparison: { path: '/confronti', title: 'Confronti tra eSIM e provider', description: 'Confronti trasparenti tra provider e tipologie di eSIM.' }
   } as const;
   const copy = labels[type];
-  const items = await cards(env, `status='published' AND page_type='${type}'`, 100);
+  const items = await loadPublishedListingCards(env.DB, type, 100);
   return layout(env, { title: `${copy.title} | ${env.SITE_NAME}`, description: copy.description, canonicalPath: copy.path, content: `<main><section class="hero"><div class="wrap"><div class="eyebrow">${esc(copy.title)}</div><h1>${esc(copy.title)}</h1><p class="lead">${esc(copy.description)}</p></div></section><section class="wrap grid">${cardsHtml(items)}</section></main>` });
 }
 
