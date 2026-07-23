@@ -20,6 +20,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Public shell Astro | In produzione come preview | PR #59; `/` resta legacy |
 | Trust pages Astro | In produzione e verificate su mobile | PR #61; checkpoint 3/3 |
 | Homepage candidata Astro | Verificata in produzione desktop e mobile | PR #63 mergiata; CI finale #284 verde |
+| Listing Astro | Verificati in CI, live da osservare | PR #65 draft; CI #291 verde |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -208,6 +209,53 @@ Gli screenshot attestano la resa visuale; `noindex`, header HTTP, query publishe
 
 Nessun cutover dell’apice è autorizzato.
 
+### Listing previews — PR #65
+
+Route:
+
+```text
+/astro-foundation/destinazioni
+/astro-foundation/guide
+/astro-foundation/confronti
+```
+
+La matrice `src/public-listing-routes.ts` centralizza tipo, path canonico,
+path preview, copy, CTA ed empty state. Il renderer legacy e Astro continuano a
+usare lo stesso `loadPublishedListingCards`:
+
+```text
+status='published' AND page_type=?
+ORDER BY featured DESC, updated_at DESC
+LIMIT 100
+```
+
+Implementato e verificato dalla CI #291:
+
+- tre route statiche noindex/no-store e fuori sitemap;
+- navigazione del namespace preview tra home, listing e trust pages;
+- card verso articoli canonici legacy;
+- righe `review` e `draft` escluse;
+- ordine deterministico e parità con i listing legacy;
+- empty state specifici per Destinazioni, Guide e Confronti;
+- matrice route esplicita e vera 404 per route preview non dichiarate;
+- raw HTML senza island o JavaScript necessario;
+- desktop tre colonne, mobile una colonna, tastiera e nessun overflow;
+- contratto header condiviso tra layout e route statiche;
+- tutte le regressioni D1, Container e Control Room verdi.
+
+La prima CI runtime ha rilevato che gli header impostati dal layout non venivano
+propagati attraverso il nuovo componente annidato. Il contratto è stato estratto
+in `public-preview-response.ts` e applicato anche dal frontmatter delle tre route;
+la stessa asserzione header è poi passata senza essere indebolita.
+
+Non ancora verificato:
+
+- deploy del commit finale su `main`;
+- resa visuale desktop e mobile con il catalogo D1 remoto.
+
+Le route canoniche `/destinazioni`, `/guide` e `/confronti` restano legacy.
+Nessun cutover dell’apice è autorizzato.
+
 ## Google measurement stack
 
 L’operatore ha preparato GTM, GA4, Search Console e un service account con accesso alle proprietà.
@@ -229,7 +277,7 @@ Regole:
 
 ## Gap aperti
 
-- listing preview Destinazioni, Guide e Confronti;
+- checkpoint visuale live delle tre listing preview;
 - renderer articolo grounded Astro;
 - parità canonical, sitemap, schema, 404 e redirect provider;
 - piccolo catalogo pilot;
@@ -243,8 +291,8 @@ Regole:
 ## Prossimo checkpoint
 
 ```text
-M5.2 chiusa in produzione
-→ branch feat/public-listing-previews
-→ Destinazioni, Guide e Confronti in namespace preview
-→ route matrix, fail-fast e checkpoint live separato
+PR #65 e CI #291 verdi
+→ merge e deploy da main
+→ verificare le tre listing preview sul catalogo remoto
+→ soltanto dopo autorizzare il renderer articolo Astro
 ```

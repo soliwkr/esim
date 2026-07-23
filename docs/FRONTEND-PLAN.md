@@ -335,12 +335,15 @@ Criteri di uscita:
 
 #### F4.2 — Listing e architettura informativa
 
-- home candidata;
-- destinazioni;
-- guide;
-- confronti;
-- internal linking deterministico;
-- route matrix e fail-fast su contenuti mancanti.
+- [x] home candidata verificata in produzione;
+- [x] Destinazioni preview;
+- [x] Guide preview;
+- [x] Confronti preview;
+- [x] read model published-only condiviso;
+- [x] internal linking deterministico nel namespace preview;
+- [x] route matrix e fail-fast su contenuti mancanti;
+- [x] CI #291 completamente verde;
+- [ ] merge, deploy e checkpoint visuale live dei listing.
 
 #### F4.3 — Renderer editoriale Astro
 

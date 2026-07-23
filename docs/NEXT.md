@@ -66,29 +66,56 @@ Checkpoint live completato:
 
 Il checkpoint live non autorizza il cutover.
 
-### 2. Avviare listing preview
+### 2. Chiudere PR #65 e verificare la produzione
 
-Prossima branch autorizzata:
+Branch:
 
 ```text
 feat/public-listing-previews
 ```
 
-Scope:
+Route implementate:
 
-- `/astro-foundation/destinazioni`;
-- `/astro-foundation/guide`;
-- `/astro-foundation/confronti`;
-- stesso read model published-only;
-- route canoniche legacy ancora intatte;
-- route matrix e fail-fast.
+```text
+/astro-foundation/destinazioni
+/astro-foundation/guide
+/astro-foundation/confronti
+```
 
-Guardrail della slice:
+CI #291 è completamente verde e verifica:
 
-- nessun cambio alle route canoniche legacy;
-- nessuna mutation, pubblicazione o accesso browser a D1;
-- nessun cutover dell’apice;
-- route matrix e fail-fast prima del checkpoint live.
+- matrice tipizzata condivisa con il renderer legacy;
+- stesso read model `published`-only;
+- righe `review` e `draft` escluse;
+- ordine, limite e parità dei tre listing;
+- navigazione interna al namespace preview;
+- card verso articoli canonici legacy;
+- empty state specifici;
+- route non dichiarata → vera 404;
+- noindex, no-store e sitemap exclusion;
+- raw HTML senza JavaScript necessario;
+- desktop, mobile, tastiera e overflow;
+- tutte le regressioni Control Room.
+
+Dopo la CI finale sul commit documentale:
+
+```text
+merge PR #65
+→ deploy automatico da main
+→ aprire le tre route preview sul dominio pubblico
+```
+
+Checkpoint live richiesto:
+
+- Destinazioni, Guide e Confronti risolvono nel namespace preview;
+- contenuti remoti o empty state corretti per ciascun tipo;
+- header, menu e navigazione tra listing restano nel namespace;
+- card aprono gli articoli canonici legacy;
+- mobile in colonna singola senza overflow;
+- desktop a tre colonne quando esistono almeno tre card;
+- route canoniche listing e apice restano legacy.
+
+Il checkpoint non autorizza ancora renderer articolo, parità SEO o cutover.
 
 ### 3. Non attivare ancora Google measurement
 
@@ -162,7 +189,8 @@ approved draft ≠ published page
 - PR #60 — checkpoint mobile public shell;
 - PR #61 — trust pages e checkpoint mobile 3/3;
 - PR #62 — scope homepage candidata;
-- PR #63 — homepage candidata, merge `7ba767d`, CI finale #284 e checkpoint live desktop/mobile completati.
+- PR #63 — homepage candidata, merge `7ba767d`, CI finale #284 e checkpoint live desktop/mobile completati;
+- PR #65 — listing preview implementate, CI #291 verde; merge e checkpoint live aperti.
 
 ## Freeze immediato
 

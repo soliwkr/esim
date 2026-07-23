@@ -1,6 +1,7 @@
 ---
 import PublicFooter from '../components/public/PublicFooter.astro'
 import PublicHeader from '../components/public/PublicHeader.astro'
+import { setPublicPreviewResponseHeaders } from '../lib/public-preview-response'
 import '../styles/public.css'
 
 interface Props {
@@ -24,10 +25,7 @@ const canonicalUrl = new URL(canonicalPath, base).toString()
 const robots = noindex ? 'noindex,nofollow' : 'index,follow'
 
 if (noindex) {
-  Astro.response.headers.set('Cache-Control', 'no-store')
-  Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
-  Astro.response.headers.set('X-Content-Type-Options', 'nosniff')
-  Astro.response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  setPublicPreviewResponseHeaders(Astro.response.headers)
 }
 ---
 

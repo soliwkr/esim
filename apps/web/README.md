@@ -117,6 +117,46 @@ Regole:
 
 Il cutover dell’apice richiede una PR separata dopo listing, renderer articolo e parità SEO.
 
+## Public listing previews
+
+La quarta slice M5 aggiunge tre route statiche nel namespace non canonico:
+
+```text
+/astro-foundation/destinazioni
+/astro-foundation/guide
+/astro-foundation/confronti
+```
+
+Le route usano la matrice tipizzata `src/public-listing-routes.ts` e lo stesso
+`loadPublishedListingCards` del renderer legacy.
+
+Contratti:
+
+- soltanto righe `published`;
+- ordine `featured DESC, updated_at DESC`, limite 100;
+- D1 letto soltanto server-side;
+- navigazione tra listing sempre dentro `/astro-foundation`;
+- link delle card verso gli articoli canonici legacy;
+- route canoniche listing ancora servite dal renderer legacy;
+- route preview non dichiarate in matrice → vera 404;
+- empty state specifico per ogni listing;
+- raw HTML senza island o JavaScript necessario;
+- `noindex,nofollow`, `no-store` e sitemap exclusion.
+
+Gli header preview sono applicati da `src/lib/public-preview-response.ts` sia
+nel layout sia nel frontmatter delle route statiche, così il contratto della risposta
+non dipende dalla profondità di composizione dei componenti.
+
+Dedicated verification:
+
+```bash
+npm run smoke:public-listing-previews
+```
+
+Lo smoke usa due stati D1 temporanei isolati e verifica matrice delle tre route,
+published-only, ordine, parità legacy, link canonici, empty state, sitemap exclusion,
+vera 404, header preview, raw HTML, desktop, mobile e overflow.
+
 ## UI Control Room
 
 Astro fornisce la shell SSR e monta un solo root React con `client:load`. shadcn/ui è configurato da `components.json`; i componenti sorgente vivono sotto `src/components/ui` e lo stile Tailwind 4 privato in `src/styles/globals.css`.
@@ -182,6 +222,7 @@ npm run smoke:runtime
 npm run smoke:public-shell
 npm run smoke:public-homepage-candidate
 npm run smoke:public-trust-pages
+npm run smoke:public-listing-previews
 npm run smoke:ui
 npm run smoke:brief-decisions
 npm run smoke:claims
@@ -213,3 +254,4 @@ Verifica:
 - empty state.
 
 PR #54 e migrazione remota `0020` restano il checkpoint produttivo della prima mutation. La homepage candidata non modifica D1, stati editoriali o capacità di pubblicazione.
+

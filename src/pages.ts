@@ -1,5 +1,6 @@
 import type { ContentBlock, Env, FaqItem, PageCard, PageRow } from './types';
 import { loadPublishedListingCards, loadPublicHomepageCards } from './public-page-cards';
+import { publicListingDefinition } from './public-listing-routes';
 import { affiliateEnabled, esc, safeJsonParse, siteBase } from './utils';
 import { layout, renderBlocks, renderFaq } from './render';
 
@@ -20,14 +21,9 @@ export async function home(env: Env): Promise<Response> {
 }
 
 export async function listing(env: Env, type: 'destination' | 'guide' | 'comparison'): Promise<Response> {
-  const labels = {
-    destination: { path: '/destinazioni', title: 'eSIM per destinazione', description: 'Guide e confronti eSIM organizzati per Paese e destinazione.' },
-    guide: { path: '/guide', title: 'Guide pratiche sulle eSIM', description: 'Compatibilità, installazione, attivazione, costi e funzionamento delle eSIM.' },
-    comparison: { path: '/confronti', title: 'Confronti tra eSIM e provider', description: 'Confronti trasparenti tra provider e tipologie di eSIM.' }
-  } as const;
-  const copy = labels[type];
+  const copy = publicListingDefinition(type);
   const items = await loadPublishedListingCards(env.DB, type, 100);
-  return layout(env, { title: `${copy.title} | ${env.SITE_NAME}`, description: copy.description, canonicalPath: copy.path, content: `<main><section class="hero"><div class="wrap"><div class="eyebrow">${esc(copy.title)}</div><h1>${esc(copy.title)}</h1><p class="lead">${esc(copy.description)}</p></div></section><section class="wrap grid">${cardsHtml(items)}</section></main>` });
+  return layout(env, { title: `${copy.title} | ${env.SITE_NAME}`, description: copy.description, canonicalPath: copy.canonicalPath, content: `<main><section class="hero"><div class="wrap"><div class="eyebrow">${esc(copy.title)}</div><h1>${esc(copy.title)}</h1><p class="lead">${esc(copy.description)}</p></div></section><section class="wrap grid">${cardsHtml(items)}</section></main>` });
 }
 
 async function related(env: Env, row: PageRow): Promise<string> {
