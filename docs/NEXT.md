@@ -37,8 +37,8 @@ Le CI #213 e #220 coprono contratti, D1 locale, `workerd`, desktop e mobile auto
 
 La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Restano:
 
-- applicazione remota della migrazione `0019`;
-- normalizzatore con anchor attivo sui nuovi run;
+- conferma del normalizzatore con anchor attivo sui nuovi run;
+- osservazione del primo nuovo run autorizzato;
 - nessun Workflow avviato automaticamente;
 - nessun dato editoriale artificiale creato per il test.
 
@@ -82,7 +82,7 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - PR #42 — draft, preview e decisioni read-only;
 - PR #44 — queue e audit read-only;
 - PR #45 — golden quality evaluation;
-- PR #46 — topic-mismatch gate mergiato, verifica remota aperta;
+- PR #46 — topic-mismatch gate mergiato; stack remoto allineato, verifica funzionale sul prossimo run aperta;
 - PR #47 — dettaglio draft completo, CI #198 e verifica browser reale;
 - PR #49 — audit legacy, merge `e0a39fa9`, CI #209;
 - PR #50 — claim → task, merge `41a9beee`, CI #213;

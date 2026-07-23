@@ -16,7 +16,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
 | Golden quality evaluation | Operativa in CI | PR #45 |
-| Topic-mismatch gate | Mergiato, verifica remota aperta | PR #46, CI #188; migrazione `0019` da attestare |
+| Topic-mismatch gate | Mergiato, verifica funzionale aperta | PR #46, CI #188; stack remoto allineato, primo nuovo run ancora da osservare |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
