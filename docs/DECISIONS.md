@@ -244,10 +244,10 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-025 — Mutation una capacità per branch con identità Access e state machine D1
 
-**Stato:** proposta sulla branch `feat/control-room-brief-decision-mutation`
+**Stato:** accettata e verificata in produzione con PR #54
 
 **Decisione:** migrare le mutation della Control Room una per volta. Ogni capacità usa una route privata dedicata, deriva l’attore dal JWT Cloudflare Access già verificato, richiede conferma esplicita nel client e delega a D1 la validità della transizione e l’audit append-only.
 
 **Razionale:** un form browser non è un’autorità editoriale. Idempotenza, concorrenza e transizioni terminali devono restare verificabili server-side. Accettare insieme più capacità renderebbe ambiguo quale azione ha causato un cambiamento e allargherebbe il raggio di errore.
 
-**Conseguenza:** la prima applicazione è `proposed → accepted|dismissed` sui brief. Il browser invia soltanto `briefId`, azione e note; non può scegliere l’attore. D1 conserva `editorial_brief_events`, blocca transizioni illegali e mantiene `accepted → converted` come gate successivo. Il client usa un AlertDialog, impedisce il rifiuto senza motivo e ricarica lo snapshot dopo l’esito. Il contratto attesta `publicationTriggered: false`. Conversione, claim, readiness, draft, queue retry, materializzazione e pubblicazione restano fuori dalla branch. La decisione diventa accettata soltanto dopo CI, merge e verifica remota della migrazione `0020`.
+**Conseguenza:** la prima applicazione è `proposed → accepted|dismissed` sui brief. Il browser invia soltanto `briefId`, azione e note; non può scegliere l’attore. D1 conserva `editorial_brief_events`, blocca transizioni illegali e mantiene `accepted → converted` come gate successivo. Il client usa un AlertDialog, impedisce il rifiuto senza motivo e ricarica lo snapshot dopo l’esito. Il contratto attesta `publicationTriggered: false`. Conversione, claim, readiness, draft, queue retry, materializzazione e pubblicazione restano fuori dalla branch. La decisione è stata accettata dopo merge `15ea0445`, CI finale #237 e checkpoint produttivo #244: `0020` è registrata nella D1 remota, la Control Room è verificata dietro Access e nessun brief reale è stato modificato.

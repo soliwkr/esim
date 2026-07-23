@@ -106,7 +106,7 @@ failed task ≠ contenuto non valido
 audit event ≠ autorizzazione operativa
 ```
 
-Questa branch non implementa conversione brief, mutation claim, valutazione readiness, approvazione bundle, generazione o revisione draft, materializzazione, queue retry, accesso browser a D1 o pubblicazione.
+La PR #54 non implementa conversione brief, mutation claim, valutazione readiness, approvazione bundle, generazione o revisione draft, materializzazione, queue retry, accesso browser a D1 o pubblicazione.
 
 ## Dati e sessione server-side
 
@@ -154,4 +154,4 @@ Gli smoke generano credenziali Access effimere; nessuna chiave viene versionata.
 - gli smoke claim, readiness, draft, dettaglio e queue/audit verificano le rispettive viste e i contratti di regressione.
 - `smoke:legacy-parity` verifica letture complete, prima mutation migrata e inventario delle mutation ancora nella legacy.
 
-La CI #230 è completamente verde sulla branch. Merge, migrazione remota `0020` e verifica browser reale di produzione restano separati e non sono ancora attestati.
+La CI finale #237 è verde. PR #54, migrazione remota `0020` e Control Room reale dietro Access sono verificati dal checkpoint produttivo #244; nessuna decisione su brief reali è stata eseguita.
