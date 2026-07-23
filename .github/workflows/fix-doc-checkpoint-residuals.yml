@@ -1,0 +1,40 @@
+name: Fix brief decision docs residuals
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'docs/close-brief-decision-checkpoint'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fix residuals
+        run: node scripts/fix-doc-checkpoint-residuals.mjs
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Documentation already aligned."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/STATUS.md docs/NEXT.md
+          git commit -m "Fix brief decision docs checkpoint residuals"
+          git push origin HEAD:${{ github.head_ref }}
