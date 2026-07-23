@@ -19,7 +19,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
 | Public shell Astro | In produzione come preview | PR #59; `/` resta legacy |
 | Trust pages Astro | In produzione e verificate su mobile | PR #61; checkpoint 3/3 |
-| Homepage candidata Astro | Verificata in CI, live da osservare | PR #63 draft; CI #279 verde |
+| Homepage candidata Astro | Verificata in produzione desktop e mobile | PR #63 mergiata; CI finale #284 verde |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -175,7 +175,7 @@ Implementato:
 - nessuna API pubblica e nessun binding D1 nel browser;
 - nessuna island, analytics, affiliazione o mutation.
 
-CI #279 completamente verde dopo due correzioni allo smoke:
+CI #279 ha validato il runtime dedicato; la CI finale #284 è completamente verde dopo il commit documentale. Durante lo sviluppo sono state corrette due assunzioni dello smoke:
 
 1. il database “vuoto” conteneva una pagina seminata dalle migrazioni; la fixture ora archivia le righe soltanto nello stato D1 temporaneo;
 2. l’asserzione empty intercettava il nome CSS `catalog-card`; ora verifica elementi `<article>` reali.
@@ -194,10 +194,17 @@ Verificato dalla CI:
 - catalogo realmente vuoto con due empty state;
 - tutte le regressioni Control Room.
 
-Non ancora verificato:
+Produzione verificata:
 
-- deploy del commit finale su `main`;
-- resa visuale della candidata con il catalogo remoto reale.
+- PR #63 mergiata su `main` nel commit `7ba767d` e distribuita;
+- desktop live con quattro guide pubblicate in griglia a tre colonne;
+- mobile live con le stesse card in colonna singola, testi e CTA leggibili e nessun overflow orizzontale visibile;
+- sezione “Destinazioni principali” con empty state remoto leggibile;
+- transizione verso la sezione “Il metodo” stabile;
+- link delle card verso route canoniche legacy;
+- apice `/` ancora sul renderer legacy.
+
+Gli screenshot attestano la resa visuale; `noindex`, header HTTP, query published-only, sitemap e assenza di righe `review` restano attestati dalla CI e dalle verifiche tecniche precedenti.
 
 Nessun cutover dell’apice è autorizzato.
 
@@ -222,7 +229,6 @@ Regole:
 
 ## Gap aperti
 
-- checkpoint visuale live della homepage candidata;
 - listing preview Destinazioni, Guide e Confronti;
 - renderer articolo grounded Astro;
 - parità canonical, sitemap, schema, 404 e redirect provider;
@@ -237,9 +243,8 @@ Regole:
 ## Prossimo checkpoint
 
 ```text
-PR #63 CI verde
-→ merge su main
-→ aprire /astro-foundation in produzione
-→ verificare catalogo reale mobile e desktop
-→ soltanto dopo autorizzare listing preview
+M5.2 chiusa in produzione
+→ branch feat/public-listing-previews
+→ Destinazioni, Guide e Confronti in namespace preview
+→ route matrix, fail-fast e checkpoint live separato
 ```

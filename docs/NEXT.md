@@ -6,7 +6,7 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap c
 
 ## Now
 
-### 1. Homepage candidata Astro verificata in CI
+### 1. Homepage candidata Astro verificata in produzione
 
 PR #63 implementa la terza slice M5 su:
 
@@ -40,7 +40,7 @@ featured:     status='published' AND featured=1, limit 9
 destinations: status='published' AND page_type='destination', limit 6
 ```
 
-CI #279 è completamente verde e verifica:
+PR #63 è mergiata nel commit `7ba767d`; la CI finale #284 è completamente verde e verifica:
 
 - righe `published` presenti;
 - righe `review` e `draft` assenti;
@@ -55,37 +55,26 @@ CI #279 è completamente verde e verifica:
 - desktop, mobile, tastiera e overflow;
 - tutte le regressioni Control Room.
 
-### 2. Chiudere PR #63 e verificare la produzione
+Checkpoint live completato:
 
-Dopo la CI finale sul commit documentale:
-
-```text
-merge PR #63
-→ deploy automatico da main
-→ aprire https://senzaroaming.it/astro-foundation
-```
-
-Checkpoint live richiesto:
-
-- le sezioni “Guide essenziali” e “Destinazioni principali” compaiono;
-- soltanto contenuti realmente `published` sono visibili;
-- le card aprono route canoniche legacy;
-- layout mobile senza overflow;
-- layout desktop a tre colonne quando ci sono abbastanza card;
-- empty state leggibile se uno dei gruppi non contiene pagine;
+- desktop con quattro guide pubblicate in griglia a tre colonne;
+- mobile con le card in colonna singola, testi e CTA leggibili e nessun overflow visibile;
+- “Destinazioni principali” con empty state remoto leggibile;
+- transizione verso “Il metodo” stabile;
+- link verso route canoniche legacy;
 - banner preview e apice legacy invariati.
 
 Il checkpoint live non autorizza il cutover.
 
-### 3. Non avviare ancora listing preview
+### 2. Avviare listing preview
 
-La slice successiva sarà autorizzata soltanto dopo il riscontro live della homepage candidata:
+Prossima branch autorizzata:
 
 ```text
 feat/public-listing-previews
 ```
 
-Scope futuro:
+Scope:
 
 - `/astro-foundation/destinazioni`;
 - `/astro-foundation/guide`;
@@ -94,9 +83,14 @@ Scope futuro:
 - route canoniche legacy ancora intatte;
 - route matrix e fail-fast.
 
-Nessun codice di questa slice successiva viene anticipato nella PR #63.
+Guardrail della slice:
 
-### 4. Non attivare ancora Google measurement
+- nessun cambio alle route canoniche legacy;
+- nessuna mutation, pubblicazione o accesso browser a D1;
+- nessun cutover dell’apice;
+- route matrix e fail-fast prima del checkpoint live.
+
+### 3. Non attivare ancora Google measurement
 
 Sono stati preparati esternamente:
 
@@ -126,7 +120,7 @@ Regole:
 - nessun tracking sulle preview noindex;
 - nessuna configurazione service account fuori da una branch M6 esplicita.
 
-### 5. Continuare M4 soltanto su branch separate
+### 4. Continuare M4 soltanto su branch separate
 
 ```text
 conversione brief
@@ -139,8 +133,7 @@ Ogni mutation richiede Access, conferma, state machine server-side, audit, idemp
 
 ## Verifiche operative aperte
 
-- homepage candidata nel dominio pubblico;
-- desktop live e header HTTP delle preview;
+- header HTTP delle preview;
 - linkage claim → task nel browser reale;
 - linkage audit → ID/versione draft nel browser reale;
 - topic-mismatch sul primo run autorizzato;
@@ -169,7 +162,7 @@ approved draft ≠ published page
 - PR #60 — checkpoint mobile public shell;
 - PR #61 — trust pages e checkpoint mobile 3/3;
 - PR #62 — scope homepage candidata;
-- PR #63 — homepage candidata, CI #279 verde; checkpoint live aperto.
+- PR #63 — homepage candidata, merge `7ba767d`, CI finale #284 e checkpoint live desktop/mobile completati.
 
 ## Freeze immediato
 
@@ -178,6 +171,6 @@ approved draft ≠ published page
 - niente pubblicazione automatica;
 - niente secret o PII nel client, URL, storage, log o repository;
 - niente affiliazioni o tracking anticipati;
-- niente listing preview prima del checkpoint live;
+- niente sostituzione delle route listing canoniche nella slice preview;
 - niente cutover dell’apice;
 - nessuna rimozione legacy finché resta un fallback operativo.

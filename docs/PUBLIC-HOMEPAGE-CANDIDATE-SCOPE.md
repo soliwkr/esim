@@ -2,7 +2,7 @@
 
 Date: 2026-07-23
 
-Status: implemented in PR #63 and verified by CI #279. Production preview checkpoint remains open. This document does not authorize an apex cutover, listing migration, publication, affiliates or analytics.
+Status: completed. PR #63 was merged as `7ba767d`, final CI #284 passed, and the production preview was verified on desktop and mobile. This document does not authorize an apex cutover, canonical listing migration, publication, affiliates or analytics.
 
 ## Branch
 
@@ -137,7 +137,7 @@ Empty fixture:
 - two readable empty states render;
 - zero catalog `<article>` elements render.
 
-CI #279 also passed all existing Control Room, D1, quality, Container and runtime suites.
+CI #279 passed the dedicated runtime checkpoint. Final CI #284 also passed all existing Control Room, D1, quality, Container and runtime suites.
 
 ## Corrections made during CI
 
@@ -171,20 +171,24 @@ Completed in CI:
 - raw HTML;
 - full CI.
 
-Still required:
+Completed in production:
 
 ```text
-merge PR #63
+merge PR #63 as 7ba767d
 → deploy from main
-→ visual mobile and desktop checkpoint with remote catalog
+→ desktop checkpoint with remote catalog
+→ mobile checkpoint with single-column cards and destination empty state
 ```
+
+The screenshots attest visual rendering only. `noindex`, HTTP headers, published-only filtering, sitemap exclusion and review-row exclusion remain backed by CI and prior technical verification.
 
 ## Next gate
 
-Only after the live checkpoint:
+The live checkpoint authorizes the next isolated branch:
 
 ```text
-listing preview for destinations / guides / comparisons
+feat/public-listing-previews
+→ destinations / guides / comparisons in preview namespace
 ```
 
 The apex cutover remains a later, separate, explicitly authorized PR.
