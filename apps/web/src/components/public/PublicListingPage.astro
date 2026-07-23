@@ -1,0 +1,87 @@
+---
+import { env } from 'cloudflare:workers'
+import {
+  PUBLIC_LISTING_DEFINITIONS,
+  publicListingDefinition,
+} from '../../../../../src/public-listing-routes'
+import type { PublicListingType } from '../../../../../src/public-page-cards'
+import { loadPublishedListingCards } from '../../../../../src/public-page-cards'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+import PublicPageCardGrid from './PublicPageCardGrid.astro'
+import '../../styles/public-listings.css'
+
+interface Props {
+  type: PublicListingType
+}
+
+const { type } = Astro.props
+const definition = publicListingDefinition(type)
+const items = await loadPublishedListingCards(env.DB, type, 100)
+---
+
+<PublicLayout
+  title={`${definition.title} preview | Senza Roaming`}
+  description={`Preview non indicizzabile. ${definition.description}`}
+  canonicalPath={definition.previewPath}
+  previewBase="/astro-foundation"
+  noindex
+>
+  <div
+    class="preview-band"
+    data-public-shell="astro-preview"
+    data-public-listing={definition.type}
+  >
+    Preview Astro · non indicizzata · le route pubbliche attuali non cambiano
+  </div>
+
+  <section class="listing-hero" aria-labelledby="listing-title">
+    <div class="public-container">
+      <nav class="listing-breadcrumbs" aria-label="Percorso preview">
+        <a href="/astro-foundation">Home preview</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{definition.navLabel}</span>
+      </nav>
+
+      <div class="listing-hero-grid">
+        <div>
+          <p class="eyebrow">{definition.eyebrow}</p>
+          <h1 id="listing-title">{definition.title}</h1>
+          <p class="listing-lead">{definition.lead}</p>
+        </div>
+
+        <aside class="listing-state" aria-labelledby="listing-state-title">
+          <p class="listing-state-label">Contratto della preview</p>
+          <h2 id="listing-state-title">Il catalogo pubblico, senza scorciatoie.</h2>
+          <ul>
+            <li>Soltanto pagine con stato <code>published</code>.</li>
+            <li>Ordine condiviso con il listing corrente.</li>
+            <li>Draft e righe in review restano esclusi.</li>
+            <li>Nessun tracking, ranking o affiliazione attiva.</li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <nav class="public-container listing-route-nav" aria-label="Sezioni del catalogo preview">
+    {PUBLIC_LISTING_DEFINITIONS.map((item) => (
+      <a
+        href={item.previewPath}
+        aria-current={item.type === definition.type ? 'page' : undefined}
+      >
+        <span>{item.eyebrow}</span>
+        <strong>{item.navLabel}</strong>
+      </a>
+    ))}
+  </nav>
+
+  <PublicPageCardGrid
+    id={`listing-${definition.type}`}
+    eyebrow="Dal catalogo pubblicato"
+    title={definition.cardTitle}
+    description={definition.cardDescription}
+    items={items}
+    emptyMessage={definition.emptyMessage}
+    linkLabel={definition.cardLinkLabel}
+  />
+</PublicLayout>
