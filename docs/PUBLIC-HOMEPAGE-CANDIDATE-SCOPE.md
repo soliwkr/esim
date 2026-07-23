@@ -1,8 +1,8 @@
-# Public homepage candidate — scope
+# Public homepage candidate — implementation record
 
 Date: 2026-07-23
 
-Status: authorized implementation scope for the next M5 branch. This document does not perform an apex cutover, publish content, enable affiliates, configure analytics or change editorial state.
+Status: implemented in PR #63 and verified by CI #279. Production preview checkpoint remains open. This document does not authorize an apex cutover, listing migration, publication, affiliates or analytics.
 
 ## Branch
 
@@ -10,34 +10,25 @@ Status: authorized implementation scope for the next M5 branch. This document do
 feat/public-homepage-candidate
 ```
 
-## Goal
+## Goal achieved
 
-Evolve `/astro-foundation` from a static shell preview into a credible candidate for the future public homepage by rendering the current published catalog server-side.
+`/astro-foundation` now renders the current published catalog server-side while remaining:
 
-The route remains:
-
-- namespaced under `/astro-foundation`;
+- namespaced;
 - `noindex,nofollow`;
 - `no-store`;
-- excluded from the public sitemap;
-- separate from the canonical apex `/`.
+- outside the public sitemap;
+- separate from canonical apex `/`.
 
-## Source of truth
+## Shared source of truth
 
-The legacy homepage currently reads two published-only card groups from D1:
+The legacy renderer and Astro use:
 
 ```text
-featured:     status='published' AND featured=1, limit 9
-destinations: status='published' AND page_type='destination', limit 6
+src/public-page-cards.ts
 ```
 
-The candidate homepage must preserve that semantic contract without copying the legacy HTML renderer.
-
-## Allowed server-side extraction
-
-The implementation may extract only the existing public-card read model into a small shared server-only module used by both legacy and Astro.
-
-Allowed fields:
+Read model:
 
 ```text
 slug
@@ -47,121 +38,153 @@ meta_description
 cluster
 ```
 
-Allowed behavior:
+Queries:
 
-- query D1 only on the server;
-- return only rows with `status='published'`;
-- preserve `ORDER BY featured DESC, updated_at DESC`;
-- preserve explicit limits;
-- expose no browser API and no D1 binding to client code;
-- return a typed empty array when no card exists;
-- fail visibly in development/test on an invalid contract, not by inventing fallback content.
+```text
+featured:
+status='published' AND featured=1
+ORDER BY featured DESC, updated_at DESC
+LIMIT 9
 
-This extraction is not authorization to redesign backend contracts, add a public JSON endpoint or move editorial logic into Astro.
+destinations:
+status='published' AND page_type='destination'
+ORDER BY featured DESC, updated_at DESC
+LIMIT 6
+```
 
-## Candidate homepage content
+The module:
 
-The page may combine:
+- accepts no arbitrary SQL clause;
+- validates positive limits;
+- validates every D1 row at runtime;
+- returns typed empty arrays;
+- is used by legacy home, legacy listings and Astro;
+- exposes no public browser API.
 
-1. the verified static hero and decision framing from PR #59;
-2. a server-rendered “Guide essenziali” card grid from published featured pages;
-3. a server-rendered “Destinazioni principali” card grid from published destination pages;
+## Astro implementation
+
+```text
+apps/web/src/pages/astro-foundation.astro
+apps/web/src/components/public/PublicPageCardGrid.astro
+apps/web/src/styles/homepage-candidate.css
+```
+
+The candidate combines:
+
+1. static hero and decision framing;
+2. “Guide essenziali” from published featured pages;
+3. “Destinazioni principali” from published destination pages;
 4. existing method and trust sections;
-5. links to canonical legacy article/listing routes until their own Astro slices exist.
+5. links to canonical legacy routes.
 
-Every card must remain useful without JavaScript.
+Every card is present in raw HTML and works without JavaScript.
 
-## Empty states
+## Empty state
 
-An empty catalog must not create fictional pages or claims.
-
-Allowed copy is operational and non-commercial, for example:
+When a group has no published rows, the page renders:
 
 ```text
 I contenuti sono in preparazione.
 ```
 
-No AI-generated substitute, placeholder provider, fabricated destination or fake count is allowed.
+No AI substitute, placeholder provider, fabricated destination or fake count is generated.
 
-## Metadata and SEO isolation
-
-The candidate keeps:
+## SEO isolation preserved
 
 - canonical `https://senzaroaming.it/astro-foundation`;
 - meta robots `noindex,nofollow`;
 - response `X-Robots-Tag: noindex, nofollow`;
 - `Cache-Control: no-store`;
-- exclusion from `/sitemap.xml`;
-- no WebSite schema cutover requirement yet.
+- preview excluded from `/sitemap.xml`;
+- canonical homepage `/` still owned by legacy.
 
-The canonical homepage `/` remains owned by the legacy renderer.
+## Test result
 
-## Explicit exclusions
+Dedicated command:
 
-This branch must not:
+```bash
+npm run smoke:public-homepage-candidate
+```
+
+The smoke creates isolated temporary D1 states and never changes shared or remote data.
+
+Populated fixture:
+
+- 10 published featured rows;
+- 7 published destination rows;
+- one featured `review` row;
+- one destination `review` row;
+- one featured `draft` row.
+
+Verified:
+
+- 9 featured cards rendered in deterministic order;
+- 6 destination cards rendered in deterministic order;
+- `review` and `draft` rows absent;
+- canonical legacy links;
+- legacy home uses the same published read model;
+- sitemap includes published fixtures but not preview/review routes;
+- unknown route returns real 404 with noindex;
+- no island or required script;
+- desktop grid has three columns;
+- mobile grid has one column;
+- keyboard and overflow checks pass.
+
+Empty fixture:
+
+- migrated catalog rows are archived only in the temporary state;
+- both groups return empty arrays;
+- two readable empty states render;
+- zero catalog `<article>` elements render.
+
+CI #279 also passed all existing Control Room, D1, quality, Container and runtime suites.
+
+## Corrections made during CI
+
+1. The first empty fixture still contained a page seeded by migrations. The test now archives migrated rows only inside its temporary D1 state.
+2. The second assertion matched the CSS selector name `catalog-card`. It now checks actual `<article class="catalog-card">` elements.
+
+Neither correction changed production application behavior.
+
+## Explicit exclusions preserved
+
+PR #63 does not:
 
 - change `/` routing;
-- replace `/destinazioni`, `/guide` or `/confronti`;
-- replace article routes;
-- publish pages in `review`;
+- replace listing or article routes;
+- publish `review` pages;
 - read drafts, claims or evidence bundles for public rendering;
-- add or mutate D1 data;
-- introduce an API endpoint;
-- add React or client JavaScript to the public homepage;
-- enable affiliate links or provider ranking;
-- add prices, coverage, plan limits or unsupported commercial claims;
+- mutate D1;
+- add a public API;
+- add React or required client JavaScript;
+- enable affiliates, provider ranking or prices;
 - install CMP, GTM, GA4 or Search Console code;
 - configure or consume the service account;
-- remove the legacy public renderer.
+- remove the legacy renderer.
 
-## Tests required
+## Exit status
 
-### Read-model tests
+Completed in CI:
 
-- published-only filter;
-- featured ordering and limit;
-- destination filter and limit;
-- stable typed output;
-- empty result;
-- no review/draft rows returned.
+- shared non-duplicative read model;
+- published-only rendering;
+- raw HTML;
+- full CI.
 
-### Runtime tests
+Still required:
 
-- `/astro-foundation` returns 200 with noindex/no-store;
-- published fixture cards appear in raw HTML;
-- review fixture cards do not appear;
-- card links point to canonical legacy routes;
-- no `astro-island` and no required script;
-- sitemap excludes `/astro-foundation`;
-- apex `/` remains legacy;
-- unknown public routes preserve real 404 behavior;
-- all Control Room tests remain green.
-
-### Browser tests
-
-- desktop card grid;
-- 390 px mobile stacking;
-- keyboard navigation and visible focus;
-- no horizontal overflow;
-- empty state remains readable.
-
-## Exit criteria
-
-The branch is complete only when:
-
-- the shared read model is used by legacy and Astro or an equally non-duplicative server-only design is demonstrated;
-- the candidate renders only published rows;
-- raw HTML is useful without JavaScript;
-- CI is fully green;
-- production preview is visually checked;
-- no canonical route or publication state changed.
+```text
+merge PR #63
+→ deploy from main
+→ visual mobile and desktop checkpoint with remote catalog
+```
 
 ## Next gate
 
-After this slice, and only after its live checkpoint:
+Only after the live checkpoint:
 
 ```text
 listing preview for destinations / guides / comparisons
 ```
 
-The apex cutover remains a separate authorized PR after listing, article renderer and SEO parity work.
+The apex cutover remains a later, separate, explicitly authorized PR.

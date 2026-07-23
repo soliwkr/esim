@@ -1,0 +1,49 @@
+---
+import type { PageCard } from '../../../../../src/types'
+import '../../styles/homepage-candidate.css'
+
+interface Props {
+  id: string
+  eyebrow: string
+  title: string
+  description: string
+  items: PageCard[]
+  emptyMessage?: string
+}
+
+const {
+  id,
+  eyebrow,
+  title,
+  description,
+  items,
+  emptyMessage = 'I contenuti sono in preparazione.',
+} = Astro.props
+---
+
+<section class="public-section catalog-section" aria-labelledby={`${id}-title`} data-public-catalog={id}>
+  <div class="public-container">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">{eyebrow}</p>
+        <h2 id={`${id}-title`}>{title}</h2>
+      </div>
+      <p>{description}</p>
+    </div>
+
+    {items.length > 0 ? (
+      <div class="catalog-grid">
+        {items.map((item) => (
+          <article class="catalog-card" data-page-type={item.page_type}>
+            <p class="catalog-cluster">{item.cluster}</p>
+            <h3><a href={`/${item.slug}`}>{item.title}</a></h3>
+            <p>{item.meta_description}</p>
+            <a class="catalog-link" href={`/${item.slug}`}>Leggi la guida →</a>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p class="catalog-empty" role="status">{emptyMessage}</p>
+    )}
+  </div>
+</section>

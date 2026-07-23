@@ -1,0 +1,109 @@
+.catalog-section {
+  position: relative;
+}
+
+.catalog-section:nth-of-type(even) {
+  background: linear-gradient(180deg, rgb(233 245 251 / 45%), rgb(255 253 248 / 20%));
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.catalog-card {
+  display: flex;
+  min-height: 18rem;
+  flex-direction: column;
+  padding: clamp(1.35rem, 3vw, 1.8rem);
+  border: 1px solid var(--public-line);
+  border-radius: var(--public-radius-md);
+  background: var(--public-white);
+  box-shadow: 0 0.8rem 2rem rgb(7 63 67 / 4%);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.catalog-card:hover {
+  border-color: rgb(11 111 117 / 42%);
+  box-shadow: 0 1.25rem 3rem rgb(7 63 67 / 9%);
+  transform: translateY(-4px);
+}
+
+.catalog-cluster {
+  margin: 0;
+  color: var(--public-sea);
+  font-size: 0.73rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.catalog-card h3 {
+  margin: 1.1rem 0 0.9rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.06;
+}
+
+.catalog-card h3 a {
+  text-decoration: none;
+}
+
+.catalog-card h3 a:hover {
+  color: var(--public-sea);
+}
+
+.catalog-card > p:not(.catalog-cluster) {
+  margin: 0;
+  color: var(--public-ink-soft);
+  line-height: 1.65;
+}
+
+.catalog-link {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  color: var(--public-sea-dark);
+  font-size: 0.88rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.catalog-link:hover {
+  color: var(--public-sea);
+}
+
+.catalog-empty {
+  margin: 0;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  border: 1px dashed rgb(11 111 117 / 38%);
+  border-radius: var(--public-radius-md);
+  color: var(--public-ink-soft);
+  background: rgb(223 243 241 / 42%);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .catalog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-card {
+    min-height: 15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-card {
+    transition-duration: 0.01ms;
+  }
+}
