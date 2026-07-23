@@ -21,7 +21,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Trust pages Astro | In produzione e verificate su mobile | PR #61; checkpoint 3/3 |
 | Homepage candidata Astro | Verificata in produzione desktop e mobile | PR #63 mergiata; CI finale #284 verde |
 | Listing Astro | Verificati in produzione desktop e narrow/mobile | PR #65 mergiata in `2483fbf`; CI finale #296 verde |
-| Renderer articolo Astro | Autorizzato, non implementato | prossima branch `feat/public-article-renderer` |
+| Renderer articolo Astro | Implementato nella PR draft #67 | CI applicativa #302 verde; merge, deploy e checkpoint live pendenti |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -172,7 +172,6 @@ Implementato:
 - funzioni tipizzate a query fisse, senza clausole SQL arbitrarie;
 - validazione runtime delle righe D1;
 - legacy home/listing e Astro sullo stesso read model;
-- card in raw HTML verso route canoniche legacy;
 - empty state senza contenuti inventati;
 - nessuna API pubblica e nessun binding D1 nel browser;
 - nessuna island, analytics, affiliazione o mutation.
@@ -203,8 +202,9 @@ Produzione verificata:
 - mobile live con le stesse card in colonna singola, testi e CTA leggibili e nessun overflow orizzontale visibile;
 - sezione “Destinazioni principali” con empty state remoto leggibile;
 - transizione verso la sezione “Il metodo” stabile;
-- link delle card verso route canoniche legacy;
 - apice `/` ancora sul renderer legacy.
+
+In PR #67, soltanto le card della preview Astro passano ai link articolo namespaced `/astro-foundation/articoli/{slug}`. La home legacy continua a emettere link canonici `/{slug}`.
 
 Gli screenshot attestano la resa visuale; `noindex`, header HTTP, query published-only, sitemap e assenza di righe `review` restano attestati dalla CI e dalle verifiche tecniche precedenti.
 
@@ -234,7 +234,6 @@ Implementato e verificato dalla CI applicativa #291 e dalla CI finale #296:
 
 - tre route statiche noindex/no-store e fuori sitemap;
 - navigazione del namespace preview tra home, listing e trust pages;
-- card verso articoli canonici legacy;
 - righe `review` e `draft` escluse;
 - ordine deterministico e parità con i listing legacy;
 - empty state specifici per Destinazioni, Guide e Confronti;
@@ -264,20 +263,76 @@ Produzione verificata:
 
 Lo screenshot narrow di Guide è appena sopra il breakpoint `560px` e mostra quindi due colonne, comportamento previsto dal CSS responsive; la CI continua ad attestare la singola colonna sotto il breakpoint mobile. Gli screenshot non sostituiscono le verifiche tecniche di noindex/no-store, published-only, sitemap exclusion e vere 404.
 
+In PR #67, soltanto le card dei listing preview passano alle route articolo namespaced. I listing canonici continuano a emettere link `/{slug}` e restano sul renderer legacy.
+
 Le route canoniche `/destinazioni`, `/guide` e `/confronti` restano legacy.
 Nessun cutover dell’apice è autorizzato.
 
-### Renderer articolo — scope successivo
+### Renderer articolo — PR #67
 
-La prossima slice autorizzata è:
+Route implementata:
 
 ```text
-feat/public-article-renderer
+/astro-foundation/articoli/[slug]
 ```
 
-Scope canonico: `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md`.
+Flusso:
 
-La slice deve restare una preview noindex e published-only. Non può leggere o rendere pagine `review`, cambiare le route articolo canoniche, modificare D1, introdurre pubblicazione, attivare analytics o affiliazioni.
+```text
+D1 published page
+→ src/public-article.ts
+→ renderer legacy o componenti Astro strutturati
+→ HTML
+```
+
+Il read model condiviso usa una query fissa:
+
+```sql
+SELECT ...
+FROM pages
+WHERE slug=? AND status='published'
+```
+
+Implementato nella PR draft #67:
+
+- validazione runtime di scalari, `page_type`, date, `content_json`, `faq_json` e `source_links_json`;
+- union esplicita dei blocchi `paragraph`, `heading`, `bullets`, `steps`, `table` e `callout`;
+- nessun `set:html`, `innerHTML`, HTML AI grezzo o tag scelto dal database;
+- FAQ con elementi nativi `details` e `summary`;
+- fonti linkabili soltanto quando l’URL è HTTPS;
+- provenance pubblica limitata a `source_checked_at`, `updated_at` e fonti persistite con la pagina;
+- nessuna esposizione di claim ID, bundle, claim esclusi, note revisore, queue o metadati di generazione;
+- related links soltanto `published`, nello stesso cluster, escluso lo slug corrente e ordinati deterministicamente;
+- `review`, `draft` e slug assenti restituiscono vera 404;
+- una riga `published` strutturalmente invalida fallisce chiusa con risposta generica 500 e senza corpo fattuale;
+- preview home, listing e related links restano nel namespace `/astro-foundation/articoli/`;
+- home, listing e articolo legacy continuano a usare le route canoniche;
+- response header preview applicati direttamente dal frontmatter;
+- noindex, no-store e sitemap exclusion;
+- raw HTML senza Astro island o JavaScript richiesto;
+- tabelle con overflow locale e nessun overflow della pagina;
+- nessuna migration, mutation, API pubblica o capacità di pubblicazione.
+
+Smoke dedicato:
+
+```text
+npm run smoke:public-article-renderer
+```
+
+La fixture verifica una pagina pubblicata con tutti i tipi di blocco, FAQ, fonte HTTPS, fonte HTTP scartata, articolo correlato, cluster estraneo, righe `review` e `draft`, riga pubblicata invalida e slug assente. Copre inoltre metadata, canonical preview, header, sitemap, parità dei link legacy, desktop, mobile, tastiera e overflow.
+
+La prima esecuzione completa, CI #300, ha rilevato che Playwright non esponeva il `summary` della FAQ con il ruolo atteso dal test. È stato aggiunto il ruolo esplicito senza sostituire l’elemento nativo e l’asserzione non è stata rimossa. La CI applicativa #302 ha poi completato con successo typecheck, build Astro, migrazioni, quality gate, golden evaluation, Container, runtime Astro/backend e tutte le suite Control Room.
+
+Stato reale:
+
+- implementazione completa nella PR draft #67;
+- CI applicativa #302 completamente verde;
+- commit documentale e CI finale ancora da chiudere;
+- PR non ancora mergiata;
+- route non ancora verificata sul deploy di produzione;
+- checkpoint visuale desktop/mobile ancora aperto.
+
+M5.5 non è ancora autorizzata.
 
 ## Google measurement stack
 
@@ -300,8 +355,8 @@ Regole:
 
 ## Gap aperti
 
-- renderer articolo grounded Astro;
-- parità canonical, sitemap, schema, 404 e redirect provider;
+- CI finale, merge, deploy e checkpoint live del renderer articolo Astro;
+- parità canonical, sitemap, schema, 404 e redirect provider, non ancora autorizzata;
 - piccolo catalogo pilot;
 - PR separata di cutover apex;
 - linkage recenti Control Room nel browser reale;
@@ -313,9 +368,11 @@ Regole:
 ## Prossimo checkpoint
 
 ```text
-listing preview verificate in produzione
-→ branch feat/public-article-renderer
-→ renderer published-only nel namespace preview
-→ smoke D1/workerd/Chromium dedicato
-→ merge, deploy e checkpoint visuale su un articolo pubblicato
+CI applicativa #302 verde
+→ CI finale sul commit documentale
+→ merge PR #67
+→ deploy automatico
+→ verifica 200 su un articolo published reale
+→ checkpoint visuale desktop/mobile
+→ soltanto dopo, autorizzazione M5.5
 ```
