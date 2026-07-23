@@ -152,15 +152,16 @@ try {
   });
   await desktopPage.goto(`${origin}/astro-foundation/metodo`);
   await desktopPage.getByRole('heading', { level: 1, name: previewPages[0].heading }).waitFor();
-  await desktopPage.getByRole('navigation', { name: 'Pagine di fiducia preview' }).waitFor();
-  assert.equal(await desktopPage.getByRole('link', { name: 'Metodo editoriale' }).last().getAttribute('aria-current'), 'page');
+  const trustNavigation = desktopPage.getByRole('navigation', { name: 'Pagine di fiducia preview' });
+  await trustNavigation.waitFor();
+  assert.equal(await trustNavigation.getByRole('link', { name: /Metodo editoriale/ }).getAttribute('aria-current'), 'page');
   await desktopPage.keyboard.press('Tab');
   assert.equal(await desktopPage.evaluate(() => document.activeElement?.textContent?.trim()), 'Vai al contenuto');
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
   assert.equal(await desktopPage.locator('script').count(), 0);
   assert.deepEqual(desktopConsole, []);
 
-  await desktopPage.getByRole('navigation', { name: 'Pagine di fiducia preview' }).getByRole('link', { name: 'Trasparenza' }).click();
+  await trustNavigation.getByRole('link', { name: /Trasparenza/ }).click();
   await desktopPage.getByRole('heading', { level: 1, name: previewPages[1].heading }).waitFor();
   assert.equal(new URL(desktopPage.url()).pathname, '/astro-foundation/trasparenza');
   await desktopContext.close();
