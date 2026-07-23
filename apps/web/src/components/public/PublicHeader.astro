@@ -1,16 +1,18 @@
 ---
+import { PUBLIC_LISTING_DEFINITIONS } from '../../../../../src/public-listing-routes'
+
 interface Props {
   previewBase?: string
 }
 
 const { previewBase } = Astro.props
 const homeHref = previewBase ?? '/'
-const methodHref = previewBase ? `${previewBase}/metodo` : '/metodo'
 const navigation = [
-  { href: '/destinazioni', label: 'Destinazioni' },
-  { href: '/guide', label: 'Guide' },
-  { href: '/confronti', label: 'Confronti' },
-  { href: methodHref, label: 'Metodo' },
+  ...PUBLIC_LISTING_DEFINITIONS.map((item) => ({
+    href: previewBase ? item.previewPath : item.canonicalPath,
+    label: item.navLabel,
+  })),
+  { href: previewBase ? `${previewBase}/metodo` : '/metodo', label: 'Metodo' },
 ]
 const currentPath = Astro.url.pathname
 ---
