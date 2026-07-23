@@ -58,7 +58,7 @@ audit event ≠ autorizzazione operativa
 
 ## Next
 
-Dopo il checkpoint documentale e mantenendo una branch separata:
+Dopo il merge di questo checkpoint documentale e mantenendo una branch separata:
 
 ```text
 conversione brief
