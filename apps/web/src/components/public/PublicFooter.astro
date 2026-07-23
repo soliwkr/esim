@@ -1,5 +1,11 @@
 ---
+interface Props {
+  previewBase?: string
+}
+
+const { previewBase } = Astro.props
 const year = new Date().getUTCFullYear()
+const trustHref = (slug: string) => previewBase ? `${previewBase}/${slug}` : `/${slug}`
 ---
 
 <footer class="site-footer">
@@ -13,9 +19,9 @@ const year = new Date().getUTCFullYear()
 
     <nav aria-label="Trasparenza e informazioni">
       <p class="footer-heading">Come lavoriamo</p>
-      <a href="/metodo">Metodo editoriale</a>
-      <a href="/trasparenza">Trasparenza</a>
-      <a href="/privacy">Privacy</a>
+      <a href={trustHref('metodo')}>Metodo editoriale</a>
+      <a href={trustHref('trasparenza')}>Trasparenza</a>
+      <a href={trustHref('privacy')}>Privacy</a>
     </nav>
 
     <div>
