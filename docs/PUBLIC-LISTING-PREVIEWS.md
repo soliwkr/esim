@@ -2,9 +2,10 @@
 
 Date: 2026-07-23
 
-Status: implemented in PR #65 and verified by CI #291. Production preview
-checkpoint remains open. This document does not authorize canonical listing
-migration, article rendering, SEO cutover, publication, affiliates or analytics.
+Status: implemented in PR #65, verified by CI #291 and #296, merged as
+`2483fbfd1327754a1a526e8c3e6b201a412e610d` and verified in production.
+This document does not authorize canonical listing migration, article cutover,
+SEO cutover, publication, affiliates or analytics.
 
 ## Branch
 
@@ -76,8 +77,12 @@ Consequences:
 - D1 is read only on the server;
 - no public browser API;
 - `review` and `draft` rows are excluded;
-- cards link to the existing canonical legacy article routes;
-- no article preview is implied by this slice.
+- cards link to the existing canonical legacy article routes in PR #65;
+- no article preview was implied by the listing slice.
+
+The next authorized article-renderer slice may change only the preview listing
+links to namespaced article-preview URLs. Canonical listing links and the legacy
+renderer remain unchanged.
 
 ## Navigation
 
@@ -86,8 +91,8 @@ to their preview paths. The homepage route cards and hero actions use the same
 namespace. Trust pages therefore remain inside the preview when navigating to a
 listing.
 
-Listing cards are different: they still link to `/{slug}` because the canonical
-article renderer has not migrated.
+Listing cards in PR #65 still link to `/{slug}` because the article renderer had
+not migrated at that checkpoint.
 
 The listing page also renders a deterministic three-link catalog navigation with
 `aria-current="page"` on the current section.
@@ -159,7 +164,30 @@ Verified:
 - three readable empty states with zero catalog articles;
 - all existing D1, quality, Container, runtime and Control Room regressions.
 
-CI #291 passed the full pipeline.
+CI #291 passed the application pipeline. CI #296 passed the final documentation
+head before merge.
+
+## Production checkpoint
+
+After merge and automatic deployment:
+
+- all three preview routes returned HTTP 200;
+- Destinazioni rendered the remote empty state correctly;
+- Guide rendered the remote published cards;
+- Confronti rendered the remote published comparison card;
+- the preview banner, breadcrumbs and header remained namespaced;
+- `aria-current` styling visibly selected the current listing;
+- no horizontal overflow was visible in the supplied narrow/mobile screenshots;
+- the wide Guide screenshot showed the desktop hero/state two-column composition,
+  the three-link navigation row and three published cards in the first grid row.
+
+The narrow Guide screenshot was captured just above the `560px` CSS breakpoint,
+so the catalog grid displayed two columns. This is expected. The dedicated CI
+continues to verify one column below the mobile breakpoint.
+
+The screenshots attest visual rendering only. Noindex/no-store, published-only
+filtering, sitemap exclusion, review/draft exclusion and real 404 behavior remain
+attested by runtime and browser tests.
 
 ## Explicit exclusions
 
@@ -178,14 +206,22 @@ PR #65 does not:
 - configure or consume the Google service account;
 - remove the legacy renderer.
 
-## Next gate
+## Closed gate and next scope
+
+The production checkpoint is closed.
+
+The next authorized branch is:
 
 ```text
-merge PR #65
-→ deploy from main
-→ desktop and mobile checkpoint on all three remote listing previews
-→ only then authorize the Astro article renderer slice
+feat/public-article-renderer
 ```
 
-The apex and canonical listing cutover remain later, separate and explicitly
-authorized work.
+Its canonical scope lives in:
+
+```text
+docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md
+```
+
+The apex, canonical listing routes and canonical article routes remain legacy.
+The article slice is a separate noindex, published-only preview and does not
+authorize SEO parity or cutover.
