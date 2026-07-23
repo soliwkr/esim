@@ -1,5 +1,6 @@
 ---
 import { env } from 'cloudflare:workers'
+import type { PageCard } from '../../../../../../src/types'
 import {
   loadPublishedArticle,
   loadRelatedPublishedArticles,
@@ -12,7 +13,7 @@ import '../../../styles/public-article.css'
 const slug = Astro.params.slug ?? ''
 const result = await loadPublishedArticle(env.DB, slug)
 const canonicalPath = `/astro-foundation/articoli/${encodeURIComponent(slug)}`
-let related = []
+let related: PageCard[] = []
 
 setPublicPreviewResponseHeaders(Astro.response.headers)
 
