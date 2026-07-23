@@ -15,7 +15,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
 - `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — implementazione homepage candidata;
 - `docs/PUBLIC-LISTING-PREVIEWS.md` — implementazione e checkpoint listing preview;
-- `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — scope autorizzato del renderer articolo Astro.
+- `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — scope e implementazione del renderer articolo Astro.
 
 ## Principi non negoziabili
 
@@ -121,7 +121,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: track parallela attiva; shell, trust pages, homepage candidata e listing preview verificate in produzione; renderer articolo Astro autorizzato come prossima slice isolata.**
+**Stato: track parallela attiva; shell, trust pages, homepage candidata e listing preview verificate in produzione; renderer articolo implementato nella PR draft #67 con CI applicativa #302 verde, ma non ancora mergiato né verificato live.**
 
 ### M5.0 — Public shell
 
@@ -178,18 +178,28 @@ Branch: `feat/public-listing-previews`.
 
 ### M5.4 — Renderer editoriale Astro
 
-Branch autorizzata: `feat/public-article-renderer`.
+Branch: `feat/public-article-renderer`.
 
-- [ ] route articolo preview published-only nel namespace `/astro-foundation`;
-- [ ] read model server-only condiviso con il renderer legacy;
-- [ ] pagina articolo grounded;
-- [ ] blocchi strutturati, non HTML AI grezzo;
-- [ ] provenance pubblica e fonti HTTPS senza esporre dati operativi interni;
-- [ ] claim esclusi non presentati come fatti;
-- [ ] related links deterministici;
-- [ ] vera 404 per slug assente, `review` o `draft`;
-- [ ] noindex, no-store e sitemap exclusion;
-- [ ] route canoniche articolo ancora legacy.
+- [x] route articolo preview published-only in `/astro-foundation/articoli/[slug]`;
+- [x] read model server-only condiviso con il renderer legacy;
+- [x] pagina articolo grounded in raw HTML Astro;
+- [x] blocchi strutturati, non HTML AI grezzo;
+- [x] FAQ native con `details` e `summary`;
+- [x] provenance pubblica page-level e fonti HTTPS senza dati operativi interni;
+- [x] claim esclusi non letti né presentati come fatti;
+- [x] related links published-only e deterministici nello stesso cluster;
+- [x] vera 404 per slug assente, `review` o `draft`;
+- [x] fail-closed con risposta generica per righe `published` strutturalmente invalide;
+- [x] noindex, no-store e sitemap exclusion;
+- [x] preview home e listing collegate alle route articolo namespaced;
+- [x] route canoniche articolo, home e listing ancora legacy;
+- [x] smoke D1/workerd/Chromium dedicato;
+- [x] CI applicativa #302 completamente verde;
+- [ ] CI finale sul commit documentale;
+- [ ] PR #67 mergiata e distribuita;
+- [ ] checkpoint visuale live desktop/mobile su un articolo pubblicato.
+
+M5.5 resta bloccata fino al checkpoint live del renderer.
 
 ### M5.5 — Parità SEO
 
@@ -278,7 +288,8 @@ conversione brief
 ### Track B — M5
 
 ```text
-renderer articolo preview
+chiusura PR #67
+→ deploy e checkpoint articolo preview
 → parità SEO
 → catalogo pilot
 → cutover apex separato

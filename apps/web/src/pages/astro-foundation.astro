@@ -92,6 +92,7 @@ const { featured, destinations } = await loadPublicHomepageCards(env.DB)
     title="Guide essenziali"
     description="Soltanto pagine già pubblicate entrano in questa selezione. Draft e contenuti in review restano esclusi."
     items={featured}
+    articleBase="/astro-foundation/articoli"
   />
 
   <PublicPageCardGrid
@@ -100,6 +101,7 @@ const { featured, destinations } = await loadPublicHomepageCards(env.DB)
     title="Destinazioni principali"
     description="Guide pubblicate organizzate per destinazione, ordinate dallo stesso read model usato dal sito corrente."
     items={destinations}
+    articleBase="/astro-foundation/articoli"
   />
 
   <section class="public-section method-section" aria-labelledby="method-title">

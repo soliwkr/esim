@@ -10,6 +10,7 @@ interface Props {
   items: PageCard[]
   emptyMessage?: string
   linkLabel?: string
+  articleBase?: string
 }
 
 const {
@@ -20,7 +21,12 @@ const {
   items,
   emptyMessage = 'I contenuti sono in preparazione.',
   linkLabel = 'Leggi la guida',
+  articleBase,
 } = Astro.props
+
+const articleHref = (slug: string) => articleBase
+  ? `${articleBase}/${encodeURIComponent(slug)}`
+  : `/${slug}`
 ---
 
 <section class="public-section catalog-section" aria-labelledby={`${id}-title`} data-public-catalog={id}>
@@ -38,9 +44,9 @@ const {
         {items.map((item) => (
           <article class="catalog-card" data-page-type={item.page_type}>
             <p class="catalog-cluster">{item.cluster}</p>
-            <h3><a href={`/${item.slug}`}>{item.title}</a></h3>
+            <h3><a href={articleHref(item.slug)}>{item.title}</a></h3>
             <p>{item.meta_description}</p>
-            <a class="catalog-link" href={`/${item.slug}`}>{linkLabel} →</a>
+            <a class="catalog-link" href={articleHref(item.slug)}>{linkLabel} →</a>
           </article>
         ))}
       </div>

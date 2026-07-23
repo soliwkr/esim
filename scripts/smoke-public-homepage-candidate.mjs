@@ -182,18 +182,20 @@ async function verifyPopulatedCandidate() {
     const featured = sectionHtml(previewHtml, 'featured-guides');
     assertOrder(featured, Array.from({ length: 9 }, (_, index) => `Homepage featured ${10 - index}`));
     assert.doesNotMatch(featured, /Homepage featured 1(?:<|&)|Homepage featured review hidden|Homepage draft hidden/);
-    assert.match(featured, /href="\/smoke-homepage-featured-10"/);
+    assert.match(featured, /href="\/astro-foundation\/articoli\/smoke-homepage-featured-10"/);
 
     const destinations = sectionHtml(previewHtml, 'main-destinations');
     assertOrder(destinations, Array.from({ length: 6 }, (_, index) => `Homepage destination ${7 - index}`));
     assert.doesNotMatch(destinations, /Homepage destination 1(?:<|&)|Homepage destination review hidden/);
-    assert.match(destinations, /href="\/smoke-homepage-destination-7"/);
+    assert.match(destinations, /href="\/astro-foundation\/articoli\/smoke-homepage-destination-7"/);
 
     const rootResponse = await fetch(`${origin}/`);
     const rootHtml = await rootResponse.text();
     assert.equal(rootResponse.status, 200);
     assert.doesNotMatch(rootHtml, /data-homepage-candidate|Homepage featured review hidden/);
     assert.match(rootHtml, /Homepage featured 10/);
+    assert.match(rootHtml, /href="\/smoke-homepage-featured-10"/);
+    assert.doesNotMatch(rootHtml, /astro-foundation\/articoli/);
 
     const sitemapResponse = await fetch(`${origin}/sitemap.xml`);
     const sitemap = await sitemapResponse.text();
@@ -234,9 +236,9 @@ async function verifyPopulatedCandidate() {
 }
 
 async function verifyEmptyCandidate() {
-  const port = basePort + 1;
-  const origin = `http://127.0.0.1:${port}`;
-  const runtime = startRuntime(emptyState, port);
+  const emptyPort = basePort + 1;
+  const origin = `http://127.0.0.1:${emptyPort}`;
+  const runtime = startRuntime(emptyState, emptyPort);
   let browser;
   try {
     await waitForRuntime(runtime, origin);

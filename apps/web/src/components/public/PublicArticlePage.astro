@@ -1,0 +1,99 @@
+---
+import type { PageCard } from '../../../../../src/types'
+import type { PublicArticle } from '../../../../../src/public-article'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+import PublicArticleBlocks from './PublicArticleBlocks.astro'
+import PublicArticleFaq from './PublicArticleFaq.astro'
+import PublicArticleSources from './PublicArticleSources.astro'
+import PublicRelatedArticles from './PublicRelatedArticles.astro'
+import '../../styles/public-article.css'
+
+interface Props {
+  article: PublicArticle
+  related: PageCard[]
+}
+
+const { article, related } = Astro.props
+const section = article.page_type === 'destination'
+  ? { label: 'Destinazioni', href: '/astro-foundation/destinazioni' }
+  : article.page_type === 'comparison'
+    ? { label: 'Confronti', href: '/astro-foundation/confronti' }
+    : { label: 'Guide', href: '/astro-foundation/guide' }
+const canonicalPath = `/astro-foundation/articoli/${encodeURIComponent(article.slug)}`
+---
+
+<PublicLayout
+  title={`${article.title} — preview Astro`}
+  description={`Preview non indicizzabile. ${article.meta_description}`}
+  canonicalPath={canonicalPath}
+  previewBase="/astro-foundation"
+  noindex
+>
+  <div class="preview-band" data-public-shell="astro-preview" data-public-article={article.slug}>
+    Preview Astro · non indicizzata · l’articolo pubblico attuale non cambia
+  </div>
+
+  <article class="public-article">
+    <header class="article-hero">
+      <div class="public-container article-hero-inner">
+        <nav class="article-breadcrumbs" aria-label="Percorso articolo preview">
+          <a href="/astro-foundation">Home preview</a>
+          <span aria-hidden="true">/</span>
+          <a href={section.href}>{section.label}</a>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{article.h1}</span>
+        </nav>
+
+        <div class="article-meta" aria-label="Metadati articolo">
+          <span>{article.cluster}</span>
+          <span>Intento: {article.search_intent}</span>
+          <span>Stato: published</span>
+        </div>
+
+        <p class="eyebrow">{article.eyebrow}</p>
+        <h1>{article.h1}</h1>
+        <p class="article-intro">{article.intro}</p>
+      </div>
+    </header>
+
+    <div class="public-container article-layout">
+      <div class="article-main-column">
+        <section class="article-direct-answer" aria-labelledby="direct-answer-title">
+          <p class="article-answer-label" id="direct-answer-title">Risposta diretta</p>
+          <p>{article.direct_answer}</p>
+        </section>
+
+        <aside class="article-disclosure" aria-label="Trasparenza">
+          <strong>Trasparenza.</strong>
+          <span>
+            I link ai provider non sono attualmente remunerati. Le condizioni possono cambiare:
+            controlla sempre la fonte prima di scegliere.
+          </span>
+        </aside>
+
+        <PublicArticleBlocks blocks={article.content} />
+        <PublicArticleFaq items={article.faq} />
+      </div>
+
+      <aside class="article-side-note" aria-labelledby="article-side-note-title">
+        <p class="article-side-label">Contratto della preview</p>
+        <h2 id="article-side-note-title">Solo contenuto già pubblicato.</h2>
+        <ul>
+          <li>Nessun draft o riga in review.</li>
+          <li>Nessun HTML generato viene eseguito.</li>
+          <li>Le fonti non diventano test indipendenti.</li>
+          <li>La route canonica resta sul renderer corrente.</li>
+        </ul>
+      </aside>
+    </div>
+
+    <div class="public-container article-lower-sections">
+      <PublicArticleSources
+        sources={article.sources}
+        sourceCheckedAt={article.source_checked_at}
+        updatedAt={article.updated_at}
+      />
+      <PublicRelatedArticles items={related} />
+    </div>
+  </article>
+</PublicLayout>

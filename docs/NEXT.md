@@ -6,141 +6,96 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap c
 
 ## Now
 
-### 1. Listing preview Astro verificate in produzione
+### 1. Chiudere la PR #67 del renderer articolo Astro
 
-PR #65 implementa:
-
-```text
-/astro-foundation/destinazioni
-/astro-foundation/guide
-/astro-foundation/confronti
-```
-
-La slice usa la matrice tipizzata `src/public-listing-routes.ts` e lo stesso read model server-only del renderer legacy:
-
-```text
-status='published' AND page_type=?
-ORDER BY featured DESC, updated_at DESC
-LIMIT 100
-```
-
-Stato definitivo:
-
-- PR #65 mergiata nel commit `2483fbfd1327754a1a526e8c3e6b201a412e610d`;
-- CI applicativa #291 completamente verde;
-- CI finale #296 completamente verde;
-- tutte e tre le route hanno risposto `200` dopo il deploy;
-- route canoniche listing e apice ancora legacy.
-
-Checkpoint visuale completato:
-
-- Destinazioni narrow/mobile con hero, contratto, navigazione corrente ed empty state remoto corretto;
-- Guide narrow/mobile con hero, contratto, navigazione corrente e card pubblicate remote;
-- Confronti narrow/mobile con hero, contratto, navigazione corrente e card pubblicata remota;
-- Guide desktop largo con hero e contratto affiancati, navigazione a tre colonne e tre card nella prima riga;
-- nessun overflow orizzontale visibile negli screenshot osservati;
-- banner e navigazione restano nel namespace `/astro-foundation`.
-
-Lo screenshot narrow di Guide è appena sopra il breakpoint `560px` e mostra due colonne, comportamento previsto. La CI continua a verificare la singola colonna sotto il breakpoint mobile, oltre a noindex, no-store, published-only, sitemap exclusion, vera 404 e assenza di righe `review`/`draft`.
-
-Questo checkpoint chiude M5.3. Non autorizza cutover, indicizzazione, analytics, affiliazioni o pubblicazione.
-
-### 2. Implementare il renderer articolo Astro
-
-Branch autorizzata:
+Branch:
 
 ```text
 feat/public-article-renderer
 ```
 
-Scope canonico:
+PR draft:
 
 ```text
-docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md
+#67 — Add published-only Astro article renderer
 ```
 
-Obiettivo esclusivo:
-
-- aggiungere una route articolo nel namespace preview;
-- leggere soltanto pagine `published` server-side da D1;
-- estrarre un read model tipizzato condiviso con il renderer legacy;
-- rendere title, metadata, breadcrumb, hero, risposta diretta, blocchi strutturati, FAQ, fonti e related links in Astro;
-- mostrare soltanto provenance pubblica sicura e realmente disponibile;
-- non presentare claim esclusi come fatti;
-- restituire vera 404 per slug assente, `review` o `draft`;
-- mantenere noindex, no-store e sitemap exclusion;
-- mantenere `/{slug}` sul renderer legacy.
-
-Route preview prevista:
+Route implementata:
 
 ```text
 /astro-foundation/articoli/[slug]
 ```
 
-La route esplicita `articoli/` evita collisioni con home, listing e trust pages. I listing preview possono passare ai link namespaced soltanto dentro questa branch; i listing canonici restano invariati.
+Stato verificato:
 
-Read model minimo candidato:
-
-```text
-slug
-page_type
-title
-meta_description
-eyebrow
-h1
-direct_answer
-intro
-content_json
-faq_json
-source_links_json
-cluster
-search_intent
-source_checked_at
-updated_at
-```
-
-Regole di implementazione:
-
+- read model server-only condiviso con il renderer legacy;
 - query fissa `WHERE slug=? AND status='published'`;
-- validazione runtime di righe, JSON, blocchi, FAQ e fonti;
-- nessun HTML AI grezzo o `set:html` su contenuti editoriali;
-- tipi di blocco ammessi espliciti e fail-closed sugli input non validi;
-- URL fonte soltanto HTTPS;
-- nessun claim ID interno, payload bundle, note revisore o dato operativo esposto;
-- related links `published` dello stesso cluster, ordinati deterministicamente ed escluso lo slug corrente;
-- nessun fallback a una pagina review;
-- nessun accesso browser a D1 e nessuna API pubblica.
+- validazione runtime di campi, JSON, blocchi, FAQ, fonti e date;
+- blocchi strutturati Astro, senza `set:html`, `innerHTML` o HTML AI grezzo;
+- fonti linkabili soltanto via HTTPS;
+- provenance pubblica limitata a dati page-level già persistiti;
+- nessun claim ID, evidence bundle, claim escluso, nota revisore o dato operativo esposto;
+- related links published-only, exact-cluster e deterministici;
+- vera 404 per slug assente, `review` o `draft`;
+- fail-closed 500 generica per riga pubblicata strutturalmente invalida;
+- preview home e listing collegate alle route articolo namespaced;
+- route legacy home, listing e articolo ancora canoniche;
+- noindex, no-store e sitemap exclusion;
+- raw HTML senza island o JavaScript necessario;
+- nessuna migration, mutation, API pubblica o capacità di pubblicazione.
 
-Smoke dedicato richiesto:
+Smoke dedicato:
 
 ```text
 npm run smoke:public-article-renderer
 ```
 
-Fixture minime:
+La CI applicativa #302 è completamente verde:
 
-- pagina `published` completa con blocchi, FAQ e fonti;
-- pagina `review` con slug noto ma non renderizzabile;
-- pagina `draft` con slug noto ma non renderizzabile;
-- pagina pubblicata correlata nello stesso cluster;
-- fonte non HTTPS da scartare;
-- blocco o JSON invalido da gestire senza HTML arbitrario;
-- slug assente → 404.
+- typecheck;
+- build Astro e Worker entrypoint;
+- migrazioni D1;
+- quality gate e golden evaluation;
+- Container build e smoke;
+- runtime Astro/backend, inclusi tutti gli smoke pubblici;
+- tutte le suite Control Room.
 
-Acceptance:
+La CI #300 aveva rilevato un mismatch accessibile sul ruolo del `summary` FAQ. Il markup nativo è stato mantenuto, il ruolo è stato reso esplicito e l’asserzione è rimasta attiva; #302 ha verificato la correzione.
 
-- raw HTML utile senza island o JavaScript richiesto;
-- metadata e canonical preview deterministici;
-- response header preview applicati dalla route;
-- breadcrumb e link di ritorno nel namespace preview;
-- link related verso preview article routes;
-- mobile, desktop, tastiera, tabelle e overflow;
-- sitemap invariata e senza route preview;
-- route canonica articolo e renderer legacy invariati;
-- tutte le regressioni D1, Container e Control Room verdi;
-- nessuna route di pubblicazione introdotta.
+Restano, in ordine:
 
-La PR deve nascere draft perché introduce il primo renderer editoriale pubblico Astro e un read model più ampio.
+```text
+CI finale sul commit documentale
+→ mark ready
+→ merge PR #67
+→ deploy automatico
+→ verifica route reale 200
+→ checkpoint visuale desktop/mobile
+```
+
+Non autorizzare M5.5 prima del checkpoint live.
+
+### 2. Verificare il renderer su un articolo pubblicato reale
+
+Dopo merge e deploy:
+
+1. aprire `/astro-foundation/guide`;
+2. seguire una card pubblicata verso `/astro-foundation/articoli/{slug}`;
+3. verificare risposta `200` e navigazione integralmente namespaced;
+4. controllare hero, risposta diretta, blocchi, FAQ, fonti e related links realmente presenti;
+5. verificare desktop largo e mobile;
+6. confermare assenza di overflow orizzontale della pagina;
+7. confermare che `/{slug}` continui a essere servito dal renderer legacy;
+8. non usare righe `review` o `draft` per il checkpoint.
+
+Gli screenshot richiesti saranno:
+
+- mobile: hero, risposta diretta e almeno una sezione strutturata;
+- mobile: FAQ/fonti o parte inferiore della pagina;
+- desktop largo: hero, colonna articolo e pannello laterale;
+- desktop largo: fonti e related links se presenti.
+
+Le verifiche tecniche di noindex, no-store, 404, sitemap exclusion e published-only restano attestate dalla CI; gli screenshot certificano soltanto la resa visuale live.
 
 ### 3. Non attivare ancora Google measurement
 
@@ -185,6 +140,7 @@ Ogni mutation richiede Access, conferma, state machine server-side, audit, idemp
 
 ## Verifiche operative aperte
 
+- checkpoint live del renderer articolo PR #67;
 - header HTTP delle preview su controllo esterno dedicato;
 - linkage claim → task nel browser reale;
 - linkage audit → ID/versione draft nel browser reale;
@@ -205,6 +161,7 @@ GA4/GTM creati ≠ tracking attivo
 service account creato ≠ credenziale configurata
 brief accepted ≠ brief converted
 approved draft ≠ published page
+CI verde ≠ verifica visuale live
 ```
 
 ## Checkpoint completati recenti
@@ -217,7 +174,9 @@ approved draft ≠ published page
 - PR #61 — trust pages e checkpoint mobile 3/3;
 - PR #62 — scope homepage candidata;
 - PR #63 — homepage candidata, merge `7ba767d`, CI finale #284 e checkpoint live desktop/mobile completati;
-- PR #65 — listing preview, merge `2483fbf`, CI finale #296 e checkpoint live completato.
+- PR #65 — listing preview, merge `2483fbf`, CI finale #296 e checkpoint live completato;
+- PR #66 — chiusura M5.3 e scope renderer, merge `76aab5a`;
+- PR #67 — renderer articolo implementato; CI applicativa #302 verde; merge e checkpoint live aperti.
 
 ## Freeze immediato
 
@@ -227,5 +186,6 @@ approved draft ≠ published page
 - niente secret o PII nel client, URL, storage, log o repository;
 - niente affiliazioni o tracking anticipati;
 - niente sostituzione delle route listing o articolo canoniche nella slice preview;
+- niente M5.5 prima del checkpoint articolo live;
 - niente cutover dell’apice;
 - nessuna rimozione legacy finché resta un fallback operativo.

@@ -1,0 +1,56 @@
+---
+import { env } from 'cloudflare:workers'
+import type { PageCard } from '../../../../../../src/types'
+import {
+  loadPublishedArticle,
+  loadRelatedPublishedArticles,
+} from '../../../../../../src/public-article'
+import PublicArticlePage from '../../../components/public/PublicArticlePage.astro'
+import PublicLayout from '../../../layouts/PublicLayout.astro'
+import { setPublicPreviewResponseHeaders } from '../../../lib/public-preview-response'
+import '../../../styles/public-article.css'
+
+const slug = Astro.params.slug ?? ''
+const result = await loadPublishedArticle(env.DB, slug)
+const canonicalPath = `/astro-foundation/articoli/${encodeURIComponent(slug)}`
+let related: PageCard[] = []
+
+setPublicPreviewResponseHeaders(Astro.response.headers)
+
+if (result.kind === 'found') {
+  related = await loadRelatedPublishedArticles(env.DB, result.article.cluster, result.article.slug, 5)
+} else if (result.kind === 'missing') {
+  Astro.response.status = 404
+} else {
+  Astro.response.status = 500
+  console.error(`Invalid published article preview for ${slug}: ${result.reason}`)
+}
+---
+
+{result.kind === 'found' ? (
+  <PublicArticlePage article={result.article} related={related} />
+) : (
+  <PublicLayout
+    title={result.kind === 'missing' ? 'Articolo non trovato — preview Astro' : 'Articolo non disponibile — preview Astro'}
+    description="La pagina richiesta non è disponibile nella preview Astro pubblicata."
+    canonicalPath={canonicalPath}
+    previewBase="/astro-foundation"
+    noindex
+  >
+    <div class="preview-band" data-public-shell="astro-preview" data-public-article-error={result.kind}>
+      Preview Astro · non indicizzata · l’articolo pubblico attuale non cambia
+    </div>
+    <section class="article-error public-container" aria-labelledby="article-error-title">
+      <p class="eyebrow">{result.kind === 'missing' ? '404' : 'Contenuto non disponibile'}</p>
+      <h1 id="article-error-title">
+        {result.kind === 'missing' ? 'Questo articolo non è pubblicato nella preview.' : 'La pagina pubblicata non supera la validazione.'}
+      </h1>
+      <p>
+        {result.kind === 'missing'
+          ? 'La route non espone pagine assenti, draft o contenuti ancora in review.'
+          : 'Il renderer si ferma senza mostrare testo fattuale quando il record non rispetta il contratto strutturato.'}
+      </p>
+      <a class="public-button" href="/astro-foundation/guide">Torna alle guide</a>
+    </section>
+  </PublicLayout>
+)}

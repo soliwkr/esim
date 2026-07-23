@@ -17,7 +17,7 @@ function positiveLimit(limit: number): number {
   return limit;
 }
 
-function publicPageCard(value: unknown): PageCard {
+export function parsePublicPageCard(value: unknown): PageCard {
   if (!value || typeof value !== 'object') {
     throw new TypeError('Public page-card row must be an object.');
   }
@@ -48,7 +48,7 @@ async function queryPageCards(
   bindings: Array<string | number>,
 ): Promise<PageCard[]> {
   const result = await db.prepare(sql).bind(...bindings).all<unknown>();
-  return result.results.map(publicPageCard);
+  return result.results.map(parsePublicPageCard);
 }
 
 export async function loadPublishedFeaturedCards(
@@ -87,6 +87,5 @@ export async function loadPublicHomepageCards(db: D1Database): Promise<PublicHom
     loadPublishedFeaturedCards(db, 9),
     loadPublishedListingCards(db, 'destination', 6),
   ]);
-
   return { featured, destinations };
 }

@@ -1,7 +1,8 @@
-import type { ContentBlock, Env, FaqItem, PageCard, PageRow } from './types';
+import type { Env, PageCard } from './types';
+import { loadPublishedArticle, loadRelatedPublishedArticles, type PublicArticleSource } from './public-article';
 import { loadPublishedListingCards, loadPublicHomepageCards } from './public-page-cards';
 import { publicListingDefinition } from './public-listing-routes';
-import { affiliateEnabled, esc, safeJsonParse, siteBase } from './utils';
+import { affiliateEnabled, esc, siteBase } from './utils';
 import { layout, renderBlocks, renderFaq } from './render';
 
 function cardsHtml(items: PageCard[]): string {
@@ -26,34 +27,29 @@ export async function listing(env: Env, type: 'destination' | 'guide' | 'compari
   return layout(env, { title: `${copy.title} | ${env.SITE_NAME}`, description: copy.description, canonicalPath: copy.canonicalPath, content: `<main><section class="hero"><div class="wrap"><div class="eyebrow">${esc(copy.title)}</div><h1>${esc(copy.title)}</h1><p class="lead">${esc(copy.description)}</p></div></section><section class="wrap grid">${cardsHtml(items)}</section></main>` });
 }
 
-async function related(env: Env, row: PageRow): Promise<string> {
-  const result = await env.DB.prepare("SELECT slug,title FROM pages WHERE status='published' AND cluster=? AND slug<>? ORDER BY featured DESC,updated_at DESC LIMIT 5").bind(row.cluster, row.slug).all<{ slug: string; title: string }>();
-  if (!result.results.length) return '';
-  return `<aside class="related"><h2>Guide correlate</h2><ul>${result.results.map((item) => `<li><a href="/${esc(item.slug)}">${esc(item.title)}</a></li>`).join('')}</ul></aside>`;
+async function related(env: Env, cluster: string, slug: string): Promise<string> {
+  const items = await loadRelatedPublishedArticles(env.DB, cluster, slug, 5);
+  if (!items.length) return '';
+  return `<aside class="related"><h2>Guide correlate</h2><ul>${items.map((item) => `<li><a href="/${esc(item.slug)}">${esc(item.title)}</a></li>`).join('')}</ul></aside>`;
 }
 
-function sourceList(value: string): string {
-  const sources = safeJsonParse<Array<{ label: string; url: string }>>(value, []);
-  const items = sources.map((source) => {
-    try {
-      const url = new URL(source.url);
-      return url.protocol === 'https:' ? `<li><a href="${esc(url.toString())}" rel="noopener noreferrer">${esc(source.label)}</a></li>` : '';
-    } catch { return ''; }
-  }).join('');
+function sourceList(sources: PublicArticleSource[]): string {
+  const items = sources.map((source) => `<li><a href="${esc(source.url)}" rel="noopener noreferrer">${esc(source.label)}</a></li>`).join('');
   return items ? `<section><h2>Fonti</h2><ul>${items}</ul></section>` : '';
 }
 
 export async function article(env: Env, slug: string): Promise<Response> {
-  const row = await env.DB.prepare("SELECT slug,page_type,title,meta_description,eyebrow,h1,direct_answer,intro,content_json,faq_json,source_links_json,primary_keyword,cluster,search_intent,source_checked_at,updated_at FROM pages WHERE slug=? AND status='published'").bind(slug).first<PageRow>();
-  if (!row) return notFound(env);
-  const blocks = safeJsonParse<ContentBlock[]>(row.content_json, []);
-  const faq = safeJsonParse<FaqItem[]>(row.faq_json, []);
+  const result = await loadPublishedArticle(env.DB, slug);
+  if (result.kind === 'missing') return notFound(env);
+  if (result.kind === 'invalid') throw new Error(`Invalid published article ${slug}: ${result.reason}`);
+
+  const row = result.article;
   const checked = row.source_checked_at ? row.source_checked_at.slice(0, 10) : 'da verificare';
   const disclosure = affiliateEnabled(env) ? 'Alcuni link possono essere affiliati. Potremmo ricevere una commissione senza costi aggiuntivi per te; la commissione non determina automaticamente la classifica.' : 'I link ai provider non sono attualmente remunerati.';
   const schemas: Record<string, unknown>[] = [{ '@context': 'https://schema.org', '@type': 'Article', headline: row.h1, description: row.meta_description, dateModified: row.updated_at, mainEntityOfPage: `${siteBase(env)}/${row.slug}`, author: { '@type': 'Organization', name: env.SITE_NAME } }];
-  if (faq.length) schemas.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) });
+  if (row.faq.length) schemas.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: row.faq.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) });
   const sectionPath = row.page_type === 'destination' ? 'destinazioni' : row.page_type === 'comparison' ? 'confronti' : 'guide';
-  const content = `<main class="article"><div class="breadcrumbs"><a href="/">Home</a> / <a href="/${sectionPath}">${esc(row.cluster)}</a> / ${esc(row.h1)}</div><div class="meta"><span class="pill">${esc(row.cluster)}</span><span class="pill">Intento: ${esc(row.search_intent)}</span><span class="pill">Fonti verificate: ${esc(checked)}</span></div><div class="eyebrow">${esc(row.eyebrow)}</div><h1>${esc(row.h1)}</h1><p class="lead">${esc(row.intro)}</p><div class="answer"><strong>Risposta diretta.</strong> ${esc(row.direct_answer)}</div><div class="disclosure"><strong>Trasparenza:</strong> ${esc(disclosure)}</div>${renderBlocks(blocks)}${renderFaq(faq)}${sourceList(row.source_links_json)}${await related(env, row)}</main>`;
+  const content = `<main class="article"><div class="breadcrumbs"><a href="/">Home</a> / <a href="/${sectionPath}">${esc(row.cluster)}</a> / ${esc(row.h1)}</div><div class="meta"><span class="pill">${esc(row.cluster)}</span><span class="pill">Intento: ${esc(row.search_intent)}</span><span class="pill">Fonti verificate: ${esc(checked)}</span></div><div class="eyebrow">${esc(row.eyebrow)}</div><h1>${esc(row.h1)}</h1><p class="lead">${esc(row.intro)}</p><div class="answer"><strong>Risposta diretta.</strong> ${esc(row.direct_answer)}</div><div class="disclosure"><strong>Trasparenza:</strong> ${esc(disclosure)}</div>${renderBlocks(row.content)}${renderFaq(row.faq)}${sourceList(row.sources)}${await related(env, row.cluster, row.slug)}</main>`;
   return layout(env, { title: row.title, description: row.meta_description, canonicalPath: `/${row.slug}`, content, schema: schemas });
 }
 
