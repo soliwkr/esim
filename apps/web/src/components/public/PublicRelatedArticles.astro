@@ -1,0 +1,29 @@
+---
+import type { PageCard } from '../../../../../src/types'
+import { publicArticlePreviewPath } from '../../../../../src/public-article'
+
+interface Props {
+  items: PageCard[]
+}
+
+const { items } = Astro.props
+---
+
+{items.length > 0 && (
+  <aside class="article-related" aria-labelledby="article-related-title" data-related-articles>
+    <div class="article-related-heading">
+      <p class="eyebrow">Continua dal catalogo</p>
+      <h2 id="article-related-title">Guide correlate</h2>
+    </div>
+    <div class="article-related-grid">
+      {items.map((item) => (
+        <article>
+          <p>{item.cluster}</p>
+          <h3><a href={publicArticlePreviewPath(item.slug)}>{item.title}</a></h3>
+          <span>{item.meta_description}</span>
+          <a class="article-related-link" href={publicArticlePreviewPath(item.slug)}>Leggi nella preview →</a>
+        </article>
+      ))}
+    </div>
+  </aside>
+)}
