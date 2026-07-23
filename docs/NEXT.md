@@ -6,70 +6,107 @@ Ultimo aggiornamento: **22 luglio 2026**.
 
 ## Now
 
-### 1. Verificare i nuovi linkage nel browser reale
+### 1. Chiudere la review della draft PR #54
 
-Da controllare dietro Cloudflare Access:
+Branch:
+
+```text
+feat/control-room-brief-decision-mutation
+```
+
+Scope esclusivo:
+
+```text
+proposed → accepted | dismissed
+```
+
+La CI #230 è completamente verde e verifica:
+
+- un solo brief per richiesta;
+- conferma esplicita dell’operatore;
+- attore derivato dal JWT Cloudflare Access;
+- state machine D1;
+- audit append-only `editorial_brief_events`;
+- retry della stessa decisione idempotente;
+- conflitto sulla decisione opposta;
+- motivo obbligatorio per il rifiuto;
+- cancellazione del task editoriale aperto soltanto su `dismissed`;
+- reload dello snapshot;
+- endpoint reale e browser desktop/mobile;
+- conteggio pubblicazioni invariato;
+- `publicationTriggered: false`;
+- regressioni delle altre viste e legacy parity.
+
+Prima del merge:
+
+- riallineare ROADMAP, FRONTEND-PLAN, STATUS, NEXT, DECISIONS e README;
+- rieseguire la CI sul contenuto definitivo;
+- mantenere esplicito che `0020` non è applicata remotamente;
+- non dichiarare la mutation operativa in produzione.
+
+La branch non include conversione brief, claim, readiness, bundle, draft, materializzazione, queue retry, pubblicazione o rimozione della legacy.
+
+### 2. Gate produttivo separato
+
+Dopo un eventuale merge della PR #54 restano separati:
+
+- deploy del codice operativo su `main`;
+- applicazione remota della migrazione `0020`;
+- verifica browser reale dietro Cloudflare Access;
+- conferma che accept e dismiss non attivino conversione o pubblicazione;
+- controllo dell’audit persistito e della queue reale.
+
+Merge, migrazione remota e deploy richiedono autorizzazione esplicita. La CI locale non sostituisce la verifica produttiva.
+
+### 3. Verificare i linkage read-only nel browser reale
+
+Da controllare dietro Access:
 
 - claim con badge `task #<id>` e stato task;
 - evento audit con `event_key` stabile;
-- evento draft con ID e versione mostrati separatamente;
-- eventi non-draft con linkage draft assente;
-- mobile, tastiera e apertura Sheet reali.
+- evento draft con ID e versione separati;
+- eventi non-draft senza linkage draft;
+- mobile, tastiera e Sheet reali.
 
-Le CI #213 e #220 coprono contratti, payload invalidi, query D1, `workerd`, desktop e mobile automatizzati. La verifica visuale non deve attestare valori che non risultano leggibili.
+Le CI #213 e #220 coprono contratti, D1 locale, `workerd`, desktop e mobile automatizzati.
 
-### 2. Definire la prima mutation della nuova Control Room
+### 4. Verificare separatamente il topic-mismatch gate
 
-Non restano gap read-only noti rispetto alle letture necessarie della legacy. La prima capacità operativa deve però essere scelta con uno scope esplicito prima di scrivere codice.
+La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Restano:
 
-Ordine indicativo:
+- applicazione remota della migrazione `0019`;
+- normalizzatore con anchor attivo sui nuovi run;
+- nessun Workflow avviato automaticamente;
+- nessun dato editoriale artificiale creato per il test.
+
+La verifica funzionale completa avverrà sul primo nuovo run autorizzato.
+
+## Separazioni editoriali
 
 ```text
-decisione brief
-→ conversione brief
+brief accepted ≠ brief converted
+brief dismissed ≠ contenuto cancellato altrove
+approved draft ≠ published page
+draft status ≠ materialized page status
+materialized page review ≠ publication eligibility
+queue status ≠ decisione editoriale
+audit event ≠ autorizzazione operativa
+```
+
+## Next
+
+Soltanto dopo merge, migrazione remota e verifica della decisione brief:
+
+```text
+conversione brief
 → operazioni claim
 → decisione draft
 → eventuale retry queue
 ```
 
-La branch verrà nominata soltanto dopo la scelta della capacità.
-
-Per ogni mutation sono obbligatori:
-
-- conferma esplicita dell’operatore;
-- endpoint e contratto esistenti verificati prima di modificarli;
-- idempotenza;
-- audit persistito;
-- reload dello snapshot dopo esito;
-- gestione di errore e retry;
-- test end-to-end;
-- nessuna pubblicazione implicita.
+Ogni capacità richiede una nuova branch, conferma esplicita, idempotenza, audit persistito, reload dello stato e test end-to-end. La pubblicazione resta fuori scope.
 
 La legacy resta disponibile finché tutte le mutation necessarie non sono migrate e verificate.
-
-### 3. Verificare separatamente il topic-mismatch gate in produzione
-
-La PR #46 è mergiata nel commit `215470ae` e la CI #188 è verde. Resta da confermare:
-
-- applicazione remota della migrazione `0019`;
-- normalizzatore con anchor attivo sui nuovi run;
-- nessun Workflow avviato automaticamente;
-- nessun dato editoriale artificiale creato in produzione.
-
-La verifica funzionale completa del gate avverrà sul primo nuovo run autorizzato. Non viene creato un run di prova soltanto per chiudere il checkpoint.
-
-### 4. Conservare le separazioni editoriali
-
-```text
-approved draft ≠ published page
-draft status ≠ materialized page status
-materialized page review ≠ publication eligibility
-preview read-only ≠ autorizzazione operativa
-queue status ≠ decisione editoriale
-audit event ≠ autorizzazione operativa
-```
-
-La Control Room mostra dati persistiti; non decide readiness, approvazione, materializzazione o pubblicazione.
 
 ## Checkpoint completati
 
@@ -81,21 +118,16 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 - PR #39 + #40 — Page Readiness ed evidence bundle;
 - PR #42 — draft, preview e decisioni read-only;
 - PR #44 — queue e audit read-only;
-- PR #45 — golden quality evaluation e criteri di adozione framework;
-- PR #46 — topic-mismatch gate mergiato, verifica remota ancora da chiudere;
-- PR #47 — dettaglio draft completo GET-only, mergiato con CI #198 e verificato nel browser reale;
-- PR #49 — audit di parità legacy, merge `e0a39fa9`, CI #209 verde;
-- PR #50 — linkage read-only claim → task, merge `41a9beee`, CI #213 verde;
-- PR #52 — linkage canonico audit → versione draft, merge `35f56e82`, CI finale #220 verde.
+- PR #45 — golden quality evaluation;
+- PR #46 — topic-mismatch gate mergiato, verifica remota aperta;
+- PR #47 — dettaglio draft completo, CI #198 e verifica browser reale;
+- PR #49 — audit legacy, merge `e0a39fa9`, CI #209;
+- PR #50 — claim → task, merge `41a9beee`, CI #213;
+- PR #52 — audit → versione draft, merge `35f56e82`, CI #220.
 
-## Framework di evaluation
+## Checkpoint in review
 
-- golden dataset + D1 evaluator: adottati con PR #45;
-- topic-anchor gate deterministico: PR #46;
-- Promptfoo: soltanto con un vero prompt, modello o grader semantico;
-- Evidently: reporting e drift su corpus significativo;
-- Great Expectations: data-quality multipipeline non già coperta;
-- Cleanlab: probabilità di modello e volume etichettato sufficiente.
+- draft PR #54 — decisione brief controllata, CI #230 verde.
 
 ## Freeze immediato
 
@@ -104,5 +136,5 @@ La Control Room mostra dati persistiti; non decide readiness, approvazione, mate
 - browser senza accesso diretto a D1;
 - nessuna pubblicazione automatica;
 - nessun secret in URL, HTML, JavaScript client, storage, log o repository;
-- nessuna mutation senza scope esplicito e branch dedicata;
+- nessuna mutation diversa dalla decisione brief nella PR #54;
 - nessuna rimozione della legacy finché resta un fallback operativo.

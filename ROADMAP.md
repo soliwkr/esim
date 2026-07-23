@@ -155,7 +155,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 
 ## M4 — Frontend foundation e Control Room definitiva
 
-**Stato: parità read-only completa in CI; mutation operative da migrare**
+**Stato: parità read-only completa; prima mutation verificata in CI, produzione ancora aperta**
 
 ### M4.0 — Freeze legacy
 
@@ -186,57 +186,60 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 - [x] Sessione mediata dal Worker.
 - [x] Secondo login applicativo rimosso.
 - [x] Snapshot automatico senza credenziali nel browser.
-- [x] API originale invariata per agenti e consumer legacy.
-- [x] Secondo proxy GET-only on demand — PR #47 verificata in produzione.
+- [x] API originale preservata per agenti e consumer legacy.
+- [x] Proxy GET-only del dettaglio draft — PR #47 verificata in produzione.
 
 ### M4.4 — Migrazione funzionale Control Room
 
-- [x] Overview e health — PR #32 verificata.
-- [x] Radar e brief — PR #34 verificata.
-- [x] Claim, fonti e scadenze — PR #37 verificata.
-- [x] Page Readiness ed evidence bundle — PR #39 + hotfix #40 verificate.
-- [x] Draft, preview e decisioni — PR #42 verificata.
-- [x] Queue e audit — PR #44 verificata.
-- [x] Dettaglio draft completo on demand e read-only — PR #47 verificata.
-- [x] Audit sistematico di parità legacy — PR #49, merge `e0a39fa9`, CI #209.
-- [x] Linkage claim → task — PR #50, merge `41a9beee`, CI #213.
-- [x] Linkage audit → versione draft — PR #52, merge `35f56e82`, CI finale #220.
-- [ ] Verifica visuale in produzione dei due nuovi linkage.
-- [ ] Azioni operative autorizzate, una per branch.
+- [x] Overview e health — PR #32.
+- [x] Radar e brief — PR #34.
+- [x] Claim, fonti e scadenze — PR #37.
+- [x] Page Readiness ed evidence bundle — PR #39 + #40.
+- [x] Draft, preview e decisioni read-only — PR #42.
+- [x] Queue e audit — PR #44.
+- [x] Dettaglio draft completo on demand — PR #47.
+- [x] Audit sistematico di parità legacy — PR #49, CI #209.
+- [x] Linkage claim → task — PR #50, CI #213.
+- [x] Linkage audit → versione draft — PR #52, CI #220.
+- [x] Decisione brief implementata e verificata in CI — draft PR #54, CI #230.
+- [ ] Merge PR #54, applicazione remota `0020` e verifica browser reale.
+- [ ] Verifica visuale in produzione dei due linkage read-only recenti.
+- [ ] Conversione brief.
+- [ ] Operazioni claim.
+- [ ] Decisione draft.
+- [ ] Eventuale retry queue.
 - [ ] Rimozione legacy dopo migrazione completa delle mutation.
 
-Il dettaglio draft usa il contratto backend esistente e resta separato dallo snapshot:
-
-```text
-snapshot leggero con inventario
-→ apertura esplicita
-→ proxy Access-protected GET-only
-→ corpo, FAQ, fonti, provenance e stato pagina
-```
-
-Separazioni obbligatorie:
-
-```text
-approved draft ≠ published page
-review draft ≠ publication eligibility
-editorial approval ≠ publication action
-draft status ≠ materialized page status
-queue status ≠ decisione editoriale
-failed task ≠ contenuto non valido
-completed task ≠ pagina pubblicata
-audit event ≠ autorizzazione operativa
-```
-
-Non restano gap read-only noti rispetto alle letture necessarie della legacy. I linkage canonici sono:
+Linkage canonici read-only:
 
 ```text
 claim → task_id + task_status
 audit event_key → draft_id + draft_version
 ```
 
+Prima mutation:
+
+```text
+proposed → accepted | dismissed
+accepted → converted  # gate distinto, non esposto dalla PR #54
+```
+
+Guardrail della PR #54:
+
+- route privata dedicata;
+- attore derivato dal JWT Access, non dal body;
+- conferma esplicita;
+- state machine D1;
+- audit append-only;
+- retry idempotente e conflitto sulla decisione opposta;
+- motivo obbligatorio per il rifiuto;
+- reload dello snapshot;
+- conteggio pubblicazioni invariato;
+- `publicationTriggered: false`.
+
 La preview HTML legacy non è un requisito della nuova architettura. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview visuale deve appartenere al renderer pubblico Astro.
 
-**Criterio di uscita M4:** le mutation operative necessarie sono migrate con conferma, idempotenza, audit e test; il fallback legacy non è più necessario. Soltanto allora la legacy può essere rimossa.
+**Criterio di uscita M4:** le mutation operative necessarie sono migrate con conferma, identità verificata, idempotenza, audit e test; il fallback legacy non è più necessario. Soltanto allora la legacy può essere rimossa.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
@@ -296,14 +299,16 @@ La preview HTML legacy non è un requisito della nuova architettura. Il dettagli
 
 ## Ordine operativo attuale
 
-1. verificare visivamente in produzione i linkage claim → task e audit → versione draft;
-2. definire esplicitamente la prima mutation della Control Room;
-3. migrare le mutation una per branch con conferma, idempotenza, audit e test;
-4. verificare separatamente la migrazione remota `0019` senza creare dati artificiali;
-5. rimuovere la legacy soltanto quando il fallback non serve più;
-6. migrare il sito pubblico ad Astro;
-7. collegare Search Console, consenso e analytics;
-8. attivare affiliazioni soltanto dopo quality gate e misurazione.
+1. chiudere la review della draft PR #54 e rieseguire la CI finale;
+2. autorizzare separatamente merge, deploy e migrazione remota `0020`;
+3. verificare nel browser reale decisione brief e linkage read-only recenti;
+4. verificare separatamente la migrazione remota `0019` senza dati artificiali;
+5. migrare la conversione brief come capacità distinta;
+6. migrare le mutation residue una per branch;
+7. rimuovere la legacy soltanto quando il fallback non serve più;
+8. migrare il sito pubblico ad Astro;
+9. collegare Search Console, consenso e analytics;
+10. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 

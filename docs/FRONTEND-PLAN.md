@@ -4,13 +4,11 @@ Data di riferimento: **22 luglio 2026**.
 
 ## Decisione
 
-Senza Roaming non usa più il Cloudflare Worker come generatore di nuove interfacce HTML, CSS e JavaScript applicative.
-
-La direzione adottata è:
+Senza Roaming non usa il Cloudflare Worker come generatore di nuove interfacce HTML, CSS e JavaScript applicative.
 
 ```text
 Astro
-├── sito pubblico orientato ai contenuti
+├── sito pubblico content-first
 ├── layout, navigazione, SEO e pagine
 └── shell della Control Room
 
@@ -18,7 +16,7 @@ React island
 └── applicazione interattiva della Control Room
 
 Custom Cloudflare Worker
-├── perimetro Access e proxy server-side
+├── Cloudflare Access e route server-side
 ├── API
 ├── D1
 ├── Workflows
@@ -27,27 +25,26 @@ Custom Cloudflare Worker
 └── gate editoriali e di pubblicazione
 ```
 
-Il backend non viene riscritto. La migrazione riguarda il livello di presentazione e il modo in cui il browser consuma contratti protetti.
+Il backend non viene riscritto come parte della migrazione frontend. Le estensioni server-side sono limitate a contratti espliciti necessari alla Control Room e restano nello stesso execution plane.
 
 ## Principio operativo
 
-Non si costruiscono da zero componenti generici già risolti dall'ecosistema.
+Non si costruiscono da zero componenti generici già risolti dall’ecosistema.
 
 Da riusare:
 
-- button, input, select, dialog, drawer e toast;
-- tabelle, filtri, pagination e stati vuoti;
+- button, input, select, dialog, AlertDialog, Sheet e toast;
+- tabelle, filtri e stati vuoti;
 - loading, error, retry e focus management;
-- responsive layout e pattern di navigazione;
-- primitive accessibili e testate.
+- responsive layout e primitive accessibili.
 
 Da scrivere nel progetto:
 
 - flussi brief → claim → readiness → draft;
 - contratti e validazione dei dati di dominio;
-- regole editoriali e guardrail;
+- state machine e guardrail editoriali;
 - viste specifiche di Senza Roaming;
-- copy e design token del brand.
+- test end-to-end delle operazioni.
 
 ## Stack
 
@@ -58,52 +55,46 @@ Da scrivere nel progetto:
 - React soltanto per la Control Room e altre isole realmente interattive;
 - TypeScript strict;
 - shadcn/ui con primitive Radix e sorgenti versionati;
-- icone Lucide;
-- validazione runtime dei payload API;
+- Lucide;
+- Tailwind 4;
+- validazione runtime dei payload;
 - smoke D1, `workerd` e Chromium.
 
-### Target da adottare soltanto quando serve
+### Da adottare soltanto quando serve
 
-- TanStack Query per cache, retry e mutation complesse;
+- TanStack Query per cache, retry e mutation più numerose;
 - TanStack Table per dataset operativi più grandi;
-- React Hook Form per form editoriali;
+- React Hook Form per form articolati;
 - Zod se i contratti condivisi richiedono una libreria dedicata.
 
 Una libreria viene aggiunta soltanto quando riduce complessità reale.
 
-## UI kit
-
-La Control Room usa **shadcn/ui**. Il confronto con Mantine resta opzionale e non blocca la migrazione senza un vantaggio concreto da misurare.
-
-## Integrazione Cloudflare verificata
+## Integrazione Cloudflare
 
 Il progetto usa un singolo Worker:
 
 ```text
 richiesta
 → custom Worker entrypoint
-→ Access guard per la Control Room
-→ proxy snapshot read-only
-→ proxy dettaglio draft GET-only on demand
+→ Access guard per /control-room-foundation*
+→ route read-only o mutation esplicita
 → handler Astro per pagine e asset
 → router backend per API e pagine non migrate
 ```
 
 Sono verificati:
 
-- export di Workflow e Container;
-- D1 e configurazione runtime;
+- export Workflow e Container;
+- binding D1 e configurazione runtime;
 - API di manutenzione;
-- deploy automatico;
-- migrazioni D1;
+- build e runtime `workerd`;
 - 404, canonical, robots e sitemap esistenti;
 - assenza di route di pubblicazione automatica;
-- live smoke della shell e del proxy snapshot;
-- dettaglio draft GET-only, PR #47 e verifica in produzione;
-- linkage claim → task, PR #50 e CI #213;
-- identità audit e linkage draft canonico, PR #52 e CI finale #220.
+- shell e proxy snapshot;
+- dettaglio draft GET-only on demand;
+- prima route mutabile limitata alla decisione brief, verificata in CI #230.
 
-I due nuovi linkage non sono ancora attestati visivamente nel browser reale dietro Cloudflare Access.
+La route mutabile non è ancora dichiarata operativa in produzione finché PR #54, migrazione remota `0020` e verifica browser reale non sono chiuse.
 
 ## Struttura incrementale
 
@@ -111,7 +102,7 @@ I due nuovi linkage non sono ancora attestati visivamente nel browser reale diet
 apps/
   web/                 # Astro, React island e componenti Control Room
 
-src/                   # backend ed execution plane esistenti
+src/                   # backend ed execution plane
 migrations/
 containers/
 scripts/
@@ -145,160 +136,63 @@ La riorganizzazione completa del repository viene valutata soltanto dopo il rila
 - [x] secondo login e credenziali browser rimossi;
 - [x] hydration, loading, error, empty, tastiera e mobile coperti.
 
-### F3 — Migrare la Control Room read-only
+### F3 — Migrare la Control Room
 
-Ordine completato:
+#### F3.1–F3.8 — Letture e parità
 
-1. overview e health — **PR #32**;
-2. radar e brief — **PR #34**;
-3. claim, fonti e scadenze — **PR #37**;
-4. readiness ed evidence bundle — **PR #39 + hotfix #40**;
-5. draft, preview e decisioni — **PR #42**;
-6. queue e audit — **PR #44, CI #174 e verifica browser reale**;
-7. dettaglio draft completo — **PR #47, CI #198 e verifica browser reale**;
-8. audit sistematico di parità — **PR #49, merge `e0a39fa9`, CI #209**;
-9. linkage claim → task — **PR #50, merge `41a9beee`, CI #213**;
-10. linkage audit → versione draft — **PR #52, merge `35f56e82`, CI finale #220**.
+Completati:
 
-#### F3.1 — Overview e health
+1. overview e health — PR #32;
+2. radar e brief — PR #34;
+3. claim, fonti e scadenze — PR #37;
+4. readiness ed evidence bundle — PR #39 + #40;
+5. draft, preview e decisioni read-only — PR #42;
+6. queue e audit — PR #44;
+7. dettaglio draft completo — PR #47;
+8. audit sistematico di parità legacy — PR #49;
+9. linkage claim → task — PR #50;
+10. linkage audit → versione draft — PR #52.
 
-**Stato: completata e verificata in produzione.**
+Non restano gap read-only noti in CI.
 
-- metriche overview, capability, binding, timestamp e guardrail;
-- health e snapshot come risorse indipendenti;
-- payload non validi rifiutati;
-- nessuna mutation, pubblicazione o accesso browser a D1.
-
-#### F3.2 — Radar e brief
-
-**Stato: completata e verificata in produzione.**
-
-- run, segnali e brief reali;
-- filtro run → segnali basato sul `run_id` canonico;
-- punteggi, stati, quality flags e nullable preservati;
-- nessun linkage segnale → brief inventato;
-- nessuna mutation o pubblicazione.
-
-#### F3.3 — Claim, fonti, scadenze e task
-
-**Stato: completata in CI; verifica visuale del task linkage aperta.**
-
-- contratto claim, fonti, verifica e scadenza validato a runtime;
-- filtri per stato, brief, fonte, verifica e scadenza;
-- fonte distinta dall'evidenza;
-- stato temporale separato dallo stato canonico;
-- `task_id` e `task_status` persistiti e mostrati;
-- `task_id` accetta soltanto `null` o interi positivi;
-- nessuna ricostruzione da `entity_key`;
-- nessuna richiesta browser diversa da `GET`;
-- nessuna mutation o pubblicazione.
-
-#### F3.4 — Page Readiness ed evidence bundle
-
-**Stato: completata e verificata in produzione.**
-
-- score, conteggi e quattro gate distinti;
-- warning strutturati `{ code, message?, ...metadata }`;
-- filtri, dettaglio, empty state, desktop e mobile;
-- fixture aderente al payload canonico;
-- nessuna valutazione, approvazione o pubblicazione.
-
-#### F3.5 — Draft, preview e decisioni
-
-**Stato: completata e verificata in produzione.**
-
-- tutte le versioni draft dello snapshot;
-- bundle e brief collegati tramite ID canonici;
-- title, H1, claim usati ed esclusi;
-- generatore, revisore, timestamp, note ed errori;
-- readiness e publication eligibility separate;
-- empty state, contratto invalido, desktop, mobile e tastiera;
-- nessuna richiesta browser diversa da `GET`.
-
-Il vecchio inventario non ricostruisce corpo, provenance o stato pagina. Questi dati appartengono alla risorsa separata F3.7.
-
-#### F3.6 — Queue e audit
-
-**Stato: letture complete in CI; verifica visuale del nuovo audit linkage aperta.**
-
-Queue:
-
-- task `pending`, `processing` e `failed`;
-- tipo, entità, priorità, stato, scadenza, tentativi, lock ed errore;
-- payload JSON e timestamp;
-- filtri e dettaglio read-only.
-
-Audit:
-
-- `event_key` stabile e namespaced;
-- dominio, azione, attore, entità e timestamp;
-- `draft_id` e `draft_version` obbligatori per gli eventi draft;
-- linkage draft nullo per gli altri domini;
-- dettagli JSON opachi;
-- filtri e dettaglio read-only;
-- nessuna interpretazione di `details` per ricostruire relazioni.
-
-Separazioni verificate:
+Linkage canonici:
 
 ```text
-queue status ≠ decisione editoriale
-failed task ≠ contenuto non valido
-completed task ≠ pagina pubblicata
-audit event ≠ autorizzazione operativa
+claim.task_id + claim.task_status
+audit.event_key + audit.draft_id + audit.draft_version
 ```
 
-#### F3.7 — Dettaglio draft completo read-only
+Il client non ricostruisce relazioni da `entity_key`, `details` o altri campi opachi.
 
-**Stato: completata e verificata in produzione con PR #47.**
-
-Architettura:
+Il dettaglio draft resta separato dallo snapshot:
 
 ```text
-inventario draft nello snapshot
-→ selezione esplicita della versione
+inventario nello snapshot
+→ apertura esplicita
 → GET /control-room-foundation/api/draft-detail?draftId=<id>
-→ Cloudflare Access e validazione origine
-→ maintenance token soltanto server-side
-→ endpoint backend esistente
-→ contratto runtime dedicato
+→ Access
+→ maintenance token server-side
+→ contratto backend esistente
 ```
 
-La vista mostra corpo, campi principali, blocchi, FAQ, fonti HTTPS, provenance, claim usati/esclusi, regole di generazione e stato reale della pagina materializzata.
+La preview HTML legacy non è un requisito. Una futura anteprima visuale del sito appartiene al renderer pubblico Astro.
 
-Proprietà di isolamento:
+#### F3.9 — Azioni operative
 
-- nessuna richiesta prima dell’apertura;
-- errore confinato nel relativo Sheet;
-- snapshot preservato;
-- retry esplicito;
-- corrispondenza inventario/dettaglio;
-- nessun token operativo nel browser;
-- proxy `GET`-only.
+Regola:
 
-Non include generazione, revisione operativa, materializzazione, mutation o pubblicazione.
+```text
+una capacità mutabile
+→ una branch
+→ una route privata
+→ una conferma esplicita
+→ una state machine server-side
+→ un audit persistito
+→ reload dello stato
+→ test end-to-end
+```
 
-#### F3.8 — Audit di parità legacy
-
-**Stato: parità read-only completa in CI.**
-
-La matrice versionata verifica:
-
-- copertura delle letture operative;
-- guardrail equivalenti o più forti;
-- assenza di token applicativi nel browser;
-- Access e proxy GET-only;
-- assenza di mutation e accesso diretto a D1;
-- linkage claim → task canonico;
-- identità audit e linkage draft canonico;
-- inventario delle mutation ancora ospitate dalla legacy.
-
-Il template HTML della preview legacy non è un requisito di parità. Una futura preview visuale appartiene al renderer pubblico Astro.
-
-La legacy resta necessaria come fallback delle mutation.
-
-### F4 — Migrare le azioni operative
-
-Una branch per capacità:
+Ordine:
 
 ```text
 decisione brief
@@ -308,30 +202,93 @@ decisione brief
 → eventuale retry queue
 ```
 
-Ogni mutation richiede:
+##### Prima mutation — decisione brief
 
-- scope esplicito;
-- conferma dell’operatore;
-- idempotenza;
-- audit persistito;
-- reload dello snapshot;
-- gestione degli errori;
-- test end-to-end;
-- nessuna pubblicazione implicita.
+Draft PR #54:
 
-La prima mutation non è ancora scelta né avviata.
+```text
+feat/control-room-brief-decision-mutation
+```
 
-### F5 — Migrare il sito pubblico
+Transizioni:
+
+```text
+proposed → accepted | dismissed
+accepted → converted  # resta gate successivo
+```
+
+Architettura:
+
+```text
+AlertDialog React
+→ POST /control-room-foundation/api/brief-decision
+→ Access già verificato
+→ attore derivato dal JWT
+→ handler server-side condiviso
+→ UPDATE condizionale
+→ trigger D1
+→ editorial_brief_events append-only
+→ snapshot reload
+```
+
+Il browser invia soltanto:
+
+```text
+briefId
+action
+notes
+```
+
+Il browser non può scegliere l’attore e non gestisce il maintenance token.
+
+Guardrail:
+
+- soltanto brief `proposed`;
+- un solo brief per richiesta;
+- conferma prima del POST;
+- motivo obbligatorio per il rifiuto;
+- stessa decisione ritentata → esito idempotente;
+- decisione opposta → conflitto `409`;
+- task editoriale aperto cancellato soltanto su `dismissed`;
+- evento append-only;
+- stati storici backfillati senza identità inventata;
+- risposta con `publicationTriggered: false`;
+- conteggio delle pagine pubblicate invariato.
+
+CI #230 completamente verde:
+
+- typecheck e build;
+- migrazione D1 locale `0020`;
+- quality gate e golden evaluation;
+- Container e `workerd`;
+- endpoint Access-protected;
+- accept, dismiss, idempotenza e conflitto;
+- queue e snapshot reali;
+- desktop e mobile;
+- regressioni delle altre viste e legacy parity.
+
+Ancora aperti:
+
+- review e merge PR #54;
+- applicazione remota `0020`;
+- deploy operativo;
+- verifica browser reale dietro Access.
+
+La branch non include conversione, claim, readiness, bundle, draft, materializzazione, queue retry o pubblicazione.
+
+### F4 — Migrare il sito pubblico
+
+Dopo la stabilizzazione della Control Room operativa:
 
 - home;
 - layout e navigazione;
 - pagine statiche;
 - listing destinazioni, guide e confronti;
-- pagina articolo;
+- pagina articolo e preview Astro;
 - schema markup, canonical, sitemap e 404;
-- progressive migration senza cambiare lo stato editoriale delle pagine.
+- progressive migration senza cambiare gli stati editoriali.
 
-### F6 — Consolidamento
+### F5 — Hardening
 
 - eliminare renderer HTML, CSS e JavaScript manuali;
 - ridurre codice duplicato;
@@ -343,31 +300,29 @@ La prima mutation non è ancora scelta né avviata.
 ## Guardrail
 
 - Astro e React non accedono direttamente a D1 dal browser;
-- le azioni passano dalle API protette;
-- nessun componente UI introduce pubblicazione automatica;
-- la migrazione non modifica claim, evidence bundle o stati editoriali senza azione esplicita;
-- la pagina Cina resta `review` finché il publication gate non è soddisfatto;
-- un payload JSON non è valido soltanto perché esiste un tipo TypeScript;
-- segnali e trend non vengono presentati come claim commerciali verificati;
-- una scadenza derivata nel client non riscrive lo stato canonico;
+- tutte le route Control Room sono protette da Access;
+- l’attore delle mutation deriva dall’identità verificata;
+- nessun componente introduce pubblicazione automatica;
+- claim, bundle e stati editoriali non vengono ricalcolati nel client;
+- una scadenza derivata non riscrive lo stato canonico del claim;
 - una fonte ufficiale non viene presentata come test indipendente;
 - draft eligibility non viene presentata come publication eligibility;
-- lo stato del draft non viene presentato come stato della pagina;
-- lo stato della queue non viene presentato come decisione editoriale;
-- un errore del dettaglio draft non invalida lo snapshot;
-- il dettaglio on demand non abilita materializzazione o pubblicazione;
-- relazioni mancanti non vengono ricostruite con euristiche client;
+- lo stato draft non viene presentato come stato pagina;
+- lo stato queue non viene presentato come decisione editoriale;
+- un errore del dettaglio non invalida lo snapshot;
+- relazioni mancanti non vengono ricostruite con euristiche;
+- una mutation non abilita implicitamente la successiva;
 - la legacy non viene rimossa finché resta il fallback delle mutation.
 
 ## Cosa non facciamo adesso
 
-- riscrivere il backend;
-- avviare mutation senza scope esplicito;
-- spostare subito tutte le directory;
+- riscrivere l’intero backend;
+- introdurre più mutation nella stessa branch;
 - pubblicare la pagina Cina;
-- costruire un design system proprietario da zero;
-- introdurre una libreria senza necessità dimostrata;
-- aggiungere nuove feature alla Control Room legacy;
-- duplicare query D1 già coperte dal contratto backend;
-- copiare il renderer HTML legacy nella nuova Control Room;
+- spostare subito tutte le directory;
+- costruire un design system proprietario;
+- aggiungere librerie senza necessità dimostrata;
+- ampliare la Control Room legacy;
+- duplicare query D1 già coperte;
+- copiare il renderer HTML legacy;
 - rimuovere la legacy prima della migrazione delle mutation.

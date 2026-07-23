@@ -26,7 +26,7 @@ React island
               ├── letture tipizzate e validate
               ├── snapshot aggregato
               ├── risorse GET on demand
-              ├── tabelle, filtri e dialog
+              ├── tabelle, filtri, form e dialog
               ├── mutation soltanto in fasi autorizzate
               └── nessun accesso diretto a D1
 
@@ -34,6 +34,7 @@ Custom Cloudflare Worker entrypoint
       ├── Cloudflare Access guard
       ├── proxy snapshot read-only
       ├── proxy dettaglio draft GET-only
+      ├── route decisione brief POST esplicita
       ├── handler Astro
       ├── API protette di manutenzione
       ├── redirect provider
@@ -104,7 +105,7 @@ Il Worker e i binding esistenti restano responsabili di:
 - AI Gateway e Vertex;
 - publication guardrails.
 
-Astro e React non modificano direttamente D1 dal browser.
+Astro e React non modificano direttamente D1 dal browser. Le mutation passano da route server-side dedicate che applicano identità verificata, state machine e audit persistito.
 
 ## Separazione delle fonti
 
@@ -173,25 +174,32 @@ segnali eligible
 brief AI strutturato
       │
       ▼
-accettazione umana
+decisione umana del brief
       │
-      ▼
-claim atomici + fonti
+      ├── dismissed → arresto del lavoro editoriale aperto
       │
-      ▼
-Page Readiness + evidence bundle
-      │
-      ▼
-draft grounded in review
-      │
-      ▼
-revisione umana
-      │
-      ▼
-publication gate separato
+      └── accepted
+              │
+              ▼
+      conversione separata
+              │
+              ▼
+      claim atomici + fonti
+              │
+              ▼
+      Page Readiness + evidence bundle
+              │
+              ▼
+      draft grounded in review
+              │
+              ▼
+      revisione umana
+              │
+              ▼
+      publication gate separato
 ```
 
-L'AI non possiede un percorso diretto per promuovere una pagina a `published`.
+L'AI non possiede un percorso diretto per promuovere una pagina a `published`. L'accettazione del brief non esegue conversione, generazione claim, draft o pubblicazione.
 
 ## Dashboard del progetto
 
@@ -207,7 +215,7 @@ La Control Room è specifica del dominio eSIM e deve gestire:
 - draft e preview;
 - dettaglio completo del draft;
 - errori e audit;
-- operazioni manuali del Workflow nelle fasi autorizzate.
+- operazioni manuali nelle fasi autorizzate.
 
 Deve essere costruita sopra API stabili e protette. La Control Room HTML manuale è legacy transitoria; la versione definitiva è una React island dentro Astro.
 
@@ -223,8 +231,9 @@ apps/web/src/worker.ts
         ├── /astro-foundation → handler Astro
         ├── /control-room-foundation* → Access guard
         │       ├── pagina → handler Astro
-        │       ├── /api/snapshot → proxy read-only
-        │       └── /api/draft-detail → proxy GET-only on demand
+        │       ├── /api/snapshot → proxy GET read-only
+        │       ├── /api/draft-detail → proxy GET on demand
+        │       └── /api/brief-decision → mutation POST esplicita
         └── tutte le altre route → src/index.ts
                                   ├── API e health
                                   ├── sito e Control Room legacy
@@ -241,9 +250,10 @@ browser autenticato
 → path protetto da Access
 → validazione dell’identità nel Worker
 → React island
-→ GET /control-room-foundation/api/snapshot
-→ GET /control-room-foundation/api/draft-detail?draftId=<id> on demand
-→ delega server-side alle API esistenti
+→ GET snapshot e dettaglio draft
+→ POST decisione brief soltanto dopo conferma
+→ identità dell’attore derivata dal JWT verificato
+→ D1 soltanto server-side
 ```
 
 Conseguenze:
@@ -251,9 +261,11 @@ Conseguenze:
 - un solo login visibile;
 - nessuna credenziale applicativa nel browser;
 - nessun token in HTML, URL, bundle o storage;
-- proxy GET-only e risposte `no-store` / `noindex`;
-- API originali invariate per agenti e consumer legacy;
-- nessuna mutation o capacità di pubblicazione introdotta dai proxy.
+- letture GET-only e risposte `no-store` / `noindex`;
+- mutation disponibili soltanto tramite route dedicate e scope ristretto;
+- il body browser non può scegliere l'attore;
+- API originali preservate per agenti e consumer legacy;
+- nessuna capacità di pubblicazione introdotta.
 
 ## Risorse della Control Room
 
@@ -321,6 +333,46 @@ materialized page review ≠ publication eligibility
 approved draft ≠ published page
 ```
 
+### Decisione brief controllata
+
+La prima mutation della nuova Control Room è limitata a:
+
+```text
+proposed → accepted | dismissed
+```
+
+`accepted → converted` resta un gate successivo e non è esposto dalla stessa interfaccia.
+
+```text
+operatore apre la conferma
+→ AlertDialog accessibile
+→ POST /control-room-foundation/api/brief-decision
+→ Access già verificato
+→ attore ricavato da email o subject del JWT
+→ handler server-side condiviso
+→ UPDATE condizionale del brief
+→ trigger D1 della state machine
+→ editorial_brief_events append-only
+→ eventuale cancellazione queue solo su dismissed
+→ risposta publicationTriggered=false
+→ reload dello snapshot
+```
+
+Il browser invia soltanto `briefId`, `action` e `notes`. Non può inviare l'attore, accedere a D1 o usare il maintenance token.
+
+La migrazione `0020_editorial_brief_decisions.sql`:
+
+- aggiunge `decision_actor` e `decided_at`;
+- crea l'audit immutabile delle decisioni;
+- preserva gli stati storici con attore esplicito di backfill;
+- blocca transizioni illegali;
+- rende idempotente il retry della stessa decisione;
+- conserva `accepted → converted` per la capacità successiva.
+
+Il rifiuto richiede una motivazione. Una decisione opposta o incompatibile restituisce conflitto. Nessuna decisione brief genera claim, draft, materializzazione o pubblicazione.
+
+La capacità è verificata in CI #230 sulla draft PR #54. Merge, migrazione remota `0020`, deploy e verifica browser reale restano separati e non sono ancora attestati.
+
 ## Confine con il futuro Command Center dello studio
 
 Il futuro Command Center è un control plane multi-progetto. Non deve incorporare il database o la logica editoriale di Senza Roaming.
@@ -344,13 +396,15 @@ OpenSEO è un servizio specialistico condiviso dello studio e non va fuso nel Wo
 ## Sicurezza
 
 - Le API operative restano protette server-side.
-- Cloudflare Access protegge la Control Room e tutti i proxy sotto il path.
+- Cloudflare Access protegge la Control Room e tutte le route sotto il path.
+- L'attore delle mutation deriva dall'identità Access già verificata.
 - Credenziali e link riservati restano configurazione non versionata.
 - Nessun token o dato sensibile viene inserito negli URL.
 - Le risposte di errore non espongono credenziali o payload completi di provider esterni.
 - Il frontend non contiene funzioni di pubblicazione automatica.
 - Il browser non accede direttamente a D1.
 - Le fonti mostrate dal dettaglio devono essere HTTPS.
+- Una mutation non abilita implicitamente il gate successivo.
 
 ## Deployment e verifica
 
@@ -364,24 +418,28 @@ GitHub Actions esegue:
 6. quality smoke e golden evaluation;
 7. build e smoke test del Container;
 8. runtime `workerd`;
-9. smoke Chromium delle viste di dominio;
+9. smoke Chromium delle viste e delle mutation autorizzate;
 10. deploy Worker, Workflow, Container e asset su `main`;
 11. smoke live delle route essenziali.
 
 In pull request, gli smoke verificano:
 
 - route Astro e Access guard;
-- proxy snapshot, proxy dettaglio draft e API originali;
+- proxy snapshot, dettaglio draft e API originali;
 - contratti delle metriche e delle collezioni;
 - payload non validi rifiutati;
 - errori parziali e risorse indipendenti;
 - caricamento on demand del draft;
 - hydration, tastiera e mobile;
-- assenza di mutation e route di pubblicazione.
+- decisione brief con conferma, identità server-side, idempotenza e audit;
+- assenza di mutation ulteriori e di route di pubblicazione;
+- conteggio delle pagine pubblicate invariato durante la decisione brief.
+
+Il merge su `main` non sostituisce la verifica remota delle migrazioni né la prova nel browser reale dietro Access.
 
 ## Principio di evoluzione
 
-Aggiungere un componente solo quando:
+Aggiungere un componente o una mutation solo quando:
 
 1. risolve un problema osservato;
 2. possiede un confine chiaro;
@@ -389,4 +447,5 @@ Aggiungere un componente solo quando:
 4. è osservabile;
 5. può fallire senza pubblicare informazioni scorrette;
 6. non duplica una capacità già disponibile;
-7. non ricostruisce artigianalmente un componente generico già risolto.
+7. non ricostruisce artigianalmente un componente generico già risolto;
+8. non abilita implicitamente una capacità successiva.
