@@ -2,11 +2,11 @@
 
 Date: 2026-07-23
 
-Status: research checkpoint only. No external code imported. No runtime, backend, data, workflow, affiliate, deployment, or publication change.
+Status: research checkpoint only. No external code imported. No runtime, backend, data, workflow, affiliate, deployment or publication change.
 
 ## Scope
 
-This document covers the final repository wave supplied after the initial external-repository audit:
+This document covers the final repository wave supplied after the initial audit:
 
 - `StudioPuraLuce/googleai-ppla-campaign-generator`
 - `StudioPuraLuce/genai-ppl-kwplan-generator`
@@ -16,35 +16,40 @@ This document covers the final repository wave supplied after the initial extern
 - `StudioPuraLuce/telegram-ranketogram`
 - `StudioPuraLuce/astro-rank-rent`
 - `slwklegacy/awesome-programmatic-seo`
-- `slwklegacy/client-mgc-reparation`
-- related public successors and preserved context discovered during verification
+- the user-uploaded `client-mgc-reparation-main.zip`
+- related predecessor, successor and deployment repositories discovered during verification.
 
 Ahmeego is treated separately in `docs/AHMEEGO-CASE-STUDY.md`.
 
-## Access and provenance result
+The real MGC implementation receives a dedicated sanitized audit in `docs/MGC-REAL-CLIENT-AUDIT.md`.
 
-### Directly accessible
+## Access result
+
+### Directly accessible through the authenticated GitHub connector
 
 - `StudioPuraLuce/googleai-ppla-campaign-generator`
+- `StudioPuraLuce/genai-ppl-kwplan-generator`
 - `StudioPuraLuce/ppl-jack-ConversionCommandCenter`
+- `StudioPuraLuce/pronto-clone-`
+- `StudioPuraLuce/astro-rank-rent`
 - `slwklegacy/awesome-programmatic-seo`
 
-### Exact supplied URL not accessible on 2026-07-23
+### Supplied as an uploaded archive
 
-The following names returned `404` through the authenticated connector and no exact public repository match was found:
+- `client-mgc-reparation-main.zip`
 
-- `StudioPuraLuce/genai-ppl-kwplan-generator`
-- `StudioPuraLuce/pronto-clone-`
+The archive was extracted and analyzed locally without reading, displaying, testing or copying credential values.
+
+### Still not visible to the GitHub connector
+
+The user reports that these repositories have been restored, but the authenticated connector still returns `404` and installed-repository search returns no match for the exact names:
+
 - `StudioPuraLuce/rank-rent-factory`
 - `StudioPuraLuce/telegram-ranketogram`
-- `StudioPuraLuce/astro-rank-rent`
-- `slwklegacy/client-mgc-reparation`
 
-Possible causes include rename, transfer, deletion, visibility change, or an inaccurate URL. They are recorded as unavailable, not silently substituted.
+They are recorded as an access-perimeter mismatch, not as deleted or nonexistent. No content finding is attributed to them.
 
-### Related repositories discovered
-
-The organization and legacy account contain likely predecessors, successors, or deployment outputs:
+### Related repositories analyzed
 
 - `slwklegacy/RankRentFactory`
 - `StudioPuraLuce/rr-test-deploy-smoke`
@@ -54,17 +59,7 @@ The organization and legacy account contain likely predecessors, successors, or 
 - `StudioPuraLuce/ppl-garageterrebonne-v2`
 - `StudioPuraLuce/ppl-garageterrebonne-v3`
 
-These repositories were analyzed as related evidence. They are not claimed to be exact replacements for inaccessible URLs.
-
-### MGC preserved context
-
-The original `client-mgc-reparation` repository is not currently reachable. A preserved source-of-truth exists at:
-
-- `soliwkr/thesprint-uk/.claude-memory/context-import/mgc-reparation-source-of-truth.md`
-
-The preserving commit explicitly records provenance and third-party PII/IP handling. The audit uses the strategy and system description without reproducing personal data.
-
-## Repository findings
+These are evidence of evolution and deployment. They are not silently substituted for inaccessible exact names.
 
 ## 1. `googleai-ppla-campaign-generator`
 
@@ -85,9 +80,7 @@ Generated artifacts are persisted in browser `localStorage`.
 
 ### Useful pattern
 
-The decomposition of a broad campaign into explicit artifact types is valuable. It prevents a single oversized prompt from being mistaken for an executable campaign.
-
-Potentially reusable conceptual sequence:
+The decomposition of a broad campaign into explicit artifact types is valuable:
 
 ```text
 verified business context
@@ -96,24 +89,91 @@ verified business context
 → copy draft
 → form/CTA design
 → measurement plan
-→ channel-specific adaptation
+→ channel adaptation
 ```
 
 ### Problems
 
-- Client identity and business details are hardcoded in the application.
-- The prompt claims access to Search and Maps tools without a repository-level evidence contract proving that grounding occurred.
-- LLM output is rendered as a usable deliverable without claim/evidence validation.
-- Browser persistence is not a project system of record.
-- The repository has no root `LICENSE` file.
+- Client identity and business details are hardcoded.
+- The prompt assumes Search and Maps capabilities without a repository evidence contract.
+- LLM output is presented as an operational deliverable without claim validation.
+- Browser persistence is not a system of record.
+- No root license was found.
 
 ### Decision
 
 `EXTRACT METHOD ONLY`
 
-Do not import code. The artifact taxonomy may inform future brief types or planning documents, but Senza Roaming already has stronger editorial gates.
+Do not import code.
 
-## 2. `ppl-jack-ConversionCommandCenter`
+## 2. `genai-ppl-kwplan-generator`
+
+### What it is
+
+A React/Vite multilingual planning application using Gemini with Google Search and Maps grounding. It accepts:
+
+- location;
+- niche or Google Business Profile URL;
+- output language.
+
+It returns a structured JSON plan containing:
+
+- competitor summaries;
+- keyword rows;
+- domain suggestion;
+- ad groups and copy;
+- negative keywords;
+- revenue and profit projection;
+- grounding-source links.
+
+Plans, history, saved items, language and a Maps key are stored in browser `localStorage`.
+
+### Strongest pattern
+
+The application makes three improvements over the earlier campaign generator:
+
+1. explicit JSON structure;
+2. captured grounding chunks;
+3. separate history and saved-plan states.
+
+Potentially useful research contract:
+
+```text
+input
+→ grounded discovery
+→ structured result
+→ source inventory
+→ deterministic validator
+→ human review
+```
+
+### Critical methodological flaw
+
+The prompt asks Search and Maps grounding to produce:
+
+- average monthly search volumes;
+- local competition labels;
+- top-of-page bid ranges;
+- CPC-derived lead pricing;
+- revenue and profit projections.
+
+Search and Maps grounding do not constitute Keyword Planner evidence for those values. A syntactically valid JSON result can therefore contain unsupported commercial numbers.
+
+### Other problems
+
+- Model JSON is recovered by taking the first and last braces rather than using a strict response schema.
+- No field-level evidence mapping exists.
+- Grounding links are attached to the whole plan, not to individual facts.
+- Browser-stored API/configuration material is not appropriate for Senza Roaming operations.
+- No test or validation script is defined in `package.json`.
+
+### Decision
+
+`ADAPT RESEARCH CONTRACT; REJECT NUMERIC OUTPUT`
+
+Useful only as inspiration for source capture and typed output. Never use its volume, CPC or profit estimates without a primary data provider.
+
+## 3. `ppl-jack-ConversionCommandCenter`
 
 ### What it is
 
@@ -127,11 +187,9 @@ A deterministic React/Vite planning tool. It transforms an intake into:
 - launch tasks;
 - a short launch calendar.
 
-Unlike the prior generator, most of the plan is generated by local TypeScript functions rather than an LLM.
+Most output is produced by local TypeScript functions rather than an LLM.
 
 ### Useful pattern
-
-The strongest transferable element is the work-breakdown structure:
 
 ```text
 intake
@@ -144,145 +202,206 @@ intake
 → test checklist
 ```
 
-This is useful as a planning checklist, not as product code.
-
 ### Problems
 
-The deterministic generator can create unsupported claims by construction, including guarantees, review volume, certifications, urgency, exclusivity, savings, and performance language. It also:
+The deterministic rules create unsupported claims by construction, including guarantees, review volume, certifications, urgency, exclusivity, savings and performance language. It also:
 
 - treats a thank-you page view as the canonical lead conversion;
-- assumes a fixed multi-avatar psychology model;
+- assumes one fixed psychology model;
 - mixes strategy, copy and implementation truth;
 - contains no evidence provenance;
-- has no root `LICENSE` file.
+- has no root license.
 
 ### Decision
 
 `ADAPT WORK-BREAKDOWN ONLY`
 
-Do not reuse generated claims, copy, tracking defaults or implementation code.
-
-## 3. `slwklegacy/RankRentFactory`
+## 4. `pronto-clone-`
 
 ### What it is
 
-An early React/Vite mock of a multi-site rank-and-rent dashboard with:
+A single-commit React/Vite visual clone of a broad services marketplace homepage.
 
-- mock projects;
-- site configuration;
-- visual preview;
-- Gemini-generated headline, services and keywords.
+It contains:
 
-It is a conceptual predecessor to the much more complete `rankempire-italia` already covered in the main audit.
+- header and mobile navigation;
+- service search autocomplete;
+- category cards;
+- “how it works” sections;
+- testimonials;
+- app-download mock;
+- footer.
 
-### Problems
+### What it does not contain
 
-- The dashboard is in-memory mock state.
-- The generated content has no grounding contract.
-- The fallback copy invents local authority and years of trust.
-- The public page renderer is a React preview, not a production Astro content system.
-- The repository has no root `LICENSE` file.
+- provider marketplace data;
+- request creation;
+- matching;
+- quotes;
+- authentication;
+- backend;
+- commercial workflow;
+- SEO route system;
+- tests.
+
+Many controls and links are visual placeholders.
 
 ### Decision
 
-`REJECT AS DUPLICATED PREDECESSOR`
+`REJECT`
 
-`rankempire-italia` is the more relevant source for selective primitives. This predecessor adds no launch-critical capability.
+It adds no capability needed by Senza Roaming and risks unnecessary marketplace/product imitation.
 
-## 4. `StudioPuraLuce/rr-autospurghi-formia`
+## 5. `slwklegacy/RankRentFactory`
+
+### What it is
+
+An early React/Vite mock of a multi-site rank-and-rent dashboard with mock projects, visual preview and Gemini-generated content.
+
+### Problems
+
+- in-memory mock state;
+- no grounding contract;
+- fallback copy invents authority and years of trust;
+- React preview rather than production public rendering;
+- no root license.
+
+### Decision
+
+`REJECT AS SUPERSEDED PREDECESSOR`
+
+`rankempire-italia` and `astro-rank-rent` contain the more relevant later work.
+
+## 6. `astro-rank-rent`
+
+### What it is
+
+A real Astro rank-and-rent template connected at build time to a factory API. It is the strongest implementation artifact in this final wave.
+
+Verified capabilities include:
+
+- Astro static generation;
+- structured `site.config.json`;
+- build-time page retrieval;
+- fail-fast missing-content handling;
+- Italian slug normalization;
+- service × zone route matrix;
+- homepage, service, zone, leaf and blog routes;
+- canonical and sitemap references;
+- schema graph;
+- accessible breadcrumbs;
+- build-time internal linking;
+- route/schema/fetch tests reported green in the implementation commits;
+- robots generation and build smoke work.
+
+### Strong patterns
+
+#### Fail-fast build
+
+The route builder refuses to emit a service × zone path when the expected content record is missing. That is substantially better than publishing a fallback or thin page.
+
+#### Pure slug functions
+
+The Italian normalization helper is small, deterministic and suitable for direct unit testing.
+
+#### Pure schema graph
+
+The schema builder separates data construction from rendering and omits unavailable business fields.
+
+#### Build-time interlinking
+
+Sibling services and zones are calculated from configuration rather than injected by an LLM.
+
+### Problems
+
+- Raw HTML remains the content transport contract.
+- Sanitization is delegated to an earlier factory phase rather than enforced by the renderer.
+- The factory API is a build-time external dependency.
+- Content completeness is checked, but evidence and editorial readiness are not.
+- The package currently exposes a failing placeholder `test` script despite historical test commits, so repository-head commands and commit history are not fully aligned.
+- The configuration and route model target local lead generation, not Senza Roaming's editorial domain.
+
+### Decision
+
+`EXTRACT SMALL PURE PRIMITIVES / TEST IDEAS`
+
+Candidates for an isolated spike:
+
+- slug normalization and fixtures;
+- route-matrix fail-fast tests;
+- pure schema-graph tests;
+- accessible breadcrumb structure;
+- deterministic sibling-link tests.
+
+Do not copy the factory API contract or raw HTML pipeline.
+
+## 7. `rr-autospurghi-formia`
 
 ### What it proves
 
-The rank-and-rent factory produced a real Astro output repository driven by a site configuration containing niche, city, services, zones, project ID, domain and factory API.
-
-This is useful evidence that the factory progressed beyond a UI mock.
-
-### Useful patterns
-
-- Astro project generated from a structured site configuration.
-- Canonical site URL derived from deploy-time configuration.
-- Separate schema component.
-- Build-time page retrieval abstraction.
-- Honeypot intention on the lead form.
+The factory produced a real configured Astro output repository.
 
 ### Verified weaknesses
 
-- The package `test` script intentionally exits with an error and no real test suite is configured.
-- Business identity fields are still `null` in the checked configuration.
-- Page body is injected with `set:html` from generated remote content.
-- CTA promises are hardcoded independently of evidence.
-- The form posts to `/api/leads`, but no corresponding route was found in the repository.
-- The honeypot branch exits before `finally`, leaving the disabled submit button and loading state unchanged for that branch.
-- No production verification should be inferred from repository size or a domain field.
+- placeholder/failing test command;
+- incomplete business identity;
+- generated remote HTML inserted with `set:html`;
+- promises independent of evidence;
+- form posts to a route not found in the output repository;
+- honeypot branch can leave the submit state blocked;
+- no production result should be inferred from repository size or a configured domain.
 
 ### Decision
 
 `USE AS NEGATIVE SMOKE FIXTURE`
 
-Do not copy the generated site. Convert its failure modes into checks for future public Astro implementation:
+## 8. Real MGC Réparation implementation
 
-- route existence;
-- form recovery on every branch;
-- no unsupported promises;
-- no raw generated HTML without a trusted block contract;
-- required business identity validation;
-- test command must actually test.
+The uploaded archive corrects the previous conclusion that only the three small landing prototypes were available.
 
-## 5. MGC Réparation / Garage Terrebonne case
+It is a much broader implementation:
 
-### What is real and valuable
+- React/Vite SPA;
+- 252 sitemap URLs;
+- 230 pSEO entries;
+- dynamic FAQ and location pages;
+- Google Places business data;
+- schema and review rendering;
+- lead forms and notification paths;
+- GTM/dataLayer events;
+- Vertex content generation;
+- Google Business Profile scripts;
+- CRM, GHL, ClickUp and Apps Script material.
 
-The preserved source-of-truth describes a coherent acquisition system built around three distinct demand states:
+The detailed sanitized audit is in `docs/MGC-REAL-CLIENT-AUDIT.md`.
 
-1. immediate pain and safety;
-2. skepticism, trust and value;
-3. seasonal convenience and bundling.
+### Strongest value
 
-Each state had:
+- real proof of intent/message/follow-up segmentation;
+- a concrete generation-to-page pipeline;
+- useful negative fixtures for secret handling, PII, consent, schema, claim evidence, 404s and sitemap readiness.
 
-- a distinct landing page;
-- message-matched Google Ads groups;
-- a distinct CRM tag;
-- speed-to-lead notifications;
-- one shared pipeline;
-- a common measurement taxonomy.
+### Critical failures
 
-The strategic lesson is strong:
-
-> Split by motivation and intent only when the page, message, follow-up and measurement genuinely differ.
-
-This aligns with the Senza Roaming principle that a programmatic page must have standalone value and distinct intent, not merely a substituted geography token.
-
-### What the code repositories actually contain
-
-The `ppl-garageterrebonne-v1/v2/v3` repositories are front-end prototypes:
-
-- React/Vite;
-- client-side routing;
-- three landing pages and a thank-you page;
-- lead forms that log data and navigate rather than completing the described backend/CRM flow;
-- hardcoded testimonials, discounts, guarantees and operational claims.
-
-They are not the complete PPL machine described in the strategy document.
+- credential files and hardcoded browser credentials;
+- lead PII sent directly to an embedded third-party webhook;
+- PII in thank-you query parameters;
+- personal drafts in persistent browser storage;
+- GTM before consent;
+- fabricated scarcity;
+- hardcoded and generated unsupported claims;
+- raw generated HTML;
+- client-rendered public content;
+- homepage fallback for unknown paths;
+- sitemap without readiness/evidence gates;
+- mock dashboard described as live;
+- no canonical production execution path across the several CRM approaches.
 
 ### Decision
 
-`ADOPT STRATEGIC DISCIPLINE; REJECT IMPLEMENTATION`
+`ADOPT DISCIPLINE AND FAILURE FIXTURES; REJECT CODE IMPORT`
 
-Potential Senza Roaming adaptation:
-
-```text
-travel intent/persona
-→ message-matched entry page
-→ relevant comparison or guide
-→ CTA position and provider sub-ID
-→ outbound click event
-→ affiliate outcome when available
-```
-
-Do not import client code, third-party data, testimonials, offers or claims.
-
-## 6. `awesome-programmatic-seo`
+## 9. `awesome-programmatic-seo`
 
 ### What it is
 
@@ -290,58 +409,63 @@ A large curated README of pSEO concepts, tools and claimed case-study numbers.
 
 ### Problems
 
-- No root `LICENSE` file found.
-- The repository has one initial commit and no visible evidence-validation process.
-- Many headline metrics are presented without primary citations.
-- Vendor descriptions and pricing are time-sensitive.
-- It encourages scale while also acknowledging that many pages remain unindexed.
+- no root license found;
+- one initial commit;
+- many headline metrics lack primary citations;
+- tool/pricing statements are time-sensitive;
+- scale is emphasized more strongly than validation.
 
 ### Decision
 
 `PARK AS DISCOVERY INDEX ONLY`
 
-It may surface names worth researching through primary sources. It must not be used as:
-
-- a benchmark source;
-- an architecture reference;
-- evidence for traffic or conversion forecasts;
-- an implementation dependency.
-
-## Final-wave decision matrix
+## Final-wave matrix
 
 | Source | Decision | Potential use | Launch priority |
 |---|---|---|---|
 | PPL Campaign Generator | Extract method only | artifact taxonomy | Low |
-| PPL Jack | Adapt planning structure | launch/work breakdown checklist | Low |
+| PPL Keyword Plan Generator | Adapt contract | grounded-source capture; no commercial numbers | Low |
+| PPL Jack | Adapt planning structure | work breakdown | Low |
+| Pronto clone | Reject | none | None |
 | RankRentFactory | Reject | superseded prototype | None |
-| rr-autospurghi-formia | Negative fixture | form/content/build smoke cases | Medium |
-| MGC preserved context | Adopt discipline | intent/message/follow-up matching | Medium |
-| Garage Terrebonne v1–v3 | Reject code | historical prototype evidence | None |
-| awesome-programmatic-seo | Park | names for later primary research | None |
-| inaccessible exact URLs | Unverified | none until restored | None |
+| Astro Rank & Rent | Extract primitives | route/schema/slug test ideas | Medium |
+| rr-autospurghi-formia | Negative fixture | build/form/content smoke cases | Medium |
+| MGC real implementation | Negative + strategic fixture | security/privacy/SEO/claim regression corpus | High |
+| Garage Terrebonne v1–v3 | Historical only | prototype evolution | None |
+| awesome-programmatic-seo | Park | discovery names only | None |
+| rank-rent-factory exact URL | Connector-unverified | none until visible | None |
+| telegram-ranketogram exact URL | Connector-unverified | none until visible | None |
 
 ## Effect on Senza Roaming
 
-This wave does not justify a new dependency or a change to the canonical architecture.
+This wave does not justify a new dependency or architecture change.
 
-It strengthens four existing decisions:
+It strengthens these decisions:
 
-1. keep Astro as the public shell;
-2. generate structured blocks, not raw publishable HTML;
-3. require evidence before factual claims;
-4. validate a small intent-matched page set before programmatic scale.
+1. Astro remains the public shell.
+2. Public content must exist in raw HTML without client routing.
+3. Structured blocks replace raw generated HTML.
+4. Every factual claim requires evidence and expiry handling.
+5. Sitemaps include only publication-ready and indexable pages.
+6. Browser bundles contain no operational secret.
+7. Personal data and tokens never appear in URLs.
+8. Consent and measurement are designed together.
+9. A real 404 is mandatory.
+10. Small intent-matched pilots precede programmatic scale.
 
-No additional launch-time reduction is claimed beyond the previously estimated rework avoidance. The value is primarily risk reduction.
+The final wave primarily reduces risk. It does not change the existing 12–18 working-day launch estimate or add further claimed time savings.
 
 ## Explicit exclusions
 
 This checkpoint does not authorize:
 
-- importing external code;
+- importing external or client code;
+- using archived credentials;
 - using client or prospect personal data;
-- generating artificial testimonials or guarantees;
-- creating lead-scraping systems;
+- restoring the MGC service;
+- generating artificial testimonials, scarcity or guarantees;
 - starting paid campaigns;
 - activating affiliate links;
-- running an editorial Workflow;
-- publishing or deploying Senza Roaming.
+- running editorial or Google Business Profile publication workflows;
+- changing Senza Roaming backend contracts;
+- public deployment or publication.
