@@ -251,3 +251,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** un form browser non è un’autorità editoriale. Idempotenza, concorrenza e transizioni terminali devono restare verificabili server-side. Accettare insieme più capacità renderebbe ambiguo quale azione ha causato un cambiamento e allargherebbe il raggio di errore.
 
 **Conseguenza:** la prima applicazione è `proposed → accepted|dismissed` sui brief. Il browser invia soltanto `briefId`, azione e note; non può scegliere l’attore. D1 conserva `editorial_brief_events`, blocca transizioni illegali e mantiene `accepted → converted` come gate successivo. Il client usa un AlertDialog, impedisce il rifiuto senza motivo e ricarica lo snapshot dopo l’esito. Il contratto attesta `publicationTriggered: false`. Conversione, claim, readiness, draft, queue retry, materializzazione e pubblicazione restano fuori dalla branch. La decisione è stata accettata dopo merge `15ea0445`, CI finale #237 e checkpoint produttivo #244: `0020` è registrata nella D1 remota, la Control Room è verificata dietro Access e nessun brief reale è stato modificato.
+
+## ADR-026 — M5 pubblico in parallelo alle mutation M4 residue
+
+**Stato:** accettata come ordine operativo controllato
+
+**Decisione:** autorizzare l’avvio della migrazione del frontend pubblico Astro mentre prosegue, su branch distinte, la migrazione delle mutation residue della Control Room. La prima slice pubblica resta una preview `noindex` su `/astro-foundation`; il routing dell’apice, la rimozione dei renderer legacy e il cutover pubblico richiedono decisioni e PR separate.
+
+**Razionale:** Astro, il custom Worker e il backend sono già isolati; la parità read-only della Control Room è completa; la prima mutation è verificata in produzione; gli stati editoriali e il publication gate non dipendono dal renderer pubblico. Attendere tutte le mutation prima di iniziare layout, navigazione e componenti pubblici prolungherebbe il lancio senza ridurre il rischio, purché le due track mantengano scope ed exit criteria separati.
+
+**Conseguenza:** M4 non viene dichiarato completato e la legacy Control Room resta il fallback operativo. M5 può introdurre layout, metadata, navigazione, footer, token visuali, route statiche e renderer Astro in una preview non canonica. Non può modificare D1, attivare affiliazioni, pubblicare pagine review, cambiare `/`, rimuovere il renderer legacy o anticipare CMP/analytics. Il cutover apex richiede verifica di canonical, sitemap, schema, 404, accessibilità, rollback e assenza di pubblicazioni accidentali. Il piano eseguibile è registrato in `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.

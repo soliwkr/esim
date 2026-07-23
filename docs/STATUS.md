@@ -16,7 +16,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Container e Workflow recent-demand | Operativi | prima istanza completata end-to-end |
 | Quality gate score zero | Operativo e verificato | PR #36, flag `zero_relevance` |
 | Golden quality evaluation | Operativa in CI | PR #45 |
-| Topic-mismatch gate | Mergiato, verifica funzionale aperta | PR #46, CI #188; stack remoto allineato, primo nuovo run ancora da osservare |
+| Topic-mismatch gate | Mergiato, verifica funzionale aperta | PR #46, CI #188; primo nuovo run ancora da osservare |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Motore brief | Operativo | primo brief creato, prioritizzato, accettato e convertito |
 | Verifica claim | Operativa | claim atomici, fonti, esiti, scadenze e task persistiti |
@@ -25,15 +25,17 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue; rimozione non autorizzata |
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
+| Frontend pubblico M5 | Track parallela autorizzata, implementazione non iniziata | prima slice prevista su `/astro-foundation`; nessun cutover apex |
 | Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
 | Sessione server-side | Operativa | un solo login e nessuna credenziale applicativa nel browser |
 | Overview, radar e brief | Operativi e verificati | PR #32 e #34 |
-| Claim → task ID | Verificato in CI | PR #50, merge `41a9beee`, CI #213; browser reale aperto |
+| Claim → task ID | Verificato in CI | PR #50, CI #213; browser reale aperto |
 | Readiness, draft, queue e audit | Operativi e verificati | PR #39, #40, #42 e #44 |
-| Audit → versione draft | Verificato in CI | PR #52, merge `35f56e82`, CI finale #220; browser reale aperto |
+| Audit → versione draft | Verificato in CI | PR #52, CI #220; browser reale aperto |
 | Dettaglio draft completo | Verificato in produzione | PR #47, CI #198 |
 | Parità read-only legacy | Completa in CI | PR #49 + #50 + #52 |
-| Decisione brief mutation | Operativa e verificata in produzione | PR #54, merge `15ea0445`, CI #237, checkpoint #244; nessuna decisione reale eseguita |
+| Decisione brief mutation | Operativa e verificata in produzione | PR #54, CI #237, checkpoint #244; nessuna decisione reale eseguita |
+| Audit repository esterni | Completato e mergiato | PR #57, merge `5dc7587`, CI #260; zero codice importato |
 | Pubblicazione automatica | Assente | nessun endpoint pubblica automaticamente |
 | Affiliazioni | Disabilitate | modalità affiliate non attiva |
 | Analytics | Non configurata | CMP, GA4, GTM e GSC ancora da collegare |
@@ -115,12 +117,6 @@ Non restano gap read-only noti rispetto alle letture necessarie della legacy.
 
 ## Decisione brief — PR #54 in produzione
 
-Branch:
-
-```text
-feat/control-room-brief-decision-mutation
-```
-
 Scope esclusivo:
 
 ```text
@@ -130,27 +126,25 @@ proposed → accepted | dismissed
 Implementazione verificata dalla CI finale #237 e dal checkpoint produttivo #244:
 
 - route privata `POST /control-room-foundation/api/brief-decision`;
-- attore derivato dal JWT Cloudflare Access già verificato;
+- attore derivato dal JWT Cloudflare Access;
 - body browser limitato a `briefId`, azione e note;
 - conferma tramite AlertDialog accessibile;
 - motivo obbligatorio per il rifiuto;
-- migrazione locale `0020` con state machine D1;
+- migrazione remota `0020` con state machine D1;
 - evento `editorial_brief_events` append-only;
 - retry della stessa decisione idempotente;
 - conflitto sulla decisione opposta;
 - cancellazione del task editoriale aperto soltanto su `dismissed`;
 - reload dello snapshot dopo esito;
 - `publicationTriggered: false` nel contratto;
-- conteggio delle pagine pubblicate invariato prima/dopo;
+- conteggio delle pagine pubblicate invariato;
 - test endpoint reale e browser desktop/mobile;
-- regressioni claim, readiness, draft, dettaglio, queue/audit e legacy parity verdi.
-
-La CI finale #237 ha superato typecheck, build Astro, migrazioni D1 locali, quality gate, golden evaluation, Container, runtime `workerd` e tutti gli smoke della Control Room.
+- regressioni delle altre viste e legacy parity verdi.
 
 Il checkpoint produttivo #244 ha attestato:
 
 - migrazione `0020` registrata nella D1 remota, senza migrazioni residue;
-- tabella `editorial_brief_events`, colonne `decision_actor` / `decided_at` e trigger attesi presenti;
+- tabella, colonne e trigger attesi presenti;
 - pagine `published` invariate: `4 → 4`;
 - stati brief invariati: un solo brief `converted`;
 - Access anonimo `302`, pagina e snapshot autenticati `200`;
@@ -158,17 +152,52 @@ Il checkpoint produttivo #244 ha attestato:
 - nessuna richiesta browser non-GET;
 - nessuna decisione su brief reali.
 
-La Control Room reale mostra correttamente l’empty state perché non esistono brief `proposed`. Conversione brief, claim, readiness, bundle, draft, queue retry, materializzazione e pubblicazione restano escluse.
+Conversione brief, claim, readiness, bundle, draft, queue retry, materializzazione e pubblicazione restano escluse.
 
-## Dettaglio draft completo
+## Audit repository esterni — PR #57
 
-La PR #47 è mergiata nel commit `2c790272`, ha superato la CI #198 ed è stata verificata nel browser reale il 22 luglio 2026.
+La PR #57 è stata mergiata con squash commit `5dc7587` dopo CI #260 completamente verde.
+
+Risultato operativo:
+
+- 71 repository iniziali e una wave finale classificati;
+- Ahmeego analizzato come architettura di prodotto, trust e tool-led distribution;
+- MGC reale analizzato da archivio sanitizzato come caso strategico e corpus negativo;
+- primitive candidate ristrette a slug, route, schema, fail-fast e quality gate;
+- nessun motore pSEO, agente, CRM, marketplace o publisher adottato;
+- zero codice esterno copiato;
+- zero dati cliente o credenziali versionati;
+- nessuna modifica backend, runtime, deploy o publication state.
+
+La conclusione consente di iniziare il frontend pubblico senza riaprire l’architettura backend.
+
+## Track parallela M5 autorizzata
+
+La decisione è descritta in `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
 
 ```text
-GET /control-room-foundation/api/draft-detail?draftId=<id>
+Track A — mutation M4 residue
+Track B — frontend pubblico Astro M5
 ```
 
-Il proxy richiede Access, accetta soltanto `GET`, conserva il maintenance token server-side e delega al contratto backend esistente. Un errore resta confinato nel relativo Sheet e non cancella lo snapshot.
+La prima slice M5 prevista:
+
+```text
+feat/public-astro-shell
+→ preview noindex su /astro-foundation
+→ layout, metadata, navigazione, footer e token pubblici
+→ homepage preview statica non commerciale
+→ nessun cutover /
+```
+
+Questa autorizzazione non cambia lo stato operativo delle route pubbliche:
+
+- l’apice resta sul renderer legacy;
+- `/astro-foundation` resta una preview non canonica;
+- nessuna pagina review viene pubblicata;
+- nessuna affiliazione viene attivata;
+- M4 non è dichiarato completato;
+- la legacy Control Room resta necessaria.
 
 ## Parità legacy
 
@@ -176,27 +205,29 @@ Il proxy richiede Access, accetta soltanto `GET`, conserva il maintenance token 
 - PR #50: claim → task, merge `41a9beee`, CI #213;
 - PR #52: audit → versione draft, merge `35f56e82`, CI #220.
 
-La prima mutation migrata e verificata è la decisione brief. La legacy resta il fallback per avvio Workflow, conversione brief, operazioni claim, readiness/bundle, generazione e decisione draft e altre azioni non ancora migrate.
+La prima mutation migrata è la decisione brief. La legacy resta il fallback per avvio Workflow, conversione brief, operazioni claim, readiness/bundle, generazione e decisione draft e altre azioni non ancora migrate.
 
 ## Topic-mismatch gate
 
-La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota `0019` e il primo nuovo run autorizzato non sono ancora attestati in produzione.
+La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è allineata nello stack; il primo nuovo run autorizzato non è ancora stato osservato funzionalmente.
 
 ## Gap aperti
 
 - verifica browser reale dei due linkage read-only recenti;
 - prima decisione reale soltanto quando esisterà un brief `proposed` e sarà autorizzata;
-- verifica remota di `0019`;
+- primo nuovo run per la verifica topic-mismatch;
 - health aggregato e log errori unificati;
 - refresh automatico delle fonti scadute;
+- conversione brief e mutation residue M4;
+- prima implementazione M5 del public shell preview;
 - Search Console, CMP e analytics;
-- migrazione delle mutation residue e successiva rimozione della legacy.
+- successiva rimozione della legacy soltanto dopo le mutation.
 
 ## Prossimo checkpoint
 
 ```text
-verifica visuale dei linkage read-only recenti
-→ conversione brief come capacità separata
+PR decisionale della track parallela
+→ feat/public-astro-shell
 ```
 
-La decisione brief è operativa, ma non è stata eseguita su dati reali. Nessuna capacità successiva viene attivata implicitamente.
+In parallelo e su branch distinta può procedere la conversione brief. Nessuna capacità successiva viene attivata implicitamente.

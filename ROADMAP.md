@@ -8,6 +8,7 @@ Ultimo aggiornamento: **23 luglio 2026**.
 
 - [`ROADMAP.md`](ROADMAP.md) — ordine dei blocchi e criteri di uscita;
 - [`docs/FRONTEND-PLAN.md`](docs/FRONTEND-PLAN.md) — migrazione frontend e Control Room;
+- [`docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`](docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md) — separazione operativa fra M4 e M5;
 - [`docs/CAPABILITY-MAP.md`](docs/CAPABILITY-MAP.md) — layer del sistema;
 - [`docs/SKILL-REGISTRY.md`](docs/SKILL-REGISTRY.md) — skill, repository e servizi adottati;
 - [`docs/RESEARCH-QUALITY-EVALUATION.md`](docs/RESEARCH-QUALITY-EVALUATION.md) — golden dataset, metriche e soglie di adozione dei framework;
@@ -26,6 +27,7 @@ Ultimo aggiornamento: **23 luglio 2026**.
 8. Una capacità viene adottata soltanto se migliora una decisione e ha un criterio di successo.
 9. Non si riscrivono componenti generici già risolti da librerie mature.
 10. Il sito pubblico resta content-first.
+11. Una preview frontend non equivale a un cutover pubblico.
 
 ## M0 — Fondazioni tecniche
 
@@ -45,7 +47,7 @@ Ultimo aggiornamento: **23 luglio 2026**.
 
 ## M1 — Memoria, qualità e osservabilità
 
-**Stato: quality gate e evaluation implementati; verifica remota topic-mismatch e osservabilità ancora aperte**
+**Stato: quality gate e evaluation implementati; verifica funzionale topic-mismatch e osservabilità ancora aperte**
 
 - [x] Roadmap, status, architettura, decisioni e next.
 - [x] Storico e stato dei run.
@@ -56,7 +58,9 @@ Ultimo aggiornamento: **23 luglio 2026**.
 - [x] Snapshot aggregato per dashboard.
 - [x] Golden evaluation versionata — PR #45.
 - [x] Topic-mismatch gate implementato e mergiato — PR #46.
-- [ ] Verificare la migrazione remota `0019` e il primo nuovo run autorizzato.
+- [x] Stack remoto allineato fino alla migrazione `0020`.
+- [x] Audit repository esterni e gap analysis — PR #57.
+- [ ] Verificare il topic-mismatch sul primo nuovo run autorizzato.
 - [ ] Health aggregato runtime completo.
 - [ ] Log errori recenti in una singola interfaccia.
 - [ ] Audit log unificato oltre la vista aggregata corrente.
@@ -118,7 +122,7 @@ precision:       1.00
 recall:          1.00
 ```
 
-Il risultato vale per il golden set. I run discovery persistono `[]`; i run esistenti non vengono riclassificati; nessun brief, claim, bundle o draft viene modificato automaticamente. Il deploy e la migrazione remota non sono ancora dichiarati verificati.
+Il risultato vale per il golden set. I run discovery persistono `[]`; i run esistenti non vengono riclassificati; nessun brief, claim, bundle o draft viene modificato automaticamente. Resta da osservare il primo nuovo run autorizzato.
 
 ## M2 — Motore AI editoriale controllato
 
@@ -155,7 +159,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 
 ## M4 — Frontend foundation e Control Room definitiva
 
-**Stato: parità read-only completa; prima mutation verificata in produzione**
+**Stato: parità read-only completa; prima mutation verificata in produzione; mutation residue in corso**
 
 ### M4.0 — Freeze legacy
 
@@ -201,7 +205,7 @@ Il risultato vale per il golden set. I run discovery persistono `[]`; i run esis
 - [x] Audit sistematico di parità legacy — PR #49, CI #209.
 - [x] Linkage claim → task — PR #50, CI #213.
 - [x] Linkage audit → versione draft — PR #52, CI #220.
-- [x] Decisione brief mergiata e verificata in produzione — PR #54, merge `15ea0445`, CI finale #237, checkpoint produttivo #244.
+- [x] Decisione brief verificata in produzione — PR #54, CI #237, checkpoint #244.
 - [ ] Verifica visuale in produzione dei due linkage read-only recenti.
 - [ ] Conversione brief.
 - [ ] Operazioni claim.
@@ -236,26 +240,41 @@ Guardrail della PR #54:
 - conteggio pubblicazioni invariato;
 - `publicationTriggered: false`.
 
-La preview HTML legacy non è un requisito della nuova architettura. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview visuale deve appartenere al renderer pubblico Astro.
+La preview HTML legacy non è un requisito della nuova architettura. Il dettaglio strutturato copre l’ispezione editoriale; una futura preview visuale appartiene al renderer pubblico Astro.
 
-**Criterio di uscita M4:** le mutation operative necessarie sono migrate con conferma, identità verificata, idempotenza, audit e test; il fallback legacy non è più necessario. Soltanto allora la legacy può essere rimossa.
+**Criterio di uscita M4:** le mutation operative necessarie sono migrate con conferma, identità verificata, idempotenza, audit e test; il fallback legacy non è più necessario. Soltanto allora la legacy Control Room può essere rimossa.
 
 ## M5 — Frontend pubblico Astro e primo catalogo
 
-**Stato: dopo la migrazione operativa della Control Room**
+**Stato: track parallela autorizzata; prima slice non ancora implementata**
 
-- [ ] Migrare layout, home e navigazione.
-- [ ] Migrare pagine statiche.
+La track è regolata da `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
+
+- [ ] Trasformare `/astro-foundation` in preview noindex del shell pubblico.
+- [ ] Introdurre layout, metadata, home preview e navigazione riusabili.
+- [ ] Migrare pagine statiche e trust.
 - [ ] Migrare listing destinazioni, guide e confronti.
-- [ ] Migrare pagina articolo e preview.
+- [ ] Migrare pagina articolo e preview grounded.
 - [ ] Conservare canonical, sitemap, schema e vere 404.
 - [ ] Migliorare mobile, gerarchia e internal linking.
 - [ ] Pubblicare soltanto contenuti supportati da evidence set.
-- [ ] Eliminare renderer HTML, CSS e JavaScript manuali.
+- [ ] Eseguire un piccolo catalogo pilot prima della scala.
+- [ ] Preparare un cutover apex separato con rollback.
+- [ ] Eliminare renderer HTML, CSS e JavaScript manuali soltanto dopo il cutover verificato.
+
+Guardrail della track parallela:
+
+```text
+M5 preview ≠ public cutover
+M5 progress ≠ M4 completato
+route Astro ≠ pagina pubblicabile
+```
+
+La prima PR M5 non cambia `/`, non rimuove il renderer legacy, non modifica D1 e non attiva affiliazioni o analytics.
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: pianificato**
+**Stato: pianificato dopo la stabilizzazione delle route pubbliche M5**
 
 - [ ] Google Search Console e sitemap.
 - [ ] CMP e consenso.
@@ -298,14 +317,28 @@ La preview HTML legacy non è un requisito della nuova architettura. Il dettagli
 
 ## Ordine operativo attuale
 
+Due track possono procedere in parallelo, sempre su branch separate:
+
+### Track A — M4 operativa
+
 1. verificare visivamente in produzione i linkage claim → task e audit → versione draft;
-2. verificare funzionalmente il topic-mismatch sul primo nuovo run autorizzato, senza dati artificiali;
+2. verificare funzionalmente il topic-mismatch sul primo nuovo run autorizzato;
 3. migrare la conversione brief come capacità distinta;
-4. migrare le mutation residue una per branch;
-5. rimuovere la legacy soltanto quando il fallback non serve più;
-6. migrare il sito pubblico ad Astro;
-7. collegare Search Console, consenso e analytics;
-8. attivare affiliazioni soltanto dopo quality gate e misurazione.
+4. migrare operazioni claim, decisione draft ed eventuale retry queue una capacità per branch;
+5. rimuovere la legacy Control Room soltanto quando il fallback non serve più.
+
+### Track B — M5 pubblica
+
+1. costruire il shell pubblico noindex su `/astro-foundation`;
+2. migrare trust, statiche e renderer editoriali una slice per branch;
+3. verificare canonical, sitemap, schema, internal linking e 404;
+4. validare un piccolo catalogo pilot;
+5. effettuare il cutover dell’apice soltanto con una PR separata e rollback.
+
+Dopo la stabilizzazione M5:
+
+1. collegare Search Console, consenso e analytics;
+2. attivare affiliazioni soltanto dopo quality gate e misurazione.
 
 ## Regola di aggiornamento
 

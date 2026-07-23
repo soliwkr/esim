@@ -25,7 +25,9 @@ Custom Cloudflare Worker
 └── gate editoriali e di pubblicazione
 ```
 
-Il backend non viene riscritto come parte della migrazione frontend. Le estensioni server-side sono limitate a contratti espliciti necessari alla Control Room e restano nello stesso execution plane.
+Il backend non viene riscritto come parte della migrazione frontend. Le estensioni server-side sono limitate a contratti espliciti e restano nello stesso execution plane.
+
+M5 pubblico può ora procedere in parallelo alle mutation M4 residue, secondo `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
 
 ## Principio operativo
 
@@ -44,7 +46,8 @@ Da scrivere nel progetto:
 - contratti e validazione dei dati di dominio;
 - state machine e guardrail editoriali;
 - viste specifiche di Senza Roaming;
-- test end-to-end delle operazioni.
+- layout, navigazione e renderer editoriali pubblici;
+- test end-to-end delle operazioni e delle route pubbliche.
 
 ## Stack
 
@@ -88,19 +91,19 @@ Sono verificati:
 - binding D1 e configurazione runtime;
 - API di manutenzione;
 - build e runtime `workerd`;
-- 404, canonical, robots e sitemap esistenti;
+- 404, canonical, robots e sitemap esistenti nel renderer legacy;
 - assenza di route di pubblicazione automatica;
 - shell e proxy snapshot;
 - dettaglio draft GET-only on demand;
 - prima route mutabile limitata alla decisione brief, verificata in CI #237 e in produzione con checkpoint #244.
 
-La route è operativa dietro Cloudflare Access. Il checkpoint non ha eseguito decisioni reali e ha confermato `publicationAutomation: false`.
+La route decisione brief è operativa dietro Cloudflare Access. Il checkpoint non ha eseguito decisioni reali e ha confermato `publicationAutomation: false`.
 
 ## Struttura incrementale
 
 ```text
 apps/
-  web/                 # Astro, React island e componenti Control Room
+  web/                 # Astro, React island e componenti pubblici/Control Room
 
 src/                   # backend ed execution plane
 migrations/
@@ -109,6 +112,30 @@ scripts/
 ```
 
 La riorganizzazione completa del repository viene valutata soltanto dopo il rilascio stabile della Control Room e del frontend pubblico.
+
+## Modello a due track
+
+```text
+Track A — Control Room M4
+mutation operative una per branch
+→ parità completa
+→ rimozione legacy privata
+
+Track B — frontend pubblico M5
+preview noindex
+→ route migrate una per branch
+→ catalogo pilot
+→ cutover apex separato
+```
+
+Regole:
+
+- una branch appartiene a una sola track;
+- una PR M5 non introduce mutation M4;
+- una PR M4 non esegue il cutover pubblico;
+- M5 non cambia gli stati editoriali;
+- M4 non viene dichiarato completo perché esiste una preview pubblica;
+- la legacy Control Room e il renderer pubblico legacy hanno exit criteria separati.
 
 ## Fasi
 
@@ -204,7 +231,7 @@ decisione brief
 
 ##### Prima mutation — decisione brief
 
-Draft PR #54:
+Branch:
 
 ```text
 feat/control-room-brief-decision-mutation
@@ -255,50 +282,127 @@ Guardrail:
 - risposta con `publicationTriggered: false`;
 - conteggio delle pagine pubblicate invariato.
 
-CI finale #237 completamente verde:
-
-- typecheck e build;
-- migrazione D1 locale `0020`;
-- quality gate e golden evaluation;
-- Container e `workerd`;
-- endpoint Access-protected;
-- accept, dismiss, idempotenza e conflitto;
-- queue e snapshot reali;
-- desktop e mobile;
-- regressioni delle altre viste e legacy parity.
-
-Checkpoint produttivo #244 completato:
-
-- PR #54 mergiata nel commit `15ea0445`;
-- migrazione `0020` registrata nella D1 remota;
-- tabella, colonne e trigger verificati;
-- Control Room e snapshot autenticati `200`;
-- guardrail ed empty state verificati nel browser reale;
-- nessun POST browser e nessuna decisione reale;
-- pagine pubblicate invariate e pubblicazione automatica disabilitata.
-
-La PR non include conversione, claim, readiness, bundle, draft, materializzazione, queue retry o pubblicazione.
+CI finale #237 e checkpoint produttivo #244 completamente verdi. La PR non include conversione, claim, readiness, bundle, draft, materializzazione, queue retry o pubblicazione.
 
 ### F4 — Migrare il sito pubblico
 
-Dopo la stabilizzazione della Control Room operativa:
+**Stato: track parallela autorizzata; nessuna route canonica migrata**
 
-- home;
-- layout e navigazione;
-- pagine statiche;
-- listing destinazioni, guide e confronti;
-- pagina articolo e preview Astro;
-- schema markup, canonical, sitemap e 404;
-- progressive migration senza cambiare gli stati editoriali.
+#### F4.0 — Shell pubblico preview
+
+Prima branch:
+
+```text
+feat/public-astro-shell
+```
+
+Scope:
+
+- sostituire la pagina-spike `/astro-foundation` con una preview noindex del shell pubblico;
+- introdurre layout documento, metadata contract, header, navigazione, footer, trust links, token visuali e container responsive;
+- comporre una homepage preview con copy statico e non commerciale;
+- servire il contenuto primario in raw HTML Astro;
+- mantenere `/`, sitemap pubblica e route canoniche sul renderer legacy;
+- aggiungere smoke build, runtime, mobile, tastiera e noindex;
+- non modificare backend, D1, Workflow, Container, claim o publication state.
+
+Esclusioni:
+
+- nessun provider, prezzo, copertura o affiliazione;
+- nessun accesso pubblico diretto a D1;
+- nessuna route di pubblicazione;
+- nessun cutover apex;
+- nessuna rimozione legacy;
+- nessun CMP, GA4, GTM o Search Console.
+
+Criteri di uscita:
+
+- typecheck e build verdi;
+- tutte le suite esistenti senza regressioni;
+- `/astro-foundation` noindex e fuori sitemap;
+- metadata e navigazione deterministici;
+- raw HTML utile senza JavaScript obbligatorio;
+- responsive e tastiera verificati;
+- current public routing invariato.
+
+#### F4.1 — Trust e pagine statiche
+
+- metodo editoriale;
+- trasparenza AI;
+- disclosure e principi affiliate senza attivazione;
+- privacy/consenso come contenuto, non ancora come CMP;
+- responsabilità e aggiornamento delle fonti.
+
+#### F4.2 — Listing e architettura informativa
+
+- home candidata;
+- destinazioni;
+- guide;
+- confronti;
+- internal linking deterministico;
+- route matrix e fail-fast su contenuti mancanti.
+
+#### F4.3 — Renderer editoriale Astro
+
+- pagina articolo/draft grounded;
+- blocchi strutturati, non HTML AI grezzo;
+- provenance e fonti;
+- claim esclusi non presentati come fatti;
+- preview coerente con gli stati backend senza modificarli.
+
+#### F4.4 — Parità SEO pubblica
+
+- canonical;
+- sitemap;
+- robots;
+- schema;
+- related links;
+- disclosure condizionale;
+- redirect provider;
+- vere 404;
+- drift/regression test.
+
+#### F4.5 — Catalogo pilot
+
+- piccolo set di pagine con intento distinto;
+- nessuna generazione massiva;
+- evidence e publication eligibility richieste;
+- nessuna promessa su indicizzazione o conversione.
+
+#### F4.6 — Cutover apex
+
+PR separata e autorizzazione esplicita.
+
+Richiede:
+
+- confronto route e metadata;
+- schema e sitemap validi;
+- 404 reali;
+- smoke mobile e accessibilità;
+- provider redirect preservati;
+- publication guardrails preservati;
+- rollback documentato;
+- assenza di pagine review pubblicate accidentalmente.
 
 ### F5 — Hardening
 
-- eliminare renderer HTML, CSS e JavaScript manuali;
+- eliminare renderer HTML, CSS e JavaScript manuali soltanto dopo il cutover verificato;
 - ridurre codice duplicato;
 - test visuali e browser smoke;
 - budget performance;
 - documentazione del design system;
 - eventuale riorganizzazione completa del repository.
+
+## Apporto dell’audit esterno
+
+L’audit PR #57 non introduce dipendenze. Informa soltanto scelte ristrette:
+
+- `astro-rank-rent` e `rankempire-italia`: slug, route, schema e fail-fast test;
+- GEO Optimizer e Claude SEO: controlli di drift/regressione futuri;
+- MGC: fixture negative di secret, PII, consenso, claim, sitemap e 404;
+- The Sprint: pilot prima della scala;
+- Open Design: brief, pre-flight e critica;
+- Ahmeego: futuro modello trust/tool/content, non runtime.
 
 ## Guardrail
 
@@ -315,7 +419,9 @@ Dopo la stabilizzazione della Control Room operativa:
 - un errore del dettaglio non invalida lo snapshot;
 - relazioni mancanti non vengono ricostruite con euristiche;
 - una mutation non abilita implicitamente la successiva;
-- la legacy non viene rimossa finché resta il fallback delle mutation.
+- M5 preview non equivale a public cutover;
+- la legacy Control Room non viene rimossa finché resta il fallback delle mutation;
+- il renderer pubblico legacy non viene rimosso finché il cutover Astro non è verificato.
 
 ## Cosa non facciamo adesso
 
@@ -328,4 +434,7 @@ Dopo la stabilizzazione della Control Room operativa:
 - ampliare la Control Room legacy;
 - duplicare query D1 già coperte;
 - copiare il renderer HTML legacy;
-- rimuovere la legacy prima della migrazione delle mutation.
+- copiare intere piattaforme esterne;
+- attivare milioni di URL programmatici;
+- cambiare l’apice nella prima PR M5;
+- rimuovere una legacy prima del relativo criterio di uscita.
