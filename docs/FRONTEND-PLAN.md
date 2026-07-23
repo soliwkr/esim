@@ -342,18 +342,39 @@ Criteri di uscita:
 - [x] read model published-only condiviso;
 - [x] internal linking deterministico nel namespace preview;
 - [x] route matrix e fail-fast su contenuti mancanti;
-- [x] CI #291 completamente verde;
-- [ ] merge, deploy e checkpoint visuale live dei listing.
+- [x] CI #291 applicativa e CI #296 finale verdi;
+- [x] merge, deploy e checkpoint visuale live dei listing.
 
 #### F4.3 — Renderer editoriale Astro
 
-- pagina articolo/draft grounded;
-- blocchi strutturati, non HTML AI grezzo;
-- provenance e fonti;
-- claim esclusi non presentati come fatti;
-- preview coerente con gli stati backend senza modificarli.
+Branch:
+
+```text
+feat/public-article-renderer
+```
+
+- [x] route published-only `/astro-foundation/articoli/[slug]`;
+- [x] read model server-only condiviso con il renderer legacy;
+- [x] blocchi strutturati, non HTML AI grezzo;
+- [x] FAQ native, fonti HTTPS e provenance pubblica page-level;
+- [x] claim esclusi e dati operativi interni non letti né esposti;
+- [x] related links exact-cluster, published-only e deterministici;
+- [x] vera 404 per slug assente, `review` o `draft`;
+- [x] fail-closed per pagina `published` strutturalmente invalida;
+- [x] noindex, no-store e sitemap exclusion;
+- [x] preview home e listing collegate alle route articolo namespaced;
+- [x] route canoniche ancora sul renderer legacy;
+- [x] smoke D1, `workerd` e Chromium dedicato;
+- [x] CI applicativa #302 completamente verde;
+- [ ] CI finale, merge e deploy della PR #67;
+- [ ] checkpoint visuale live desktop/mobile su un articolo pubblicato.
+
+La preview articolo non espone draft. “Grounded” descrive il contenuto già
+materializzato e pubblicato, non una scorciatoia attorno ai gate editoriali.
 
 #### F4.4 — Parità SEO pubblica
+
+Fase bloccata fino al checkpoint live di F4.3.
 
 - canonical;
 - sitemap;
