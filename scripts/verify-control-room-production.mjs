@@ -158,7 +158,7 @@ assert.match(snapshotResponse.headers.get('cache-control') || '', /no-store/i);
 assert.match(snapshotResponse.headers.get('x-robots-tag') || '', /noindex/i);
 const snapshot = await snapshotResponse.json();
 assert.equal(snapshot.ok, true);
-assert.equal(snapshot.publicationAutomation, false);
+assert.equal(snapshot.capabilities?.publicationAutomation, false);
 
 let browser;
 let nonGetRequests = [];
@@ -224,7 +224,7 @@ const summary = {
   anonymousControlRoomStatus: anonymousResponse.status,
   authenticatedControlRoomStatus: pageResponse.status,
   authenticatedSnapshotStatus: snapshotResponse.status,
-  publicationAutomation: snapshot.publicationAutomation,
+  publicationAutomation: snapshot.capabilities?.publicationAutomation,
   browserNonGetRequests: nonGetRequests,
   realBriefDecisionsExecuted: 0,
 };
