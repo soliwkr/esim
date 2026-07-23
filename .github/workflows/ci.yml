@@ -8,8 +8,9 @@ on:
 
 jobs:
   check:
+    if: github.event_name != 'pull_request' || github.head_ref != 'ops/verify-control-room-production'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
       contents: read
 
@@ -142,20 +143,45 @@ jobs:
             control-room-queue-audit-smoke.log
           if-no-files-found: warn
 
+  production-verification:
+    if: github.event_name == 'pull_request' && github.head_ref == 'ops/verify-control-room-production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Verify production migration and Control Room
-        if: github.event_name == 'pull_request' && github.head_ref == 'ops/verify-control-room-production'
         env:
           CLOUDFLARE_ACCOUNT_ID: 60496826f56a093a72602bfae074fdcf
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           SENZA_ROAMING_SITE_URL: https://senzaroaming.it
-        run: node scripts/verify-control-room-production.mjs
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p production-verification
+          node scripts/verify-control-room-production.mjs 2>&1 | tee production-verification/verification.log
 
       - name: Upload production verification evidence
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'ops/verify-control-room-production'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: production-verification
           path: production-verification
-          if-no-files-found: warn
+          if-no-files-found: error
