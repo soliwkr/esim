@@ -1,5 +1,8 @@
 ---
 import PublicListingPage from '../../components/public/PublicListingPage.astro'
+import { setPublicPreviewResponseHeaders } from '../../lib/public-preview-response'
+
+setPublicPreviewResponseHeaders(Astro.response.headers)
 ---
 
 <PublicListingPage type="comparison" />
