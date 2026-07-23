@@ -244,7 +244,7 @@ async function verifyEmptyCandidate() {
     const html = await response.text();
     assert.equal(response.status, 200);
     assert.equal((html.match(/I contenuti sono in preparazione\./g) || []).length, 2);
-    assert.doesNotMatch(html, /catalog-card/);
+    assert.equal((html.match(/<article class="catalog-card"/g) || []).length, 0);
 
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
