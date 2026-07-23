@@ -89,10 +89,6 @@ La legacy resta disponibile finché tutte le mutation necessarie non sono migrat
 - PR #52 — audit → versione draft, merge `35f56e82`, CI #220;
 - PR #54 — decisione brief, merge `15ea0445`, CI #237 e checkpoint produttivo #244.
 
-## Checkpoint in review
-
-- draft PR #54 — decisione brief controllata, CI #230 verde.
-
 ## Freeze immediato
 
 - niente nuove pagine tramite template string nel Worker;
