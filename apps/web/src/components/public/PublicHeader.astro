@@ -1,15 +1,23 @@
 ---
+interface Props {
+  previewBase?: string
+}
+
+const { previewBase } = Astro.props
+const homeHref = previewBase ?? '/'
+const methodHref = previewBase ? `${previewBase}/metodo` : '/metodo'
 const navigation = [
   { href: '/destinazioni', label: 'Destinazioni' },
   { href: '/guide', label: 'Guide' },
   { href: '/confronti', label: 'Confronti' },
-  { href: '/metodo', label: 'Metodo' },
+  { href: methodHref, label: 'Metodo' },
 ]
+const currentPath = Astro.url.pathname
 ---
 
 <header class="site-header" data-public-header>
   <div class="public-container header-inner">
-    <a class="brand" href="/" aria-label="Senza Roaming, torna alla home">
+    <a class="brand" href={homeHref} aria-label="Senza Roaming, torna alla home">
       <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
         <rect width="48" height="48" rx="14" fill="currentColor" />
         <path d="M10 29.5c6-13.5 19-16.5 28-9-6.8.2-12.8 2.6-16.7 7.8 5.4-2.2 10.6-2.1 15.7.2-8.8 9.6-20.1 9.8-27 .9Z" fill="white" />
@@ -22,13 +30,17 @@ const navigation = [
     </a>
 
     <nav class="desktop-nav" aria-label="Navigazione principale">
-      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+      {navigation.map((item) => (
+        <a href={item.href} aria-current={currentPath === item.href ? 'page' : undefined}>{item.label}</a>
+      ))}
     </nav>
 
     <details class="mobile-menu">
       <summary>Apri menu</summary>
       <nav aria-label="Navigazione mobile">
-        {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+        {navigation.map((item) => (
+          <a href={item.href} aria-current={currentPath === item.href ? 'page' : undefined}>{item.label}</a>
+        ))}
       </nav>
     </details>
   </div>
