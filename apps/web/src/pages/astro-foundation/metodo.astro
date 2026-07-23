@@ -1,0 +1,92 @@
+---
+import TrustPage from '../../components/public/TrustPage.astro'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+---
+
+<PublicLayout
+  title="Metodo editoriale preview | Senza Roaming"
+  description="Preview non indicizzabile del metodo con cui Senza Roaming verifica fonti, claim e decisioni editoriali."
+  canonicalPath="/astro-foundation/metodo"
+  previewBase="/astro-foundation"
+  noindex
+>
+  <TrustPage
+    eyebrow="Metodo editoriale"
+    title="La pagina arriva dopo le prove."
+    lead="Ogni pagina nasce da una domanda distinta. Fonti, claim, revisione e pubblicazione restano passaggi separati, anche quando il testo sembra già pronto."
+    current="metodo"
+  >
+    <section aria-labelledby="metodo-principio">
+      <div class="trust-intro-card">
+        <p class="trust-card-label">Principio</p>
+        <h2 id="metodo-principio">Un intento reale prima di una nuova URL.</h2>
+        <p>
+          Non costruiamo pagine cambiando soltanto il nome di un Paese. Una guida deve rispondere a una
+          decisione riconoscibile e restare utile anche senza acquistare nulla.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="metodo-controlli">
+      <h2 id="metodo-controlli">Controlli obbligatori</h2>
+      <p>
+        Prima che un’informazione commerciale alimenti una pagina, viene trattata come un fatto datato e
+        verificabile, non come una frase da rendere convincente.
+      </p>
+      <ol class="trust-checklist">
+        <li>Compatibilità reale del dispositivo con la eSIM.</li>
+        <li>Fonte ufficiale identificabile per il dato dichiarato.</li>
+        <li>Data dell’ultima verifica della fonte.</li>
+        <li>Dati inclusi, fair use, hotspot e limiti operativi.</li>
+        <li>Durata, rete, attivazione e condizioni applicabili.</li>
+        <li>Revisione umana prima di ogni decisione di pubblicazione.</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="metodo-separazioni">
+      <h2 id="metodo-separazioni">Decisioni che restano separate</h2>
+      <p>
+        Un passaggio completato non autorizza automaticamente quello successivo. Questa separazione evita
+        che una buona bozza venga scambiata per una pagina già pubblicabile.
+      </p>
+      <div class="trust-rule-grid">
+        <article class="trust-rule">
+          <h3>Brief</h3>
+          <p><code>accettato ≠ convertito</code></p>
+        </article>
+        <article class="trust-rule">
+          <h3>Draft</h3>
+          <p><code>approvato ≠ pubblicato</code></p>
+        </article>
+        <article class="trust-rule">
+          <h3>Pagina</h3>
+          <p><code>review ≠ publication eligibility</code></p>
+        </article>
+        <article class="trust-rule">
+          <h3>Coda operativa</h3>
+          <p><code>stato task ≠ decisione editoriale</code></p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="metodo-fonti">
+      <h2 id="metodo-fonti">Segnali e prove non sono la stessa cosa</h2>
+      <div class="trust-principle-grid">
+        <article class="trust-principle">
+          <h3>Domanda recente</h3>
+          <p>
+            Community, trend e ricerca recente aiutano a capire domande, problemi e linguaggio degli utenti.
+            Non provano prezzo, copertura o condizioni contrattuali.
+          </p>
+        </article>
+        <article class="trust-principle">
+          <h3>Verità commerciale</h3>
+          <p>
+            Prezzo, durata, rete, hotspot, fair use e attivazione richiedono fonti identificabili, scope chiaro
+            e data di verifica.
+          </p>
+        </article>
+      </div>
+    </section>
+  </TrustPage>
+</PublicLayout>
