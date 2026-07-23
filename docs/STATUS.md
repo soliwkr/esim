@@ -25,7 +25,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Primo draft | Approvato editorialmente | draft `2` approved; pagina materializzata ancora `review` |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue; rimozione non autorizzata |
 | Frontend foundation | Operativa | Astro, React island e custom entrypoint nello stesso Worker |
-| Frontend pubblico M5 | Track parallela autorizzata, implementazione non iniziata | prima slice prevista su `/astro-foundation`; nessun cutover apex |
+| Track parallela M5 | Autorizzata | PR #58, merge `431bf7b`, CI #262 |
+| Public shell Astro | Implementato e verificato in CI | PR #59, CI #264; checkpoint produttivo ancora aperto |
 | Cloudflare Access | Operativo e verificato | perimetro privato e validazione nell'origine |
 | Sessione server-side | Operativa | un solo login e nessuna credenziale applicativa nel browser |
 | Overview, radar e brief | Operativi e verificati | PR #32 e #34 |
@@ -169,35 +170,71 @@ Risultato operativo:
 - zero dati cliente o credenziali versionati;
 - nessuna modifica backend, runtime, deploy o publication state.
 
-La conclusione consente di iniziare il frontend pubblico senza riaprire l’architettura backend.
+La conclusione consente di sviluppare il frontend pubblico senza riaprire l’architettura backend.
 
-## Track parallela M5 autorizzata
+## Track parallela M5 — PR #58
 
-La decisione è descritta in `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
+La PR #58 è mergiata nel commit `431bf7b` dopo CI #262 verde e registra ADR-026.
 
 ```text
 Track A — mutation M4 residue
 Track B — frontend pubblico Astro M5
 ```
 
-La prima slice M5 prevista:
-
-```text
-feat/public-astro-shell
-→ preview noindex su /astro-foundation
-→ layout, metadata, navigazione, footer e token pubblici
-→ homepage preview statica non commerciale
-→ nessun cutover /
-```
-
-Questa autorizzazione non cambia lo stato operativo delle route pubbliche:
+Questa autorizzazione non cambia lo stato delle route pubbliche e non chiude M4:
 
 - l’apice resta sul renderer legacy;
-- `/astro-foundation` resta una preview non canonica;
 - nessuna pagina review viene pubblicata;
 - nessuna affiliazione viene attivata;
-- M4 non è dichiarato completato;
-- la legacy Control Room resta necessaria.
+- la legacy Control Room resta necessaria;
+- il cutover pubblico richiede una PR separata.
+
+## Public shell Astro — PR #59
+
+La prima slice M5 sostituisce la pagina-spike `/astro-foundation` con una preview reale del futuro shell pubblico.
+
+Implementazione:
+
+```text
+PublicLayout.astro
+├── metadata e canonical
+├── skip link
+├── PublicHeader.astro
+├── slot di contenuto
+└── PublicFooter.astro
+
+astro-foundation.astro
+└── homepage preview statica non commerciale
+```
+
+Caratteristiche verificate in CI #264:
+
+- contenuto primario nel raw HTML;
+- nessuna island React e nessuno script richiesto;
+- header e navigazione desktop;
+- menu mobile progressivo basato su `details`/`summary`;
+- footer con Metodo, Trasparenza e Privacy;
+- stili pubblici isolati da quelli della Control Room;
+- canonical `https://senzaroaming.it/astro-foundation`;
+- meta e header `noindex,nofollow`;
+- `Cache-Control: no-store`;
+- preview esclusa da `/sitemap.xml`;
+- primo Tab sullo skip link;
+- nessun overflow orizzontale a 390 px;
+- apice `/` ancora servito dal renderer legacy;
+- route di pubblicazione ancora assenti;
+- typecheck, build, D1, quality gate, Container, `workerd` e tutte le regressioni Control Room verdi.
+
+Esclusioni mantenute:
+
+- nessuna modifica a `apps/web/src/worker.ts`;
+- nessun accesso pubblico a D1;
+- nessun claim dinamico, provider o prezzo;
+- nessuna affiliazione;
+- nessuna CMP o analytics;
+- nessuna pubblicazione o mutation.
+
+Il checkpoint produttivo resta aperto fino al deploy da `main` e alla verifica reale desktop/mobile di `/astro-foundation`. Nessun cutover dell’apice è autorizzato.
 
 ## Parità legacy
 
@@ -213,21 +250,24 @@ La PR #46, merge `215470ae`, è verde in CI #188. La migrazione remota è alline
 
 ## Gap aperti
 
+- checkpoint produttivo desktop/mobile del public shell preview;
 - verifica browser reale dei due linkage read-only recenti;
 - prima decisione reale soltanto quando esisterà un brief `proposed` e sarà autorizzata;
 - primo nuovo run per la verifica topic-mismatch;
 - health aggregato e log errori unificati;
 - refresh automatico delle fonti scadute;
 - conversione brief e mutation residue M4;
-- prima implementazione M5 del public shell preview;
+- trust pages e successive slice M5;
 - Search Console, CMP e analytics;
-- successiva rimozione della legacy soltanto dopo le mutation.
+- successiva rimozione della legacy soltanto dopo i rispettivi criteri di uscita.
 
 ## Prossimo checkpoint
 
 ```text
-PR decisionale della track parallela
-→ feat/public-astro-shell
+merge PR #59
+→ deploy automatico
+→ verifica reale /astro-foundation
+→ branch feat/public-trust-pages
 ```
 
 In parallelo e su branch distinta può procedere la conversione brief. Nessuna capacità successiva viene attivata implicitamente.
