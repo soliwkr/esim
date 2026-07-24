@@ -1,6 +1,10 @@
 import { handle } from '@astrojs/cloudflare/handler';
 import backendWorker from '../../../src/index';
 import { handleControlRoomBriefDecision } from '../../../src/editorial-brief-decisions';
+import {
+  activePublicRouteDecision,
+  isControlRoomFoundationPath,
+} from '../../../src/public-route-policy';
 import { cloudflareAccessActor, requireCloudflareAccess } from './lib/cloudflare-access';
 
 export { Last30DaysContainer } from '../../../src/last30days-container';
@@ -9,17 +13,6 @@ export { RecentDemandWorkflow } from '../../../src/recent-demand-workflow';
 const CONTROL_ROOM_SNAPSHOT_PATH = '/control-room-foundation/api/snapshot';
 const CONTROL_ROOM_DRAFT_DETAIL_PATH = '/control-room-foundation/api/draft-detail';
 const CONTROL_ROOM_BRIEF_DECISION_PATH = '/control-room-foundation/api/brief-decision';
-
-function isControlRoomRequest(pathname: string): boolean {
-  return pathname === '/control-room-foundation'
-    || pathname.startsWith('/control-room-foundation/');
-}
-
-function isAstroRequest(pathname: string): boolean {
-  return pathname === '/astro-foundation'
-    || pathname.startsWith('/astro-foundation/')
-    || isControlRoomRequest(pathname);
-}
 
 function privateJson(data: unknown, status: number, extraHeaders?: HeadersInit): Response {
   const headers = new Headers(extraHeaders);
@@ -104,8 +97,9 @@ async function controlRoomBriefDecision(request: Request, env: Env): Promise<Res
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const pathname = new URL(request.url).pathname;
+    const route = activePublicRouteDecision(pathname);
 
-    if (isControlRoomRequest(pathname)) {
+    if (isControlRoomFoundationPath(pathname)) {
       const accessError = await requireCloudflareAccess(request, env);
       if (accessError) return accessError;
     }
@@ -122,7 +116,7 @@ export default {
       return controlRoomBriefDecision(request, env);
     }
 
-    if (isAstroRequest(pathname)) {
+    if (route.owner === 'astro') {
       return handle(request, env, ctx);
     }
 
