@@ -8,25 +8,22 @@ const origin = `http://127.0.0.1:${port}`;
 const configPath = 'apps/web/dist/server/wrangler.json';
 const logs = [];
 
-const previewPages = [
+const trustPages = [
   {
     slug: 'metodo',
     heading: 'La pagina arriva dopo le prove.',
     marker: 'metodo',
-    legacyHeading: 'Metodo editoriale'
   },
   {
     slug: 'trasparenza',
     heading: 'Una commissione non decide la classifica.',
     marker: 'trasparenza',
-    legacyHeading: 'Trasparenza'
   },
   {
     slug: 'privacy',
     heading: 'Raccogliere meno, spiegare meglio.',
     marker: 'privacy',
-    legacyHeading: 'Privacy'
-  }
+  },
 ];
 
 function record(chunk) {
@@ -58,18 +55,18 @@ const wrangler = spawn(
     '--config', configPath,
     '--persist-to', '.wrangler/state',
     '--port', String(port),
-    '--ip', '127.0.0.1'
+    '--ip', '127.0.0.1',
   ],
   {
     env: {
       ...process.env,
       MAINTENANCE_TOKEN: 'public-trust-smoke-token',
       AI_GATEWAY_TOKEN: 'public-trust-smoke-ai-token',
-      ASTRO_TELEMETRY_DISABLED: '1'
+      ASTRO_TELEMETRY_DISABLED: '1',
     },
     detached: process.platform !== 'win32',
-    stdio: ['ignore', 'pipe', 'pipe']
-  }
+    stdio: ['ignore', 'pipe', 'pipe'],
+  },
 );
 
 wrangler.stdout.on('data', record);
@@ -87,14 +84,11 @@ async function stopWrangler() {
   signalWrangler('SIGTERM');
   const graceful = await Promise.race([
     exited.then(() => true),
-    new Promise((resolve) => setTimeout(() => resolve(false), 5_000))
+    new Promise((resolve) => setTimeout(() => resolve(false), 5_000)),
   ]);
   if (graceful) return;
   signalWrangler('SIGKILL');
-  await Promise.race([
-    once(wrangler, 'exit'),
-    new Promise((resolve) => setTimeout(resolve, 5_000))
-  ]);
+  await Promise.race([once(wrangler, 'exit'), new Promise((resolve) => setTimeout(resolve, 5_000))]);
 }
 
 let browser;
@@ -102,7 +96,7 @@ let browser;
 try {
   await waitForRuntime(wrangler);
 
-  for (const page of previewPages) {
+  for (const page of trustPages) {
     const previewPath = `/astro-foundation/${page.slug}`;
     const previewResponse = await fetch(`${origin}${previewPath}`);
     const previewHtml = await previewResponse.text();
@@ -112,22 +106,31 @@ try {
     assert.match(previewResponse.headers.get('cache-control') || '', /no-store/);
     assert.match(previewResponse.headers.get('x-content-type-options') || '', /nosniff/);
     assert.match(previewHtml, new RegExp(`data-public-trust-page="${page.marker}"`));
+    assert.match(previewHtml, /data-public-render-mode="preview"/);
     assert.match(previewHtml, new RegExp(page.heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    assert.match(
-      previewHtml,
-      new RegExp(`<link rel="canonical" href="https:\\/\\/senzaroaming\\.it${previewPath}"`)
-    );
+    assert.match(previewHtml, new RegExp(`<link rel="canonical" href="https:\/\/senzaroaming\\.it${previewPath}"`));
     assert.match(previewHtml, /<meta name="robots" content="noindex,nofollow"/);
     assert.match(previewHtml, /aria-label="Pagine di fiducia preview"/);
     assert.match(previewHtml, /href="\/astro-foundation" aria-label="Senza Roaming, torna alla home"/);
     assert.doesNotMatch(previewHtml, /<astro-island/);
     assert.doesNotMatch(previewHtml, /<script(?:\s|>)/i);
 
-    const legacyResponse = await fetch(`${origin}/${page.slug}`);
-    const legacyHtml = await legacyResponse.text();
-    assert.equal(legacyResponse.status, 200, `legacy /${page.slug} did not resolve`);
-    assert.match(legacyHtml, new RegExp(page.legacyHeading));
-    assert.doesNotMatch(legacyHtml, /data-public-trust-page=/);
+    const canonicalPath = `/${page.slug}`;
+    const canonicalResponse = await fetch(`${origin}${canonicalPath}`);
+    const canonicalHtml = await canonicalResponse.text();
+    assert.equal(canonicalResponse.status, 200, `${canonicalPath} did not resolve`);
+    assert.match(canonicalResponse.headers.get('cache-control') || '', /public,max-age=300/);
+    assert.equal(canonicalResponse.headers.get('x-robots-tag'), null);
+    assert.match(canonicalHtml, new RegExp(`data-public-trust-page="${page.marker}"`));
+    assert.match(canonicalHtml, /data-public-render-mode="canonical"/);
+    assert.match(canonicalHtml, new RegExp(page.heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(canonicalHtml, new RegExp(`<link rel="canonical" href="https:\/\/senzaroaming\\.it${canonicalPath}"`));
+    assert.match(canonicalHtml, /<meta name="robots" content="index,follow,max-image-preview:large"/);
+    assert.match(canonicalHtml, /aria-label="Pagine di fiducia"/);
+    assert.match(canonicalHtml, /href="\/" aria-label="Senza Roaming, torna alla home"/);
+    assert.doesNotMatch(canonicalHtml, /Preview isolata|In questa preview|\/astro-foundation/i);
+    assert.doesNotMatch(canonicalHtml, /<astro-island/);
+    assert.doesNotMatch(canonicalHtml, /<script(?:\s|>)/i);
   }
 
   const shellResponse = await fetch(`${origin}/astro-foundation`);
@@ -150,9 +153,9 @@ try {
   desktopPage.on('console', (message) => {
     if (message.type() === 'error') desktopConsole.push(message.text());
   });
-  await desktopPage.goto(`${origin}/astro-foundation/metodo`);
-  await desktopPage.getByRole('heading', { level: 1, name: previewPages[0].heading }).waitFor();
-  const trustNavigation = desktopPage.getByRole('navigation', { name: 'Pagine di fiducia preview' });
+  await desktopPage.goto(`${origin}/metodo`);
+  await desktopPage.getByRole('heading', { level: 1, name: trustPages[0].heading }).waitFor();
+  const trustNavigation = desktopPage.getByRole('navigation', { name: 'Pagine di fiducia' });
   await trustNavigation.waitFor();
   assert.equal(await trustNavigation.getByRole('link', { name: /Metodo editoriale/ }).getAttribute('aria-current'), 'page');
   await desktopPage.keyboard.press('Tab');
@@ -162,8 +165,8 @@ try {
   assert.deepEqual(desktopConsole, []);
 
   await trustNavigation.getByRole('link', { name: /Trasparenza/ }).click();
-  await desktopPage.getByRole('heading', { level: 1, name: previewPages[1].heading }).waitFor();
-  assert.equal(new URL(desktopPage.url()).pathname, '/astro-foundation/trasparenza');
+  await desktopPage.getByRole('heading', { level: 1, name: trustPages[1].heading }).waitFor();
+  assert.equal(new URL(desktopPage.url()).pathname, '/trasparenza');
   await desktopContext.close();
 
   const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -172,18 +175,18 @@ try {
   mobilePage.on('console', (message) => {
     if (message.type() === 'error') mobileConsole.push(message.text());
   });
-  await mobilePage.goto(`${origin}/astro-foundation/privacy`);
-  await mobilePage.getByRole('heading', { level: 1, name: previewPages[2].heading }).waitFor();
+  await mobilePage.goto(`${origin}/privacy`);
+  await mobilePage.getByRole('heading', { level: 1, name: trustPages[2].heading }).waitFor();
   const menuSummary = mobilePage.getByText('Apri menu', { exact: true });
   await menuSummary.click();
   const mobileMethod = mobilePage.getByRole('navigation', { name: 'Navigazione mobile' }).getByRole('link', { name: 'Metodo' });
-  assert.equal(await mobileMethod.getAttribute('href'), '/astro-foundation/metodo');
+  assert.equal(await mobileMethod.getAttribute('href'), '/metodo');
   assert.equal(await mobilePage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
   assert.equal(await mobilePage.locator('script').count(), 0);
   assert.deepEqual(mobileConsole, []);
   await mobileContext.close();
 
-  console.log('Public Astro trust-page preview smoke passed.');
+  console.log('Public trust-page preview and active canonical Astro smoke passed.');
 } catch (error) {
   console.error(logs.join(''));
   throw error;
