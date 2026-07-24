@@ -1,12 +1,12 @@
-import type { PublicListingPageType } from './public-listing-routes';
+import type { PublicListingType } from './public-page-cards';
 import { PUBLIC_LISTING_DEFINITIONS } from './public-listing-routes';
 import { PUBLIC_PREVIEW_BASE } from './public-route-policy';
 
 export type PublicRenderMode = 'preview' | 'canonical';
 export type PublicTrustSlug = 'metodo' | 'trasparenza' | 'privacy';
 
-const listingByType = new Map(
-  PUBLIC_LISTING_DEFINITIONS.map((definition) => [definition.pageType, definition] as const),
+const listingByType = new Map<PublicListingType, (typeof PUBLIC_LISTING_DEFINITIONS)[number]>(
+  PUBLIC_LISTING_DEFINITIONS.map((definition) => [definition.type, definition]),
 );
 
 export function publicHomePath(mode: PublicRenderMode): string {
@@ -15,7 +15,7 @@ export function publicHomePath(mode: PublicRenderMode): string {
 
 export function publicListingPath(
   mode: PublicRenderMode,
-  pageType: PublicListingPageType,
+  pageType: PublicListingType,
 ): string {
   const definition = listingByType.get(pageType);
   if (!definition) throw new TypeError(`Unsupported public listing page type: ${pageType}`);
