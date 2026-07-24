@@ -1,155 +1,203 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **24 luglio 2026**.
+Ultimo aggiornamento: **25 luglio 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
-## Checkpoint appena chiuso
+## Now — chiudere lo scope M6
 
-```text
-M5.7 — apex design cutover
-PR #81
-merge e62b570248bf97afaa3f283cfbb847ceea01f529
-CI finale #404 completamente verde
-verifica live completata
-```
-
-Controlli live confermati:
-
-- homepage con nuovo design Astro;
-- articolo `/migliore-esim`;
-- `/sitemap.xml`;
-- `/robots.txt`;
-- redirect `/go/airalo`;
-- navigazione e rendering operativi.
-
-Documento:
-
-```text
-docs/PUBLIC-APEX-CUTOVER-RESULT-2026-07-24.md
-```
-
-## Now — M6 measurement foundation
-
-### 1. Definire lo scope M6
-
-Aprire una branch documentale dal `main` aggiornato:
+Branch:
 
 ```text
 docs/measurement-consent-scope
 ```
 
-Lo scope deve descrivere:
+Documenti sul branch:
 
-- quali dati vengono raccolti;
-- finalità e basi di consenso;
-- categorie di cookie e storage;
-- data-flow browser → CMP → Consent Mode → GTM → GA4;
-- proprietà e container Google già preparati;
-- ambienti e domini coinvolti;
-- responsabilità tra Astro, Worker e servizi Google;
-- comportamento prima del consenso, dopo accettazione e dopo rifiuto;
-- debug e verifica senza esporre ID sensibili inutilmente;
-- rollback e disattivazione.
+```text
+docs/MEASUREMENT-CONSENT-SCOPE.md
+docs/CMP-SPIKE.md
+docs/MEASUREMENT-EVENT-DICTIONARY.md
+```
 
-Nessun codice di tracking viene inserito nella PR documentale.
+Lo scope stabilisce:
 
-### 2. Inventariare l’infrastruttura Google esistente
+- Consent Mode Basic;
+- nessun tag o ping Google prima del consenso;
+- analytics-only;
+- advertising consent sempre negato in M6;
+- route canonical incluse;
+- preview, Control Room, API, redirect, sitemap, robots e 404 escluse;
+- parametri vietati;
+- D1 come fonte di verità per redirect completati;
+- iubenda come candidato principale per lo spike;
+- event dictionary v1.
 
-Registrare senza secret:
+### 1. Verificare la branch documentale
 
-- stato del container GTM;
-- stato della proprietà GA4;
-- stato della proprietà Search Console;
-- service account e permessi, senza chiavi;
-- dominio verificato;
-- eventuali stream web esistenti;
-- sitemap attuale e URL canonico.
+Controllare che il diff contenga soltanto documentazione e canonici.
 
-Non assumere che “creato” equivalga a “collegato al sito”.
+Poi:
 
-### 3. Scegliere e configurare la CMP
+```text
+PR draft
+→ CI completa
+→ ready
+→ merge
+```
 
-Criteri obbligatori:
+Nessun tracking viene attivato da questa PR.
 
-- compatibilità con Consent Mode;
-- nessun tracking non essenziale prima del consenso;
-- accessibilità da tastiera e mobile;
-- lingua italiana;
-- gestione revoca/modifica consenso;
-- policy versionata;
-- impatto prestazionale misurabile;
-- nessuna dipendenza dal renderer legacy.
+## Dopo il merge — spike CMP
 
-La scelta della CMP richiede una decisione versionata prima dell’implementazione.
+Branch proposta:
 
-### 4. Versionare il dizionario eventi
+```text
+spike/iubenda-consent-foundation
+```
 
-Prima di collegare GTM o GA4 definire eventi e proprietà canoniche.
+### Scope esclusivo
 
-Prima versione minima:
+- configurazione pubblica CMP validata server-side;
+- script iubenda soltanto sulle route canonical 200;
+- CMP come primo script eseguibile nel `<head>`;
+- nessun GTM o GA4;
+- Basic Consent Mode / blocco completo dei servizi Google;
+- banner italiano;
+- Accetta, Rifiuta e Personalizza;
+- link footer per riaprire le preferenze;
+- aggiornamento della pagina Privacy coerente con il comportamento reale;
+- nessuna CMP in preview, Control Room, API, redirect, sitemap, robots o 404;
+- test desktop, mobile e tastiera;
+- baseline di performance e richieste di rete;
+- rollback rimuovendo adapter/configurazione CMP.
+
+### Configurazione esterna richiesta
+
+Prima o durante lo spike servirà un account CMP e gli identificativi pubblici del sito. Non servono chiavi API nel browser.
+
+Variabili previste:
+
+```text
+CMP_PROVIDER=iubenda
+CMP_SITE_ID=
+CMP_COOKIE_POLICY_ID=
+```
+
+Gli identificativi pubblici possono vivere nelle vars Cloudflare. Token, password e service-account key non vengono versionati.
+
+### Acceptance dello spike
+
+- nessuna richiesta a domini Google prima del consenso;
+- CMP caricata una sola volta;
+- rifiuto persistito;
+- accettazione analytics persistita;
+- revoca funzionante;
+- preferenze riapribili dal footer;
+- UI accessibile da tastiera e mobile;
+- sito leggibile anche se la CMP fallisce;
+- nessun React pubblico;
+- preview e Control Room escluse;
+- privacy page aggiornata;
+- impatto prestazionale misurato;
+- CI completa verde.
+
+Se iubenda fallisce i gate, il fallback è CookieYes. Non si passa direttamente a una CMP custom.
+
+## Dopo lo spike — consent foundation
+
+Branch tecnica separata:
+
+```text
+feat/public-consent-foundation
+```
+
+La decisione vendor finale deve essere registrata in `docs/DECISIONS.md` prima dell’implementazione definitiva.
+
+Contratto Consent Mode:
+
+```text
+analytics_storage = denied di default
+ad_storage = denied
+ad_user_data = denied
+ad_personalization = denied
+```
+
+Soltanto un consenso analytics esplicito può aggiornare:
+
+```text
+analytics_storage = granted
+```
+
+## GTM/GA4 foundation
+
+Branch successiva:
+
+```text
+feat/public-gtm-ga4-foundation
+```
+
+### Prima release
+
+- un solo container GTM;
+- caricamento soltanto dopo consenso;
+- una sola configurazione GA4;
+- un solo `page_view` per pagina;
+- `page_location = origin + pathname`;
+- nessuna query string custom;
+- nessun evento da preview o Control Room;
+- nessun Ads tag;
+- nessun affiliate tag.
+
+### Eventi
 
 ```text
 page_view
-navigation_click
-article_view
-listing_view
 provider_redirect_intent
-consent_update
+consent_update locale/debug
 ```
 
-Per ogni evento definire:
+`article_view` e `listing_view` restano parametri del `page_view`, non eventi separati.
 
-- trigger;
-- parametri consentiti;
-- dati vietati;
-- finalità;
-- requisito di consenso;
-- owner;
-- metodo di verifica.
+`provider_redirect_intent` viene attivato soltanto dopo il checkpoint del page view. Il redirect effettivo continua a essere registrato server-side in D1.
 
-Non inviare PII, token, query operative o dati della Control Room.
+### Verifica
 
-### 5. Implementare Consent Mode prima di GTM/GA4
+- Tag Assistant;
+- Network panel;
+- GA4 DebugView;
+- denied/granted/revoke;
+- anti-duplicazione;
+- route escluse;
+- performance;
+- CI e smoke Chromium.
 
-Branch tecnica separata, dopo scope e decisione CMP.
+## Search Console
 
-Acceptance:
+Dopo consent e analytics verificati:
 
-- stato negato/default prima della scelta;
-- aggiornamento coerente dopo consenso;
-- rifiuto rispettato;
-- revoca funzionante;
-- nessun hit non consentito;
-- nessun impatto sulla Control Room;
-- nessun accesso browser a D1;
-- noindex/no-store delle preview invariati;
-- sito pubblico senza regressioni.
+```text
+verifica proprietà dominio
+→ controllo canonical/robots/sitemap
+→ submission sitemap
+→ registrazione risultato
+```
 
-### 6. Collegare GTM e GA4
+Non forzare indicizzazione di preview, Control Room o pagine `review`.
 
-Solo dopo Consent Mode verificato:
+## Infrastruttura Google da inventariare
 
-- un solo caricamento del container;
-- nessun doppio `page_view`;
-- eventi conformi al dizionario;
-- debug in ambiente controllato;
-- verifica Network e DebugView;
-- nessun evento dalla Control Room;
-- nessun secret nel repository;
-- performance e Core Web Vitals ricontrollati.
+Senza esporre secret, confermare:
 
-### 7. Search Console e sitemap submission
+- ID container GTM;
+- proprietà e data stream GA4;
+- proprietà Search Console;
+- permessi del service account;
+- dominio verificato;
+- eventuali collegamenti Ads esistenti da mantenere disattivati;
+- ambiente production usato dal container.
 
-Dopo stabilizzazione di CMP, Consent Mode e tracking:
-
-- verificare proprietà dominio;
-- controllare canonical e robots live;
-- controllare `/sitemap.xml`;
-- inviare la sitemap;
-- registrare data e risultato;
-- verificare indicizzazione senza forzare pagine `review`;
-- mantenere preview escluse.
+“Creato” non equivale a “collegato”.
 
 ## Track parallela M4
 
@@ -160,7 +208,7 @@ conversione brief
 → eventuale retry queue
 ```
 
-M4 può proseguire su branch separate. La legacy privata resta finché serve come fallback operativo.
+La legacy privata resta finché serve come fallback operativo.
 
 ## Publication capability resta separata
 
@@ -170,28 +218,19 @@ M6 non introduce:
 review → published
 ```
 
-La prima pubblicazione richiede ancora:
-
-- autorizzazione esplicita;
-- branch mutation separata;
-- identità verificata;
-- conferma umana;
-- state machine D1;
-- audit append-only;
-- idempotenza;
-- freshness recheck;
-- rollback/deindicizzazione;
-- test end-to-end e verifica live.
+La prima pubblicazione richiede ancora branch, identità, conferma, state machine D1, audit, idempotenza, freshness recheck, rollback e test end-to-end.
 
 ## Freeze immediato
 
-- niente tracking prima della decisione CMP e dello scope M6;
-- niente snippet GTM o GA4 inseriti direttamente senza Consent Mode;
-- niente eventi non versionati;
-- niente PII o dati operativi nei payload analytics;
+- niente snippet GTM o GA4 prima della consent foundation;
+- niente Advanced Consent Mode o cookieless pings;
+- niente tracking pre-consenso;
+- niente eventi fuori dal dizionario;
+- niente PII o dati editoriali interni;
 - niente analytics nella Control Room;
-- niente sitemap submission prima del checkpoint tecnico;
-- niente affiliazioni anticipate;
-- niente rimozione della legacy privata;
+- niente Ads, remarketing o affiliate tracking;
+- niente sitemap submission prematura;
+- niente secret nel repository;
+- niente mutation D1, Workflow, Container, AI o gate editoriali;
 - niente pubblicazione automatica;
-- niente modifiche a D1, Workflow, Container, AI o gate editoriali durante la foundation M6.
+- niente rimozione legacy durante M6 foundation.
