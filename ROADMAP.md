@@ -12,10 +12,10 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/ARCHITECTURE.md` — confini tecnici;
 - `docs/DECISIONS.md` — decisioni accettate;
 - `docs/FRONTEND-PLAN.md` — migrazione Astro e Control Room;
-- `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
 - `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md` — route policy;
 - `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md` — renderer canonico Astro;
-- `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md` — sitemap e robots.
+- `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md` — sitemap e robots;
+- `docs/PUBLIC-CATALOG-PILOT-SCOPE.md` — catalogo pilot M5.6.
 
 ## Principi non negoziabili
 
@@ -29,7 +29,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 8. Una preview Astro non equivale a un cutover.
 9. Una riga `review` non equivale a contenuto pubblico.
 10. Owner target, codice compilato e owner live sono concetti distinti.
-11. Il repository è la memoria canonica.
+11. Candidate, release candidate e pagina published sono stati distinti.
+12. Il repository è la memoria canonica.
 
 ## M0 — Fondazioni tecniche
 
@@ -115,68 +116,32 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.5b.2 completate; M5.5b.3 implementata e verificata dalla CI applicativa #359, con PR #75 ancora da chiudere; nessun cutover.**
+**Stato: M5.0–M5.5b.3 completate senza cutover; scope M5.6 in corso.**
 
-### M5.0 — Public shell
+### M5.0–M5.4 — Preview e renderer pubblico
 
-- [x] `/astro-foundation` noindex;
-- [x] layout, metadata, header, menu e footer;
-- [x] raw HTML senza JavaScript necessario;
-- [x] mobile e tastiera;
-- [x] `/` invariato;
-- [x] fuori sitemap;
-- [x] checkpoint live.
-
-### M5.1 — Trust pages
-
-- [x] Metodo, Trasparenza e Privacy preview;
-- [x] componente condiviso;
-- [x] route canoniche legacy preservate;
-- [x] checkpoint mobile 3/3.
-
-### M5.2 — Homepage candidata
-
-- [x] read model server-only condiviso;
-- [x] righe `published` soltanto;
-- [x] limiti e ordine deterministici;
-- [x] noindex/no-store e sitemap exclusion;
-- [x] desktop, mobile, tastiera e empty state;
-- [x] PR #63 e CI finale #284.
-
-### M5.3 — Listing preview
-
-- [x] Destinazioni, Guide e Confronti;
-- [x] read model published-only;
-- [x] internal linking deterministico;
-- [x] route matrix e fail-fast;
-- [x] PR #65 e CI finale #296.
-
-### M5.4 — Renderer editoriale Astro
-
-- [x] `/astro-foundation/articoli/[slug]`;
-- [x] read model condiviso;
-- [x] blocchi, FAQ, fonti e provenance;
-- [x] related links published-only;
-- [x] vera 404 e fail-closed;
-- [x] noindex/no-store;
-- [x] PR #67 e CI finale #307.
+- [x] shell `/astro-foundation` noindex/no-store;
+- [x] trust pages;
+- [x] homepage candidata;
+- [x] listing Destinazioni, Guide e Confronti;
+- [x] renderer articolo grounded;
+- [x] published-only, 404 e fail-closed;
+- [x] desktop, mobile e tastiera;
+- [x] route canoniche live preservate.
 
 ### M5.5 — Parità SEO e routing
 
 #### M5.5a — Contratto SEO condiviso
 
-- [x] title, description e Open Graph;
+- [x] metadata e Open Graph;
 - [x] `WebSite`, `Article` e `FAQPage`;
 - [x] serializer JSON-LD sicuro;
-- [x] canonical, robots e cache route-specific;
-- [x] drift e regressioni;
 - [x] PR #69;
 - [ ] header HTTP live da controllo esterno dedicato.
 
-#### M5.5b.1 — Route policy foundation
+#### M5.5b.1 — Route policy
 
 - [x] current/target matrix tipizzate;
-- [x] route kind e precedenza esplicite;
 - [x] reserved path e file-probe policy;
 - [x] `activePublicRouteDecision = currentPublicRouteDecision`;
 - [x] PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`;
@@ -184,61 +149,85 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 #### M5.5b.2 — Canonical Astro parity
 
-- [x] render mode `preview | canonical`;
 - [x] home, listing, trust, articolo e 404 canonici compilati;
-- [x] internal link apex;
-- [x] published-only e fail-closed;
 - [x] factory `createPublicWorker(routeDecision)`;
 - [x] smoke diretto senza switch live;
 - [x] PR #73, merge `b3a6625bfe6e3a06a46412e58f89a033dc82b9ff`;
 - [x] CI finale #350.
 
-#### M5.5b.3 — SEO endpoint parity
+#### M5.5b.3 — Sitemap e robots parity
 
-Scope: `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md`.
-
-Branch e PR:
-
-```text
-feat/public-seo-endpoint-parity
-PR #75
-```
-
-- [x] builder server-only condivisi per sitemap e robots;
-- [x] route statiche derivate da `PUBLIC_CANONICAL_STATIC_PATHS`;
-- [x] query D1 `status='published'` soltanto;
-- [x] validazione origin, slug, date, duplicati e limite URL;
-- [x] XML deterministico con escaping dedicato;
-- [x] `lastmod` normalizzato;
-- [x] robots deterministico con newline finale;
-- [x] legacy backend delegato al contratto condiviso;
-- [x] handler Astro `/sitemap.xml` e `/robots.txt` compilati;
-- [x] GET, HEAD, query string e trailing slash coerenti;
+- [x] builder server-only condivisi;
+- [x] legacy e Astro delegano allo stesso contratto;
+- [x] published-only, ordine, `lastmod`, escaping e fail-closed;
+- [x] GET, HEAD, query string e trailing slash;
 - [x] populated, empty e invalid state;
-- [x] fallimento chiuso senza sitemap parziale;
-- [x] confronto body e header legacy/Astro;
-- [x] runtime production-style ancora backend-owned;
-- [x] tutte le suite Control Room verdi nella CI applicativa #359;
-- [ ] CI finale code + canonici;
-- [ ] PR #75 pronta e merge.
+- [x] tutte le regressioni pubbliche e Control Room;
+- [x] PR #75, merge `8d52e7e316d632dcda0d5bb45b818a490df9fef6`;
+- [x] CI finale #365.
 
-Ownership live ancora invariata:
+Ownership live invariata:
 
 ```text
-/sitemap.xml → backend
-/robots.txt  → backend
+route canoniche → backend
+/sitemap.xml    → backend
+/robots.txt     → backend
 ```
 
 ### M5.6 — Catalogo pilot
 
-**Prossima fase dopo il merge di PR #75.**
+Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
 
-- [ ] scope documentale separato;
-- [ ] piccolo set di pagine con intento distinto;
-- [ ] evidence e publication eligibility esplicite;
-- [ ] nessuna generazione massiva;
-- [ ] criteri di pubblicazione e rollback;
-- [ ] indicizzazione e click prima della scala.
+Branch documentale:
+
+```text
+docs/public-catalog-pilot-scope
+```
+
+#### M5.6a — Candidate audit foundation
+
+- [ ] modello tipizzato read-only;
+- [ ] query e report sui gate reali;
+- [ ] massimo quattro entry;
+- [ ] manifest versionato;
+- [ ] latest bundle e latest approved draft;
+- [ ] publication eligibility e approvazioni umane;
+- [ ] provenance e freshness;
+- [ ] collisioni di slug e intento;
+- [ ] fixtures eligible/ineligible/empty;
+- [ ] nessuna mutation o pubblicazione;
+- [ ] active matrix invariata;
+- [ ] CI completa.
+
+Branch tecnica autorizzabile dopo il merge dello scope:
+
+```text
+feat/public-catalog-pilot-foundation
+```
+
+#### M5.6b — Preparazione release candidate reali
+
+- [ ] audit dei dati remoti reali;
+- [ ] selezione senza nomi anticipati;
+- [ ] chiusura blocker una pagina alla volta;
+- [ ] bundle `approved_for_publication`;
+- [ ] draft grounded `approved`;
+- [ ] pagina materializzata in `review`;
+- [ ] manifest aggiornato con ID e versioni reali;
+- [ ] massimo quattro release candidate.
+
+#### M5.6c — Decisione di pubblicazione
+
+**Non autorizzata dallo scope M5.6a.**
+
+- [ ] scegliere esplicitamente se pubblicare prima, durante o dopo M5.7;
+- [ ] branch mutation separata;
+- [ ] transizione `review → published` server-side e auditata;
+- [ ] conferma umana;
+- [ ] rollback/deindicizzazione;
+- [ ] test end-to-end e verifica live.
+
+La pagina Cina non entra automaticamente nel pilot: il suo stato canonico noto resta `publication_eligible=false` e `review`.
 
 ### M5.7 — Cutover apex
 
@@ -307,10 +296,11 @@ conversione brief
 ### Track B — M5
 
 ```text
-chiusura PR #75 sitemap/robots parity
-→ scope catalogo pilot
-→ catalogo pilot ristretto
-→ cutover apex separato
+scope M5.6
+→ candidate audit foundation
+→ release candidate reali in review
+→ decisione esplicita publication/cutover
+→ M5.7 apex cutover
 ```
 
 ### Dopo M5 stabile
