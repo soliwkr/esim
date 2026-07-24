@@ -6,62 +6,91 @@ Data di riferimento: **24 luglio 2026**.
 
 Senza Roaming è un execution project autonomo per contenuti eSIM. Raccoglie domanda, conserva fonti e claim, governa il ciclo editoriale e serve pagine pubbliche. Non è il sistema operativo generale dello studio.
 
-## Architettura target
+## Architettura applicativa
 
 ```text
 Utente / crawler
       │
       ▼
-Custom Cloudflare Worker
-      ├── route policy current/target
-      ├── Cloudflare Access
-      ├── handler Astro
-      ├── backend legacy durante la migrazione
-      ├── API e redirect provider
-      ├── D1
-      ├── Workflows e Container
-      └── AI Gateway → Vertex AI
-             ├── Astro pubblico content-first
-             └── Astro shell + React island Control Room
+Cloudflare Assets + custom Worker
+      ├── /_astro/* → asset statici
+      └── /*         → Worker
+                         ├── route policy active/current/target
+                         ├── Astro handler
+                         ├── backend legacy
+                         ├── Cloudflare Access
+                         ├── API e redirect provider
+                         ├── D1
+                         ├── Workflows e Container
+                         └── AI Gateway → Vertex AI
 ```
+
+Il deploy usa un solo Worker. La migrazione del frontend non duplica D1, Workflow, Container, AI o gate editoriali.
 
 ## Responsabilità
 
 ### Astro
 
-- HTML pubblico, routing e navigazione;
-- metadata, schema, sitemap, robots e 404 nel target;
-- rendering statico o on-demand;
-- shell Control Room;
-- JavaScript minimo.
+- HTML pubblico content-first;
+- homepage, listing, trust pages e articoli;
+- metadata, Open Graph e JSON-LD;
+- sitemap, robots e 404 pubblica nel target;
+- shell della Control Room;
+- JavaScript pubblico nullo salvo JSON-LD inerte;
+- React soltanto nell’isola privata realmente interattiva.
 
 ### React island
 
-- risorse private validate;
+- snapshot e risorse private validate;
 - loading, error, retry e guasti parziali;
-- tabelle, form e dialog;
+- tabelle, filtri, form e dialog;
 - mutation soltanto nelle fasi autorizzate.
 
-### Execution plane
+### Backend ed execution plane
 
 - D1 e migrazioni;
 - claim, fonti e verifiche;
 - Page Readiness ed evidence bundle;
 - draft e stati editoriali;
 - queue, Workflow, Container e AI;
-- publication guardrails;
-- API protette e redirect provider.
+- API protette;
+- redirect provider;
+- publication guardrails.
 
 Il browser non accede direttamente a D1.
 
-## Route ownership
+## Entrypoint e routing
+
+Entrypoint reale:
+
+```text
+apps/web/src/worker.ts
+```
+
+Composizione:
 
 ```text
 createPublicWorker(activePublicRouteDecision)
-activePublicRouteDecision = currentPublicRouteDecision
 ```
 
-### Current matrix
+Cloudflare Assets nella branch M5.7:
+
+```json
+{
+  "run_worker_first": ["/*", "!/_astro/*"]
+}
+```
+
+Conseguenze:
+
+- ogni route dinamica raggiunge il custom Worker;
+- gli asset compilati Astro restano asset-first;
+- il Worker decide Astro o backend tramite la route policy;
+- non esistono flag, header o query string capaci di cambiare renderer.
+
+## Matrici di ownership
+
+### Current matrix storica e rollback
 
 ```text
 Astro:
@@ -78,104 +107,197 @@ Backend:
   asset tecnici e 404
 ```
 
-### Target matrix, non attiva
+Funzione:
+
+```ts
+currentPublicRouteDecision(pathname)
+```
+
+### Target matrix M5.7
 
 ```text
 Astro:
-  home, listing, trust, articoli
-  sitemap, robots e 404
+  /
+  /destinazioni
+  /guide
+  /confronti
+  /metodo
+  /trasparenza
+  /privacy
+  /{slug-published}
+  /sitemap.xml
+  /robots.txt
+  404 pubblica
+  /astro-foundation*
+  /control-room-foundation*
 
 Backend:
   /api/*
   /go/*
-  legacy Control Room finché necessaria
+  /control-room
+  /control-room.js
+  /favicon.svg
+  /_astro/* come asset diretto
+  /astro/* tecniche
   execution plane
 ```
 
+Funzione:
+
+```ts
+targetPublicRouteDecision(pathname)
+```
+
+### Stato della branch PR #81
+
+```ts
+export const activePublicRouteDecision = targetPublicRouteDecision;
+```
+
+Questo stato è verificato dalla CI applicativa #397, ma non viene descritto come live finché non sono completati merge, deploy e controllo reale dell’apice.
+
+### Rollback
+
+```ts
+export const activePublicRouteDecision = currentPublicRouteDecision;
+```
+
+Il rollback è versionato e richiede nuovo deploy. Non è una scorciatoia runtime.
+
+## Classificazione delle route
+
+`src/public-route-policy.ts` distingue:
+
+```text
+preview
+control-room-foundation
+api
+provider-redirect
+legacy-control-room
+canonical-static
+canonical-article
+seo-endpoint
+technical-asset
+public-404
+```
+
+Regole di sicurezza:
+
+- namespace preview e Control Room mantengono semantica di prefisso stretta;
+- doppi slash iniziali non acquisiscono ownership privilegiata;
+- slug articoli sono single-segment, lowercase e validati;
+- route riservate non diventano articoli;
+- file probe e path tecnici falliscono chiusi;
+- `/api/*` e `/go/*` prevalgono sul catch-all pubblico.
+
 ## Read model pubblico
 
-- D1 server-side;
-- righe `published` soltanto;
+D1 viene letto soltanto server-side.
+
+Contratti:
+
+- righe `pages.status='published'` soltanto;
 - ordine e limiti deterministici;
 - validazione runtime;
-- 404 per assente, `review` e `draft`;
+- 404 per assente, `review`, `draft` e archived;
 - fail-closed per righe published invalide;
-- related links published-only.
+- related links published-only;
+- nessun dato operativo interno esposto.
+
+La pagina remota `esim-cina-senza-vpn` è `review` e deve quindi restare 404 anche dopo M5.7.
+
+## Render mode condiviso
+
+Componenti pubblici condivisi:
+
+```text
+preview | canonical
+```
+
+### Preview
+
+```text
+namespace /astro-foundation*
+robots noindex,nofollow
+cache no-store
+canonical self-referencing namespaced
+banner di isolamento
+link namespaced
+```
+
+### Canonical
+
+```text
+route apex
+robots index,follow,max-image-preview:large
+cache public,max-age=300
+canonical apex
+link apex
+nessun banner preview
+```
+
+La modalità di rendering non cambia la publication eligibility e non può esporre righe non published.
 
 ## Contratti SEO
 
-- `src/public-seo.ts` — metadata e JSON-LD;
-- `src/public-seo-endpoints.ts` — sitemap e robots;
-- backend legacy e Astro condividono i contratti;
-- owner live ancora backend.
+### Metadata e schema
+
+```text
+src/public-seo.ts
+```
+
+Produce:
+
+- title e description;
+- Open Graph;
+- `WebSite`;
+- `Article`;
+- `FAQPage` quando presente;
+- serializer JSON-LD sicuro contro terminazione dello script.
+
+### Sitemap e robots
+
+```text
+src/public-seo-endpoints.ts
+```
+
+Contratti:
+
+- route statiche dalla policy;
+- articoli published-only;
+- ordine deterministico;
+- `lastmod` normalizzato;
+- escaping XML;
+- GET, HEAD, query string e trailing slash;
+- fail-closed senza XML parziale;
+- `/go/*`, API, Control Room, preview e 404 esclusi dalla sitemap.
 
 ## Control Room privata
 
 ```text
 browser autenticato
 → Cloudflare Access
-→ validazione JWT
+→ validazione JWT nell’origine
 → Astro shell
 → React island
 → route server-side
 → D1
 ```
 
-Nessun maintenance token vive nel browser. Ogni mutation deriva l’attore dal JWT e usa state machine e audit D1.
+Nessun maintenance token vive nel browser. Ogni mutation autorizzata deriva l’attore dal JWT e usa state machine e audit D1.
 
-## Flusso editoriale
-
-```text
-recent demand
-→ brief AI
-→ decisione umana
-→ conversione separata
-→ claim atomici + fonti
-→ Page Readiness + evidence bundle
-→ draft grounded in review
-→ revisione umana
-→ publication gate separato
-```
-
-L’AI non possiede un percorso diretto verso `published`.
-
-## Stati persistiti
-
-### Evidence bundle
+Route private attuali:
 
 ```text
-review_draft_eligible
-publication_eligible
-ready_for_review_draft
-ready_for_publication
-review_status
+/control-room-foundation/api/snapshot
+/control-room-foundation/api/draft-detail
+/control-room-foundation/api/brief-decision
+/control-room-foundation/api/catalog-pilot-audit
 ```
 
-`ready_for_publication` richiede gate deterministico positivo e `approved_for_publication` umano.
+Tutte applicano no-store, noindex e nosniff.
 
-### Draft
-
-```text
-generating
-review
-changes_requested
-approved
-failed
-superseded
-```
-
-### Pagina
-
-```text
-draft
-review
-published
-archived
-```
-
-La generazione grounded materializza soltanto `review` e protegge pagine già `published`.
-
-## Catalogo pilot M5.6
+## Catalogo pilot
 
 ```text
 candidate
@@ -183,7 +305,7 @@ candidate
 ≠ published page
 ```
 
-### Foundation read-only
+Pipeline read-only:
 
 ```text
 D1
@@ -193,109 +315,74 @@ D1
 → create/validate manifest
 ```
 
-Modulo:
-
-```text
-src/public-catalog-pilot.ts
-```
-
-Il loader esegue sei gruppi di `SELECT` su:
-
-- `editorial_briefs`;
-- `page_evidence_bundles`;
-- `editorial_review_drafts`;
-- `editorial_review_draft_field_claims`;
-- `pages`;
-- claim, verification e source registry.
-
-### Selezione canonica
-
-Per ogni brief:
-
-1. latest evidence bundle per versione;
-2. latest draft per bundle;
-3. publication gate e approvazione umana;
-4. renderer grounded;
-5. provenance completa;
-6. claim atomic/verified con fonti HTTPS attive e non scaduti;
-7. pagina materializzata `review` coerente col draft;
-8. slug e intento sicuri;
-9. cap massimo quattro.
-
-Una versione più recente non approvata blocca la candidate: non si ripiega su una versione precedente approvata.
-
-### Manifest
+Manifest:
 
 ```text
 data/public-catalog-pilot.json
 ```
 
-Contratto:
+Stato verificato:
 
-- schema versionato;
-- zero–quattro entry;
-- ID e versioni positive;
-- slug e keyword unici;
-- URL HTTPS;
-- nessun secret-like data;
-- `pageStatus='review'`;
-- drift check contro il report corrente.
-
-Il manifest iniziale è vuoto e non attiva alcun comportamento runtime.
-
-### Test
-
-#### Pure fixtures
-
-Coprono candidate valida, gate negativo, stale claim, latest draft non approved, drift pagina, slug riservato, collisioni, cap, manifest invalido ed empty state.
-
-#### Migrated D1 smoke
-
-Un Worker temporaneo:
-
-- transpila route policy e audit module in ESM;
-- applica le migrazioni reali;
-- esegue il loader sullo schema effettivo;
-- confronta conteggi e stati before/after;
-- verifica nessuna mutation;
-- elimina entry, config e stato locale.
-
-CI applicativa #373 è completamente verde.
-
-### Publication boundary
-
-M5.6a non introduce:
-
-- migration o mutation D1;
-- endpoint o pulsante publish;
-- transizione `review → published`;
-- route pubblica;
-- cambio owner;
-- deploy o sitemap submission.
-
-La pubblicazione richiede una branch separata, autorizzazione, identity, state machine, audit, idempotenza, freshness recheck e rollback.
-
-## Prossima fase — audit remoto M5.6b
-
-Deve usare un percorso read-only sicuro e produrre un report sanitizzato sui dati reali.
-
-Possibili esiti:
-
-```text
-0 candidate → manifest vuoto e blocker report
-1–4 candidate → manifest con identità reali
->4 candidate → cap deterministico
+```json
+{
+  "schemaVersion": 1,
+  "generatedAt": null,
+  "entries": []
+}
 ```
 
-Nessun Paese o provider viene scelto prima dell’audit.
+Audit remoto live:
+
+```text
+candidateCount: 1
+eligibleCount: 0
+selectedCount: 0
+excludedCount: 1
+```
+
+Il manifest vuoto non modifica routing o runtime e non blocca il cutover visuale.
+
+## Publication boundary
+
+M5.7 non introduce:
+
+- mutation D1;
+- endpoint o pulsante publish;
+- transizione `review → published`;
+- allentamento dei gate;
+- analytics;
+- affiliazioni;
+- sitemap submission;
+- rimozione del renderer legacy.
+
+La pubblicazione richiede branch separata, identità verificata, conferma, state machine, audit append-only, idempotenza, freshness recheck e rollback.
+
+## Verifica M5.7
+
+La CI applicativa #397 prova il Worker compilato di produzione con matrice target attiva:
+
+- canonical homepage, listing, trust e articoli;
+- metadata e JSON-LD;
+- sitemap e robots;
+- 404, file probe, review e draft hidden;
+- API health e maintenance;
+- provider redirect;
+- preview;
+- Control Room e audit privato;
+- asset Astro;
+- desktop, mobile, tastiera e overflow;
+- tutte le suite private.
 
 ## Stato verificato
 
 ```text
-M5.5 SEO/routing parity:     completata
-M5.6a foundation:            CI applicativa #373 verde, PR #77 da chiudere
-active matrix:               current
-cutover:                     non eseguito
-publication mutation:        non autorizzata
-manifest entries:            0
+M5.5 SEO/routing parity:  completata
+M5.6 remote audit:        verificato live
+manifest entries:         0
+PR #81 application CI:    #397 verde
+active source on branch:  target
+PR merge:                 aperto
+production deploy:        non verificato
+live apex owner:           non ancora certificato
+publication mutation:     non autorizzata
 ```
