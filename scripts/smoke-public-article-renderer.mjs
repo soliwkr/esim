@@ -34,6 +34,25 @@ function sqlString(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
+function articleJsonLd(html, expectedUrl) {
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  assert.equal(scripts.length, 1);
+  assert.match(scripts[0][1], /type=["']application\/ld\+json["']/i);
+  assert.doesNotMatch(scripts[0][1], /\bsrc\s*=/i);
+  const value = JSON.parse(scripts[0][2]);
+  const documents = Array.isArray(value) ? value : [value];
+  const article = documents.find((item) => item?.['@type'] === 'Article');
+  const faq = documents.find((item) => item?.['@type'] === 'FAQPage');
+  assert.ok(article);
+  assert.ok(faq);
+  assert.equal(article.headline, 'Articolo pubblico smoke');
+  assert.equal(article.description, 'Meta description Articolo pubblico smoke');
+  assert.equal(article.mainEntityOfPage, expectedUrl);
+  assert.equal(article.author?.name, 'Senza Roaming');
+  assert.equal(faq.mainEntity?.[0]?.name, 'La eSIM si attiva da sola?');
+  return documents;
+}
+
 function pageInsert({
   slug,
   status,
@@ -215,6 +234,9 @@ async function verifyHttp() {
   assert.match(response.headers.get('x-robots-tag') || '', /noindex/);
   assert.match(response.headers.get('cache-control') || '', /no-store/);
   assert.match(html, /data-public-article="smoke-public-article"/);
+  assert.match(html, /<title>Articolo pubblico smoke<\/title>/);
+  assert.match(html, /<meta name="description" content="Meta description Articolo pubblico smoke"/);
+  assert.match(html, /<meta property="og:type" content="article"/);
   assert.match(html, /<h1>Articolo pubblico smoke<\/h1>/);
   assert.match(html, /Risposta diretta Articolo pubblico smoke/);
   assert.match(html, /<h2>Come preparare il telefono<\/h2>/);
@@ -227,8 +249,8 @@ async function verifyHttp() {
   assert.doesNotMatch(html, /href="http:\/\/example\.com\/insecure-source"/);
   assert.doesNotMatch(html, /Fonte HTTP da scartare/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
-  assert.doesNotMatch(html, /<script(?:\s|>)/i);
   assert.doesNotMatch(html, /<astro-island/i);
+  articleJsonLd(html, 'https://senzaroaming.it/astro-foundation/articoli/smoke-public-article');
   assert.match(
     html,
     /<link rel="canonical" href="https:\/\/senzaroaming\.it\/astro-foundation\/articoli\/smoke-public-article"/,
@@ -258,6 +280,7 @@ async function verifyHttp() {
   assert.match(legacyHtml, /Articolo pubblico smoke/);
   assert.match(legacyHtml, /href="\/smoke-related-article"/);
   assert.doesNotMatch(legacyHtml, /astro-foundation\/articoli\/smoke-related-article/);
+  articleJsonLd(legacyHtml, 'https://senzaroaming.it/smoke-public-article');
 
   const listingResponse = await fetch(`${origin}/astro-foundation/guide`);
   const listingHtml = await listingResponse.text();
@@ -290,7 +313,8 @@ async function verifyBrowser() {
     await desktop.goto(`${origin}/astro-foundation/articoli/${articleSlug}`);
     await desktop.getByRole('heading', { level: 1, name: 'Articolo pubblico smoke' }).waitFor();
     assert.equal(await desktop.getByRole('heading', { level: 1 }).count(), 1);
-    assert.equal(await desktop.locator('script').count(), 0);
+    assert.equal(await desktop.locator('script[type="application/ld+json"]').count(), 1);
+    assert.equal(await desktop.locator('script:not([type="application/ld+json"])').count(), 0);
     await desktop.keyboard.press('Tab');
     assert.equal(await desktop.locator('.skip-link').evaluate((element) => element === document.activeElement), true);
     assert.equal(await desktop.getByRole('link', { name: 'Fonte ufficiale sicura' }).count(), 1);
@@ -312,6 +336,8 @@ async function verifyBrowser() {
       await tableWrap.evaluate((element) => element.scrollWidth > element.clientWidth),
       true,
     );
+    assert.equal(await mobile.locator('script[type="application/ld+json"]').count(), 1);
+    assert.equal(await mobile.locator('script:not([type="application/ld+json"])').count(), 0);
     assert.equal(
       await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       true,
