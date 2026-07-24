@@ -23,7 +23,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Listing Astro | Verificati in produzione | Destinazioni, Guide e Confronti |
 | Renderer articolo Astro | Verificato in produzione | desktop, mobile e sorgente SEO live |
 | Fondazione SEO condivisa | Completata e verificata live | PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106` |
-| Routing/ownership SEO | Scope in preparazione | nessuna route canonica migrata |
+| Route policy foundation | Implementata e verificata in CI | PR #71; matrice corrente ancora attiva |
+| Route canonicali Astro | Non implementate | owner live ancora backend |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -100,11 +101,11 @@ M4 non è completato e la legacy privata non può ancora essere rimossa.
 
 ```text
 preview M5 ≠ cutover pubblico
-progressi M5 ≠ completamento M4
+owner target ≠ owner live
 draft approvato ≠ pagina pubblicata
 ```
 
-### Public shell, trust, homepage e listing
+### Preview pubbliche verificate
 
 Sono in produzione sotto `/astro-foundation`:
 
@@ -116,9 +117,8 @@ privacy
 destinazioni
 guide
 confronti
+articoli/[slug]
 ```
-
-nel namespace preview.
 
 Contratti verificati:
 
@@ -131,13 +131,7 @@ Contratti verificati:
 - desktop, mobile, tastiera e assenza di overflow;
 - route canoniche ancora sul renderer legacy.
 
-### Renderer articolo Astro — M5.4
-
-Route:
-
-```text
-/astro-foundation/articoli/[slug]
-```
+### Renderer articolo — M5.4
 
 Implementato e verificato:
 
@@ -145,8 +139,7 @@ Implementato e verificato:
 - validazione runtime di scalari, date, blocchi, FAQ e fonti;
 - blocchi strutturati, non HTML AI grezzo;
 - FAQ native `details/summary`;
-- fonti HTTPS;
-- provenance pubblica page-level;
+- fonti HTTPS e provenance pubblica page-level;
 - nessun claim escluso o dato operativo interno esposto;
 - related links published-only e deterministici;
 - vera 404 per slug assente, `review` o `draft`;
@@ -154,18 +147,9 @@ Implementato e verificato:
 - tabelle con overflow locale;
 - nessuna Astro island o JavaScript applicativo.
 
-Checkpoint live:
+Il checkpoint live desktop/mobile è completo. M5.4 è chiusa.
 
-- desktop superiore e inferiore;
-- mobile superiore e inferiore;
-- hero, risposta diretta, disclosure, tabella, FAQ, provenance, fonti e footer;
-- FAQ espansa su mobile;
-- nessun overflow orizzontale visibile;
-- related omessi quando il query set exact-cluster è vuoto.
-
-M5.4 è chiusa.
-
-## M5.5a — Fondazione del contratto SEO
+## M5.5a — Contratto SEO condiviso
 
 PR:
 
@@ -183,33 +167,9 @@ validated public page
 → legacy canonical renderer OR Astro noindex preview
 ```
 
-Il modello condiviso produce:
+Il modello condiviso produce title, description, Open Graph, `WebSite`, `Article`, `FAQPage`, `dateModified`, autore Organization e `mainEntityOfPage` route-specific.
 
-- title e meta description;
-- Open Graph `website` o `article`;
-- `WebSite` JSON-LD;
-- `Article` JSON-LD;
-- `FAQPage` condizionale;
-- `dateModified` normalizzata;
-- `Organization` come autore;
-- `mainEntityOfPage` determinato dalla route chiamante.
-
-La policy della route resta separata:
-
-```text
-legacy:
-  / e /{slug}
-  index,follow,max-image-preview:large
-  canonical produzione
-
-Astro preview:
-  /astro-foundation*
-  noindex,nofollow
-  no-store
-  self-canonical preview
-```
-
-Sicurezza JSON-LD:
+Sicurezza:
 
 - valori limitati a JSON compatibile;
 - numeri non finiti e oggetti non plain rifiutati;
@@ -217,58 +177,18 @@ Sicurezza JSON-LD:
 - `<`, U+2028 e U+2029 escapati;
 - fixture con `</script>`, `<example>`, virgolette, apostrofi e accenti;
 - nessuno script eseguibile;
-- `set:html` usato soltanto per JSON-LD già serializzato, mai per contenuto editoriale.
+- `set:html` usato soltanto per JSON-LD già serializzato.
 
-### CI
+Checkpoint live conclusivo:
 
-Completamente verdi:
+- homepage: noindex, self-canonical, `og:type=website`, `WebSite` JSON-LD;
+- articolo `migliore-esim`: noindex, canonical namespaced, `og:type=article`, `Article` e `FAQPage`, `mainEntityOfPage`, data e autore.
 
-- typecheck e build;
-- migrazioni;
-- quality gate e golden evaluation;
-- Container build e smoke;
-- runtime pubblico;
-- smoke SEO D1/workerd/Chromium;
-- tutte le suite Control Room.
-
-La prima esecuzione runtime aveva rilevato un’asserzione troppo ampia sul carattere `<` dentro attributi quotati. Il test è stato corretto sul DOM reale senza ridurre il guardrail.
-
-### Checkpoint live conclusivo
-
-Homepage preview verificata nel sorgente live:
-
-- `robots=noindex,nofollow`;
-- canonical `https://senzaroaming.it/astro-foundation`;
-- `og:type=website`;
-- title e description condivisi;
-- `og:url` uguale alla canonical;
-- `WebSite` JSON-LD con nome e URL della preview;
-- nessun JavaScript applicativo visibile.
-
-Articolo preview `migliore-esim` verificato nel sorgente live:
-
-- canonical namespaced;
-- `robots=noindex,nofollow`;
-- `og:type=article`;
-- `Article` JSON-LD;
-- `FAQPage` JSON-LD con due domande;
-- `mainEntityOfPage` sulla route preview;
-- `dateModified` e autore `Organization` presenti;
-- nessun secondo script eseguibile visibile.
-
-Gli header HTTP live `X-Robots-Tag` e `Cache-Control: no-store` non sono stati ispezionati esternamente in questa sessione; restano attestati dalla CI e sono ancora elencati come verifica operativa separata.
+Gli header HTTP live `X-Robots-Tag` e `Cache-Control: no-store` restano una verifica operativa separata; sono coperti dalla CI.
 
 M5.5a è chiusa. Nessun cutover è avvenuto.
 
-## M5.5b — Routing e ownership SEO
-
-Discovery completata:
-
-- `apps/web/src/worker.ts` inoltra ad Astro soltanto `/astro-foundation*` e `/control-room-foundation*`;
-- `src/index.ts` resta owner di tutte le route canoniche e tecniche;
-- sitemap e robots sono generati dal backend;
-- `/go/{provider}` resta backend-owned e registra il click in D1;
-- il fallback articolo legacy avviene soltanto dopo route riservate e file-probe rejection.
+## M5.5b.1 — Route policy foundation
 
 Scope canonico:
 
@@ -276,21 +196,76 @@ Scope canonico:
 docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md
 ```
 
-Target:
-
-- Astro owner futuro delle route pubbliche canoniche, sitemap, robots e 404 editoriale;
-- backend owner permanente di `/api/*`, `/go/*` ed execution plane;
-- Control Room foundation invariata;
-- namespace preview conservato fino al cutover verificato;
-- route matrix esplicita e rollback versionato.
-
-Prima branch tecnica proposta:
+Branch e PR:
 
 ```text
 feat/public-route-policy-foundation
+PR #71 — Add typed public route ownership policy
 ```
 
-Questa branch modellerà soltanto owner corrente e target. Non cambierà alcuna route live.
+Implementato:
+
+- `src/public-route-policy.ts` server-only;
+- owner tipizzati `astro | backend`;
+- categorie esplicite per preview, Control Room, API, provider redirect, legacy Control Room, route canoniche statiche, endpoint SEO, asset tecnici, articolo e 404;
+- normalizzazione pathname;
+- reserved single-segment paths;
+- file-probe policy condivisa;
+- validazione dello slug articolo single-segment;
+- `currentPublicRouteDecision` e `targetPublicRouteDecision` separate;
+- `activePublicRouteDecision = currentPublicRouteDecision`;
+- decisioni immutabili;
+- custom Worker collegato all’export attivo;
+- backend legacy collegato alla stessa file-probe policy.
+
+Ownership attiva invariata:
+
+```text
+Astro:
+  /astro-foundation*
+  /control-room-foundation*
+
+Backend:
+  route canoniche
+  sitemap e robots
+  /go/*
+  /api/*
+  legacy Control Room
+  asset tecnici
+  articolo fallback e 404
+```
+
+La matrice target è documentata e testata, ma non viene usata per servire traffico.
+
+### Verifica CI #323
+
+Completamente verdi:
+
+- generazione tipi Cloudflare;
+- typecheck TypeScript e Astro;
+- build Astro e custom Worker;
+- migrazioni D1;
+- quality gate e golden evaluation;
+- Container build e smoke;
+- runtime Astro/backend;
+- nuovo smoke route policy;
+- public shell, homepage, trust, listing, articolo e SEO;
+- tutte le suite Control Room.
+
+Il runtime conferma che `/`, listing, trust, articoli, sitemap, robots, `/go/*` e `/api/*` restano backend-owned. Nessuna route di pubblicazione è stata introdotta.
+
+## Prossima fase — canonical Astro parity
+
+Prima del codice serve una PR di scope separata che definisca:
+
+- come compilare le route Astro canoniche senza servirle live;
+- come testare direttamente il renderer Astro bypassando soltanto nel test la matrice attiva;
+- parametrizzazione preview/canonical dei componenti;
+- internal linking canonicale;
+- 404 Astro;
+- published-only e fail-closed;
+- criterio di parità visuale, accessibile e SEO;
+- nessuna migrazione live di sitemap, robots o provider redirect.
 
 ## Google measurement stack
 
@@ -301,21 +276,12 @@ Preparati esternamente:
 - Search Console;
 - service account con accesso alle proprietà.
 
-Non sono configurati nel sito:
-
-- CMP e Consent Mode;
-- snippet GTM;
-- eventi GA4;
-- invio sitemap tramite API;
-- credenziali service account.
-
-Nessun tracking viene aggiunto alle preview noindex.
+Non sono configurati nel sito CMP, Consent Mode, snippet GTM, eventi GA4, invio sitemap tramite API o credenziali service account. Nessun tracking viene aggiunto alle preview noindex.
 
 ## Gap aperti
 
-- PR documentale di chiusura M5.5a e scope M5.5b;
-- route policy foundation senza cambio live;
-- canonical Astro parity sotto test;
+- scope canonical Astro parity;
+- route canonicali Astro compilate e testate senza attivazione;
 - parity di sitemap, robots e 404 Astro;
 - piccolo catalogo pilot;
 - PR separata di cutover apex;
@@ -329,9 +295,9 @@ Nessun tracking viene aggiunto alle preview noindex.
 ## Prossimo checkpoint
 
 ```text
-merge scope routing/ownership
-→ branch feat/public-route-policy-foundation
-→ route matrix tipizzata senza cambio live
+merge PR #71
+→ scope canonical Astro parity
+→ route Astro canoniche compilate ma non servite live
 → CI completa
-→ verifica che canonical, sitemap, robots e go restino legacy-owned
+→ owner attivo ancora legacy
 ```
