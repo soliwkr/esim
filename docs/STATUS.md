@@ -17,12 +17,13 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Primo draft | Approvato editorialmente | draft `2`; pagina materializzata ancora `review` |
 | Control Room nuova | Operativa | parità read-only completa; prima mutation verificata in produzione |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
-| Public shell Astro | In produzione come preview | `/` resta legacy |
+| Public shell Astro | In produzione come preview | `/` live resta legacy |
 | Trust, homepage e listing Astro | Verificati in produzione | namespace preview noindex/no-store |
 | Renderer articolo Astro | Verificato in produzione | desktop, mobile e sorgente SEO live |
 | Fondazione SEO condivisa | Completata e verificata live | PR #69 |
 | Route policy foundation | Completata | PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`, CI #329 |
-| Canonical Astro parity | Scope definito | implementazione non avviata; owner live ancora backend |
+| Canonical Astro parity | Implementata e verificata in CI | PR #73; route compilate ma owner live ancora backend |
+| SEO endpoint parity | Non implementata | sitemap e robots restano backend-owned |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -123,7 +124,7 @@ Contratti verificati:
 - ordine deterministico;
 - raw HTML senza JavaScript obbligatorio;
 - desktop, mobile, tastiera e assenza di overflow;
-- route canoniche ancora sul backend legacy.
+- route canoniche live ancora sul backend legacy.
 
 ### M5.4 — Renderer articolo
 
@@ -149,7 +150,7 @@ PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106`.
 validated public page
 → src/public-seo.ts
 → typed SEO document
-→ legacy canonical renderer OR Astro noindex preview
+→ legacy canonical renderer OR Astro renderer
 ```
 
 Condivisi:
@@ -217,27 +218,34 @@ CI #329 completamente verde, comprese tutte le suite pubbliche e Control Room.
 
 ## M5.5b.2 — Canonical Astro parity
 
-Scope canonico:
+Scope: `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md`.
 
-```text
-docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md
-```
-
-Branch tecnica autorizzata dopo il merge dello scope:
+Branch e PR:
 
 ```text
 feat/public-canonical-astro-parity
+PR #73 — Add canonical Astro renderer parity
 ```
 
-Obiettivo:
+Implementato:
 
-```text
-canonical Astro routes compiled
-+ direct local target-matrix smoke
-+ active production matrix still current
-```
+- render mode tipizzato `preview | canonical`;
+- componenti condivisi per layout, header, footer, homepage, listing, trust e articolo;
+- route Astro canoniche compilate nel manifest normale;
+- modalità canonical senza banner, copy o link `/astro-foundation`;
+- internal link interamente apex;
+- canonical, robots e cache dipendenti dal render mode;
+- cache canonicale `public,max-age=300`;
+- preview ancora noindex/no-store;
+- articolo `published` soltanto;
+- slug riservati e file probe non diventano articoli;
+- 404 Astro reale e noindex per assente, `review`, `draft`, reserved path e file probe;
+- risposta generica `500`, noindex e fail-closed per riga `published` invalida;
+- related links published-only e canonici;
+- disclosure coerente con `AFFILIATE_MODE` senza attivare affiliazioni;
+- nessun JavaScript applicativo pubblico o Astro island.
 
-Route previste:
+Route compilate:
 
 ```text
 /
@@ -248,24 +256,60 @@ Route previste:
 /trasparenza
 /privacy
 /{slug-published}
-404 editoriale
+/404
 ```
 
-Decisioni principali:
+### Test diretto senza switch live
 
-- render mode tipizzato `preview | canonical`;
-- componenti condivisi, non route duplicate;
-- canonical mode senza banner o copy preview;
-- cache canonicale `public,max-age=300`;
-- internal link interamente canonicali;
-- published-only, fail-closed e SEO condivisi;
-- Worker costruibile tramite factory tipizzata;
-- default production sempre sulla matrice attiva corrente;
-- smoke locale con wrapper e configurazione temporanei;
-- nessun env flag, header, cookie o query parameter per cambiare renderer;
-- sitemap e robots rinviati a M5.5b.3.
+Il custom Worker espone la factory tipizzata:
 
-Nessun runtime è modificato dalla branch documentale corrente.
+```text
+createPublicWorker(routeDecision)
+```
+
+Il deploy normale resta:
+
+```text
+createPublicWorker(activePublicRouteDecision)
+activePublicRouteDecision = currentPublicRouteDecision
+```
+
+Lo smoke `npm run smoke:public-canonical-astro` genera soltanto localmente:
+
+- wrapper Worker temporaneo;
+- configurazione Wrangler temporanea;
+- stato D1 populated ed empty isolato.
+
+Il wrapper assegna ad Astro soltanto:
+
+```text
+canonical-static
+canonical-article
+public-404
+```
+
+Sitemap, robots, API, provider redirect, legacy Control Room e asset tecnici restano backend-owned anche nel test. Non esistono env flag, header, cookie, query parameter o route distribuite per cambiare renderer.
+
+### Verifica CI #345
+
+Completamente verdi:
+
+- tipi Cloudflare;
+- typecheck e build Astro/custom Worker;
+- migrazioni D1;
+- quality gate e golden evaluation;
+- Container build e smoke;
+- runtime production-style con route canoniche ancora legacy-owned;
+- tutte le preview esistenti;
+- route policy e regressioni SEO;
+- renderer canonico diretto home/listing/trust/articolo/404;
+- populated ed empty state;
+- canonical, robots, cache, Open Graph e JSON-LD;
+- published-only, related links e fail-closed;
+- desktop, mobile, tastiera, overflow e assenza di JavaScript applicativo;
+- tutte le suite Control Room.
+
+M5.5b.2 è implementata e verificata in CI. **Nessun cutover o deploy pubblico è avvenuto.**
 
 ## Google measurement
 
@@ -283,8 +327,7 @@ Nessun tracking viene aggiunto alle preview noindex.
 
 ## Gap aperti
 
-- implementazione canonical Astro parity senza attivazione;
-- parity Astro di sitemap e robots;
+- scope e implementazione M5.5b.3 per sitemap/robots parity senza attivazione;
 - piccolo catalogo pilot;
 - PR separata di cutover apex;
 - verifica HTTP live degli header preview;
@@ -297,9 +340,8 @@ Nessun tracking viene aggiunto alle preview noindex.
 ## Prossimo checkpoint
 
 ```text
-merge scope canonical Astro parity
-→ branch feat/public-canonical-astro-parity
-→ route Astro canoniche compilate e testate direttamente
-→ runtime production-style ancora legacy-owned
-→ CI completa
+final CI code + canonici su PR #73
+→ merge M5.5b.2 senza cambiare owner live
+→ scope M5.5b.3 sitemap/robots parity
+→ endpoint Astro testati senza attivazione
 ```
