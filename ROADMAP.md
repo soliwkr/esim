@@ -119,7 +119,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.5a verificate in produzione come preview o contratto condiviso. M5.5b avviata come routing foundation; nessuna route canonica è migrata.**
+**Stato: M5.0–M5.5a verificate in produzione. M5.5b.1 è implementata e verificata dalla CI senza migrare route canoniche.**
 
 ### M5.0 — Public shell
 
@@ -191,7 +191,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] drift smoke legacy/Astro;
 - [x] regressioni sitemap, robots, redirect provider e 404;
 - [x] zero JavaScript eseguibile aggiunto;
-- [x] PR #69 mergiata nel commit `46f1d66a591dd7860c101c86cb8295d97e4a2106`;
+- [x] PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106`;
 - [x] CI completa verde;
 - [x] sorgente live homepage verificato;
 - [x] sorgente live articolo verificato;
@@ -213,26 +213,32 @@ Target deciso:
 
 ##### M5.5b.1 — Route policy foundation
 
-Branch autorizzata:
+Branch: `feat/public-route-policy-foundation` — PR #71.
 
-```text
-feat/public-route-policy-foundation
-```
+- [x] matrice tipizzata current/target;
+- [x] categorie e precedenza esplicite;
+- [x] reserved paths e file-probe policy condivisi;
+- [x] custom Worker usa `activePublicRouteDecision`;
+- [x] export attivo fissato alla matrice corrente;
+- [x] nessun owner live cambia;
+- [x] API e `/go/*` restano backend-owned;
+- [x] preview e Control Room foundation restano Astro-owned;
+- [x] smoke route policy dedicato;
+- [x] runtime e regressioni SEO verdi;
+- [x] tutte le suite Control Room verdi;
+- [x] CI applicativa #323 completamente verde.
 
-- [ ] matrice tipizzata current/target;
-- [ ] precedenza router esplicita;
-- [ ] reserved paths e file-probe policy condivisi;
-- [ ] custom Worker usa la matrice corrente;
-- [ ] nessun owner live cambia;
-- [ ] smoke route policy;
-- [ ] CI completa.
+La matrice target è documentata e testata ma non viene usata per servire traffico.
 
 ##### M5.5b.2 — Canonical Astro parity
+
+Da definire in una PR di scope separata prima del codice.
 
 - [ ] componenti parametrizzati preview/canonical;
 - [ ] route canonicali Astro compilate e testate;
 - [ ] internal link canonicali;
 - [ ] 404 Astro pubblica;
+- [ ] test diretto del renderer Astro senza cambiare owner live;
 - [ ] ownership live ancora legacy.
 
 ##### M5.5b.3 — SEO endpoint parity
@@ -317,8 +323,8 @@ conversione brief
 ### Track B — M5
 
 ```text
-route policy foundation
-→ canonical Astro parity
+scope canonical Astro parity
+→ canonical Astro parity senza attivazione
 → sitemap/robots/404 parity
 → catalogo pilot
 → cutover apex separato
