@@ -242,35 +242,27 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** query, validazione, XML, robots e response contract vivono in `src/public-seo-endpoints.ts`, condiviso da backend legacy e handler Astro.
 
-**Conseguenza:**
-
-- route statiche dalla route policy;
-- pagine `published` soltanto;
-- origin, slug, date, duplicati e limite URL validati;
-- XML e robots deterministici;
-- fallimento chiuso senza documento parziale;
-- populated, empty e invalid state confrontati;
-- GET, HEAD, query string e trailing slash coerenti;
-- runtime live ancora backend-owned;
-- PR #75 mergiata in `8d52e7e316d632dcda0d5bb45b818a490df9fef6` dopo CI finale #365 verde.
+**Conseguenza:** route statiche dalla policy, pagine `published` soltanto, output deterministico, fail-closed e parità legacy/Astro. PR #75 è mergiata in `8d52e7e316d632dcda0d5bb45b818a490df9fef6` dopo CI finale #365.
 
 ## ADR-031 — Catalogo pilot come release candidate, non come pubblicazione implicita
 
-**Stato:** accettata come scope M5.6; implementazione non avviata.
+**Stato:** accettata e verificata dalla CI applicativa #373 su PR #77; merge ancora pendente.
 
-**Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con un massimo di quattro release candidate. Una release candidate deve avere latest evidence bundle idoneo e approvato per pubblicazione, draft grounded approvato, provenance completa e pagina materializzata coerente, ma resta `pages.status='review'`.
+**Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con un massimo di quattro release candidate. Una release candidate deve avere latest evidence bundle idoneo e approvato, latest draft grounded approvato, provenance completa, claim correnti e pagina materializzata coerente, ma resta `pages.status='review'`.
 
-**Razionale:** oggi il renderer backend live serve qualsiasi riga `published`, mentre non esiste ancora una mutation di pubblicazione autorizzata. Inserire `review → published` nella stessa branch dell’audit renderebbe possibile esporre contenuti reali prima della decisione sul cutover e confonderebbe certificazione editoriale con rilascio pubblico.
+**Razionale:** il renderer backend live serve qualsiasi riga `published`, mentre non esiste ancora una mutation di pubblicazione autorizzata. Audit e pubblicazione devono restare separati.
 
 **Conseguenza:**
 
-- candidate, release candidate e published sono stati distinti;
-- il pilot contiene da zero a quattro entry e può chiudersi vuoto;
-- Paesi, dispositivi e provider non vengono scelti prima dell’audit reale;
-- il manifest collega slug, intento, brief, bundle, draft, claim e fonti;
-- latest version, freshness, publication eligibility, approvazioni umane e coerenza draft/pagina sono obbligatorie;
-- collisioni di slug, route o intento bloccano l’entry;
-- la pagina Cina non entra automaticamente perché lo stato noto resta `publication_eligible=false`;
-- la foundation non modifica D1, non pubblica, non aggiunge endpoint publish e non fa deploy;
-- la prima transizione `review → published` richiede branch, autorizzazione, state machine, audit, idempotenza, recheck freshness e rollback separati;
-- l’ordine tra prima pubblicazione e M5.7 viene deciso soltanto quando esistono release candidate reali.
+- `src/public-catalog-pilot.ts` carica soltanto con `SELECT` e produce report deterministici;
+- latest bundle e latest draft prevalgono sulle versioni precedenti;
+- publication eligibility, `approved_for_publication` e `ready_for_publication` sono obbligatori;
+- provenance, claim atomic/verified, fonti HTTPS attive e freshness vengono ricontrollati;
+- la pagina deve restare `review`, `published_at=NULL`, `featured=0` e coerente col draft;
+- slug riservati, file probe, collisioni di keyword e risposte duplicate bloccano l’entry;
+- il cap è quattro e zero candidate è un esito valido;
+- `data/public-catalog-pilot.json` è inizialmente vuoto e non inventa ID o pagine;
+- fixture pure e Worker temporaneo su D1 migrato verificano i gate;
+- conteggi e stati before/after restano identici;
+- nessuna migration, mutation, route, endpoint publish, deploy o cambio della matrice viene introdotto;
+- la prima transizione `review → published` richiede branch, autorizzazione, state machine, audit, idempotenza, freshness recheck e rollback separati.
