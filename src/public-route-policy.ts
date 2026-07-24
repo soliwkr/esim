@@ -176,5 +176,5 @@ export function targetPublicRouteDecision(pathname: string): PublicRouteDecision
 }
 
 // M5.7 apex cutover: production now uses the versioned target ownership matrix.
-// Rollback is the single-line reversal to currentPublicRouteDecision.
+// Rollback: export const activePublicRouteDecision = currentPublicRouteDecision;
 export const activePublicRouteDecision = targetPublicRouteDecision;
