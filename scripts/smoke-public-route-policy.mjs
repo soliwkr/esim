@@ -99,7 +99,7 @@ try {
   ];
   for (const pathname of currentAstroPaths) {
     const decision = currentPublicRouteDecision(pathname);
-    assert.equal(decision.owner, 'astro', `${pathname} must remain Astro-owned today.`);
+    assert.equal(decision.owner, 'astro', `${pathname} belongs to Astro in the pre-cutover matrix.`);
     assert.equal(Object.isFrozen(decision), true, 'Route decisions must be immutable.');
   }
 
@@ -130,7 +130,7 @@ try {
   ]);
   for (const [pathname, kind] of currentBackendExpectations) {
     const decision = currentPublicRouteDecision(pathname);
-    assert.equal(decision.owner, 'backend', `${pathname} must remain backend-owned today.`);
+    assert.equal(decision.owner, 'backend', `${pathname} belongs to the backend in the pre-cutover matrix.`);
     assert.equal(decision.kind, kind, `${pathname} has an unexpected route kind.`);
   }
 
@@ -151,7 +151,7 @@ try {
     assert.equal(
       targetPublicRouteDecision(pathname).owner,
       'astro',
-      `${pathname} must be Astro-owned only in the documented target matrix.`,
+      `${pathname} must be Astro-owned in the target matrix.`,
     );
   }
 
@@ -167,7 +167,7 @@ try {
     assert.equal(
       targetPublicRouteDecision(pathname).owner,
       'backend',
-      `${pathname} must remain permanently backend-owned.`,
+      `${pathname} must remain backend-owned after cutover.`,
     );
   }
 
@@ -191,12 +191,12 @@ try {
   for (const pathname of comparisonPaths) {
     assert.deepEqual(
       activePublicRouteDecision(pathname),
-      currentPublicRouteDecision(pathname),
-      `The active matrix must still be the current matrix for ${pathname}.`,
+      targetPublicRouteDecision(pathname),
+      `The active matrix must equal the target matrix for ${pathname}.`,
     );
   }
 
-  console.log('Public route policy smoke passed: current ownership unchanged, target ownership documented.');
+  console.log('Public route policy smoke passed: target ownership is active and backend boundaries are preserved.');
 } finally {
   await rm(temporaryDirectory, { recursive: true, force: true });
 }
