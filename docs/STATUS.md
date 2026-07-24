@@ -19,11 +19,10 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
 | Preview Astro | Verificata in produzione | namespace noindex/no-store |
 | Renderer canonico Astro | Compilato e verificato in CI | owner live ancora backend |
-| Sitemap e robots parity | Completata | PR #75, merge `8d52e7e316d632dcda0d5bb45b818a490df9fef6`, CI #365 |
-| Catalogo pilot | Scope in corso | release candidate in review, nessuna pubblicazione autorizzata |
+| Sitemap e robots parity | Completata | PR #75, CI finale #365 |
+| Catalog pilot foundation | Implementata e verificata dalla CI applicativa #373 | PR #77 draft; manifest vuoto; nessuna pubblicazione |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
-| Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
 
 ## Ciclo editoriale controllato
 
@@ -58,15 +57,6 @@ La pagina Cina non è autorizzata alla pubblicazione e non entra automaticamente
 
 ## Control Room
 
-```text
-Cloudflare Access
-→ validazione origine
-→ shell Astro
-→ una React island
-→ contratti server-side
-→ D1
-```
-
 Completato:
 
 - overview, health, radar, segnali e brief;
@@ -74,8 +64,7 @@ Completato:
 - readiness ed evidence bundle;
 - inventario e dettaglio draft;
 - queue e audit;
-- linkage claim → task;
-- linkage audit → ID/versione draft;
+- linkage canonici;
 - decisione brief `proposed → accepted | dismissed`.
 
 Mutation residue:
@@ -98,9 +87,7 @@ canonical Astro compilato ≠ canonical Astro servito
 candidate ≠ release candidate ≠ published
 ```
 
-### Preview live
-
-Sono operative sotto `/astro-foundation`:
+Preview operative sotto `/astro-foundation`:
 
 ```text
 /
@@ -113,194 +100,144 @@ confronti
 articoli/[slug]
 ```
 
-Contratti verificati:
-
-- noindex e no-store;
-- fuori sitemap;
-- D1 server-side;
-- righe `published` soltanto;
-- ordine deterministico;
-- raw HTML senza JavaScript obbligatorio;
-- desktop, mobile e tastiera;
-- route canoniche live ancora sul backend.
+Le route canoniche, sitemap e robots live restano backend-owned.
 
 ## M5.5 — SEO e routing parity
 
-### M5.5a — Contratto SEO
-
-PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106`.
-
-Condivisi:
-
-- title e description;
-- Open Graph;
-- `WebSite`, `Article` e `FAQPage`;
-- serializer JSON-LD sicuro.
-
-### M5.5b.1 — Route policy
-
-PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`, CI #329.
-
 ```text
-activePublicRouteDecision = currentPublicRouteDecision
+PR #69  SEO contract
+PR #71  route policy — CI #329
+PR #73  canonical Astro parity — CI #350
+PR #75  sitemap/robots parity — CI #365
 ```
 
-### M5.5b.2 — Canonical Astro parity
+Nessun cutover o deploy pubblico è stato eseguito.
 
-```text
-PR #73
-merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
-CI finale #350
-```
-
-Home, listing, trust, articolo e 404 canonici sono compilati e testati direttamente senza switch live.
-
-### M5.5b.3 — Sitemap e robots parity
-
-```text
-PR #75
-merge 8d52e7e316d632dcda0d5bb45b818a490df9fef6
-CI finale #365
-```
-
-Completato:
-
-- `src/public-seo-endpoints.ts` come contratto server-only;
-- route statiche dalla route policy;
-- query `pages.status='published'`;
-- validazione site base, slug, date, duplicati e limite URL;
-- XML deterministico e `lastmod` normalizzato;
-- robots deterministico;
-- backend legacy e Astro sullo stesso builder;
-- GET, HEAD, query string e trailing slash;
-- populated, empty e invalid state;
-- fallimento chiuso senza XML parziale;
-- tutte le suite pubbliche e Control Room.
-
-Ownership live invariata:
-
-```text
-/sitemap.xml → backend
-/robots.txt  → backend
-```
-
-Nessun deploy o cutover è stato eseguito.
-
-## M5.6 — Catalogo pilot
+## M5.6a — Candidate audit foundation
 
 Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
 
-Branch:
-
 ```text
-docs/public-catalog-pilot-scope
+branch feat/public-catalog-pilot-foundation
+PR #77 — Add public catalog pilot audit foundation
+CI applicativa #373 completamente verde
 ```
 
-### Scoperta verificata
+### Implementato
 
-Il sistema possiede già:
+`src/public-catalog-pilot.ts` fornisce:
 
-- `publication_eligible` deterministico;
-- approvazione umana `approved_for_publication`;
-- `ready_for_publication` persistito;
-- draft grounded con provenance;
-- approvazione del draft;
-- materializzazione in `pages.status='review'`.
+- modello tipizzato server-only;
+- loader D1 read-only;
+- latest evidence bundle per brief;
+- latest draft per bundle;
+- gate deterministici e approvazioni umane;
+- controllo renderer grounded;
+- provenance top-level, sezioni e FAQ;
+- claim atomic/verified, source linkage e freshness;
+- coerenza tra draft approvato e pagina materializzata;
+- slug, route e file probe safety;
+- collisioni di primary keyword e risposta diretta;
+- selezione deterministica fino a quattro entry;
+- candidate report con selected, excluded, blocker e warning;
+- creazione e validazione del manifest.
 
-Non possiede una capacità autorizzata:
-
-```text
-review → published
-```
-
-Poiché il renderer legacy live serve già righe `published`, introdurre quella mutation durante la foundation esporrebbe contenuti reali prima della decisione sul cutover.
-
-### Decisione di scope
-
-M5.6a prepara un massimo di quattro release candidate, tutte ancora in `review`.
+### Manifest
 
 ```text
-candidate
-→ gate deterministici
-→ approvazione bundle
-→ draft grounded approvato
-→ pagina review coerente
-→ release candidate manifest
+data/public-catalog-pilot.json
 ```
 
-Non sono scelti anticipatamente Paesi, dispositivi o provider.
+Stato corrente:
 
-La composizione preferita, non obbligatoria, è:
+```json
+{
+  "schemaVersion": 1,
+  "generatedAt": null,
+  "entries": []
+}
+```
+
+È deliberatamente vuoto. Non sono stati inventati Paesi, provider, ID, versioni o claim.
+
+### Verifiche
+
+Lo smoke puro copre:
+
+- candidate valida;
+- publication gate negativo;
+- claim scaduto;
+- latest draft non approved;
+- drift draft/pagina;
+- slug riservato;
+- collisione keyword;
+- cap oltre quattro;
+- manifest invalido;
+- empty state.
+
+Lo smoke D1 aggiuntivo:
+
+- transpila esplicitamente i moduli ESM temporanei;
+- applica tutte le migrazioni reali;
+- esegue le query contro lo schema D1 effettivo;
+- confronta conteggi e stati prima e dopo l’audit;
+- verifica che non avvenga alcuna mutation;
+- conferma che ogni selected candidate resti `review`.
+
+Il primo run D1 ha permesso di correggere due problemi prima del merge:
+
+1. `primary_keyword` viene letto dalla pagina materializzata, non dal draft;
+2. il Worker temporaneo no-bundle riceve JavaScript ESM transpiled, non TypeScript grezzo.
+
+### Guardrail verificati
+
+- nessuna migration nuova;
+- nessun `INSERT`, `UPDATE`, `DELETE` o `REPLACE`;
+- nessuna route o API pubblica;
+- nessun endpoint o pulsante publish;
+- nessuna transizione `review → published`;
+- active matrix invariata;
+- nessun deploy;
+- tutte le suite Control Room verdi.
+
+PR #77 resta draft fino alla CI finale sullo stesso head di codice e documentazione.
+
+## Prossima fase M5.6b
+
+Dopo il merge della foundation serve un audit **remoto e read-only** sui dati reali.
+
+L’audit non sceglie pagine in anticipo e può produrre:
 
 ```text
-1 destinazione
-1 guida
-1 confronto
-+ 1 seconda destinazione soltanto se distinta e pienamente idonea
+0 candidate → blocker report
+1–4 candidate → manifest reale
+>4 candidate → cap e selezione motivata
 ```
 
-Zero candidate è un risultato valido quando i dati reali non superano i gate.
-
-### Foundation proposta
-
-Branch tecnica dopo il merge dello scope:
-
-```text
-feat/public-catalog-pilot-foundation
-```
-
-Output:
-
-- audit read-only;
-- manifest versionato massimo quattro entry;
-- report ammessi/esclusi e blocker;
-- freshness e latest-version validation;
-- collisioni di slug e intento;
-- fixtures e smoke;
-- nessuna mutation, pubblicazione o route live.
-
-### Pubblicazione
-
-Non autorizzata dallo scope M5.6a.
-
-Richiederà una decisione separata su quando eseguire la prima transizione `review → published`:
-
-1. prima del cutover sul renderer legacy;
-2. insieme a M5.7;
-3. dopo M5.7.
+La pubblicazione resta separata e non autorizzata.
 
 ## Google measurement
 
-GTM, GA4, Search Console e service account sono preparati esternamente ma non collegati.
-
-Restano assenti:
-
-- CMP e Consent Mode;
-- snippet GTM;
-- eventi GA4;
-- invio sitemap;
-- credenziali service account nel progetto.
+GTM, GA4, Search Console e service account sono preparati esternamente ma non collegati. Restano assenti CMP, Consent Mode, snippet, eventi e sitemap submission.
 
 ## Gap aperti
 
-- merge dello scope M5.6;
-- candidate audit foundation;
-- audit dati reali e manifest release candidate;
+- CI finale e merge PR #77;
+- percorso sicuro per audit remoto read-only;
+- report sui dati reali e manifest eventuale;
+- preparazione release candidate una pagina alla volta;
 - decisione separata di pubblicazione;
 - M5.7 cutover apex;
 - header HTTP live delle preview;
-- linkage recenti Control Room nel browser reale;
 - topic-mismatch sul primo run autorizzato;
-- conversione brief e mutation M4 residue;
-- CMP, GTM, GA4 e Search Console in M6;
-- rimozione legacy soltanto dopo i rispettivi criteri di uscita.
+- mutation M4 residue;
+- M6 measurement e Search Console.
 
 ## Prossimo checkpoint
 
 ```text
-scope M5.6 in PR documentale
-→ CI completa
-→ merge
-→ feat/public-catalog-pilot-foundation
-→ audit read-only e manifest
+canonici aggiornati su PR #77
+→ CI finale code + documentazione
+→ merge senza deploy o pubblicazione
+→ audit remoto read-only
 ```
