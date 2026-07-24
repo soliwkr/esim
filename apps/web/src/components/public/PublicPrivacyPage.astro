@@ -1,0 +1,78 @@
+---
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import { publicIsPreview, publicTrustPath } from '../../../../../src/public-render-mode'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+import TrustPage from './TrustPage.astro'
+
+interface Props {
+  mode: PublicRenderMode
+  siteName: string
+}
+
+const { mode, siteName } = Astro.props
+const preview = publicIsPreview(mode)
+---
+
+<PublicLayout
+  mode={mode}
+  title={preview ? `Privacy preview | ${siteName}` : `Privacy | ${siteName}`}
+  description={preview
+    ? 'Preview non indicizzabile delle informazioni privacy attuali di Senza Roaming.'
+    : 'Informazioni sul trattamento minimale dei dati.'}
+  canonicalPath={publicTrustPath(mode, 'privacy')}
+  siteName={siteName}
+>
+  <TrustPage
+    mode={mode}
+    eyebrow="Privacy"
+    title="Raccogliere meno, spiegare meglio."
+    lead={preview
+      ? 'Questa preview conserva il contenuto essenziale della pagina privacy attuale. Non introduce CMP, analytics o nuovi trattamenti di dati.'
+      : 'La pagina descrive il trattamento minimale attuale e separa chiaramente ciò che non viene raccolto dagli strumenti ancora da attivare.'}
+    current="privacy"
+  >
+    <section aria-labelledby="privacy-dati">
+      <div class="trust-intro-card">
+        <p class="trust-card-label">Dati non richiesti</p>
+        <h2 id="privacy-dati">Non chiediamo dati bancari, documenti, nomi o indirizzi email.</h2>
+        <p>
+          Il sito pubblico non richiede questi dati per leggere guide, confronti o pagine sulle destinazioni.
+          La migrazione frontend non modifica il modello di raccolta dati.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="privacy-redirect">
+      <h2 id="privacy-redirect">Cosa registra il redirect verso un provider</h2>
+      <p>Il percorso di redirect conserva soltanto le informazioni operative dichiarate dal contratto attuale:</p>
+      <ul>
+        <li>pagina di origine;</li>
+        <li>provider selezionato;</li>
+        <li>posizione del pulsante;</li>
+        <li>data del click.</li>
+      </ul>
+      <p>Non vengono salvati indirizzi IP né user agent nel contratto attuale descritto da questa pagina.</p>
+    </section>
+
+    <section aria-labelledby="privacy-strumenti">
+      <div class="trust-status-card">
+        <p class="trust-card-label">Stato attuale</p>
+        <h2 id="privacy-strumenti">CMP, GA4 e GTM non sono ancora attivi.</h2>
+        <p>
+          Consenso, analytics e Search Console appartengono a una fase successiva. Richiederanno configurazione,
+          documentazione e verifica separate prima del lancio commerciale.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="privacy-confini">
+      <h2 id="privacy-confini">Confini di questa pagina</h2>
+      <div class="trust-principle-grid">
+        <article class="trust-principle"><h3>Nessun nuovo tracker</h3><p>La pagina è HTML Astro e non aggiunge script di analytics o marketing.</p></article>
+        <article class="trust-principle"><h3>Nessun form</h3><p>Non raccoglie dati dell’utente e non invia mutation al backend.</p></article>
+        <article class="trust-principle"><h3>{preview ? 'Route non canonica' : 'Informazioni attuali'}</h3><p>{preview ? 'La pagina resta noindex dentro il namespace preview.' : 'La pagina descrive lo stato attuale e verrà aggiornata quando cambieranno consenso o misurazione.'}</p></article>
+        <article class="trust-principle"><h3>Aggiornamento separato</h3><p>La versione legale definitiva verrà rivista quando saranno attivati consenso e misurazione.</p></article>
+      </div>
+    </section>
+  </TrustPage>
+</PublicLayout>

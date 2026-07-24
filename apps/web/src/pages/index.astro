@@ -4,14 +4,12 @@ import { loadPublicHomepageCards } from '../../../../src/public-page-cards'
 import PublicHomepagePage from '../components/public/PublicHomepagePage.astro'
 import { setPublicResponseHeaders } from '../lib/public-response'
 
-// The shared component renders data-public-shell="astro-preview" in preview mode.
-// PublicLayout and public-response own the noindex, nofollow and no-store contract.
-setPublicResponseHeaders(Astro.response.headers, 'preview')
+setPublicResponseHeaders(Astro.response.headers, 'canonical')
 const { featured, destinations } = await loadPublicHomepageCards(env.DB)
 ---
 
 <PublicHomepagePage
-  mode="preview"
+  mode="canonical"
   siteName={env.SITE_NAME}
   featured={featured}
   destinations={destinations}

@@ -1,0 +1,14 @@
+---
+import { env } from 'cloudflare:workers'
+import PublicArticleErrorPage from '../components/public/PublicArticleErrorPage.astro'
+import { setPublicResponseHeaders } from '../lib/public-response'
+
+Astro.response.status = 404
+setPublicResponseHeaders(Astro.response.headers, 'canonical', true)
+---
+
+<PublicArticleErrorPage
+  mode="canonical"
+  kind="missing"
+  siteName={env.SITE_NAME}
+/>

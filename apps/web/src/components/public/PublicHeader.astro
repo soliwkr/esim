@@ -1,18 +1,20 @@
 ---
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import { publicHomePath, publicListingPath, publicTrustPath } from '../../../../../src/public-render-mode'
 import { PUBLIC_LISTING_DEFINITIONS } from '../../../../../src/public-listing-routes'
 
 interface Props {
-  previewBase?: string
+  mode: PublicRenderMode
 }
 
-const { previewBase } = Astro.props
-const homeHref = previewBase ?? '/'
+const { mode } = Astro.props
+const homeHref = publicHomePath(mode)
 const navigation = [
   ...PUBLIC_LISTING_DEFINITIONS.map((item) => ({
-    href: previewBase ? item.previewPath : item.canonicalPath,
+    href: publicListingPath(mode, item.type),
     label: item.navLabel,
   })),
-  { href: previewBase ? `${previewBase}/metodo` : '/metodo', label: 'Metodo' },
+  { href: publicTrustPath(mode, 'metodo'), label: 'Metodo' },
 ]
 const currentPath = Astro.url.pathname
 ---

@@ -133,7 +133,7 @@ Track B — frontend pubblico M5
 preview noindex
 → contratto SEO condiviso
 → route policy foundation
-→ canonical parity sotto test
+→ canonical renderer parity verificata
 → SEO endpoint parity
 → catalogo pilot
 → cutover apex separato
@@ -200,7 +200,7 @@ proposed → accepted | dismissed
 
 ## F4 — Migrare il sito pubblico
 
-**Stato: M5.0–M5.5a concluse; M5.5b.1 completata in CI; nessuna route canonica migrata.**
+**Stato: M5.0–M5.5a concluse; M5.5b.1 e M5.5b.2 completate in CI; nessuna route canonica live migrata.**
 
 ### F4.0 — Shell pubblico preview
 
@@ -272,34 +272,49 @@ PR #71
 - [x] custom Worker usa la matrice attiva;
 - [x] nessun cambio live;
 - [x] smoke dedicato;
-- [x] CI applicativa #323 completamente verde.
+- [x] CI finale #329 completamente verde.
 
 #### F4.4b.2 — Canonical Astro parity
 
-Prima del codice serve lo scope:
+Scope:
 
 ```text
-docs/public-canonical-astro-parity-scope
+docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md
 ```
 
-Da definire:
+Branch e PR:
 
-- componenti preview/canonical;
-- route Astro canoniche compilate;
-- test diretto del renderer senza cambiare owner live;
-- internal link canonicali;
-- 404 Astro;
-- published-only, fail-closed e reserved path;
-- parità visuale, accessibile e SEO;
-- owner live ancora legacy.
+```text
+feat/public-canonical-astro-parity
+PR #73
+```
+
+- [x] render mode `preview | canonical`;
+- [x] layout, header, footer e contenuti condivisi;
+- [x] route canoniche home, listing, trust, articolo e 404 compilate;
+- [x] modalità canonical senza banner o link preview;
+- [x] internal link canonicali;
+- [x] canonical, robots e cache route-specific;
+- [x] published-only e fail-closed;
+- [x] reserved path e file probe esclusi;
+- [x] 404 Astro reale e noindex;
+- [x] factory `createPublicWorker(routeDecision)`;
+- [x] default production su `activePublicRouteDecision` corrente;
+- [x] wrapper e Wrangler config soltanto temporanei nello smoke;
+- [x] nessun flag runtime, cookie, header, query parameter o route di test;
+- [x] D1 populated/empty, workerd e Chromium;
+- [x] parità visuale, accessibile e SEO;
+- [x] CI applicativa #345 completamente verde;
+- [x] owner live ancora legacy.
 
 #### F4.4b.3 — SEO endpoint parity
 
-PR separata:
+PR separata, preceduta da scope:
 
 - [ ] builder sitemap/robots condivisi;
-- [ ] handler Astro testati;
+- [ ] handler Astro compilati e testati;
 - [ ] output semantico equivalente;
+- [ ] preview, review, draft e route tecniche esclusi;
 - [ ] owner live ancora legacy.
 
 ### F4.5 — Catalogo pilot

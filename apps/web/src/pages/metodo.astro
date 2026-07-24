@@ -1,0 +1,6 @@
+---
+import { env } from 'cloudflare:workers'
+import PublicMetodoPage from '../components/public/PublicMetodoPage.astro'
+---
+
+<PublicMetodoPage mode="canonical" siteName={env.SITE_NAME} />

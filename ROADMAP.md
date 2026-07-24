@@ -121,7 +121,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.5a verificate in produzione; M5.5b.1 completata; M5.5b.2 autorizzata senza cutover.**
+**Stato: M5.0–M5.5a verificate in produzione; M5.5b.1–M5.5b.2 completate in CI senza cutover.**
 
 ### M5.0 — Public shell
 
@@ -209,25 +209,31 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 Scope: `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md`.
 
-Branch autorizzata:
+Branch e PR:
 
 ```text
 feat/public-canonical-astro-parity
+PR #73
 ```
 
-- [ ] render mode `preview | canonical` tipizzato;
-- [ ] route Astro canoniche compilate;
-- [ ] componenti condivisi senza copy preview in modalità canonical;
-- [ ] internal link interamente canonici;
-- [ ] articolo published-only e fail-closed;
-- [ ] 404 Astro reale;
-- [ ] Worker factory tipizzata per smoke locale;
-- [ ] nessun flag runtime o route di test;
-- [ ] smoke diretto del renderer Astro canonicale;
-- [ ] runtime production-style ancora legacy-owned;
-- [ ] CI completa.
+- [x] render mode `preview | canonical` tipizzato;
+- [x] route Astro canoniche compilate;
+- [x] componenti condivisi senza copy preview in modalità canonical;
+- [x] internal link interamente canonici;
+- [x] canonical, robots e cache route-specific;
+- [x] articolo published-only e fail-closed;
+- [x] reserved path e file probe esclusi dagli articoli;
+- [x] 404 Astro reale e noindex;
+- [x] Worker factory tipizzata per smoke locale;
+- [x] default production ancora su `activePublicRouteDecision`;
+- [x] nessun flag runtime o route di test;
+- [x] smoke diretto del renderer Astro canonicale;
+- [x] populated ed empty state;
+- [x] desktop, mobile, tastiera e overflow;
+- [x] runtime production-style ancora legacy-owned;
+- [x] CI applicativa #345 completamente verde.
 
-Route incluse:
+Route compilate:
 
 ```text
 /
@@ -238,16 +244,18 @@ Route incluse:
 /trasparenza
 /privacy
 /{slug-published}
-404 editoriale
+/404
 ```
 
-Sitemap e robots restano fuori da questa slice.
+Nessun cutover o deploy pubblico è avvenuto. Sitemap e robots restano fuori da questa slice.
 
 #### M5.5b.3 — SEO endpoint parity
 
+- [ ] scope separato prima del codice;
 - [ ] builder condiviso sitemap/robots;
-- [ ] handler Astro testati;
+- [ ] handler Astro compilati e testati;
 - [ ] output semantico equivalente;
+- [ ] preview, review, draft e route tecniche esclusi;
 - [ ] ownership live ancora legacy.
 
 ### M5.6 — Catalogo pilot
@@ -325,8 +333,8 @@ conversione brief
 ### Track B — M5
 
 ```text
-canonical Astro parity senza attivazione
-→ sitemap/robots parity
+scope sitemap/robots parity
+→ endpoint parity senza attivazione
 → catalogo pilot
 → cutover apex separato
 ```

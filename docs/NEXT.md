@@ -6,130 +6,102 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Chiudere lo scope M5.5b.2
+### 1. Chiudere M5.5b.2
 
-Branch documentale:
-
-```text
-docs/public-canonical-astro-parity-scope
-```
-
-Scope canonico:
-
-```text
-docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md
-```
-
-La PR deve registrare:
-
-- route Astro canoniche da compilare;
-- render mode `preview | canonical` condiviso;
-- parametrizzazione di layout, homepage, listing, trust e articolo;
-- internal linking canonicale;
-- 404 Astro;
-- test diretto del renderer senza cambiare owner live;
-- separazione da sitemap/robots e dal cutover.
-
-Questa branch è documentale e non modifica runtime o deploy.
-
-### 2. Implementare la canonical Astro parity
-
-Branch autorizzata dopo il merge dello scope:
+Branch e PR:
 
 ```text
 feat/public-canonical-astro-parity
+PR #73 — Add canonical Astro renderer parity
+```
+
+Stato verificato dalla CI applicativa #345:
+
+- render mode `preview | canonical` tipizzato;
+- homepage, listing, trust, articolo e 404 Astro canonici compilati;
+- componenti condivisi tra preview e canonical;
+- internal link canonicali;
+- canonical, robots e cache route-specific;
+- published-only e fail-closed;
+- 404 reale per assente, `review`, `draft`, reserved path e file probe;
+- Worker factory tipizzata per il solo smoke locale;
+- wrapper e configurazione temporanei eliminati a fine test;
+- nessun env flag, header, cookie, query parameter o route di test;
+- runtime production-style ancora sulla current matrix;
+- sitemap, robots, API e provider redirect ancora backend-owned;
+- tutte le suite Control Room verdi.
+
+Prima del merge restano obbligatori:
+
+```text
+canonici aggiornati sullo stesso head
+→ CI finale code + documentazione
+→ PR pronta per review
+→ merge senza cambiare activePublicRouteDecision
+```
+
+### 2. Aprire lo scope M5.5b.3
+
+Branch documentale proposta dopo il merge di PR #73:
+
+```text
+docs/public-seo-endpoint-parity-scope
 ```
 
 Obiettivo esclusivo:
 
 ```text
-canonical Astro routes compiled
-+ direct local target-matrix smoke
-+ active production matrix still current
+shared sitemap/robots builders
++ Astro endpoint handlers tested directly
++ live owner still backend
 ```
 
-Route da compilare:
+La discovery deve definire:
+
+- modello condiviso per URL statiche e pagine `published`;
+- ordinamento deterministico e `lastmod`;
+- escaping XML;
+- contenuto e cache di `/robots.txt`;
+- esclusione permanente di preview, Control Room, review, draft e route tecniche;
+- modalità di test diretto degli endpoint Astro senza cambiare owner live;
+- confronto semantico con l’output legacy;
+- gestione della 404 per endpoint non validi;
+- rollback e confine con M5.7.
+
+La PR di scope non modifica runtime.
+
+### 3. Implementare M5.5b.3 soltanto dopo lo scope
+
+Branch tecnica da autorizzare nello scope:
 
 ```text
-/
-/destinazioni
-/guide
-/confronti
-/metodo
-/trasparenza
-/privacy
-/{slug-published}
-404 editoriale
+feat/public-seo-endpoint-parity
 ```
 
-Vincoli:
+Vincoli previsti:
 
-- `activePublicRouteDecision` resta uguale a `currentPublicRouteDecision`;
-- le richieste canoniche del runtime production-style continuano al backend;
-- nessuna variabile d’ambiente, query string, header o cookie può cambiare renderer;
-- sitemap, robots, `/go/*`, `/api/*` e legacy Control Room restano backend-owned;
-- nessuna route di test viene distribuita.
+- `/sitemap.xml` e `/robots.txt` Astro compilati e testati;
+- custom Worker normale ancora su `activePublicRouteDecision` corrente;
+- richieste live ai due endpoint ancora servite dal backend;
+- nessun invio a Search Console;
+- nessun tracking, CMP o configurazione Google;
+- nessuna migrazione D1 o mutation;
+- `/go/*`, `/api/*` e Control Room invariati;
+- nessun cutover.
 
-### 3. Factory Worker per il solo smoke locale
+Acceptance prevista:
 
-Refactor autorizzato:
-
-```text
-createPublicWorker(routeDecision)
-```
-
-Il default production resta:
-
-```text
-createPublicWorker(activePublicRouteDecision)
-```
-
-Lo smoke locale genera un wrapper temporaneo che usa una decisione limitata a:
-
-```text
-canonical-static
-canonical-article
-public-404
-```
-
-Tutto il resto resta backend-owned anche nel test. Wrapper, configurazione e stato locale vengono eliminati al termine.
-
-### 4. Acceptance tecnica
-
-Nuovo comando previsto:
-
-```text
-npm run smoke:public-canonical-astro
-```
-
-Deve verificare:
-
-- home, listing, trust e articolo Astro canonici;
-- canonical apex, robots indicizzabili e cache pubblica;
-- nessun banner o link `/astro-foundation` nella modalità canonical;
-- `WebSite`, `Article` e `FAQPage` corretti;
-- published-only, ordering, limiti, empty state e related links;
-- 404 per assente, review, draft, reserved path e file probe;
-- fail-closed per riga published invalida;
-- desktop, mobile, tastiera e assenza di overflow;
-- nessun JavaScript applicativo pubblico;
-- runtime production-style ancora legacy-owned.
-
-CI completa obbligatoria:
-
-- tipi Cloudflare;
 - typecheck e build;
-- migrazioni D1;
-- quality gate e golden evaluation;
-- Container build e smoke;
-- runtime pubblico;
-- route policy smoke;
-- smoke preview esistenti;
-- SEO drift smoke;
-- canonical Astro smoke;
-- tutte le suite Control Room.
+- D1 e quality suite;
+- Container;
+- runtime pubblico e route policy;
+- regressioni preview e canonical renderer;
+- confronto sitemap/robots legacy-Astro;
+- populated ed empty state;
+- tutte le suite Control Room;
+- prova che owner attivo e risposte production-style restano legacy.
 
-### 5. Fasi successive separate
+### 4. Tenere separate le fasi successive
 
 ```text
 M5.5b.2 canonical Astro parity
@@ -138,7 +110,7 @@ M5.5b.2 canonical Astro parity
 → M5.7 cutover separato
 ```
 
-Il cutover richiede una PR dedicata e una modifica minima e reversibile della matrice attiva.
+Il cutover richiede una PR dedicata, autorizzazione esplicita e una modifica minima e reversibile della matrice attiva.
 
 ## Checkpoint chiusi
 
@@ -160,8 +132,26 @@ Verificato:
 - target matrix inattiva;
 - canonical, sitemap, robots, API e provider redirect ancora backend-owned;
 - preview e nuova Control Room Astro-owned;
-- reserved paths, file probe e doppi slash iniziali non acquisiscono ownership Astro;
-- tutte le regressioni pubbliche e private verdi.
+- reserved paths, file probe e doppi slash iniziali non acquisiscono ownership Astro.
+
+### M5.5b.2 — Canonical Astro parity
+
+Scope: `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md`.
+
+CI applicativa #345 completamente verde.
+
+Verificato direttamente in workerd e Chromium:
+
+- home, listing, trust, articolo e 404 Astro canonici;
+- canonical apex e `mainEntityOfPage` corretti;
+- cache pubblica sulle pagine valide;
+- noindex/no-store sulle 404 e sui fallimenti chiusi;
+- nessun banner o link preview in modalità canonical;
+- `WebSite`, `Article` e `FAQPage`;
+- limiti, ordering, empty state e related links;
+- review, draft e file probe mai esposti;
+- nessun JavaScript applicativo;
+- default production ancora legacy-owned.
 
 ## Track M4 parallela
 

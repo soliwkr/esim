@@ -1,0 +1,6 @@
+---
+import { env } from 'cloudflare:workers'
+import PublicTrasparenzaPage from '../components/public/PublicTrasparenzaPage.astro'
+---
+
+<PublicTrasparenzaPage mode="canonical" siteName={env.SITE_NAME} />

@@ -1,0 +1,60 @@
+---
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import { publicIsPreview, publicListingPath } from '../../../../../src/public-render-mode'
+import PublicLayout from '../../layouts/PublicLayout.astro'
+import '../../styles/public-article.css'
+
+interface Props {
+  mode: PublicRenderMode
+  kind: 'missing' | 'invalid'
+  siteName: string
+  previewCanonicalPath?: string
+}
+
+const { mode, kind, siteName, previewCanonicalPath } = Astro.props
+const preview = publicIsPreview(mode)
+const missing = kind === 'missing'
+const canonicalPath = preview
+  ? (previewCanonicalPath ?? '/astro-foundation/articoli/non-disponibile')
+  : '/404'
+const title = missing
+  ? (preview ? 'Articolo non trovato — preview Astro' : `Pagina non trovata | ${siteName}`)
+  : (preview ? 'Articolo non disponibile — preview Astro' : `Contenuto non disponibile | ${siteName}`)
+const description = missing
+  ? 'La pagina richiesta non esiste o non è pubblicata.'
+  : 'La pagina richiesta non supera il contratto strutturato del renderer pubblico.'
+---
+
+<PublicLayout
+  mode={mode}
+  title={title}
+  description={description}
+  canonicalPath={canonicalPath}
+  siteName={siteName}
+  noindex
+>
+  {preview && (
+    <div class="preview-band" data-public-shell="astro-preview" data-public-article-error={kind}>
+      Preview Astro · non indicizzata · l’articolo pubblico attuale non cambia
+    </div>
+  )}
+  <section class="article-error public-container" aria-labelledby="article-error-title" data-public-error={kind}>
+    <p class="eyebrow">{missing ? '404' : 'Contenuto non disponibile'}</p>
+    <h1 id="article-error-title">
+      {missing
+        ? (preview ? 'Questo articolo non è pubblicato nella preview.' : 'Questa pagina non è partita.')
+        : 'La pagina pubblicata non supera la validazione.'}
+    </h1>
+    <p>
+      {missing
+        ? (preview
+          ? 'La route non espone pagine assenti, draft o contenuti ancora in review.'
+          : 'La pagina richiesta non esiste oppure non è disponibile nel catalogo pubblicato.')
+        : 'Il renderer si ferma senza mostrare testo fattuale quando il record non rispetta il contratto strutturato.'}
+    </p>
+    <div class="hero-actions">
+      <a class="public-button" href={publicListingPath(mode, 'destination')}>Vai alle destinazioni</a>
+      <a class="public-button secondary" href={publicListingPath(mode, 'guide')}>Torna alle guide</a>
+    </div>
+  </section>
+</PublicLayout>

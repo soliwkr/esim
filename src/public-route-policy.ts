@@ -21,6 +21,7 @@ export type PublicRouteDecision = Readonly<{
 
 export const PUBLIC_PREVIEW_BASE = '/astro-foundation' as const;
 export const CONTROL_ROOM_FOUNDATION_BASE = '/control-room-foundation' as const;
+export const PUBLIC_NOT_FOUND_PATH = '/404' as const;
 
 export const PUBLIC_CANONICAL_STATIC_PATHS = [
   '/',
@@ -44,6 +45,7 @@ export const PUBLIC_BACKEND_EXACT_PATHS = [
 ] as const;
 
 export const PUBLIC_RESERVED_SINGLE_SEGMENTS = new Set([
+  '404',
   'api',
   'astro-foundation',
   'control-room',
@@ -132,6 +134,9 @@ function routeKind(pathname: string): Omit<PublicRouteDecision, 'owner'> {
   }
   if (canonicalStaticPaths.has(path)) {
     return { pathname: path, kind: 'canonical-static', articleSlug: null };
+  }
+  if (path === PUBLIC_NOT_FOUND_PATH) {
+    return { pathname: path, kind: 'public-404', articleSlug: null };
   }
   if (seoEndpointPaths.has(path)) {
     return { pathname: path, kind: 'seo-endpoint', articleSlug: null };

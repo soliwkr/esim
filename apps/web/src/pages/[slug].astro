@@ -1,0 +1,48 @@
+---
+import { env } from 'cloudflare:workers'
+import type { PageCard } from '../../../../src/types'
+import type { PublicArticleLoadResult } from '../../../../src/public-article'
+import {
+  loadPublishedArticle,
+  loadRelatedPublishedArticles,
+} from '../../../../src/public-article'
+import { publicArticleSlugCandidate } from '../../../../src/public-route-policy'
+import { affiliateEnabled } from '../../../../src/utils'
+import PublicArticleErrorPage from '../components/public/PublicArticleErrorPage.astro'
+import PublicArticlePage from '../components/public/PublicArticlePage.astro'
+import { setPublicResponseHeaders } from '../lib/public-response'
+
+setPublicResponseHeaders(Astro.response.headers, 'canonical')
+const slug = publicArticleSlugCandidate(Astro.url.pathname)
+const result: PublicArticleLoadResult = slug
+  ? await loadPublishedArticle(env.DB, slug)
+  : { kind: 'missing' }
+let related: PageCard[] = []
+
+if (result.kind === 'found') {
+  related = await loadRelatedPublishedArticles(env.DB, result.article.cluster, result.article.slug, 5)
+} else if (result.kind === 'missing') {
+  Astro.response.status = 404
+  setPublicResponseHeaders(Astro.response.headers, 'canonical', true)
+} else {
+  Astro.response.status = 500
+  setPublicResponseHeaders(Astro.response.headers, 'canonical', true)
+  console.error(`Invalid published canonical article for ${slug ?? Astro.url.pathname}: ${result.reason}`)
+}
+---
+
+{result.kind === 'found' ? (
+  <PublicArticlePage
+    mode="canonical"
+    article={result.article}
+    related={related}
+    siteName={env.SITE_NAME}
+    affiliateEnabled={affiliateEnabled(env)}
+  />
+) : (
+  <PublicArticleErrorPage
+    mode="canonical"
+    kind={result.kind}
+    siteName={env.SITE_NAME}
+  />
+)}
