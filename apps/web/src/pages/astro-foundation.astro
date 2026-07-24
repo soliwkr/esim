@@ -3,6 +3,8 @@ import { env } from 'cloudflare:workers'
 import { loadPublicHomepageCards } from '../../../../src/public-page-cards'
 import PublicHomepagePage from '../components/public/PublicHomepagePage.astro'
 
+// The shared component renders data-public-shell="astro-preview" in preview mode.
+// PublicLayout and public-response own the noindex, nofollow and no-store contract.
 const { featured, destinations } = await loadPublicHomepageCards(env.DB)
 ---
 
