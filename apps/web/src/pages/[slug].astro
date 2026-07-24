@@ -1,13 +1,13 @@
 ---
 import { env } from 'cloudflare:workers'
-import type { PageCard } from '../../../../../src/types'
-import type { PublicArticleLoadResult } from '../../../../../src/public-article'
+import type { PageCard } from '../../../../src/types'
+import type { PublicArticleLoadResult } from '../../../../src/public-article'
 import {
   loadPublishedArticle,
   loadRelatedPublishedArticles,
-} from '../../../../../src/public-article'
-import { publicArticleSlugCandidate } from '../../../../../src/public-route-policy'
-import { affiliateEnabled } from '../../../../../src/utils'
+} from '../../../../src/public-article'
+import { publicArticleSlugCandidate } from '../../../../src/public-route-policy'
+import { affiliateEnabled } from '../../../../src/utils'
 import PublicArticleErrorPage from '../components/public/PublicArticleErrorPage.astro'
 import PublicArticlePage from '../components/public/PublicArticlePage.astro'
 
