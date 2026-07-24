@@ -2,6 +2,7 @@ import type { Env, PageCard } from './types';
 import { loadPublishedArticle, loadRelatedPublishedArticles, type PublicArticleSource } from './public-article';
 import { loadPublishedListingCards, loadPublicHomepageCards } from './public-page-cards';
 import { publicListingDefinition } from './public-listing-routes';
+import { publicArticleSeo, publicHomepageSeo } from './public-seo';
 import { affiliateEnabled, esc, siteBase } from './utils';
 import { layout, renderBlocks, renderFaq } from './render';
 
@@ -12,12 +13,15 @@ function cardsHtml(items: PageCard[]): string {
 
 export async function home(env: Env): Promise<Response> {
   const { featured, destinations } = await loadPublicHomepageCards(env.DB);
+  const seo = publicHomepageSeo(env.SITE_NAME, siteBase(env));
   const content = `<main><section class="hero"><div class="wrap"><div class="eyebrow">Internet in viaggio, senza improvvisare</div><h1>Trova la eSIM giusta prima di partire.</h1><p class="lead">Guide italiane su destinazioni, telefoni compatibili e provider. Confrontiamo dati, durata, hotspot, attivazione e limiti reali senza fingere che un piano vada bene per tutti.</p><div class="actions"><a class="cta" href="/migliore-esim">Confronta le eSIM</a><a class="cta secondary" href="/destinazioni">Scegli la destinazione</a></div></div></section><section class="section"><div class="wrap"><div class="eyebrow">Da dove iniziare</div><h2>Guide essenziali</h2><div class="grid">${cardsHtml(featured)}</div></div></section><section class="section alt"><div class="wrap"><div class="eyebrow">Partenze frequenti</div><h2>Destinazioni principali</h2><div class="grid">${cardsHtml(destinations)}</div></div></section></main>`;
   return layout(env, {
-    title: `eSIM da viaggio: guide e confronti | ${env.SITE_NAME}`,
-    description: 'Confronta eSIM da viaggio, destinazioni, provider e telefoni compatibili con guide italiane aggiornate e trasparenti.',
-    canonicalPath: '/', content,
-    schema: { '@context': 'https://schema.org', '@type': 'WebSite', name: env.SITE_NAME, url: siteBase(env) }
+    title: seo.title,
+    description: seo.description,
+    canonicalPath: '/',
+    content,
+    schema: seo.schema,
+    ogType: seo.ogType,
   });
 }
 
@@ -46,11 +50,18 @@ export async function article(env: Env, slug: string): Promise<Response> {
   const row = result.article;
   const checked = row.source_checked_at ? row.source_checked_at.slice(0, 10) : 'da verificare';
   const disclosure = affiliateEnabled(env) ? 'Alcuni link possono essere affiliati. Potremmo ricevere una commissione senza costi aggiuntivi per te; la commissione non determina automaticamente la classifica.' : 'I link ai provider non sono attualmente remunerati.';
-  const schemas: Record<string, unknown>[] = [{ '@context': 'https://schema.org', '@type': 'Article', headline: row.h1, description: row.meta_description, dateModified: row.updated_at, mainEntityOfPage: `${siteBase(env)}/${row.slug}`, author: { '@type': 'Organization', name: env.SITE_NAME } }];
-  if (row.faq.length) schemas.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: row.faq.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) });
+  const pageUrl = `${siteBase(env)}/${row.slug}`;
+  const seo = publicArticleSeo(row, pageUrl, env.SITE_NAME);
   const sectionPath = row.page_type === 'destination' ? 'destinazioni' : row.page_type === 'comparison' ? 'confronti' : 'guide';
   const content = `<main class="article"><div class="breadcrumbs"><a href="/">Home</a> / <a href="/${sectionPath}">${esc(row.cluster)}</a> / ${esc(row.h1)}</div><div class="meta"><span class="pill">${esc(row.cluster)}</span><span class="pill">Intento: ${esc(row.search_intent)}</span><span class="pill">Fonti verificate: ${esc(checked)}</span></div><div class="eyebrow">${esc(row.eyebrow)}</div><h1>${esc(row.h1)}</h1><p class="lead">${esc(row.intro)}</p><div class="answer"><strong>Risposta diretta.</strong> ${esc(row.direct_answer)}</div><div class="disclosure"><strong>Trasparenza:</strong> ${esc(disclosure)}</div>${renderBlocks(row.content)}${renderFaq(row.faq)}${sourceList(row.sources)}${await related(env, row.cluster, row.slug)}</main>`;
-  return layout(env, { title: row.title, description: row.meta_description, canonicalPath: `/${row.slug}`, content, schema: schemas });
+  return layout(env, {
+    title: seo.title,
+    description: seo.description,
+    canonicalPath: `/${row.slug}`,
+    content,
+    schema: seo.schema,
+    ogType: seo.ogType,
+  });
 }
 
 export function staticPage(env: Env, type: 'privacy' | 'trasparenza' | 'metodo'): Response {
