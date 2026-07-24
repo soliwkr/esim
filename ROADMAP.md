@@ -16,7 +16,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md` — renderer canonico Astro;
 - `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md` — sitemap e robots;
 - `docs/PUBLIC-CATALOG-PILOT-SCOPE.md` — catalogo pilot M5.6;
-- `docs/PUBLIC-CATALOG-REMOTE-AUDIT-SCOPE.md` — audit remoto e gate M5.7.
+- `docs/PUBLIC-CATALOG-REMOTE-AUDIT-SCOPE.md` — audit remoto e gate M5.7;
+- `docs/PUBLIC-CATALOG-REMOTE-AUDIT-RESULT-2026-07-24.md` — risultato remoto sanitizzato.
 
 ## Principi non negoziabili
 
@@ -29,7 +30,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 7. Astro è il frontend principale; React resta una island per interattività complessa.
 8. Una preview Astro non equivale a un cutover.
 9. Una riga `review` non equivale a contenuto pubblico.
-10. Owner target, codice compilato e owner live sono concetti distinti.
+10. Owner target, codice compilato, owner distribuito e owner verificato live sono concetti distinti.
 11. Candidate, release candidate e pagina published sono stati distinti.
 12. Il repository è la memoria canonica.
 
@@ -103,7 +104,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.6b implementate senza cutover; manca il primo audit remoto live, poi parte M5.7.**
+**Stato: M5.0–M5.6b completate; M5.7 implementata e verificata dalla CI applicativa #397, merge/deploy/verifica live ancora aperti.**
 
 ### M5.0–M5.4 — Preview e renderer pubblico
 
@@ -111,7 +112,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] renderer articolo grounded;
 - [x] published-only, 404 e fail-closed;
 - [x] desktop, mobile e tastiera;
-- [x] route canoniche live preservate.
+- [x] route canoniche preservate durante la preparazione.
 
 ### M5.5 — Parità SEO e routing
 
@@ -119,8 +120,9 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] PR #71 — route policy, CI #329;
 - [x] PR #73 — canonical Astro parity, CI #350;
 - [x] PR #75 — sitemap/robots parity, CI #365;
-- [x] owner live ancora backend;
-- [ ] header HTTP live da controllo esterno dedicato.
+- [x] current e target matrix versionate;
+- [x] header e HTML coperti dalla CI;
+- [ ] header canonici live da ricontrollare dopo il deploy M5.7.
 
 ### M5.6 — Catalogo pilot
 
@@ -148,21 +150,9 @@ CI finale #379
 
 #### M5.6b — Remote catalog audit
 
-Scope:
-
 ```text
-PR #78
-merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd
-CI #381
-```
-
-Implementazione:
-
-```text
-PR #79
-merge df890103310cf1591eb2d8137a8385135c665d71
-CI applicativa #383
-CI finale #386
+scope PR #78 — merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd — CI #381
+route PR #79 — merge df890103310cf1591eb2d8137a8385135c665d71 — CI #386
 ```
 
 - [x] route privata GET-only;
@@ -173,12 +163,22 @@ CI finale #386
 - [x] payload sanitizzato e fail-closed;
 - [x] anonymous denial e metodi non GET respinti;
 - [x] snapshot editoriale identico prima/dopo;
-- [x] nessuna migration, mutation o publication capability;
-- [ ] verificare la route sui dati remoti live;
-- [ ] registrare il report reale, anche se contiene zero candidate;
-- [ ] aggiornare il manifest soltanto con ID reali verificati.
+- [x] verifica live della route autenticata;
+- [x] report remoto sanitizzato versionato;
+- [x] una candidate valutata, zero eligible e zero selected;
+- [x] manifest confermato vuoto;
+- [x] nessuna migration, mutation o publication capability.
 
-Un manifest vuoto non blocca M5.7.
+Risultato live:
+
+```text
+candidateCount: 1
+eligibleCount: 0
+selectedCount: 0
+excludedCount: 1
+```
+
+La pagina `esim-cina-senza-vpn` resta `review` e non pubblicabile. Un manifest vuoto non blocca M5.7.
 
 #### M5.6c — Decisione di pubblicazione
 
@@ -192,19 +192,31 @@ Un manifest vuoto non blocca M5.7.
 
 ### M5.7 — Cutover apex del nuovo design
 
-**Parte dopo il primo audit remoto riuscito, anche con zero release candidate.**
+Branch:
 
-- [ ] aprire branch `feat/public-apex-cutover` dal main aggiornato;
-- [ ] modificare in modo minimo la matrice attiva current → target;
-- [ ] trasferire ad Astro home, listing, trust, articoli, sitemap, robots e 404;
-- [ ] mantenere backend-owned API, `/go/*`, Control Room ed execution plane;
-- [ ] confronto route, HTML, metadata e JSON-LD;
-- [ ] redirect provider preservati;
-- [ ] pagine `review` e `draft` sempre 404;
-- [ ] rollback documentato;
-- [ ] CI completa sul medesimo head;
-- [ ] deploy esplicito e verifica live desktop/mobile;
-- [ ] rimozione legacy pubblica soltanto dopo il checkpoint.
+```text
+feat/public-apex-cutover
+PR #81 — draft
+CI applicativa #397 completamente verde
+```
+
+- [x] primo audit remoto riuscito;
+- [x] `activePublicRouteDecision` spostata da current a target sulla branch;
+- [x] Cloudflare Assets configurato con `/*` e `!/_astro/*`;
+- [x] home, listing, trust, articoli, sitemap, robots e 404 assegnati ad Astro;
+- [x] API, `/go/*`, Control Room, asset ed execution plane mantenuti backend-owned;
+- [x] pagine `review` e `draft` sempre 404;
+- [x] published-only e fail-closed preservati;
+- [x] redirect provider preservato;
+- [x] preview noindex/no-store preservata;
+- [x] test desktop, mobile, metadata, JSON-LD e assenza overflow;
+- [x] rollback documentato come ripristino di `currentPublicRouteDecision`;
+- [x] runtime pubblico e tutte le suite Control Room verdi nella CI applicativa #397;
+- [ ] aggiornamento finale dei canonici sul medesimo head;
+- [ ] CI finale code + documentazione;
+- [ ] PR #81 pronta e merge;
+- [ ] deploy e verifica live del nuovo design;
+- [ ] rimozione legacy pubblica soltanto dopo il checkpoint live.
 
 ## M6 — Misurazione e indicizzazione
 
@@ -255,9 +267,12 @@ conversione brief
 ### Track B — M5
 
 ```text
-verifica live catalog-pilot-audit
-→ registrazione report remoto
-→ M5.7 apex cutover
+canonici PR #81
+→ CI finale
+→ merge
+→ deploy
+→ verifica live desktop/mobile/SEO/confini backend
+→ closeout M5.7
 → publication capability separata
 ```
 
