@@ -245,8 +245,8 @@ async function verifyArticleContracts(browser) {
   assert.match(legacyResponse.headers.get('cache-control') || '', /public/);
   assert.match(previewResponse.headers.get('x-robots-tag') || '', /noindex/);
   assert.match(previewResponse.headers.get('cache-control') || '', /no-store/);
-  assert.doesNotMatch(legacyHtml, /<example>|<\/script><script/i);
-  assert.doesNotMatch(previewHtml, /<example>|<\/script><script/i);
+  assert.doesNotMatch(legacyHtml, /<\/script><script/i);
+  assert.doesNotMatch(previewHtml, /<\/script><script/i);
   assert.match(legacyHtml, /&lt;example&gt;/);
   assert.match(previewHtml, /&lt;example&gt;/);
 
@@ -295,9 +295,17 @@ async function verifyArticleContracts(browser) {
   assert.equal(legacyFaq.mainEntity[0].acceptedAnswer.text, faqAnswer);
   assert.equal(await legacyPage.locator('script:not([type="application/ld+json"])').count(), 0);
   assert.equal(await previewPage.locator('script:not([type="application/ld+json"])').count(), 0);
+  assert.equal(await legacyPage.locator('example').count(), 0);
+  assert.equal(await previewPage.locator('example').count(), 0);
   assert.equal(await previewPage.locator('astro-island').count(), 0);
   assert.equal(await previewPage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
-  assert.equal(await previewPage.locator('text=Contenuto visibile </script> con <example>').count(), 1);
+  assert.equal(
+    await previewPage.getByText(
+      'Contenuto visibile </script> con <example>, virgolette, apostrofi e accenti italiani.',
+      { exact: true },
+    ).count(),
+    1,
+  );
 
   await context.close();
 
