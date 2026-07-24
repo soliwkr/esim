@@ -16,7 +16,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — homepage candidata;
 - `docs/PUBLIC-LISTING-PREVIEWS.md` — listing preview;
 - `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — renderer articolo Astro;
-- `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md` — prima slice M5.5.
+- `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md` — M5.5a;
+- `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md` — M5.5b.
 
 ## Principi non negoziabili
 
@@ -29,7 +30,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 7. Astro è il frontend pubblico; React resta un’isola realmente interattiva.
 8. Una preview Astro non equivale a un cutover.
 9. Una riga `review` non equivale a contenuto pubblico.
-10. Il repository è la memoria canonica.
+10. Un owner target non equivale all’owner live.
+11. Il repository è la memoria canonica.
 
 ## M0 — Fondazioni tecniche
 
@@ -117,7 +119,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.4 verificate in produzione; M5.5a implementata e verificata dalla CI completa, pronta al merge ma non ancora verificata live. Nessuna route canonica è migrata.**
+**Stato: M5.0–M5.5a verificate in produzione come preview o contratto condiviso. M5.5b avviata come routing foundation; nessuna route canonica è migrata.**
 
 ### M5.0 — Public shell
 
@@ -141,8 +143,6 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ### M5.2 — Homepage candidata
 
-Branch: `feat/public-homepage-candidate`.
-
 - [x] read model server-only condiviso;
 - [x] soltanto righe `published`;
 - [x] guide featured, limite 9;
@@ -152,90 +152,95 @@ Branch: `feat/public-homepage-candidate`.
 - [x] `/` ancora legacy;
 - [x] fixture published/review/draft ed empty state;
 - [x] desktop, mobile, tastiera e 404;
-- [x] PR #63 mergiata nel commit `7ba767d`;
-- [x] CI finale #284 verde;
+- [x] PR #63 e CI finale #284;
 - [x] checkpoint visuale live desktop/mobile.
 
 ### M5.3 — Listing preview
-
-Branch: `feat/public-listing-previews`.
 
 - [x] Destinazioni, Guide e Confronti preview;
 - [x] stesso read model published-only;
 - [x] internal linking deterministico;
 - [x] route matrix e fail-fast;
-- [x] PR #65 mergiata nel commit `2483fbfd1327754a1a526e8c3e6b201a412e610d`;
-- [x] CI #291 applicativa e CI #296 finale verdi;
-- [x] deploy e risposte delle tre route;
-- [x] checkpoint visuale live mobile/narrow 3/3 e desktop largo.
+- [x] PR #65 e CI finale #296;
+- [x] deploy e checkpoint visuale live.
 
 ### M5.4 — Renderer editoriale Astro
 
-Branch: `feat/public-article-renderer`.
-
 - [x] route published-only `/astro-foundation/articoli/[slug]`;
-- [x] read model server-only condiviso con il renderer legacy;
-- [x] pagina grounded in raw HTML Astro;
-- [x] blocchi strutturati, non HTML AI grezzo;
-- [x] FAQ native `details`/`summary`;
-- [x] provenance pubblica page-level e fonti HTTPS;
-- [x] nessun claim escluso o dato operativo interno esposto;
-- [x] related links published-only e deterministici;
-- [x] vera 404 per slug assente, `review` o `draft`;
-- [x] fail-closed per righe pubblicate strutturalmente invalide;
+- [x] read model condiviso con il renderer legacy;
+- [x] blocchi strutturati;
+- [x] FAQ native;
+- [x] provenance pubblica e fonti HTTPS;
+- [x] nessun dato operativo interno esposto;
+- [x] related links published-only;
+- [x] vera 404 e fail-closed;
 - [x] noindex, no-store e sitemap exclusion;
-- [x] preview home/listing collegate agli articoli namespaced;
-- [x] route canoniche ancora legacy;
-- [x] smoke D1/workerd/Chromium dedicato;
-- [x] CI applicativa #302 verde;
-- [x] CI finale #307 verde;
-- [x] PR #67 mergiata nel commit `4810c0c32d54dca6f85de19d507a6da13f3dc574`;
-- [x] deploy e checkpoint visuale live desktop/mobile su un articolo `published`.
+- [x] smoke D1/workerd/Chromium;
+- [x] PR #67 e CI finale #307;
+- [x] checkpoint visuale live desktop/mobile.
 
-Il checkpoint live mostra hero, risposta diretta, disclosure, blocchi, FAQ, provenance, fonti e footer. Nessun overflow orizzontale è visibile. La sezione related è omessa quando il query set è vuoto.
+### M5.5 — Parità SEO e routing
 
-### M5.5 — Parità SEO
+#### M5.5a — Contratto SEO condiviso
 
-#### M5.5a — Fondazione del contratto SEO
-
-Branch:
-
-```text
-feat/public-seo-contract-foundation
-```
-
-PR draft: `#69`.
-
-Scope canonico: `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md`.
-
-- [x] modello SEO tipizzato condiviso tra legacy e Astro;
-- [x] title, description e Open Graph derivati dallo stesso contratto;
-- [x] `WebSite`, `Article` e `FAQPage` JSON-LD da dati pubblici validati;
-- [x] serializzazione JSON-LD sicura contro terminazione dello script;
-- [x] preview ancora noindex, no-store e self-canonical;
-- [x] route canoniche ancora legacy e indicizzabili;
-- [x] drift smoke tra valori SEO normalizzati;
+- [x] modello SEO tipizzato condiviso;
+- [x] title, description e Open Graph condivisi;
+- [x] `WebSite`, `Article` e `FAQPage`;
+- [x] serializer JSON-LD sicuro;
+- [x] canonical e robots ancora route-specific;
+- [x] drift smoke legacy/Astro;
 - [x] regressioni sitemap, robots, redirect provider e 404;
-- [x] zero JavaScript eseguibile aggiunto al sito pubblico;
-- [x] fixture di sicurezza con `</script>`, `<example>`, virgolette e caratteri accentati;
-- [x] CI applicativa completamente verde;
-- [x] CI completa sul head con codice e documentazione;
-- [ ] merge e deploy automatico;
-- [ ] checkpoint live di metadata e JSON-LD su homepage e articolo preview.
+- [x] zero JavaScript eseguibile aggiunto;
+- [x] PR #69 mergiata nel commit `46f1d66a591dd7860c101c86cb8295d97e4a2106`;
+- [x] CI completa verde;
+- [x] sorgente live homepage verificato;
+- [x] sorgente live articolo verificato;
+- [ ] header HTTP live da controllo esterno dedicato.
 
-La prima CI runtime ha rilevato un’asserzione troppo ampia dello smoke sugli attributi HTML quotati. La verifica è stata corretta sul DOM reale senza ridurre il guardrail: nessun elemento arbitrario, nessuno script eseguibile e JSON-LD non interrompibile.
-
-Questa slice non migra `/sitemap.xml`, `/robots.txt`, `/go/{provider}`, l’apice, i listing o `/{slug}`.
+M5.5a è chiusa. Le route canoniche restano legacy-owned.
 
 #### M5.5b — Routing e ownership SEO
 
-Da scoprire e autorizzare soltanto dopo il checkpoint live di M5.5a:
+Scope: `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md`.
 
-- [ ] ownership futura di canonical, sitemap e robots;
-- [ ] route matrix di cutover;
-- [ ] schema e redirect provider sotto routing finale;
-- [ ] drift/regression test di cutover;
-- [ ] rollback.
+Target deciso:
+
+- Astro owner futuro di home, listing, trust, articoli, sitemap, robots e 404 editoriale;
+- backend owner permanente di API, provider redirect ed execution plane;
+- Control Room foundation invariata;
+- preview conservata fino al cutover verificato;
+- route matrix esplicita e rollback versionato.
+
+##### M5.5b.1 — Route policy foundation
+
+Branch autorizzata:
+
+```text
+feat/public-route-policy-foundation
+```
+
+- [ ] matrice tipizzata current/target;
+- [ ] precedenza router esplicita;
+- [ ] reserved paths e file-probe policy condivisi;
+- [ ] custom Worker usa la matrice corrente;
+- [ ] nessun owner live cambia;
+- [ ] smoke route policy;
+- [ ] CI completa.
+
+##### M5.5b.2 — Canonical Astro parity
+
+- [ ] componenti parametrizzati preview/canonical;
+- [ ] route canonicali Astro compilate e testate;
+- [ ] internal link canonicali;
+- [ ] 404 Astro pubblica;
+- [ ] ownership live ancora legacy.
+
+##### M5.5b.3 — SEO endpoint parity
+
+- [ ] builder condiviso sitemap/robots;
+- [ ] handler Astro testati;
+- [ ] output equivalente;
+- [ ] ownership live ancora legacy.
 
 ### M5.6 — Catalogo pilot
 
@@ -247,8 +252,9 @@ Da scoprire e autorizzare soltanto dopo il checkpoint live di M5.5a:
 ### M5.7 — Cutover apex
 
 - [ ] PR separata e autorizzazione esplicita;
+- [ ] modifica minima della matrice attiva;
 - [ ] confronto route e metadata;
-- [ ] schema, sitemap e 404 validi;
+- [ ] schema, sitemap, robots e 404 validi;
 - [ ] redirect provider preservati;
 - [ ] rollback documentato;
 - [ ] nessuna pagina review esposta;
@@ -257,8 +263,6 @@ Da scoprire e autorizzare soltanto dopo il checkpoint live di M5.5a:
 ## M6 — Misurazione e indicizzazione
 
 **Stato: infrastruttura esterna preparata; integrazione non avviata.**
-
-GTM, GA4, Search Console e service account sono stati preparati dall’operatore. Nessuna credenziale è configurata nel repository.
 
 - [ ] CMP;
 - [ ] Consent Mode;
@@ -313,9 +317,9 @@ conversione brief
 ### Track B — M5
 
 ```text
-merge della fondazione SEO
-→ checkpoint live metadata/JSON-LD
-→ scope routing/ownership SEO
+route policy foundation
+→ canonical Astro parity
+→ sitemap/robots/404 parity
 → catalogo pilot
 → cutover apex separato
 ```
