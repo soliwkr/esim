@@ -6,119 +6,109 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Chiudere lo scope M5.5b.3
-
-Branch:
+### 1. Chiudere PR #75 — M5.5b.3
 
 ```text
-docs/public-seo-endpoint-parity-scope
+branch feat/public-seo-endpoint-parity
+PR #75 — Add shared sitemap and robots parity
+CI applicativa #359 completamente verde
 ```
 
-Documento:
+Stato verificato:
+
+- builder sitemap/robots server-only condivisi;
+- legacy e Astro delegano allo stesso contratto;
+- pagine D1 `published` soltanto;
+- route statiche derivate dalla route policy;
+- slug, date, origin, duplicati e limite URL validati;
+- XML deterministico, ordinato e correttamente escapato;
+- `lastmod` normalizzato;
+- robots esatto e newline finale;
+- GET, HEAD, query string e trailing slash coerenti;
+- populated, empty e invalid state;
+- fallimento chiuso senza XML parziale;
+- body e header legacy/Astro equivalenti;
+- tutte le suite pubbliche e Control Room verdi;
+- `activePublicRouteDecision` invariata;
+- sitemap e robots live ancora backend-owned.
+
+Prima del merge restano obbligatori:
 
 ```text
-docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md
+sei canonici aggiornati sullo stesso head
+→ CI finale code + documentazione
+→ PR pronta per review
+→ merge senza deploy e senza cutover
+```
+
+### 2. Aprire lo scope M5.6 dopo il merge
+
+Branch documentale proposta:
+
+```text
+docs/public-catalog-pilot-scope
 ```
 
 Obiettivo esclusivo:
 
 ```text
-shared sitemap/robots contract
-+ direct Astro endpoint test plan
-+ live owner still backend
+small evidence-backed catalog
++ explicit publication gates
++ no mass generation
++ no apex cutover
 ```
 
-Decisioni già definite:
+La discovery deve definire:
 
-- route statiche derivate da `PUBLIC_CANONICAL_STATIC_PATHS`;
-- query soltanto `pages.status='published'`;
-- slug e `updated_at` validati;
-- statiche nell’ordine canonico, dinamiche per slug ASC;
-- `lastmod` soltanto sulle pagine D1 pubblicate;
-- escaping XML dedicato;
-- robots condiviso con direttive correnti;
-- preview, review, draft, archived, 404, API, Control Room, `/go/*` e asset esclusi;
-- populated, empty e invalid state;
-- fail-closed senza sitemap parziale;
-- confronto runtime production-style e runtime temporaneo Astro;
-- nessun flag runtime, header, cookie, query parameter o route pubblica di test;
-- sitemap e robots live ancora backend-owned.
+- numero massimo di pagine del pilot;
+- intenti distinti e non cannibalizzanti;
+- criteri per scegliere destinazioni, guide e confronti;
+- evidence bundle minimo per pagina;
+- claim richiesti, freshness e fonti ufficiali;
+- publication eligibility separata dall’approvazione del draft;
+- revisione umana e audit;
+- processo di materializzazione e pubblicazione autorizzata;
+- criteri di rollback o deindicizzazione;
+- metriche minime prima della scala;
+- confine con M5.7 cutover e M6 measurement.
 
-La PR di scope modifica soltanto documentazione canonica.
+La PR di scope non deve pubblicare pagine, cambiare D1, modificare il Worker o fare deploy.
 
-### 2. Implementare M5.5b.3 dopo il merge dello scope
+### 3. Definire il pilot prima del codice o dei contenuti
 
-Branch tecnica autorizzata:
+Il pilot deve restare piccolo e verificabile. Ipotesi iniziale da validare nello scope:
 
 ```text
-feat/public-seo-endpoint-parity
+2 destinazioni
++ 1 guida dispositivo/attivazione
++ 1 confronto provider
+= massimo 4 pagine
 ```
 
-Moduli e route previste:
+Ogni pagina deve avere:
 
-```text
-src/public-seo-endpoints.ts
-apps/web/src/pages/sitemap.xml.ts
-apps/web/src/pages/robots.txt.ts
-scripts/smoke-public-seo-endpoints.mjs
-```
+- intento primario distinto;
+- slug definitivo;
+- fonti ufficiali identificabili;
+- claim con data di verifica;
+- evidence bundle;
+- draft grounded;
+- approvazione editoriale;
+- publication eligibility esplicita;
+- nessuna dipendenza da claim insufficienti o scaduti.
 
-Il backend legacy deve delegare agli stessi builder:
+Non vengono scelti Paesi o provider prima dell’audit della domanda e dello stato reale dei claim.
 
-```text
-src/pages.ts   → sitemap condivisa
-src/index.ts   → robots condiviso
-```
-
-Il Worker normale resta:
-
-```text
-createPublicWorker(activePublicRouteDecision)
-activePublicRouteDecision = currentPublicRouteDecision
-```
-
-Lo smoke temporaneo modifica soltanto:
-
-```text
-route.kind === 'seo-endpoint'
-→ owner astro
-```
-
-Tutte le altre route conservano l’owner corrente.
-
-### 3. Acceptance della branch tecnica
-
-Richiedere sullo stesso head finale:
-
-- tipi Cloudflare;
-- typecheck TypeScript/Astro;
-- build custom Worker;
-- migrazioni D1 invariate;
-- quality gate e golden evaluation;
-- Container build e smoke;
-- runtime production-style con sitemap/robots backend-owned;
-- runtime temporaneo con soli SEO endpoint Astro-owned;
-- body e header legacy/Astro equivalenti;
-- XML parseabile, ordinato e senza duplicati;
-- robots esatto e newline finale;
-- published-only e `lastmod` normalizzato;
-- populated, empty e invalid state;
-- nessuna sitemap parziale su riga invalida;
-- preview e canonical renderer senza regressioni;
-- `/go/*`, `/api/*` e Control Room invariati;
-- tutte le suite Control Room;
-- STATUS, NEXT, ROADMAP, DECISIONS, FRONTEND-PLAN e ARCHITECTURE aggiornati.
-
-### 4. Tenere separate le fasi successive
+### 4. Tenere separate le fasi
 
 ```text
 M5.5b.3 sitemap/robots parity
-→ M5.6 catalog pilot
+→ M5.6 catalog pilot ristretto
 → M5.7 cutover apex separato
-→ M6 measurement dopo route stabili
+→ M6 measurement e Search Console
 ```
 
-Né lo scope né l’implementazione M5.5b.3 inviano la sitemap a Google.
+M5.6 non modifica automaticamente la matrice attiva. M5.7 richiede una PR dedicata e autorizzazione esplicita.
 
 ## Checkpoint chiusi
 
@@ -129,7 +119,7 @@ PR #69
 merge 46f1d66a591dd7860c101c86cb8295d97e4a2106
 ```
 
-Homepage e articolo preview sono verificati dalla CI e nel sorgente live con metadata e JSON-LD condivisi.
+Metadata e JSON-LD condivisi tra legacy e Astro.
 
 ### M5.5b.1 — Route policy
 
@@ -139,7 +129,7 @@ merge bd51faddddbb54647c22c3361dd04c5bc65e7681
 CI finale #329
 ```
 
-Active matrix ancora uguale alla current matrix; target matrix inattiva.
+Current matrix attiva; target matrix inattiva.
 
 ### M5.5b.2 — Canonical Astro parity
 
@@ -149,18 +139,17 @@ merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
 CI finale #350
 ```
 
-Verificato direttamente in workerd e Chromium:
+Home, listing, trust, articolo e 404 canonici compilati e testati senza switch live.
 
-- home, listing, trust, articolo e 404 Astro canonici;
-- canonical apex e `mainEntityOfPage`;
-- cache pubblica sulle pagine valide;
-- noindex/no-store su 404 e fallimenti chiusi;
-- published-only, ordering, empty state e related links;
-- review, draft, reserved path e file probe mai esposti;
-- nessun JavaScript applicativo;
-- default production ancora legacy-owned.
+### Scope M5.5b.3
 
-Nessun cutover o deploy pubblico è stato dichiarato.
+```text
+PR #74
+merge 6a0cea5ab5a012fb24facbd8ba00bfe43b2e8dfe
+CI #352
+```
+
+Contratto sitemap/robots e test plan approvati.
 
 ## Track M4 parallela
 
@@ -177,8 +166,6 @@ Ogni mutation richiede Access, conferma, state machine server-side, audit, idemp
 
 ## Google measurement ancora bloccato
 
-M6 resta:
-
 ```text
 CMP
 → Consent Mode
@@ -194,7 +181,7 @@ Regole:
 - nessuna private key in chat o GitHub;
 - nessuna credenziale nel frontend;
 - nessun tracking sulle preview noindex;
-- nessuna submission sitemap durante M5.5b.3.
+- nessuna sitemap submission durante M5.5b.3 o lo scope M5.6.
 
 ## Verifiche operative aperte
 
@@ -213,7 +200,7 @@ Regole:
 - niente secret o PII nel client, URL, storage, log o repository;
 - niente affiliazioni o tracking anticipati;
 - niente cambio della matrice attiva prima di M5.7;
-- niente migrazione live di sitemap, robots o provider redirect;
+- niente migrazione live di sitemap, robots o provider redirect nella PR #75;
 - niente Search Console submission;
 - niente cutover dell’apice;
 - nessuna rimozione legacy finché resta un fallback operativo.
