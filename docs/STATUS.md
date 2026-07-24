@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **24 luglio 2026**.
+Data di riferimento: **25 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -8,19 +8,19 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
 | Area | Stato | Nota |
 |---|---|---|
-| Dominio principale | Operativo | `https://senzaroaming.it` serve il nuovo frontend Astro |
+| Dominio principale | Operativo | `https://senzaroaming.it` serve Astro |
 | Dominio `www` | Da ricontrollare | redirect implementato, checkpoint definitivo aperto |
-| Worker e D1 | Operativi | un solo custom Worker; D1 remoto allineato fino a `0020` |
-| Workflow e Container | Operativi | primo ciclo recent-demand completato end-to-end |
-| AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
+| Worker e D1 | Operativi | un solo custom Worker; D1 remoto fino a `0020` |
+| Workflow e Container | Operativi | ciclo recent-demand verificato end-to-end |
+| AI Gateway e Vertex AI | Operativi | percorso AI controllato |
 | Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione automatica |
-| Control Room nuova | Operativa | read-only completo; prima mutation verificata live |
-| Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
-| Frontend pubblico Astro | Live | cutover M5.7 verificato sull’apice |
+| Control Room nuova | Operativa | read-only completo; prima mutation live |
+| Control Room legacy | Transitoria | fallback delle mutation residue |
+| Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
-| Analytics | Non integrati | GTM, GA4 e GSC preparati esternamente ma non collegati |
+| Analytics e consenso | Non attivi | scope M6 in branch documentale |
+| Affiliazioni | Disabilitate | nessun link remunerato attivo |
 
 ## Architettura live
 
@@ -36,82 +36,30 @@ Cloudflare Assets
                        └── AI Gateway → Vertex AI
 ```
 
-Ownership verificata:
+Astro possiede home, listing, trust pages, articoli published-only, sitemap, robots, 404, preview e shell Control Room. API, `/go/*`, legacy privata ed execution plane restano backend-owned.
+
+## M5 chiusa
 
 ```text
-Astro:
-  /
-  /destinazioni
-  /guide
-  /confronti
-  /metodo
-  /trasparenza
-  /privacy
-  /{slug-published}
-  /sitemap.xml
-  /robots.txt
-  404 pubblica
-  /astro-foundation*
-  /control-room-foundation*
-
-Backend / execution plane:
-  /api/*
-  /go/*
-  legacy Control Room
-  D1
-  Workflows
-  Container
-  AI Gateway / Vertex AI
-  gate editoriali e publication capability
-```
-
-## M5.7 — Cutover apex chiuso
-
-```text
-PR #81 — Cut over canonical public routes to Astro
+PR #81 — apex cutover
 merge e62b570248bf97afaa3f283cfbb847ceea01f529
-CI finale #404 completamente verde
+CI finale #404
+
+PR #82 — live closeout
+merge 6735a05515c2155eb990a9315d6168d111b9261c
+CI #406
 ```
 
-Verificato live dall’operatore:
+Verificato live:
 
-- homepage canonica con il nuovo design;
-- articolo `/migliore-esim` con il renderer Astro;
-- `/sitemap.xml` raggiungibile;
-- `/robots.txt` raggiungibile;
-- `/go/airalo` conserva il redirect backend;
-- navigazione e rendering operativi nel browser reale.
+- homepage con nuovo design;
+- articolo `/migliore-esim`;
+- `/sitemap.xml`;
+- `/robots.txt`;
+- redirect `/go/airalo`;
+- navigazione e rendering operativi.
 
-Documento di risultato:
-
-```text
-docs/PUBLIC-APEX-CUTOVER-RESULT-2026-07-24.md
-```
-
-Il renderer pubblico legacy non è stato rimosso nello stesso cutover. Il rollback di ownership resta la modifica versionata:
-
-```ts
-export const activePublicRouteDecision = currentPublicRouteDecision;
-```
-
-## Ciclo editoriale controllato
-
-```text
-recent demand
-→ brief AI
-→ accettazione umana
-→ claim atomici e fonti
-→ verifiche
-→ Page Readiness
-→ evidence bundle
-→ draft grounded
-→ approvazione editoriale
-→ pagina materializzata in review
-```
-
-Nessuno di questi passaggi pubblica autonomamente una pagina.
-
-### Stato remoto del catalog pilot
+## Catalog pilot
 
 ```text
 candidateCount: 1
@@ -128,9 +76,7 @@ publication eligible: false
 ready for publication: false
 ```
 
-È esclusa per gate di pubblicazione negativo, bundle non approvato per pubblicazione, `ready_for_publication` disattivo, claim insufficiente, conflitto di fonte e claim scaduti o senza validità utilizzabile.
-
-Manifest corrente:
+Manifest:
 
 ```json
 {
@@ -140,71 +86,133 @@ Manifest corrente:
 }
 ```
 
-## Control Room
+## M6 — Discovery e scope
 
-Completato:
-
-- overview, health, radar, segnali e brief;
-- claim, fonti, scadenze e task;
-- readiness ed evidence bundle;
-- inventario e dettaglio draft;
-- queue e audit;
-- linkage canonici;
-- decisione brief `proposed → accepted | dismissed`;
-- route privata read-only per il catalog pilot.
-
-Mutation residue:
+Branch:
 
 ```text
-conversione brief
-→ operazioni claim
-→ decisione draft
-→ eventuale retry queue
+docs/measurement-consent-scope
 ```
 
-La legacy privata non può ancora essere rimossa.
+Documenti creati:
+
+```text
+docs/MEASUREMENT-CONSENT-SCOPE.md
+docs/CMP-SPIKE.md
+docs/MEASUREMENT-EVENT-DICTIONARY.md
+```
+
+### Stato repository verificato
+
+- `wrangler.jsonc` contiene `GTM_ID: ""`;
+- `Env` espone `GTM_ID`;
+- nessun renderer usa questa variabile;
+- nessuno snippet GTM, GA4, `gtag` o CMP è attivo;
+- `PublicLayout.astro` contiene soltanto metadata e JSON-LD;
+- la pagina Privacy dichiara che CMP, GA4 e GTM non sono attivi;
+- il footer non possiede ancora un controllo di revoca/modifica consenso;
+- preview e Control Room restano escluse dalla misurazione.
+
+### Misurazione server-side già esistente
+
+Il redirect `/go/{provider}` scrive in `outbound_clicks`:
+
+```text
+page_slug
+provider_slug
+placement
+monetized
+created_at
+```
+
+Il contratto applicativo non salva IP o user agent. D1 resta la fonte di verità per i redirect effettivamente eseguiti.
+
+### Infrastruttura Google
+
+Risulta preparata esternamente ma non certificata nel repository:
+
+- Google Tag Manager;
+- Google Analytics 4;
+- Google Search Console;
+- service account API.
+
+Nessun ID, stream o permesso viene considerato verificato finché non viene controllato senza esporre credenziali.
+
+### Contratto proposto
+
+M6 iniziale usa Consent Mode Basic:
+
+```text
+prima del consenso:
+  GTM assente
+  GA4 assente
+  nessun ping Google
+  analytics_storage denied
+  consent type advertising denied
+
+dopo consenso analytics:
+  GTM può caricarsi una volta
+  GA4 può misurare
+  analytics_storage granted
+  consent type advertising ancora denied
+```
+
+Advanced Consent Mode, cookieless pings, Google Ads, remarketing e affiliate tracking sono fuori scope.
+
+### CMP spike
+
+Candidati confrontati:
+
+```text
+iubenda
+CookieYes
+consentmanager
+```
+
+Candidato principale per lo spike tecnico: **iubenda**.
+
+Motivo: forte supporto italiano, integrazione Google Consent Mode, Basic Mode tramite blocco completo e possibilità di installazione diretta prima di GTM.
+
+Vendor finale ancora pendente: performance, accessibilità, condizioni operative e comportamento Astro devono essere provati.
+
+### Event dictionary v1
+
+```text
+page_view
+provider_redirect_intent
+consent_update locale/debug
+```
+
+- `page_view` è l’unico evento GA4 iniziale obbligatorio;
+- articolo e listing sono parametri bounded del page view;
+- `provider_redirect_intent` resta distinto dal redirect completato registrato in D1;
+- `consent_update` non viene inviato a GA4.
 
 ## Guardrail invariati
 
-- nessuna migration nuova nel cutover;
-- nessuna transizione `review → published`;
-- nessun endpoint o pulsante publish;
-- nessun analytics o affiliazione;
-- nessuna sitemap submission;
-- browser senza accesso diretto a D1;
-- API, `/go/*` e Control Room restano backend-owned;
-- preview `/astro-foundation*` resta noindex/no-store;
-- pagina Cina sempre non pubblica.
-
-## Prossima milestone — M6
-
-Le proprietà esterne Google esistono, ma l’integrazione applicativa è assente.
-
-Ordine previsto:
-
-```text
-scope privacy e data-flow
-→ CMP
-→ Consent Mode
-→ dizionario eventi
-→ GTM
-→ GA4
-→ Search Console
-→ sitemap submission
-→ verifica dati reali
-```
+- nessun tracking attivo nella branch documentale;
+- nessuna richiesta Google prima del consenso nella futura implementazione;
+- nessun analytics nella Control Room o preview;
+- nessun Ads, remarketing o affiliazione;
+- nessuna PII, token, JWT o ID editoriali negli eventi;
+- nessuna mutation o migration D1;
+- nessun cambio routing;
+- nessuna publication capability;
+- nessuna sitemap submission prima del checkpoint tecnico.
 
 ## Gap aperti
 
-- scope formale M6;
-- scelta e configurazione CMP;
-- Consent Mode;
-- dizionario eventi;
-- collegamento GTM e GA4;
-- verifica Search Console e submission sitemap;
-- controllo tracking pre-consenso;
+- CI e merge dello scope M6;
+- spike tecnico iubenda;
+- decisione CMP finale;
+- aggiornamento privacy reale durante la consent foundation;
+- link footer per modifica/revoca;
+- Consent Mode Basic;
+- GTM e GA4 post-consenso;
+- verifica Tag Assistant, Network e DebugView;
+- Search Console e sitemap submission;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
 - mutation M4 residue;
-- decisione separata sulla publication capability;
-- eventuale rimozione del renderer pubblico legacy dopo stabilizzazione.
+- publication capability separata;
+- eventuale rimozione legacy dopo stabilizzazione.
