@@ -6,7 +6,7 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap c
 
 ## Now
 
-### 1. Chiudere la PR #69 sul vero head documentale
+### 1. Rendere pronta e mergiare la PR #69
 
 Branch:
 
@@ -26,44 +26,18 @@ Scope canonico:
 docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md
 ```
 
-Implementazione completata:
+Stato verificato:
 
-```text
-validated public page
-→ src/public-seo.ts
-→ typed SEO document
-→ legacy canonical renderer OR Astro noindex preview
-```
+- implementazione completata;
+- documentazione canonica allineata;
+- typecheck e build verdi;
+- migrazioni, quality gate, golden evaluation e Container verdi;
+- tutti gli smoke pubblici verdi;
+- nuovo smoke SEO verde;
+- tutte le suite Control Room verdi;
+- CI completa sul head con codice e documentazione verde.
 
-Il contratto condiviso ora produce:
-
-- title e meta description;
-- Open Graph `website` o `article`;
-- `WebSite` JSON-LD per la homepage;
-- `Article` JSON-LD per gli articoli;
-- `FAQPage` soltanto quando la FAQ validata è presente;
-- `dateModified` normalizzata;
-- `Organization` come autore;
-- `mainEntityOfPage` scelto dalla route chiamante.
-
-La policy route resta distinta:
-
-```text
-legacy:
-  / e /{slug}
-  index,follow,max-image-preview:large
-  canonical produzione
-
-Astro preview:
-  /astro-foundation
-  /astro-foundation/articoli/{slug}
-  noindex,nofollow
-  X-Robots-Tag: noindex,nofollow
-  Cache-Control: no-store
-  self-canonical preview
-```
-
-CI applicativa #312 è completamente verde. Dopo gli aggiornamenti canonici occorre attendere la nuova CI sul head reale della PR. Soltanto allora:
+Prossima sequenza:
 
 ```text
 PR #69 ready
@@ -71,7 +45,7 @@ PR #69 ready
 → deploy automatico
 ```
 
-Non dichiarare completata o distribuita M5.5a prima di questi passaggi.
+Il merge non equivale ancora a checkpoint live e non autorizza M5.5b.
 
 ### 2. Verificare il checkpoint live della fondazione SEO
 
@@ -132,9 +106,9 @@ Dopo il checkpoint, eseguire una discovery separata per decidere:
 
 Nessuna di queste decisioni è implicita nella PR #69.
 
-### 4. Contratti verificati dalla CI #312
+### 4. Contratti coperti dallo smoke SEO
 
-Il nuovo comando:
+Il comando:
 
 ```text
 npm run smoke:public-seo-contracts
@@ -156,7 +130,7 @@ usa D1 temporanea, `workerd` e Chromium e verifica:
 - desktop/mobile senza overflow;
 - tutte le regressioni Control Room.
 
-CI #311 aveva rilevato un’asserzione troppo ampia che scambiava il carattere `<` dentro attributi HTML quotati per un elemento DOM. Il test è stato corretto sul comportamento reale senza indebolire la protezione.
+La prima CI runtime aveva rilevato un’asserzione troppo ampia che scambiava il carattere `<` dentro attributi HTML quotati per un elemento DOM. Il test è stato corretto sul comportamento reale senza indebolire la protezione.
 
 ### 5. Non attivare ancora Google measurement
 
@@ -238,7 +212,6 @@ GA4/GTM creati ≠ tracking attivo
 service account creato ≠ credenziale configurata
 brief accepted ≠ brief converted
 approved draft ≠ published page
-CI applicativa verde ≠ CI finale verde
 CI verde ≠ verifica live
 JSON-LD ≠ JavaScript applicativo
 ```
