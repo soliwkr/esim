@@ -51,9 +51,11 @@ try {
   assert.equal(isPublicPreviewPath('/astro-foundation'), true);
   assert.equal(isPublicPreviewPath('/astro-foundation/guide'), true);
   assert.equal(isPublicPreviewPath('/astro-foundation-x'), false);
+  assert.equal(isPublicPreviewPath('//astro-foundation'), false);
   assert.equal(isControlRoomFoundationPath('/control-room-foundation'), true);
   assert.equal(isControlRoomFoundationPath('/control-room-foundation/api/snapshot'), true);
   assert.equal(isControlRoomFoundationPath('/control-room-foundation-x'), false);
+  assert.equal(isControlRoomFoundationPath('//control-room-foundation'), false);
 
   for (const value of [
     '/.env',
@@ -120,6 +122,9 @@ try {
     ['/missing/path', 'public-404'],
     ['/.env', 'public-404'],
     ['/config.json', 'public-404'],
+    ['//astro-foundation', 'public-404'],
+    ['//control-room-foundation', 'public-404'],
+    ['//control-room-foundation/api/snapshot', 'public-404'],
   ]);
   for (const [pathname, kind] of currentBackendExpectations) {
     const decision = currentPublicRouteDecision(pathname);
@@ -176,6 +181,8 @@ try {
     '/control-room-foundation',
     '/missing/path',
     '/config.json',
+    '//astro-foundation',
+    '//control-room-foundation',
   ];
   for (const pathname of comparisonPaths) {
     assert.deepEqual(
