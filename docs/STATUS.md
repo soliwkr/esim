@@ -14,15 +14,16 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Workflow e Container | Operativi | primo ciclo recent-demand completato end-to-end |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato verificato |
 | Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione automatica |
-| Primo draft | Approvato editorialmente | draft `2`; pagina materializzata ancora `review` |
 | Control Room nuova | Operativa | parità read-only completa; prima mutation verificata in produzione |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
 | Preview Astro | Verificata in produzione | namespace noindex/no-store |
 | Renderer canonico Astro | Compilato e verificato in CI | owner live ancora backend |
 | Sitemap e robots parity | Completata | PR #75, CI finale #365 |
-| Catalog pilot foundation | Implementata e verificata dalla CI applicativa #373 | PR #77 draft; manifest vuoto; nessuna pubblicazione |
+| Catalog pilot foundation | Completata | PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI finale #379 |
+| Remote catalog audit | Implementato e verificato dalla CI applicativa #383 | PR #79 draft; non ancora verificato sui dati remoti live |
+| Nuovo design sull’apice | Non ancora live | previsto in M5.7 dopo il primo audit remoto |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
-| Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
+| Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC non collegati |
 
 ## Ciclo editoriale controllato
 
@@ -30,8 +31,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 recent demand
 → brief AI
 → accettazione umana
-→ claim atomici
-→ fonti ufficiali
+→ claim atomici e fonti
 → verifiche
 → Page Readiness
 → evidence bundle
@@ -42,18 +42,14 @@ recent demand
 
 Nessuno di questi passaggi pubblica autonomamente una pagina.
 
+Lo stato noto della pagina Cina resta:
+
 ```text
-claim:                  6
-verified:               5
-insufficient:           1
-readiness score:        77
-review draft eligible:  true
-publication eligible:   false
-draft:                  2 / version 2 / approved
-materialized page:      review
+publication eligible: false
+materialized page: review
 ```
 
-La pagina Cina non è autorizzata alla pubblicazione e non entra automaticamente nel pilot.
+Non entra automaticamente nel pilot.
 
 ## Control Room
 
@@ -83,26 +79,12 @@ M4 non è completato e la legacy privata non può ancora essere rimossa.
 ```text
 preview M5 ≠ cutover pubblico
 owner target ≠ owner live
-canonical Astro compilato ≠ canonical Astro servito
 candidate ≠ release candidate ≠ published
 ```
 
-Preview operative sotto `/astro-foundation`:
+Sono operative sotto `/astro-foundation` homepage, trust pages, listing e renderer articolo. Le route canoniche, `/sitemap.xml` e `/robots.txt` live restano ancora backend-owned.
 
-```text
-/
-metodo
-trasparenza
-privacy
-destinazioni
-guide
-confronti
-articoli/[slug]
-```
-
-Le route canoniche, sitemap e robots live restano backend-owned.
-
-## M5.5 — SEO e routing parity
+Parità completate:
 
 ```text
 PR #69  SEO contract
@@ -111,44 +93,32 @@ PR #73  canonical Astro parity — CI #350
 PR #75  sitemap/robots parity — CI #365
 ```
 
-Nessun cutover o deploy pubblico è stato eseguito.
-
 ## M5.6a — Candidate audit foundation
 
-Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
-
 ```text
-branch feat/public-catalog-pilot-foundation
-PR #77 — Add public catalog pilot audit foundation
-CI applicativa #373 completamente verde
+PR #77
+merge fa9ed9486e400e77ad915153284c7b277a51b4d0
+CI finale #379
 ```
 
-### Implementato
-
-`src/public-catalog-pilot.ts` fornisce:
+La foundation contiene:
 
 - modello tipizzato server-only;
-- loader D1 read-only;
-- latest evidence bundle per brief;
-- latest draft per bundle;
-- gate deterministici e approvazioni umane;
-- controllo renderer grounded;
-- provenance top-level, sezioni e FAQ;
-- claim atomic/verified, source linkage e freshness;
-- coerenza tra draft approvato e pagina materializzata;
-- slug, route e file probe safety;
-- collisioni di primary keyword e risposta diretta;
-- selezione deterministica fino a quattro entry;
-- candidate report con selected, excluded, blocker e warning;
-- creazione e validazione del manifest.
+- loader D1 con sole query `SELECT`;
+- latest bundle e latest draft;
+- publication eligibility e approvazioni umane;
+- renderer grounded e provenance;
+- claim, fonti e freshness;
+- coerenza draft/pagina `review`;
+- safety di slug, route e file probe;
+- collisioni di keyword e risposta diretta;
+- cap deterministico massimo quattro;
+- report selected/excluded;
+- manifest versionato e validato;
+- fixture e smoke sul D1 realmente migrato;
+- before/after invariato senza mutation.
 
-### Manifest
-
-```text
-data/public-catalog-pilot.json
-```
-
-Stato corrente:
+Manifest corrente:
 
 ```json
 {
@@ -158,76 +128,94 @@ Stato corrente:
 }
 ```
 
-È deliberatamente vuoto. Non sono stati inventati Paesi, provider, ID, versioni o claim.
+È deliberatamente vuoto: non sono stati inventati Paesi, provider o ID.
 
-### Verifiche
+## M5.6b — Remote catalog audit
 
-Lo smoke puro copre:
-
-- candidate valida;
-- publication gate negativo;
-- claim scaduto;
-- latest draft non approved;
-- drift draft/pagina;
-- slug riservato;
-- collisione keyword;
-- cap oltre quattro;
-- manifest invalido;
-- empty state.
-
-Lo smoke D1 aggiuntivo:
-
-- transpila esplicitamente i moduli ESM temporanei;
-- applica tutte le migrazioni reali;
-- esegue le query contro lo schema D1 effettivo;
-- confronta conteggi e stati prima e dopo l’audit;
-- verifica che non avvenga alcuna mutation;
-- conferma che ogni selected candidate resti `review`.
-
-Il primo run D1 ha permesso di correggere due problemi prima del merge:
-
-1. `primary_keyword` viene letto dalla pagina materializzata, non dal draft;
-2. il Worker temporaneo no-bundle riceve JavaScript ESM transpiled, non TypeScript grezzo.
-
-### Guardrail verificati
-
-- nessuna migration nuova;
-- nessun `INSERT`, `UPDATE`, `DELETE` o `REPLACE`;
-- nessuna route o API pubblica;
-- nessun endpoint o pulsante publish;
-- nessuna transizione `review → published`;
-- active matrix invariata;
-- nessun deploy;
-- tutte le suite Control Room verdi.
-
-PR #77 resta draft fino alla CI finale sullo stesso head di codice e documentazione.
-
-## Prossima fase M5.6b
-
-Dopo il merge della foundation serve un audit **remoto e read-only** sui dati reali.
-
-L’audit non sceglie pagine in anticipo e può produrre:
+Scope:
 
 ```text
-0 candidate → blocker report
-1–4 candidate → manifest reale
->4 candidate → cap e selezione motivata
+docs/PUBLIC-CATALOG-REMOTE-AUDIT-SCOPE.md
+PR #78
+merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd
+CI #381
 ```
 
-La pubblicazione resta separata e non autorizzata.
+Branch tecnica:
 
-## Google measurement
+```text
+feat/public-catalog-remote-audit
+PR #79 — Add private read-only catalog audit route
+CI applicativa #383 completamente verde
+```
 
-GTM, GA4, Search Console e service account sono preparati esternamente ma non collegati. Restano assenti CMP, Consent Mode, snippet, eventi e sitemap submission.
+Implementato:
+
+```text
+GET /control-room-foundation/api/catalog-pilot-audit
+```
+
+Contratto:
+
+- protetto da Cloudflare Access e validazione JWT nell’origine;
+- D1 letto server-side;
+- riuso del loader e dell’audit M5.6a;
+- nessun maintenance token nel browser;
+- GET-only;
+- no-store, noindex e nosniff;
+- payload fail-closed se contiene dati secret-like;
+- nessun dump D1 o query controllata dal browser;
+- nessuna mutation o capacità di pubblicazione.
+
+Lo smoke dedicato dimostra:
+
+- richiesta anonima bloccata;
+- metodo non GET respinto;
+- report valido con massimo quattro selected;
+- selected candidate ancora `review`;
+- credenziali assenti dal payload;
+- snapshot editoriale identico prima e dopo la chiamata.
+
+La route non è ancora stata verificata sui dati remoti live.
+
+## Quando va live il nuovo design
+
+Il nuovo design va live con **M5.7**, dopo il primo audit remoto riuscito.
+
+La sequenza corrente è:
+
+```text
+chiusura PR #79
+→ verifica route privata in produzione
+→ audit remoto reale, anche con 0 candidate
+→ PR M5.7 di cutover
+→ deploy e verifica live
+```
+
+Un manifest vuoto non blocca M5.7. Il cutover Astro continuerà a servire esclusivamente righe `published`; tutte le pagine `review` resteranno invisibili.
+
+La pubblicazione di nuove release candidate è una mutation separata e può avvenire dopo il cutover del design.
+
+## Guardrail invariati
+
+- nessuna migration nuova;
+- nessuna transizione `review → published`;
+- nessun endpoint o pulsante publish;
+- active route matrix invariata in PR #79;
+- nessun analytics o affiliazione;
+- nessuna sitemap submission;
+- API, `/go/*` e Control Room ancora backend-owned;
+- nessuna rimozione legacy.
 
 ## Gap aperti
 
-- CI finale e merge PR #77;
-- percorso sicuro per audit remoto read-only;
-- report sui dati reali e manifest eventuale;
-- preparazione release candidate una pagina alla volta;
-- decisione separata di pubblicazione;
-- M5.7 cutover apex;
+- CI finale code + canonici e merge PR #79;
+- verifica live della route privata;
+- primo audit remoto e report reale;
+- eventuale aggiornamento del manifest con ID verificati;
+- PR M5.7 e cutover apex;
+- verifica live e rollback M5.7;
+- publication capability separata;
 - header HTTP live delle preview;
 - topic-mismatch sul primo run autorizzato;
 - mutation M4 residue;
@@ -236,8 +224,9 @@ GTM, GA4, Search Console e service account sono preparati esternamente ma non co
 ## Prossimo checkpoint
 
 ```text
-canonici aggiornati su PR #77
-→ CI finale code + documentazione
-→ merge senza deploy o pubblicazione
-→ audit remoto read-only
+canonici aggiornati su PR #79
+→ CI finale
+→ merge
+→ audit remoto reale
+→ M5.7 cutover del nuovo design
 ```
