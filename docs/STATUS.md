@@ -22,8 +22,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Renderer articolo Astro | Verificato in produzione | desktop, mobile e sorgente SEO live |
 | Fondazione SEO condivisa | Completata e verificata live | PR #69 |
 | Route policy foundation | Completata | PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`, CI #329 |
-| Canonical Astro parity | Implementata e verificata in CI | PR #73; route compilate ma owner live ancora backend |
-| SEO endpoint parity | Non implementata | sitemap e robots restano backend-owned |
+| Canonical Astro parity | Completata in CI | PR #73, merge `b3a6625bfe6e3a06a46412e58f89a033dc82b9ff`, CI finale #350 |
+| SEO endpoint parity | Scope definito | sitemap e robots restano live-owned dal backend |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -97,6 +97,7 @@ M4 non è completato e la legacy privata non può ancora essere rimossa.
 preview M5 ≠ cutover pubblico
 owner target ≠ owner live
 canonical Astro compilato ≠ canonical Astro servito
+endpoint Astro compilato ≠ endpoint Astro live-owned
 draft approvato ≠ pagina pubblicata
 ```
 
@@ -220,11 +221,11 @@ CI #329 completamente verde, comprese tutte le suite pubbliche e Control Room.
 
 Scope: `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md`.
 
-Branch e PR:
-
 ```text
 feat/public-canonical-astro-parity
 PR #73 — Add canonical Astro renderer parity
+merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
+CI finale #350
 ```
 
 Implementato:
@@ -261,7 +262,7 @@ Route compilate:
 
 ### Test diretto senza switch live
 
-Il custom Worker espone la factory tipizzata:
+Il custom Worker espone:
 
 ```text
 createPublicWorker(routeDecision)
@@ -274,42 +275,66 @@ createPublicWorker(activePublicRouteDecision)
 activePublicRouteDecision = currentPublicRouteDecision
 ```
 
-Lo smoke `npm run smoke:public-canonical-astro` genera soltanto localmente:
+Lo smoke locale assegna ad Astro soltanto `canonical-static`, `canonical-article` e `public-404`. Sitemap, robots, API, provider redirect, legacy Control Room e asset tecnici restano backend-owned anche nel test.
 
-- wrapper Worker temporaneo;
-- configurazione Wrangler temporanea;
-- stato D1 populated ed empty isolato.
+La CI finale #350 è completamente verde sullo stesso head di codice e documentazione. Nessun cutover o deploy pubblico è stato dichiarato.
 
-Il wrapper assegna ad Astro soltanto:
+## M5.5b.3 — SEO endpoint parity
+
+Scope canonico:
 
 ```text
-canonical-static
-canonical-article
-public-404
+docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md
 ```
 
-Sitemap, robots, API, provider redirect, legacy Control Room e asset tecnici restano backend-owned anche nel test. Non esistono env flag, header, cookie, query parameter o route distribuite per cambiare renderer.
+Branch documentale:
 
-### Verifica CI #345
+```text
+docs/public-seo-endpoint-parity-scope
+```
 
-Completamente verdi:
+Branch tecnica autorizzata dopo il merge dello scope:
 
-- tipi Cloudflare;
-- typecheck e build Astro/custom Worker;
-- migrazioni D1;
-- quality gate e golden evaluation;
-- Container build e smoke;
-- runtime production-style con route canoniche ancora legacy-owned;
-- tutte le preview esistenti;
-- route policy e regressioni SEO;
-- renderer canonico diretto home/listing/trust/articolo/404;
-- populated ed empty state;
-- canonical, robots, cache, Open Graph e JSON-LD;
-- published-only, related links e fail-closed;
-- desktop, mobile, tastiera, overflow e assenza di JavaScript applicativo;
-- tutte le suite Control Room.
+```text
+feat/public-seo-endpoint-parity
+```
 
-M5.5b.2 è implementata e verificata in CI. **Nessun cutover o deploy pubblico è avvenuto.**
+### Stato corrente rilevato
+
+- sitemap legacy costruita direttamente in `src/pages.ts`;
+- lista delle route statiche duplicata;
+- query published-only e XML concatenati nello stesso handler;
+- robots costruito inline in `src/index.ts`;
+- `/sitemap.xml` e `/robots.txt` ancora backend-owned.
+
+### Contratto deciso
+
+La branch tecnica deve introdurre builder server-only condivisi che:
+
+- derivano le route statiche da `PUBLIC_CANONICAL_STATIC_PATHS`;
+- leggono soltanto `pages.status='published'`;
+- validano slug e `updated_at`;
+- ordinano statiche prima e pagine dinamiche per slug ASC;
+- producono XML deterministico con escaping dedicato;
+- mantengono le direttive robots correnti;
+- non includono preview, review, draft, archived, 404, API, Control Room, redirect o asset;
+- falliscono senza sitemap parziale su righe published invalide.
+
+Handler Astro previsti:
+
+```text
+apps/web/src/pages/sitemap.xml.ts
+apps/web/src/pages/robots.txt.ts
+```
+
+Lo smoke riusa `createPublicWorker(routeDecision)` e assegna ad Astro soltanto il route kind `seo-endpoint` in una configurazione temporanea locale. Confronta runtime production-style e runtime Astro con populated, empty e invalid state.
+
+Owner live invariato:
+
+```text
+/sitemap.xml → backend
+/robots.txt  → backend
+```
 
 ## Google measurement
 
@@ -327,7 +352,8 @@ Nessun tracking viene aggiunto alle preview noindex.
 
 ## Gap aperti
 
-- scope e implementazione M5.5b.3 per sitemap/robots parity senza attivazione;
+- merge dello scope M5.5b.3;
+- implementazione e CI della sitemap/robots parity senza attivazione;
 - piccolo catalogo pilot;
 - PR separata di cutover apex;
 - verifica HTTP live degli header preview;
@@ -340,8 +366,9 @@ Nessun tracking viene aggiunto alle preview noindex.
 ## Prossimo checkpoint
 
 ```text
-final CI code + canonici su PR #73
-→ merge M5.5b.2 senza cambiare owner live
-→ scope M5.5b.3 sitemap/robots parity
-→ endpoint Astro testati senza attivazione
+merge scope M5.5b.3
+→ feat/public-seo-endpoint-parity
+→ builder condivisi + handler Astro
+→ confronto legacy/Astro senza switch live
+→ CI completa
 ```

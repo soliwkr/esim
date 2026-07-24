@@ -18,7 +18,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — renderer articolo Astro;
 - `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md` — M5.5a;
 - `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md` — M5.5b.1;
-- `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md` — M5.5b.2.
+- `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md` — M5.5b.2;
+- `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md` — M5.5b.3.
 
 ## Principi non negoziabili
 
@@ -33,7 +34,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 9. Una riga `review` non equivale a contenuto pubblico.
 10. Un owner target non equivale all’owner live.
 11. Canonical Astro compilato non equivale a canonical Astro servito.
-12. Il repository è la memoria canonica.
+12. Endpoint Astro compilato non equivale a endpoint Astro live-owned.
+13. Il repository è la memoria canonica.
 
 ## M0 — Fondazioni tecniche
 
@@ -121,7 +123,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.5a verificate in produzione; M5.5b.1–M5.5b.2 completate in CI senza cutover.**
+**Stato: M5.0–M5.5a verificate in produzione; M5.5b.1–M5.5b.2 completate in CI senza cutover; scope M5.5b.3 definito.**
 
 ### M5.0 — Public shell
 
@@ -209,11 +211,11 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 Scope: `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md`.
 
-Branch e PR:
-
 ```text
 feat/public-canonical-astro-parity
 PR #73
+merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
+CI finale #350
 ```
 
 - [x] render mode `preview | canonical` tipizzato;
@@ -231,7 +233,7 @@ PR #73
 - [x] populated ed empty state;
 - [x] desktop, mobile, tastiera e overflow;
 - [x] runtime production-style ancora legacy-owned;
-- [x] CI applicativa #345 completamente verde.
+- [x] CI finale code + canonici #350 completamente verde.
 
 Route compilate:
 
@@ -247,16 +249,35 @@ Route compilate:
 /404
 ```
 
-Nessun cutover o deploy pubblico è avvenuto. Sitemap e robots restano fuori da questa slice.
+Nessun cutover o deploy pubblico è stato dichiarato. Sitemap e robots restano backend-owned.
 
 #### M5.5b.3 — SEO endpoint parity
 
-- [ ] scope separato prima del codice;
-- [ ] builder condiviso sitemap/robots;
+Scope: `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md`.
+
+Branch documentale:
+
+```text
+docs/public-seo-endpoint-parity-scope
+```
+
+Branch tecnica autorizzata dopo il merge dello scope:
+
+```text
+feat/public-seo-endpoint-parity
+```
+
+- [x] scope separato prima del codice;
+- [x] current ownership e confini documentati;
+- [x] contratto sitemap published-only, deterministico e fail-closed;
+- [x] contratto robots condiviso documentato;
+- [x] modalità di confronto legacy/Astro definita;
+- [x] populated, empty e invalid state definiti;
+- [ ] builder sitemap/robots condivisi;
 - [ ] handler Astro compilati e testati;
-- [ ] output semantico equivalente;
-- [ ] preview, review, draft e route tecniche esclusi;
-- [ ] ownership live ancora legacy.
+- [ ] output legacy/Astro equivalente;
+- [ ] preview, review, draft e route tecniche escluse;
+- [ ] ownership live ancora legacy verificata dalla CI.
 
 ### M5.6 — Catalogo pilot
 
@@ -333,8 +354,8 @@ conversione brief
 ### Track B — M5
 
 ```text
-scope sitemap/robots parity
-→ endpoint parity senza attivazione
+merge scope sitemap/robots parity
+→ implementazione endpoint parity senza attivazione
 → catalogo pilot
 → cutover apex separato
 ```
