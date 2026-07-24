@@ -1,22 +1,26 @@
 ---
 import { env } from 'cloudflare:workers'
 import type { PageCard } from '../../../../../../src/types'
+import type { PublicArticleLoadResult } from '../../../../../../src/public-article'
 import {
   loadPublishedArticle,
   loadRelatedPublishedArticles,
-  publicArticlePreviewPath,
 } from '../../../../../../src/public-article'
+import { publicArticlePath } from '../../../../../../src/public-render-mode'
+import { publicArticleSlugCandidate } from '../../../../../../src/public-route-policy'
+import { affiliateEnabled } from '../../../../../../src/utils'
+import PublicArticleErrorPage from '../../../components/public/PublicArticleErrorPage.astro'
 import PublicArticlePage from '../../../components/public/PublicArticlePage.astro'
-import PublicLayout from '../../../layouts/PublicLayout.astro'
-import { setPublicPreviewResponseHeaders } from '../../../lib/public-preview-response'
-import '../../../styles/public-article.css'
 
-const slug = Astro.params.slug ?? ''
-const result = await loadPublishedArticle(env.DB, slug)
-const canonicalPath = slug ? publicArticlePreviewPath(slug) : '/astro-foundation/articoli/non-disponibile'
+const rawSlug = Astro.params.slug ?? ''
+const slug = publicArticleSlugCandidate(`/${rawSlug}`)
+const result: PublicArticleLoadResult = slug
+  ? await loadPublishedArticle(env.DB, slug)
+  : { kind: 'missing' }
+const previewCanonicalPath = slug
+  ? publicArticlePath('preview', slug)
+  : '/astro-foundation/articoli/non-disponibile'
 let related: PageCard[] = []
-
-setPublicPreviewResponseHeaders(Astro.response.headers)
 
 if (result.kind === 'found') {
   related = await loadRelatedPublishedArticles(env.DB, result.article.cluster, result.article.slug, 5)
@@ -24,35 +28,23 @@ if (result.kind === 'found') {
   Astro.response.status = 404
 } else {
   Astro.response.status = 500
-  console.error(`Invalid published article preview for ${slug}: ${result.reason}`)
+  console.error(`Invalid published article preview for ${slug ?? rawSlug}: ${result.reason}`)
 }
 ---
 
 {result.kind === 'found' ? (
-  <PublicArticlePage article={result.article} related={related} siteName={env.SITE_NAME} />
-) : (
-  <PublicLayout
-    title={result.kind === 'missing' ? 'Articolo non trovato — preview Astro' : 'Articolo non disponibile — preview Astro'}
-    description="La pagina richiesta non è disponibile nella preview Astro pubblicata."
-    canonicalPath={canonicalPath}
-    previewBase="/astro-foundation"
+  <PublicArticlePage
+    mode="preview"
+    article={result.article}
+    related={related}
     siteName={env.SITE_NAME}
-    noindex
-  >
-    <div class="preview-band" data-public-shell="astro-preview" data-public-article-error={result.kind}>
-      Preview Astro · non indicizzata · l’articolo pubblico attuale non cambia
-    </div>
-    <section class="article-error public-container" aria-labelledby="article-error-title">
-      <p class="eyebrow">{result.kind === 'missing' ? '404' : 'Contenuto non disponibile'}</p>
-      <h1 id="article-error-title">
-        {result.kind === 'missing' ? 'Questo articolo non è pubblicato nella preview.' : 'La pagina pubblicata non supera la validazione.'}
-      </h1>
-      <p>
-        {result.kind === 'missing'
-          ? 'La route non espone pagine assenti, draft o contenuti ancora in review.'
-          : 'Il renderer si ferma senza mostrare testo fattuale quando il record non rispetta il contratto strutturato.'}
-      </p>
-      <a class="public-button" href="/astro-foundation/guide">Torna alle guide</a>
-    </section>
-  </PublicLayout>
+    affiliateEnabled={affiliateEnabled(env)}
+  />
+) : (
+  <PublicArticleErrorPage
+    mode="preview"
+    kind={result.kind}
+    siteName={env.SITE_NAME}
+    previewCanonicalPath={previewCanonicalPath}
+  />
 )}
