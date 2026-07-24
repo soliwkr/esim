@@ -89,22 +89,10 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 **Stato: letture complete; prima mutation in produzione; mutation residue aperte.**
 
-### Foundation e letture
-
-- [x] Astro shell e React island;
-- [x] shadcn/ui;
-- [x] Cloudflare Access;
-- [x] sessione server-side;
+- [x] Astro shell, React island e shadcn/ui;
+- [x] Cloudflare Access e sessione server-side;
 - [x] browser senza credenziali applicative;
-- [x] overview, health, radar, segnali e brief;
-- [x] claim, fonti, scadenze e task;
-- [x] readiness e bundle;
-- [x] draft, dettaglio, queue e audit;
-- [x] linkage canonici;
-- [x] parità legacy read-only.
-
-### Mutation
-
+- [x] letture e parità legacy read-only;
 - [x] decisione brief `proposed → accepted | dismissed`;
 - [ ] conversione brief;
 - [ ] operazioni claim;
@@ -112,18 +100,13 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [ ] eventuale retry queue;
 - [ ] rimozione legacy privata dopo parità mutabile.
 
-**Criterio di uscita M4:** la legacy privata non è più un fallback operativo.
-
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.5b.3 completate senza cutover; scope M5.6 in corso.**
+**Stato: M5.0–M5.5b.3 completate senza cutover; M5.6a implementata e verificata dalla CI applicativa #373, PR #77 ancora da chiudere.**
 
 ### M5.0–M5.4 — Preview e renderer pubblico
 
-- [x] shell `/astro-foundation` noindex/no-store;
-- [x] trust pages;
-- [x] homepage candidata;
-- [x] listing Destinazioni, Guide e Confronti;
+- [x] shell, trust pages, homepage e listing preview;
 - [x] renderer articolo grounded;
 - [x] published-only, 404 e fail-closed;
 - [x] desktop, mobile e tastiera;
@@ -131,103 +114,69 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ### M5.5 — Parità SEO e routing
 
-#### M5.5a — Contratto SEO condiviso
-
-- [x] metadata e Open Graph;
-- [x] `WebSite`, `Article` e `FAQPage`;
-- [x] serializer JSON-LD sicuro;
-- [x] PR #69;
+- [x] PR #69 — contratto SEO condiviso;
+- [x] PR #71 — route policy, CI #329;
+- [x] PR #73 — canonical Astro parity, CI #350;
+- [x] PR #75 — sitemap/robots parity, CI #365;
+- [x] owner live ancora backend;
 - [ ] header HTTP live da controllo esterno dedicato.
-
-#### M5.5b.1 — Route policy
-
-- [x] current/target matrix tipizzate;
-- [x] reserved path e file-probe policy;
-- [x] `activePublicRouteDecision = currentPublicRouteDecision`;
-- [x] PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`;
-- [x] CI finale #329.
-
-#### M5.5b.2 — Canonical Astro parity
-
-- [x] home, listing, trust, articolo e 404 canonici compilati;
-- [x] factory `createPublicWorker(routeDecision)`;
-- [x] smoke diretto senza switch live;
-- [x] PR #73, merge `b3a6625bfe6e3a06a46412e58f89a033dc82b9ff`;
-- [x] CI finale #350.
-
-#### M5.5b.3 — Sitemap e robots parity
-
-- [x] builder server-only condivisi;
-- [x] legacy e Astro delegano allo stesso contratto;
-- [x] published-only, ordine, `lastmod`, escaping e fail-closed;
-- [x] GET, HEAD, query string e trailing slash;
-- [x] populated, empty e invalid state;
-- [x] tutte le regressioni pubbliche e Control Room;
-- [x] PR #75, merge `8d52e7e316d632dcda0d5bb45b818a490df9fef6`;
-- [x] CI finale #365.
-
-Ownership live invariata:
-
-```text
-route canoniche → backend
-/sitemap.xml    → backend
-/robots.txt     → backend
-```
 
 ### M5.6 — Catalogo pilot
 
 Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
 
-Branch documentale:
-
-```text
-docs/public-catalog-pilot-scope
-```
-
 #### M5.6a — Candidate audit foundation
 
-- [ ] modello tipizzato read-only;
-- [ ] query e report sui gate reali;
-- [ ] massimo quattro entry;
-- [ ] manifest versionato;
-- [ ] latest bundle e latest approved draft;
-- [ ] publication eligibility e approvazioni umane;
-- [ ] provenance e freshness;
-- [ ] collisioni di slug e intento;
-- [ ] fixtures eligible/ineligible/empty;
-- [ ] nessuna mutation o pubblicazione;
-- [ ] active matrix invariata;
-- [ ] CI completa.
-
-Branch tecnica autorizzabile dopo il merge dello scope:
-
 ```text
-feat/public-catalog-pilot-foundation
+branch feat/public-catalog-pilot-foundation
+PR #77
+CI applicativa #373 completamente verde
 ```
 
-#### M5.6b — Preparazione release candidate reali
+- [x] modello tipizzato server-only;
+- [x] loader D1 con sole query `SELECT`;
+- [x] latest evidence bundle e latest draft;
+- [x] publication eligibility e approvazioni umane;
+- [x] grounded renderer e provenance;
+- [x] claim, fonti e freshness correnti;
+- [x] coerenza draft/pagina materializzata;
+- [x] slug riservati e file probe esclusi;
+- [x] collisioni di keyword e risposta diretta;
+- [x] cap deterministico massimo quattro;
+- [x] report selected/excluded con blocker e warning;
+- [x] manifest versionato e validato;
+- [x] manifest iniziale deliberatamente vuoto;
+- [x] fixture eligible, blocked, stale, drift, duplicate, over-cap ed empty;
+- [x] smoke sul D1 realmente migrato;
+- [x] conteggi e stati identici before/after audit;
+- [x] nessuna migration, mutation, route o endpoint publish;
+- [x] active matrix invariata;
+- [x] tutte le suite Control Room verdi nella CI applicativa;
+- [ ] CI finale code + canonici;
+- [ ] PR #77 pronta e merge.
 
-- [ ] audit dei dati remoti reali;
-- [ ] selezione senza nomi anticipati;
-- [ ] chiusura blocker una pagina alla volta;
-- [ ] bundle `approved_for_publication`;
-- [ ] draft grounded `approved`;
-- [ ] pagina materializzata in `review`;
-- [ ] manifest aggiornato con ID e versioni reali;
-- [ ] massimo quattro release candidate.
+#### M5.6b — Audit e preparazione release candidate reali
+
+- [ ] definire un percorso read-only sicuro verso la D1 remota;
+- [ ] eseguire l’audit sui dati reali senza scegliere nomi in anticipo;
+- [ ] produrre report remoto con blocker;
+- [ ] mantenere zero candidate se nessuna supera i gate;
+- [ ] preparare una pagina alla volta tramite il ciclo editoriale esistente;
+- [ ] aggiornare il manifest soltanto con ID e versioni reali verificati;
+- [ ] massimo quattro release candidate, tutte ancora `review`.
 
 #### M5.6c — Decisione di pubblicazione
 
-**Non autorizzata dallo scope M5.6a.**
+**Non autorizzata da M5.6a.**
 
-- [ ] scegliere esplicitamente se pubblicare prima, durante o dopo M5.7;
+- [ ] scegliere se pubblicare prima, durante o dopo M5.7;
 - [ ] branch mutation separata;
 - [ ] transizione `review → published` server-side e auditata;
-- [ ] conferma umana;
+- [ ] conferma umana, idempotenza e freshness recheck;
 - [ ] rollback/deindicizzazione;
 - [ ] test end-to-end e verifica live.
 
-La pagina Cina non entra automaticamente nel pilot: il suo stato canonico noto resta `publication_eligible=false` e `review`.
+La pagina Cina non entra automaticamente nel pilot: lo stato noto resta `publication_eligible=false` e `review`.
 
 ### M5.7 — Cutover apex
 
@@ -244,32 +193,23 @@ La pagina Cina non entra automaticamente nel pilot: il suo stato canonico noto r
 
 **Stato: infrastruttura esterna preparata; integrazione non avviata.**
 
-- [ ] CMP;
-- [ ] Consent Mode;
+- [ ] CMP e Consent Mode;
 - [ ] dizionario eventi;
-- [ ] GTM;
-- [ ] GA4;
+- [ ] GTM e GA4;
 - [ ] Search Console e submission sitemap;
-- [ ] verifica dati reali;
-- [ ] report query, landing, CTR e indicizzazione.
-
-M6 parte dopo route pubbliche stabili. Nessun tracking sulle preview noindex.
+- [ ] verifica dati reali e reporting.
 
 ## M7 — Intelligence SEO
 
 - [ ] GSC operativa;
-- [ ] rank tracking;
-- [ ] competitor set;
-- [ ] Trends;
+- [ ] rank tracking, competitor e Trends;
 - [ ] opportunity score v2;
 - [ ] audit tecnico/editoriale/GEO.
 
 ## M8 — Monetizzazione controllata
 
-- [ ] programmi affiliate ufficiali;
-- [ ] disclosure;
+- [ ] programmi affiliate ufficiali e disclosure;
 - [ ] configurazione riservata dei link;
-- [ ] affiliate mode esplicita;
 - [ ] tracking privacy-first;
 - [ ] revenue score dopo dati sufficienti.
 
@@ -296,8 +236,8 @@ conversione brief
 ### Track B — M5
 
 ```text
-scope M5.6
-→ candidate audit foundation
+chiusura PR #77
+→ audit remoto read-only
 → release candidate reali in review
 → decisione esplicita publication/cutover
 → M5.7 apex cutover
