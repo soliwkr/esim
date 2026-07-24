@@ -4,9 +4,10 @@ import { publicTrustPath } from '../../../../../src/public-render-mode'
 
 interface Props {
   mode: PublicRenderMode
+  consentPreferencesEnabled?: boolean
 }
 
-const { mode } = Astro.props
+const { mode, consentPreferencesEnabled = false } = Astro.props
 const year = new Date().getUTCFullYear()
 ---
 
@@ -24,6 +25,9 @@ const year = new Date().getUTCFullYear()
       <a href={publicTrustPath(mode, 'metodo')}>Metodo editoriale</a>
       <a href={publicTrustPath(mode, 'trasparenza')}>Trasparenza</a>
       <a href={publicTrustPath(mode, 'privacy')}>Privacy</a>
+      {consentPreferencesEnabled && (
+        <a href="/privacy#preferenze-cookie" class="iubenda-cs-preferences-link">Gestisci preferenze cookie</a>
+      )}
     </nav>
 
     <div>
