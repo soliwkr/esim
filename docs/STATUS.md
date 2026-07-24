@@ -22,7 +22,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Homepage candidata Astro | Verificata in produzione | desktop e mobile; `/` resta legacy |
 | Listing Astro | Verificati in produzione | Destinazioni, Guide e Confronti |
 | Renderer articolo Astro | Verificato in produzione | PR #67, CI finale #307, desktop e mobile |
-| Fondazione SEO condivisa | Implementata e verde in CI | PR #69 draft; CI #312; merge/deploy ancora da eseguire |
+| Fondazione SEO condivisa | Implementata e verificata dalla CI completa | PR #69; merge, deploy e checkpoint live ancora aperti |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -305,9 +305,10 @@ Validazione:
 
 - typecheck e build verdi;
 - migrazioni, quality gate, golden evaluation e Container verdi;
-- CI #311 ha rilevato un’asserzione troppo ampia che trattava `<` dentro attributi quotati come un elemento DOM;
+- la prima CI runtime ha rilevato un’asserzione troppo ampia che trattava `<` dentro attributi quotati come un elemento DOM;
 - il test è stato corretto senza modificare la protezione: ora verifica DOM reale, zero elementi `<example>`, zero script eseguibili e impossibilità di chiudere il JSON-LD;
-- CI #312 completamente verde.
+- CI applicativa completamente verde;
+- CI completa sul head con codice e documentazione completamente verde.
 
 Ownership invariata:
 
@@ -322,7 +323,7 @@ Ownership invariata:
 /go/{provider}
 ```
 
-La PR #69 è ancora draft e non è stata mergiata o distribuita. Nessun cutover, indicizzazione, analytics, affiliazione, D1 mutation o pubblicazione è stato introdotto.
+La PR #69 non è ancora mergiata o distribuita. Nessun cutover, indicizzazione, analytics, affiliazione, D1 mutation o pubblicazione è stato introdotto.
 
 ## Google measurement stack
 
@@ -358,8 +359,7 @@ Regole:
 ## Prossimo checkpoint
 
 ```text
-CI #312 verde
-→ aggiornamento canonici
+CI completa verde
 → PR #69 ready e merge
 → deploy automatico
 → verificare metadata e JSON-LD della preview live
