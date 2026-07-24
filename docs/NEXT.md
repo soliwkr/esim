@@ -6,125 +6,167 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Chiudere PR #77 — M5.6a
+### 1. Chiudere PR #79 — remote catalog audit
 
 ```text
-branch feat/public-catalog-pilot-foundation
-PR #77 — Add public catalog pilot audit foundation
-CI applicativa #373 completamente verde
+branch feat/public-catalog-remote-audit
+PR #79 — Add private read-only catalog audit route
+CI applicativa #383 completamente verde
 ```
 
 Verificato:
 
-- modello server-only tipizzato;
-- loader D1 con sole query `SELECT`;
-- latest bundle e latest draft;
-- publication eligibility e approvazioni;
-- grounded renderer e provenance;
-- claim, source linkage e freshness;
-- coerenza draft/pagina `review`;
-- safety slug, route e file probe;
-- collisioni di intenti operativi;
+- route privata GET-only;
+- Cloudflare Access e validazione JWT nell’origine;
+- D1 esclusivamente server-side;
+- riuso del modello M5.6a con query `SELECT` fisse;
+- no-store, noindex e nosniff;
+- payload fail-closed su dati secret-like;
+- nessun maintenance token nel browser;
+- anonymous denied e metodi non GET respinti;
 - cap massimo quattro;
-- report selected/excluded;
-- manifest validato;
-- manifest iniziale vuoto;
-- fixture complete;
-- schema D1 reale e before/after invariato;
-- nessuna migration, mutation, route o publication capability;
-- tutte le suite Control Room verdi.
+- selected candidate ancora `review`;
+- snapshot editoriale identico prima e dopo;
+- nessuna migration, mutation o publication capability;
+- tutte le suite pubbliche e Control Room verdi.
 
 Prima del merge:
 
 ```text
-sei canonici sullo stesso head
+STATUS + NEXT + DECISIONS sullo stesso head
 → CI finale code + documentazione
-→ PR pronta per review
-→ merge senza deploy
+→ PR pronta
+→ merge
 ```
 
-### 2. Definire l’audit remoto M5.6b
+### 2. Verificare la route privata sui dati remoti
 
-Dopo il merge serve una branch separata per un audit operativo read-only.
-
-Branch documentale proposta:
+Dopo il merge e la disponibilità della nuova versione:
 
 ```text
-docs/public-catalog-remote-audit-scope
+/control-room-foundation/api/catalog-pilot-audit
 ```
 
-La discovery deve scegliere il percorso più sicuro tra:
+Checkpoint richiesti:
 
-1. comando locale autenticato che interroga D1 remote con output sanitizzato;
-2. endpoint maintenance GET-only protetto e mai esposto al browser pubblico;
-3. export manuale read-only verificato.
+- accesso soltanto dopo Cloudflare Access;
+- risposta HTTP 200;
+- `Cache-Control: no-store`;
+- `X-Robots-Tag: noindex, nofollow`;
+- `ok=true`;
+- report leggibile;
+- nessun token, secret o PII;
+- nessuna variazione osservata negli stati editoriali.
 
-Criteri obbligatori:
-
-- nessun maintenance token nel browser;
-- nessuna private key o secret in chat o repository;
-- nessuna mutation;
-- output senza PII;
-- report riproducibile;
-- conteggi/stati before e after invariati;
-- nessuna pagina scelta prima del risultato.
-
-### 3. Eseguire l’audit sui dati reali
-
-Il report deve mostrare:
-
-- brief valutati;
-- latest bundle per brief;
-- latest draft per bundle;
-- pagine materializzate;
-- candidate selected ed excluded;
-- blocker e warning;
-- claim scaduti o fonti inattive;
-- collisioni di slug e keyword;
-- conteggio finale.
-
-Possibili esiti:
+L’audit può produrre:
 
 ```text
 0 candidate → manifest resta vuoto
-1–4 candidate → manifest con ID/versioni reali
->4 candidate → cap a quattro, selezione motivata
+1–4 candidate → manifest con ID e versioni reali
+>4 candidate → cap a quattro
 ```
 
-Non viene generato lavoro editoriale fittizio per riempire il pilot.
+Zero candidate è un risultato valido e non blocca il nuovo design.
 
-### 4. Preparare release candidate una pagina alla volta
+### 3. Registrare il risultato remoto
 
-Soltanto dopo l’audit:
+Dopo il primo audit:
+
+- salvare soltanto il report sanitizzato necessario;
+- aggiornare `data/public-catalog-pilot.json` solo con ID reali verificati;
+- mantenere tutte le entry in `pages.status='review'`;
+- registrare blocker e warning;
+- non creare lavoro editoriale fittizio;
+- non pubblicare alcuna pagina.
+
+### 4. Aprire M5.7 — apex design cutover
+
+Il nuovo design diventa la priorità immediata dopo l’audit remoto.
+
+Branch documentale o tecnica iniziale da definire dal `main` aggiornato:
 
 ```text
-brief reale
-→ claim e fonti
-→ evidence bundle
-→ approved_for_publication
-→ grounded draft approved
-→ materialized page review
-→ manifest entry
+feat/public-apex-cutover
 ```
 
-Una release candidate resta `review`.
+Scope esclusivo:
 
-### 5. Tenere separata la pubblicazione
+```text
+activePublicRouteDecision
+current → target
+```
 
-La transizione `review → published` richiede:
+La PR deve trasferire ad Astro soltanto:
+
+- homepage canonica;
+- Destinazioni, Guide e Confronti;
+- Metodo, Trasparenza e Privacy;
+- articoli canonici;
+- sitemap, robots e 404 pubblica.
+
+Devono restare backend-owned:
+
+- `/api/*`;
+- `/go/*`;
+- Control Room nuova e legacy;
+- D1, Workflow, Container e AI;
+- gate editoriali e publication capability.
+
+### 5. Acceptance M5.7
+
+Sul medesimo head finale:
+
+- types, typecheck e build;
+- tutte le migrazioni invariate;
+- quality gate e golden evaluation;
+- Container;
+- tutte le regressioni pubbliche;
+- canonical metadata e JSON-LD;
+- sitemap e robots;
+- 404 vere;
+- provider redirect preservati;
+- pagine `review` e `draft` sempre 404;
+- pagine `published` valide servite da Astro;
+- Control Room completa;
+- confronto current/target;
+- rollback documentato.
+
+Dopo deploy verificare live:
+
+- `/`;
+- `/destinazioni`;
+- `/guide`;
+- `/confronti`;
+- trust pages;
+- almeno un articolo published;
+- `/sitemap.xml`;
+- `/robots.txt`;
+- 404;
+- `/go/*`;
+- Control Room;
+- mobile e desktop;
+- header cache e robots.
+
+### 6. Publication capability resta separata
+
+Il cutover del design non introduce:
+
+```text
+review → published
+```
+
+La prima pubblicazione richiede ancora:
 
 - autorizzazione esplicita;
 - branch mutation separata;
 - identità verificata;
-- conferma;
+- conferma umana;
 - state machine D1;
 - audit append-only;
 - idempotenza;
 - freshness recheck;
 - rollback/deindicizzazione;
 - test end-to-end.
-
-Deve essere deciso se pubblicare prima, durante o dopo M5.7.
 
 ## Checkpoint chiusi
 
@@ -134,6 +176,8 @@ PR #71  route policy — CI #329
 PR #73  canonical Astro parity — CI #350
 PR #75  sitemap/robots parity — CI #365
 PR #76  catalog pilot scope — CI #367
+PR #77  catalog pilot foundation — CI #379
+PR #78  remote audit scope — CI #381
 ```
 
 ## Track M4 parallela
@@ -144,6 +188,8 @@ conversione brief
 → decisione draft
 → eventuale retry queue
 ```
+
+M4 non blocca M5.7, ma la legacy privata resta finché serve come fallback operativo.
 
 ## Google measurement ancora bloccato
 
@@ -157,24 +203,17 @@ CMP
 → verifica dati reali
 ```
 
-## Verifiche operative aperte
-
-- header HTTP live delle preview;
-- linkage recenti Control Room nel browser reale;
-- topic-mismatch sul primo run autorizzato;
-- redirect `www → apex` definitivo;
-- nessun Workflow avviato soltanto per creare dati di test.
+M6 parte dopo il cutover e la stabilizzazione delle route canoniche.
 
 ## Freeze immediato
 
 - niente pubblicazione automatica;
-- niente endpoint o pulsante publish;
-- niente scelta anticipata di pagine;
+- niente endpoint o pulsante publish in PR #79 o M5.7;
+- niente accesso browser diretto a D1;
+- niente query SQL controllate dal client;
+- niente secret o PII in URL, payload, log o repository;
 - niente generazione massiva;
-- niente accesso browser a D1;
-- niente secret o PII nel client, URL, manifest, log o repository;
-- niente tracking o affiliazioni anticipate;
-- niente cambio della matrice attiva prima di M5.7;
-- niente sitemap submission;
-- niente cutover dell’apice;
-- nessuna rimozione legacy finché resta un fallback operativo.
+- niente analytics o affiliazioni anticipate;
+- niente sitemap submission prima del cutover verificato;
+- niente rimozione della legacy privata;
+- niente modifica di API, redirect provider o gate editoriali durante M5.7.
