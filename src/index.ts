@@ -13,13 +13,10 @@ import { pageReadinessApi } from './page-readiness';
 import { editorialDraftApi } from './editorial-draft';
 import { groundedEditorialDraftApi } from './editorial-draft-grounded';
 import { controlRoomApi, controlRoomPage, controlRoomScript } from './control-room-v3';
+import { looksLikePublicFileProbe } from './public-route-policy';
 
 export { Last30DaysContainer } from './last30days-container';
 export { RecentDemandWorkflow } from './recent-demand-workflow';
-
-function looksLikeFileProbe(path: string): boolean {
-  return /(^|\/)\.|(^|\/)[^/]+\.(?:bak|config|env|ini|js|json|log|map|php|properties|py|sql|txt|ya?ml)$/i.test(path);
-}
 
 function canonicalHostRedirect(url: URL, env: Env): Response | null {
   let canonical: URL;
@@ -84,7 +81,7 @@ export default {
       if (path.startsWith('api/maintenance/research-')) return recentDemandApi(request, env, path);
       if (path.startsWith('api/maintenance/')) return maintenanceApi(request, env, path);
       if (path.startsWith('go/')) return redirectProvider(env, request, path.slice(3));
-      if (looksLikeFileProbe(path)) return notFound(env);
+      if (looksLikePublicFileProbe(path)) return notFound(env);
       return article(env, path);
     } catch (error) {
       console.error(error);
