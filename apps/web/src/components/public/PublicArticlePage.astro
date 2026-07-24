@@ -1,7 +1,13 @@
 ---
 import type { PageCard } from '../../../../../src/types'
 import type { PublicArticle } from '../../../../../src/public-article'
-import { publicArticlePreviewPath } from '../../../../../src/public-article'
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import {
+  publicArticlePath,
+  publicHomePath,
+  publicIsPreview,
+  publicListingPath,
+} from '../../../../../src/public-render-mode'
 import { publicArticleSeo } from '../../../../../src/public-seo'
 import PublicLayout from '../../layouts/PublicLayout.astro'
 import PublicArticleBlocks from './PublicArticleBlocks.astro'
@@ -11,41 +17,52 @@ import PublicRelatedArticles from './PublicRelatedArticles.astro'
 import '../../styles/public-article.css'
 
 interface Props {
+  mode: PublicRenderMode
   article: PublicArticle
   related: PageCard[]
   siteName: string
+  affiliateEnabled: boolean
 }
 
-const { article, related, siteName } = Astro.props
-const section = article.page_type === 'destination'
-  ? { label: 'Destinazioni', href: '/astro-foundation/destinazioni' }
+const { mode, article, related, siteName, affiliateEnabled } = Astro.props
+const preview = publicIsPreview(mode)
+const sectionType = article.page_type === 'destination'
+  ? 'destination'
   : article.page_type === 'comparison'
-    ? { label: 'Confronti', href: '/astro-foundation/confronti' }
-    : { label: 'Guide', href: '/astro-foundation/guide' }
-const canonicalPath = publicArticlePreviewPath(article.slug)
+    ? 'comparison'
+    : 'guide'
+const section = {
+  label: sectionType === 'destination' ? 'Destinazioni' : sectionType === 'comparison' ? 'Confronti' : 'Guide',
+  href: publicListingPath(mode, sectionType),
+}
+const canonicalPath = publicArticlePath(mode, article.slug)
 const base = Astro.site ?? new URL(Astro.url.origin)
 const seo = publicArticleSeo(article, new URL(canonicalPath, base).toString(), siteName)
+const disclosure = affiliateEnabled
+  ? 'Alcuni link possono essere affiliati. Potremmo ricevere una commissione senza costi aggiuntivi per te; la commissione non determina automaticamente la classifica.'
+  : 'I link ai provider non sono attualmente remunerati.'
 ---
 
 <PublicLayout
+  mode={mode}
   title={seo.title}
   description={seo.description}
   canonicalPath={canonicalPath}
-  previewBase="/astro-foundation"
   siteName={siteName}
   ogType={seo.ogType}
   schema={seo.schema}
-  noindex
 >
-  <div class="preview-band" data-public-shell="astro-preview" data-public-article={article.slug}>
-    Preview Astro · non indicizzata · l’articolo pubblico attuale non cambia
-  </div>
+  {preview && (
+    <div class="preview-band" data-public-shell="astro-preview" data-public-article={article.slug}>
+      Preview Astro · non indicizzata · l’articolo pubblico attuale non cambia
+    </div>
+  )}
 
-  <article class="public-article">
+  <article class="public-article" data-public-article={article.slug} data-public-render-mode={mode}>
     <header class="article-hero">
       <div class="public-container article-hero-inner">
-        <nav class="article-breadcrumbs" aria-label="Percorso articolo preview">
-          <a href="/astro-foundation">Home preview</a>
+        <nav class="article-breadcrumbs" aria-label={preview ? 'Percorso articolo preview' : 'Percorso articolo'}>
+          <a href={publicHomePath(mode)}>{preview ? 'Home preview' : 'Home'}</a>
           <span aria-hidden="true">/</span>
           <a href={section.href}>{section.label}</a>
           <span aria-hidden="true">/</span>
@@ -73,10 +90,7 @@ const seo = publicArticleSeo(article, new URL(canonicalPath, base).toString(), s
 
         <aside class="article-disclosure" aria-label="Trasparenza">
           <strong>Trasparenza.</strong>
-          <span>
-            I link ai provider non sono attualmente remunerati. Le condizioni possono cambiare:
-            controlla sempre la fonte prima di scegliere.
-          </span>
+          <span>{disclosure} Le condizioni possono cambiare: controlla sempre la fonte prima di scegliere.</span>
         </aside>
 
         <PublicArticleBlocks blocks={article.content} />
@@ -84,13 +98,13 @@ const seo = publicArticleSeo(article, new URL(canonicalPath, base).toString(), s
       </div>
 
       <aside class="article-side-note" aria-labelledby="article-side-note-title">
-        <p class="article-side-label">Contratto della preview</p>
+        <p class="article-side-label">{preview ? 'Contratto della preview' : 'Criteri della pagina'}</p>
         <h2 id="article-side-note-title">Solo contenuto già pubblicato.</h2>
         <ul>
           <li>Nessun draft o riga in review.</li>
           <li>Nessun HTML generato viene eseguito.</li>
           <li>Le fonti non diventano test indipendenti.</li>
-          <li>La route canonica resta sul renderer corrente.</li>
+          <li>{preview ? 'La route canonica resta sul renderer corrente.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
         </ul>
       </aside>
     </div>
@@ -101,7 +115,7 @@ const seo = publicArticleSeo(article, new URL(canonicalPath, base).toString(), s
         sourceCheckedAt={article.source_checked_at}
         updatedAt={article.updated_at}
       />
-      <PublicRelatedArticles items={related} />
+      <PublicRelatedArticles mode={mode} items={related} />
     </div>
   </article>
 </PublicLayout>
