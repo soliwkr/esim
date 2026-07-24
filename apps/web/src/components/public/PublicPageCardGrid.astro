@@ -1,4 +1,6 @@
 ---
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import { publicArticlePath } from '../../../../../src/public-render-mode'
 import type { PageCard } from '../../../../../src/types'
 import '../../styles/homepage-candidate.css'
 
@@ -8,9 +10,9 @@ interface Props {
   title: string
   description: string
   items: PageCard[]
+  mode: PublicRenderMode
   emptyMessage?: string
   linkLabel?: string
-  articleBase?: string
 }
 
 const {
@@ -19,14 +21,10 @@ const {
   title,
   description,
   items,
+  mode,
   emptyMessage = 'I contenuti sono in preparazione.',
   linkLabel = 'Leggi la guida',
-  articleBase,
 } = Astro.props
-
-const articleHref = (slug: string) => articleBase
-  ? `${articleBase}/${encodeURIComponent(slug)}`
-  : `/${slug}`
 ---
 
 <section class="public-section catalog-section" aria-labelledby={`${id}-title`} data-public-catalog={id}>
@@ -44,9 +42,9 @@ const articleHref = (slug: string) => articleBase
         {items.map((item) => (
           <article class="catalog-card" data-page-type={item.page_type}>
             <p class="catalog-cluster">{item.cluster}</p>
-            <h3><a href={articleHref(item.slug)}>{item.title}</a></h3>
+            <h3><a href={publicArticlePath(mode, item.slug)}>{item.title}</a></h3>
             <p>{item.meta_description}</p>
-            <a class="catalog-link" href={articleHref(item.slug)}>{linkLabel} →</a>
+            <a class="catalog-link" href={publicArticlePath(mode, item.slug)}>{linkLabel} →</a>
           </article>
         ))}
       </div>
