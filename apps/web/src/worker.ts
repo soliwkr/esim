@@ -4,11 +4,14 @@ import { handleControlRoomBriefDecision } from '../../../src/editorial-brief-dec
 import {
   activePublicRouteDecision,
   isControlRoomFoundationPath,
+  type PublicRouteDecision,
 } from '../../../src/public-route-policy';
 import { cloudflareAccessActor, requireCloudflareAccess } from './lib/cloudflare-access';
 
 export { Last30DaysContainer } from '../../../src/last30days-container';
 export { RecentDemandWorkflow } from '../../../src/recent-demand-workflow';
+
+export type PublicRouteDecisionResolver = (pathname: string) => PublicRouteDecision;
 
 const CONTROL_ROOM_SNAPSHOT_PATH = '/control-room-foundation/api/snapshot';
 const CONTROL_ROOM_DRAFT_DETAIL_PATH = '/control-room-foundation/api/draft-detail';
@@ -94,32 +97,36 @@ async function controlRoomBriefDecision(request: Request, env: Env): Promise<Res
   }
 }
 
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const pathname = new URL(request.url).pathname;
-    const route = activePublicRouteDecision(pathname);
+export function createPublicWorker(routeDecision: PublicRouteDecisionResolver): ExportedHandler<Env> {
+  return {
+    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+      const pathname = new URL(request.url).pathname;
+      const route = routeDecision(pathname);
 
-    if (isControlRoomFoundationPath(pathname)) {
-      const accessError = await requireCloudflareAccess(request, env);
-      if (accessError) return accessError;
+      if (isControlRoomFoundationPath(pathname)) {
+        const accessError = await requireCloudflareAccess(request, env);
+        if (accessError) return accessError;
+      }
+
+      if (pathname === CONTROL_ROOM_SNAPSHOT_PATH) {
+        return controlRoomSnapshot(request, env);
+      }
+
+      if (pathname === CONTROL_ROOM_DRAFT_DETAIL_PATH) {
+        return controlRoomDraftDetail(request, env);
+      }
+
+      if (pathname === CONTROL_ROOM_BRIEF_DECISION_PATH) {
+        return controlRoomBriefDecision(request, env);
+      }
+
+      if (route.owner === 'astro') {
+        return handle(request, env, ctx);
+      }
+
+      return backendWorker.fetch(request, env);
     }
+  } satisfies ExportedHandler<Env>;
+}
 
-    if (pathname === CONTROL_ROOM_SNAPSHOT_PATH) {
-      return controlRoomSnapshot(request, env);
-    }
-
-    if (pathname === CONTROL_ROOM_DRAFT_DETAIL_PATH) {
-      return controlRoomDraftDetail(request, env);
-    }
-
-    if (pathname === CONTROL_ROOM_BRIEF_DECISION_PATH) {
-      return controlRoomBriefDecision(request, env);
-    }
-
-    if (route.owner === 'astro') {
-      return handle(request, env, ctx);
-    }
-
-    return backendWorker.fetch(request, env);
-  }
-} satisfies ExportedHandler<Env>;
+export default createPublicWorker(activePublicRouteDecision);
