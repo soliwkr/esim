@@ -17,11 +17,9 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room nuova | Operativa | parità read-only completa; prima mutation verificata in produzione |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
 | Preview Astro | Verificata in produzione | namespace noindex/no-store |
-| Renderer canonico Astro | Compilato e verificato in CI | owner live ancora backend |
-| Sitemap e robots parity | Completata | PR #75, CI finale #365 |
-| Catalog pilot foundation | Completata | PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI finale #379 |
-| Remote catalog audit | Implementazione completata | PR #79, merge `df890103310cf1591eb2d8137a8385135c665d71`, CI finale #386; verifica live aperta |
-| Nuovo design sull’apice | Non ancora live | M5.7 parte dopo il primo audit remoto riuscito |
+| Catalog pilot foundation | Completata | PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI #379 |
+| Remote catalog audit | Verificato live | 1 candidate, 0 eligible, 0 selected, 1 excluded |
+| Cutover apex Astro | Implementato sulla PR #81 | CI applicativa #397 verde; merge/deploy/verifica live aperti |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC non collegati |
 
@@ -42,14 +40,16 @@ recent demand
 
 Nessuno di questi passaggi pubblica autonomamente una pagina.
 
-Lo stato noto della pagina Cina resta:
+Lo stato remoto verificato della pagina Cina è:
 
 ```text
+slug: esim-cina-senza-vpn
+page status: review
 publication eligible: false
-materialized page: review
+ready for publication: false
 ```
 
-Non entra automaticamente nel pilot.
+Non entra nel manifest e non deve essere raggiungibile pubblicamente dopo il cutover.
 
 ## Control Room
 
@@ -61,7 +61,8 @@ Completato:
 - inventario e dettaglio draft;
 - queue e audit;
 - linkage canonici;
-- decisione brief `proposed → accepted | dismissed`.
+- decisione brief `proposed → accepted | dismissed`;
+- route privata read-only per il catalog pilot.
 
 Mutation residue:
 
@@ -74,17 +75,7 @@ conversione brief
 
 M4 non è completato e la legacy privata non può ancora essere rimossa.
 
-## Frontend pubblico Astro
-
-```text
-preview M5 ≠ cutover pubblico
-owner target ≠ owner live
-candidate ≠ release candidate ≠ published
-```
-
-Sono operative sotto `/astro-foundation` homepage, trust pages, listing e renderer articolo. Le route canoniche, `/sitemap.xml` e `/robots.txt` live restano ancora backend-owned.
-
-Parità completate:
+## M5.5 — Parità pubblica
 
 ```text
 PR #69  SEO contract
@@ -92,6 +83,8 @@ PR #71  route policy — CI #329
 PR #73  canonical Astro parity — CI #350
 PR #75  sitemap/robots parity — CI #365
 ```
+
+Homepage, listing, trust pages, articoli, sitemap, robots e 404 possiedono già implementazioni Astro canoniche verificate in CI. Preview e canonical condividono componenti e dati, ma applicano policy differenti di URL, robots e cache.
 
 ## M5.6a — Candidate audit foundation
 
@@ -128,25 +121,11 @@ Manifest corrente:
 }
 ```
 
-È deliberatamente vuoto: non sono stati inventati Paesi, provider o ID.
-
 ## M5.6b — Remote catalog audit
 
-Scope:
-
 ```text
-PR #78
-merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd
-CI #381
-```
-
-Implementazione:
-
-```text
-PR #79
-merge df890103310cf1591eb2d8137a8385135c665d71
-CI applicativa #383
-CI finale #386
+scope PR #78 — merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd — CI #381
+route PR #79 — merge df890103310cf1591eb2d8137a8385135c665d71 — CI #386
 ```
 
 Route privata:
@@ -155,67 +134,133 @@ Route privata:
 GET /control-room-foundation/api/catalog-pilot-audit
 ```
 
-Contratto:
+Contratto verificato:
 
-- protetto da Cloudflare Access e validazione JWT nell’origine;
-- D1 letto server-side;
-- riuso del loader e dell’audit M5.6a;
-- nessun maintenance token nel browser;
+- Cloudflare Access e validazione JWT nell’origine;
+- D1 letto esclusivamente server-side;
 - GET-only;
 - no-store, noindex e nosniff;
-- payload fail-closed se contiene dati secret-like;
-- nessun dump D1 o query controllata dal browser;
-- nessuna mutation o capacità di pubblicazione.
+- nessun maintenance token nel browser;
+- nessuna query SQL controllata dal client;
+- payload sanitizzato e fail-closed;
+- nessuna mutation.
 
-Lo smoke dedicato dimostra:
+### Risultato live
 
-- richiesta anonima bloccata;
-- metodo non GET respinto;
-- report valido con massimo quattro selected;
-- selected candidate ancora `review`;
-- credenziali assenti dal payload;
-- snapshot editoriale identico prima e dopo la chiamata.
-
-Non è ancora verificato che il deploy live contenga la route né è stato letto il report remoto reale.
-
-## Quando va live il nuovo design
-
-Il nuovo design va live con **M5.7**, dopo il primo audit remoto riuscito.
-
-Sequenza:
+Verificato manualmente nella sessione autenticata il 24 luglio 2026:
 
 ```text
-verifica live della route privata
-→ audit remoto reale, anche con 0 candidate
-→ PR M5.7 di cutover
-→ deploy esplicito
-→ verifica live desktop/mobile
+ok: true
+schemaVersion: 1
+generatedAt: 2026-07-24T14:10:56.556Z
+candidateCount: 1
+eligibleCount: 0
+selectedCount: 0
+excludedCount: 1
 ```
 
-Un manifest vuoto non blocca M5.7. Il renderer Astro target continua a servire esclusivamente righe `published`; tutte le pagine `review` restano invisibili.
+La candidate `esim-cina-senza-vpn` è esclusa per:
 
-La pubblicazione di nuove release candidate è una mutation separata e può avvenire dopo il cutover del design.
+- publication gate negativo;
+- bundle `approved_for_draft`, non `approved_for_publication`;
+- `ready_for_publication` disattivo;
+- un claim insufficiente;
+- un conflitto di fonte;
+- claim `4`, `5` e `9` scaduti o senza validità utilizzabile.
+
+Il risultato sanitizzato è versionato in:
+
+```text
+docs/PUBLIC-CATALOG-REMOTE-AUDIT-RESULT-2026-07-24.md
+```
+
+## M5.7 — Apex design cutover
+
+Branch e PR:
+
+```text
+feat/public-apex-cutover
+PR #81 — Cut over canonical public routes to Astro
+CI applicativa #397 completamente verde
+```
+
+### Implementato sulla branch
+
+- `activePublicRouteDecision = targetPublicRouteDecision`;
+- `run_worker_first = ["/*", "!/_astro/*"]`;
+- home, listing, trust, articoli, sitemap, robots e 404 Astro-owned;
+- `/api/*`, `/go/*`, Control Room, legacy privata e asset tecnici backend-owned;
+- `/_astro/*` servito direttamente dagli asset;
+- pagine `review` e `draft` sempre 404;
+- righe `published` soltanto;
+- canonical, Open Graph e JSON-LD indexabili;
+- preview ancora noindex/no-store;
+- provider redirect ancora no-store/noindex;
+- nessun JavaScript applicativo pubblico;
+- nessuna publication capability.
+
+### Verificato dalla CI applicativa #397
+
+- tipi Cloudflare, typecheck e build;
+- migrazioni D1 invariate;
+- quality gate e golden evaluation;
+- Container build e smoke;
+- Worker di produzione con matrice target realmente attiva;
+- homepage, listing, trust pages e articolo canonico;
+- sitemap, robots, 404 e file probe;
+- hidden state `review` e `draft`;
+- API health e maintenance;
+- redirect provider;
+- preview Astro;
+- route privata catalog audit;
+- asset `/_astro/*`;
+- desktop, mobile, tastiera e assenza overflow;
+- tutte le suite Control Room.
+
+### Rollback
+
+Il rollback di ownership è la modifica versionata:
+
+```ts
+export const activePublicRouteDecision = currentPublicRouteDecision;
+```
+
+Non esiste un flag runtime, header o query string capace di cambiare renderer.
+
+## Stato di produzione
+
+Il cutover **non è ancora dichiarato live**.
+
+```text
+codice M5.7 verificato in CI
+≠ PR mergiata
+≠ deploy completato
+≠ verifica live completata
+```
+
+La produzione corrente non viene descritta come Astro-owned finché PR #81 non è mergiata, il deploy non è terminato e le route reali non sono state controllate.
 
 ## Guardrail invariati
 
 - nessuna migration nuova;
 - nessuna transizione `review → published`;
 - nessun endpoint o pulsante publish;
-- active route matrix ancora current;
 - nessun analytics o affiliazione;
 - nessuna sitemap submission;
-- API, `/go/*` e Control Room ancora backend-owned;
-- nessuna rimozione legacy.
+- API, `/go/*` e Control Room restano backend-owned;
+- nessuna rimozione legacy in PR #81.
 
 ## Gap aperti
 
-- verificare che la route privata sia live;
-- eseguire il primo audit remoto e registrare il report;
-- aggiornare il manifest soltanto con ID reali verificati;
-- aprire PR M5.7 e cutover apex;
-- verificare live e rollback M5.7;
+- aggiornare tutti i canonici sullo stesso head PR #81;
+- CI finale code + documentazione;
+- ready e merge PR #81;
+- attendere o verificare il deploy;
+- controllo live desktop/mobile delle route canoniche;
+- controllo live metadata, JSON-LD, sitemap, robots e 404;
+- controllo live `/go/*`, API e Control Room;
+- closeout M5.7 e decisione sulla legacy pubblica;
 - publication capability separata;
-- header HTTP live delle preview;
 - topic-mismatch sul primo run autorizzato;
 - mutation M4 residue;
 - M6 measurement e Search Console.
@@ -223,7 +268,9 @@ La pubblicazione di nuove release candidate è una mutation separata e può avve
 ## Prossimo checkpoint
 
 ```text
-verifica route /control-room-foundation/api/catalog-pilot-audit
-→ report remoto
-→ M5.7 cutover del nuovo design
+canonici PR #81
+→ CI finale
+→ merge
+→ deploy
+→ verifica live del nuovo design
 ```
