@@ -4,7 +4,7 @@ Data di riferimento: **24 luglio 2026**.
 
 ## Scopo
 
-Senza Roaming è un execution project autonomo per contenuti eSIM: raccoglie domanda, conserva fonti e claim, governa il ciclo editoriale, serve pagine pubbliche e misura in futuro il passaggio verso i provider.
+Senza Roaming è un execution project autonomo per contenuti eSIM: raccoglie domanda, conserva fonti e claim, governa il ciclo editoriale, serve pagine pubbliche e misurerà il passaggio verso i provider.
 
 Non è il sistema operativo generale dello studio.
 
@@ -47,9 +47,7 @@ La migrazione frontend non riscrive l’execution plane.
 
 ### React island
 
-Usata soltanto per la Control Room:
-
-- caricamento e refresh delle risorse;
+- caricamento e refresh delle risorse private;
 - validazione runtime;
 - loading, error, partial failure e retry;
 - tabelle, filtri, form e dialog;
@@ -77,12 +75,6 @@ L’entrypoint reale è:
 
 ```text
 apps/web/src/worker.ts
-```
-
-Esporta:
-
-```text
-createPublicWorker(routeDecision)
 ```
 
 Il deploy usa:
@@ -128,21 +120,11 @@ Il cutover richiede una PR separata.
 
 ## Route policy
 
-`src/public-route-policy.ts` definisce:
-
-- owner `astro | backend`;
-- route kind;
-- current e target matrix;
-- route statiche canoniche;
-- SEO endpoint;
-- reserved path;
-- file-probe policy;
-- slug articolo validi;
-- precedenza delle route.
+`src/public-route-policy.ts` definisce owner, route kind, current/target matrix, route statiche, SEO endpoint, reserved path, file probe e slug articolo validi.
 
 Owner target, route compilata e owner live non sono equivalenti.
 
-## Renderer pubblico
+## Renderer e read model pubblico
 
 I componenti condividono:
 
@@ -150,156 +132,31 @@ I componenti condividono:
 preview | canonical
 ```
 
-### Preview
-
-- namespace `/astro-foundation`;
-- noindex e no-store;
-- banner di isolamento;
-- link interni namespaced;
-- esclusione dalla sitemap.
-
-### Canonical
-
-- URL apex;
-- link interni canonici;
-- robots indicizzabili sulle risposte valide;
-- cache pubblica;
-- nessun copy preview.
-
-Le route canoniche Astro sono compilate e testate, ma non ancora live-owned.
-
-## Read model pubblico
-
 D1 viene letto soltanto server-side.
 
 Contratti:
 
 - righe `published` soltanto;
 - ordine deterministico;
-- limiti espliciti;
 - validazione runtime;
 - 404 per assente, `review` e `draft`;
 - fail-closed per righe published invalide;
 - related links published-only;
 - nessun dato operativo interno esposto.
 
-## Contratto SEO delle pagine
+## Contratti SEO
 
-`src/public-seo.ts` produce:
+### Pagine
 
-- title;
-- description;
-- Open Graph;
-- `WebSite`;
-- `Article`;
-- `FAQPage`;
-- JSON-LD sicuro.
-
-Canonical URL, `mainEntityOfPage`, robots e cache dipendono dalla route owner.
-
-## Contratto sitemap e robots
-
-M5.5b.3 introduce il modulo server-only:
-
-```text
-src/public-seo-endpoints.ts
-```
-
-Usato da:
-
-```text
-backend legacy
-apps/web/src/pages/sitemap.xml.ts
-apps/web/src/pages/robots.txt.ts
-```
-
-### Sitemap
-
-- route statiche da `PUBLIC_CANONICAL_STATIC_PATHS`;
-- query `pages.status='published'`;
-- statiche prima, dinamiche per slug ASC;
-- `lastmod` soltanto sulle pagine D1;
-- validazione del canonical site base HTTPS;
-- validazione slug e date;
-- controllo duplicati e limite URL;
-- escaping XML dedicato;
-- nessun documento parziale in caso di errore.
-
-Esclusi:
-
-- preview;
-- review, draft e archived;
-- 404;
-- API;
-- Control Room;
-- `/go/*`;
-- asset tecnici.
-
-### Robots
-
-Documento canonico corrente:
-
-```text
-User-agent: *
-Allow: /
-Disallow: /go/
-Disallow: /control-room
-Disallow: /api/maintenance/
-Sitemap: https://senzaroaming.it/sitemap.xml
-```
-
-Il newline finale è deterministico.
-
-### Confine Worker→Astro
-
-Quando una route `seo-endpoint` è Astro-owned in uno smoke o in una futura matrice, il Worker ricostruisce il request con la pathname normalizzata della route decision prima di chiamare Astro.
-
-Questo garantisce parità per trailing slash e query string. Non cambia il runtime live corrente, perché sitemap e robots restano backend-owned.
-
-## Test di parità senza switch live
-
-Gli smoke generano wrapper e configurazioni temporanei.
-
-### Canonical renderer
-
-Astro possiede soltanto:
-
-```text
-canonical-static
-canonical-article
-public-404
-```
+`src/public-seo.ts` produce metadata, Open Graph e JSON-LD condivisi.
 
 ### Sitemap e robots
 
-Astro possiede soltanto:
+`src/public-seo-endpoints.ts` produce sitemap e robots condivisi tra legacy e Astro.
 
-```text
-seo-endpoint
-```
+PR #75 è mergiata nel commit `8d52e7e316d632dcda0d5bb45b818a490df9fef6` dopo CI finale #365 completamente verde.
 
-Tutto il resto conserva la current matrix.
-
-Stati verificati:
-
-- populated;
-- empty;
-- invalid.
-
-Confronti:
-
-- status;
-- content type;
-- cache;
-- body;
-- GET e HEAD;
-- query string;
-- trailing slash;
-- ordering e `lastmod`;
-- esclusioni;
-- fallimento chiuso.
-
-I wrapper, le configurazioni e lo stato D1 locale vengono eliminati dopo il test.
+Ownership live ancora backend.
 
 ## Control Room privata
 
@@ -322,30 +179,6 @@ Conseguenze:
 - state machine e audit in D1;
 - nessuna capacità di pubblicazione implicita.
 
-## Risorse Control Room
-
-### Snapshot e health
-
-- `GET /api/health`;
-- `GET /control-room-foundation/api/snapshot`.
-
-Le risorse sono validate e gestite in modo indipendente.
-
-### Dettaglio draft
-
-- caricato on demand;
-- corpo, FAQ, fonti e provenance separati dallo snapshot;
-- fallimento isolato;
-- nessuna generazione o pubblicazione.
-
-### Decisione brief
-
-```text
-proposed → accepted | dismissed
-```
-
-Il browser invia soltanto ID, azione e note. L’attore deriva dall’identità Access. `accepted → converted` resta una mutation separata.
-
 ## Flusso editoriale
 
 ```text
@@ -362,6 +195,148 @@ recent demand
 
 L’AI non possiede un percorso diretto verso `published`.
 
+## Stato e gate persistiti
+
+### Evidence bundle
+
+Distingue:
+
+```text
+review_draft_eligible
+publication_eligible
+ready_for_review_draft
+ready_for_publication
+review_status
+```
+
+`publication_eligible` è deterministico. `ready_for_publication` richiede anche `approved_for_publication` umano.
+
+### Draft
+
+Distingue:
+
+```text
+generating
+review
+changes_requested
+approved
+failed
+superseded
+```
+
+Un draft approvato non modifica automaticamente la pagina in `published`.
+
+### Pagina
+
+Distingue:
+
+```text
+draft
+review
+published
+archived
+```
+
+La generazione grounded materializza soltanto `review` e protegge pagine già `published`.
+
+## Catalogo pilot M5.6
+
+Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
+
+### Distinzioni
+
+```text
+candidate
+≠ release candidate
+≠ published page
+```
+
+- candidate: possibile entry individuata dall’audit;
+- release candidate: bundle e draft approvati, pagina coerente ancora in `review`;
+- published: pagina visibile pubblicamente e inclusa nella sitemap.
+
+### Ragione del confine
+
+Il backend live serve già ogni riga `pages.status='published'`. Non esiste ancora una mutation autorizzata `review → published`.
+
+La foundation M5.6 deve quindi essere read-only: auditare e certificare release candidate senza modificare lo stato pubblico.
+
+### Candidate audit foundation
+
+Branch tecnica proposta:
+
+```text
+feat/public-catalog-pilot-foundation
+```
+
+Architettura:
+
+```text
+D1 fixtures / snapshot editoriale
+→ server-only candidate model
+→ latest bundle + draft selection
+→ deterministic gate validation
+→ slug and intent collision checks
+→ candidate report
+→ versioned manifest, max 4
+```
+
+Fonti dati:
+
+- `editorial_briefs`;
+- `page_evidence_bundles`;
+- `editorial_review_drafts`;
+- `editorial_review_draft_field_claims`;
+- `pages`;
+- claim, verification e source registry.
+
+### Gate release candidate
+
+- latest bundle non superseded;
+- `publication_eligible=1`;
+- `approved_for_publication`;
+- `ready_for_publication=1`;
+- zero blocker, insufficient, contradicted, pending, expired e conflict;
+- draft grounded approvato sullo stesso bundle;
+- provenance completa;
+- claim usati ancora correnti;
+- pagina materializzata in `review` e identica al draft;
+- `published_at=NULL` e `featured=0`;
+- slug valido e non riservato;
+- intento distinto;
+- nessuna pagina published sovrascritta.
+
+### Manifest
+
+Proposta:
+
+```text
+data/public-catalog-pilot.json
+```
+
+Contiene massimo quattro entry e collega slug, intento, brief, bundle, draft, claim e fonti.
+
+Il manifest è un artefatto di audit, non un trigger di pubblicazione.
+
+### Empty state
+
+Zero release candidate è un risultato valido. Il sistema deve produrre blocker espliciti senza generare dati fittizi.
+
+### Publication boundary
+
+M5.6a non introduce:
+
+- mutation D1;
+- endpoint publish;
+- pulsante publish;
+- cambio di route ownership;
+- deploy;
+- sitemap submission.
+
+La prima transizione `review → published` richiede branch e autorizzazione separate, recheck di freshness, state machine, audit, idempotenza e rollback.
+
+L’ordine tra pubblicazione e M5.7 viene deciso soltanto quando esistono release candidate reali.
+
 ## Separazione delle fonti
 
 ### Fonti ufficiali
@@ -377,30 +352,41 @@ Usate per domande, linguaggio, lamentele, confronti, content gap e priorità. No
 ```text
 M5.5b.1 route policy:        completata
 M5.5b.2 canonical parity:    completata
-M5.5b.3 SEO endpoint parity: CI applicativa #359 verde, PR #75 da chiudere
+M5.5b.3 SEO endpoint parity: completata
+M5.6 catalog pilot:          scope in corso
 active matrix:               current
 cutover:                     non eseguito
+publication mutation:        non autorizzata
 ```
 
 ## Confini delle prossime fasi
 
-### M5.6 catalogo pilot
+### M5.6a
 
-- scope documentale prima del codice;
-- massimo iniziale ristretto;
-- intenti distinti;
-- evidence e publication eligibility;
-- revisione umana;
-- nessuna generazione massiva.
+- audit read-only;
+- manifest massimo quattro entry;
+- fixtures e smoke;
+- nessuna pubblicazione.
 
-### M5.7 cutover
+### M5.6b
 
-- PR dedicata;
+- preparazione reale una pagina alla volta;
+- bundle e draft approvati;
+- pagine ancora `review`.
+
+### Publication decision
+
+- branch separata;
+- autorizzazione esplicita;
+- audit e rollback.
+
+### M5.7
+
 - modifica minima della matrice;
 - rollback documentato;
 - schema, sitemap, robots e 404 verificati;
 - provider redirect e publication guardrails preservati.
 
-### M6 measurement
+### M6
 
 CMP e Consent Mode precedono GTM, GA4 e Search Console. Nessuna credenziale Google entra nel repository o nel frontend.

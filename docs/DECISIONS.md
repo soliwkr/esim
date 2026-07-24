@@ -10,7 +10,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** usare Worker, D1, Workflows, Containers e AI Gateway come piattaforma operativa principale.
 
-**Conseguenza:** ogni nuova capacità viene valutata prima per compatibilità Cloudflare, isolamento dei guasti e riproducibilità.
+**Conseguenza:** ogni nuova capacità viene valutata per compatibilità Cloudflare, isolamento dei guasti e riproducibilità.
 
 ## ADR-002 — Nessuna pubblicazione autonoma dell’AI
 
@@ -48,7 +48,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Stato:** accettata come direzione, fuori dallo scope immediato.
 
-**Decisione:** il futuro control plane dello studio resta un progetto separato.
+**Decisione:** il control plane dello studio resta un progetto separato.
 
 **Conseguenza:** `soliwkr/esim` non diventa il sistema operativo generale dello studio.
 
@@ -58,7 +58,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** keyword intelligence, rank tracking e audit SEO restano un servizio separato e riutilizzabile.
 
-**Conseguenza:** Senza Roaming riceve dati o task tramite integrazioni, senza incorporare quel prodotto.
+**Conseguenza:** Senza Roaming riceve dati o task tramite integrazioni senza incorporare quel prodotto.
 
 ## ADR-008 — GitHub come memoria canonica
 
@@ -144,7 +144,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Stato:** accettata.
 
-**Decisione:** payload health, snapshot e risorse on-demand vengono validati a runtime e gestiti separatamente.
+**Decisione:** health, snapshot e risorse on-demand vengono validati a runtime e gestiti separatamente.
 
 **Conseguenza:** un guasto parziale non cancella dati validi delle altre risorse.
 
@@ -186,7 +186,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** la parità read-only si misura su dati, relazioni, guardrail e capacità di ispezione, non sul template HTML legacy.
 
-**Conseguenza:** la preview visuale appartiene al renderer pubblico Astro e la legacy resta solo finché serve come fallback operativo.
+**Conseguenza:** la preview visuale appartiene al renderer pubblico Astro e la legacy resta soltanto finché serve come fallback operativo.
 
 ## ADR-024 — Identità audit e linkage draft da relazioni canoniche
 
@@ -238,22 +238,39 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-030 — Sitemap e robots condivisi prima del trasferimento di ownership
 
-**Stato:** accettata e verificata dalla CI applicativa #359 su PR #75; merge ancora pendente.
+**Stato:** accettata e verificata con PR #75.
 
 **Decisione:** query, validazione, XML, robots e response contract vivono in `src/public-seo-endpoints.ts`, condiviso da backend legacy e handler Astro.
 
-**Razionale:** duplicare lista statica, query D1, serializzazione e direttive crawler avrebbe creato drift prima del cutover.
+**Conseguenza:**
+
+- route statiche dalla route policy;
+- pagine `published` soltanto;
+- origin, slug, date, duplicati e limite URL validati;
+- XML e robots deterministici;
+- fallimento chiuso senza documento parziale;
+- populated, empty e invalid state confrontati;
+- GET, HEAD, query string e trailing slash coerenti;
+- runtime live ancora backend-owned;
+- PR #75 mergiata in `8d52e7e316d632dcda0d5bb45b818a490df9fef6` dopo CI finale #365 verde.
+
+## ADR-031 — Catalogo pilot come release candidate, non come pubblicazione implicita
+
+**Stato:** accettata come scope M5.6; implementazione non avviata.
+
+**Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con un massimo di quattro release candidate. Una release candidate deve avere latest evidence bundle idoneo e approvato per pubblicazione, draft grounded approvato, provenance completa e pagina materializzata coerente, ma resta `pages.status='review'`.
+
+**Razionale:** oggi il renderer backend live serve qualsiasi riga `published`, mentre non esiste ancora una mutation di pubblicazione autorizzata. Inserire `review → published` nella stessa branch dell’audit renderebbe possibile esporre contenuti reali prima della decisione sul cutover e confonderebbe certificazione editoriale con rilascio pubblico.
 
 **Conseguenza:**
 
-- le route statiche derivano da `PUBLIC_CANONICAL_STATIC_PATHS`;
-- soltanto pagine `published` entrano nella sitemap;
-- origin, slug, date, duplicati e limite URL vengono validati;
-- XML e robots sono deterministici;
-- una riga published invalida produce errore generico e nessun documento parziale;
-- legacy e Astro sono confrontati su populated, empty e invalid state;
-- GET, HEAD, query string e trailing slash sono coerenti;
-- il Worker normalizza la pathname soltanto quando un `seo-endpoint` è Astro-owned;
-- il deploy normale resta `createPublicWorker(activePublicRouteDecision)`;
-- `/sitemap.xml` e `/robots.txt` live restano backend-owned;
-- nessun sitemap index, invio Search Console, analytics, affiliazione, mutation D1, pubblicazione o cutover viene introdotto.
+- candidate, release candidate e published sono stati distinti;
+- il pilot contiene da zero a quattro entry e può chiudersi vuoto;
+- Paesi, dispositivi e provider non vengono scelti prima dell’audit reale;
+- il manifest collega slug, intento, brief, bundle, draft, claim e fonti;
+- latest version, freshness, publication eligibility, approvazioni umane e coerenza draft/pagina sono obbligatorie;
+- collisioni di slug, route o intento bloccano l’entry;
+- la pagina Cina non entra automaticamente perché lo stato noto resta `publication_eligible=false`;
+- la foundation non modifica D1, non pubblica, non aggiunge endpoint publish e non fa deploy;
+- la prima transizione `review → published` richiede branch, autorizzazione, state machine, audit, idempotenza, recheck freshness e rollback separati;
+- l’ordine tra prima pubblicazione e M5.7 viene deciso soltanto quando esistono release candidate reali.
