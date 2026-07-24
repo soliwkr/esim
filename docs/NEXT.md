@@ -6,63 +6,31 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Chiudere la PR documentale M5.5a → M5.5b
+### 1. Chiudere la route policy foundation
 
-Branch:
-
-```text
-docs/public-seo-routing-ownership-scope
-```
-
-Obiettivi:
-
-- registrare il checkpoint live della homepage SEO;
-- registrare il checkpoint live dell’articolo SEO;
-- dichiarare M5.5a completata;
-- documentare l’ownership corrente delle route;
-- definire l’ownership target;
-- autorizzare soltanto la foundation della route policy.
-
-Scope canonico:
-
-```text
-docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md
-```
-
-La PR è documentale. Non modifica runtime, routing, D1 o deploy pubblico oltre al normale deploy dei soli documenti non serviti dal sito.
-
-### 2. Implementare la route policy foundation
-
-Branch autorizzata dopo il merge dello scope:
+Branch e PR:
 
 ```text
 feat/public-route-policy-foundation
+PR #71 — Add typed public route ownership policy
 ```
 
-Obiettivo esclusivo:
+Stato verificato:
 
-```text
-current route ownership
-+ target route ownership
-→ typed route matrix
-→ custom Worker uses current matrix
-→ zero live ownership changes
-```
-
-Implementare:
-
-- modulo server-only tipizzato per categorie e owner;
-- route statiche canoniche esplicite;
-- namespace preview esplicito;
-- namespace Control Room esplicito;
-- API e provider redirect backend-owned;
-- reserved path set condiviso;
+- matrice current/target tipizzata;
+- categorie e precedenza esplicite;
+- namespace preview e Control Room espliciti;
+- API e provider redirect permanentemente backend-owned;
+- reserved paths condivisi;
 - file-probe policy condivisa;
-- precedenza del router verificabile;
-- matrice corrente separata dalla matrice target;
-- smoke dedicato.
+- slug articolo single-segment validato;
+- custom Worker collegato a `activePublicRouteDecision`;
+- export attivo fissato alla matrice corrente;
+- smoke route policy incluso nel runtime;
+- CI applicativa #323 completamente verde;
+- nessuna route live ha cambiato owner.
 
-La matrice attiva deve continuare a produrre:
+Ownership attiva:
 
 ```text
 Astro:
@@ -83,117 +51,113 @@ Backend:
   /go/*
   /api/*
   /control-room
+  asset tecnici e 404
 ```
 
-### 3. Acceptance della route policy foundation
+Prima del merge richiedere ancora:
 
-Richiesto prima del merge:
+- CI verde sul head finale con codice e canonici;
+- PR pronta per review;
+- merge senza modificare la matrice attiva.
 
-- generazione tipi Cloudflare;
-- typecheck TypeScript e Astro;
-- build Astro e custom Worker;
-- migrazioni D1;
-- quality smoke e golden evaluation;
-- Container build e smoke;
-- runtime Astro/backend;
-- smoke pubblici esistenti;
-- smoke SEO;
-- nuovo smoke route policy;
-- tutte le suite Control Room.
+### 2. Aprire lo scope della canonical Astro parity
 
-Regressioni obbligatorie:
+Branch documentale proposta dopo il merge di PR #71:
 
-- `/` ancora backend-owned;
-- listing canonici ancora backend-owned;
-- trust canoniche ancora backend-owned;
-- `/{slug}` ancora backend-owned;
-- sitemap e robots ancora backend-owned;
-- `/go/*` mai intercettato da Astro;
-- `/api/*` mai intercettato da Astro;
-- preview ancora Astro-owned;
-- Control Room foundation ancora Astro-owned e protetta;
-- file probe e route riservate non diventano articoli;
-- nessuna route di pubblicazione.
+```text
+docs/public-canonical-astro-parity-scope
+```
 
-### 4. Preparare le slice successive, ma non implementarle insieme
+Obiettivo esclusivo:
 
-Dopo la route policy foundation:
+```text
+Astro canonical routes compiled
++ renderer tested directly
++ active owner still backend
+```
+
+La discovery deve decidere con precisione:
+
+- route file Astro canonici da aggiungere;
+- parametrizzazione preview/canonical di layout, header, footer, homepage, listing, trust e articolo;
+- modalità di test del renderer Astro canonico senza flag runtime e senza servire traffico live;
+- internal linking canonicale;
+- 404 pubblica Astro e fallback articolo;
+- reserved paths e file probe;
+- parità di title, description, Open Graph e JSON-LD;
+- parità di published-only, empty state, related links e fail-closed;
+- test desktop, mobile, tastiera e overflow;
+- rollback e confine con la successiva parity sitemap/robots.
+
+La PR di scope non modifica runtime.
+
+### 3. Implementare M5.5b.2 soltanto dopo lo scope
+
+Branch tecnica da autorizzare nello scope, non ancora aperta:
+
+```text
+feat/public-canonical-astro-parity
+```
+
+Vincoli previsti:
+
+- route canoniche Astro compilate;
+- custom Worker continua a usare la matrice corrente;
+- richieste live canoniche continuano al backend;
+- nessun nuovo namespace pubblico indicizzabile;
+- nessuna route di pubblicazione;
+- nessuna migrazione D1;
+- sitemap, robots e `/go/*` invariati;
+- nessun tracking o affiliazione.
+
+Acceptance prevista:
+
+- typecheck e build;
+- D1 e quality suite;
+- Container;
+- runtime pubblico;
+- route policy smoke;
+- SEO drift smoke;
+- test diretto delle route Astro canoniche;
+- tutte le suite Control Room;
+- prova che owner attivo e risposte live restano legacy.
+
+### 4. Tenere separate le fasi successive
 
 ```text
 M5.5b.2 canonical Astro parity
-→ M5.5b.3 sitemap/robots/404 parity
+→ M5.5b.3 sitemap/robots/404 endpoint parity
 → M5.6 catalog pilot
 → M5.7 cutover separato
 ```
 
-#### Canonical Astro parity
+Il cutover richiederà una PR dedicata e una modifica minima e reversibile di `activePublicRouteDecision`.
 
-PR separata:
+## Checkpoint chiusi
 
-- componenti parametrizzati per preview o canonical;
-- route canonicali Astro compilate e testate;
-- internal link canonicali;
-- published-only e 404;
-- nessuna attivazione live.
+### M5.5a — SEO contract
 
-#### SEO endpoint parity
+PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106`.
 
-PR separata:
+Verificati dalla CI e nel sorgente live:
 
-- builder condiviso sitemap e robots;
-- handler Astro testati;
-- output semantico equivalente;
-- ownership live ancora legacy.
-
-#### Cutover
-
-Il cutover non appartiene a M5.5b.1.
-
-Richiederà:
-
-- PR dedicata;
-- autorizzazione esplicita;
-- modifica minima della route matrix attiva;
-- smoke live;
-- rollback immediato verso il backend legacy.
-
-## Checkpoint M5.5a chiuso
-
-PR #69:
-
-```text
-Add shared public SEO contract foundation
-merge 46f1d66a591dd7860c101c86cb8295d97e4a2106
-```
-
-Verificato dalla CI:
-
-- contratto SEO tipizzato condiviso;
-- title, description e Open Graph;
+- title, description e Open Graph condivisi;
 - `WebSite`, `Article` e `FAQPage`;
+- canonical route-specific;
+- homepage e articolo preview noindex e self-canonical;
 - serializer JSON-LD sicuro;
-- drift legacy/Astro;
-- sitemap, robots, provider redirect e 404;
-- nessun JavaScript applicativo pubblico;
-- tutte le regressioni Control Room.
+- nessun JavaScript applicativo pubblico.
 
-Verificato nel sorgente live della homepage:
+### M5.5b.1 — Route policy
 
-- noindex,nofollow;
-- canonical `/astro-foundation`;
-- `og:type=website`;
-- `WebSite` JSON-LD.
+Verificati dalla CI #323:
 
-Verificato nel sorgente live dell’articolo `migliore-esim`:
-
-- canonical namespaced;
-- `og:type=article`;
-- `Article` JSON-LD;
-- `FAQPage` JSON-LD;
-- `mainEntityOfPage` preview;
-- autore Organization e data modificata.
-
-Gli header HTTP live `X-Robots-Tag` e `Cache-Control: no-store` restano una verifica operativa separata; sono coperti dalla CI.
+- active matrix uguale alla current matrix;
+- target matrix inattiva;
+- canonical, sitemap, robots, API e provider redirect ancora backend-owned;
+- preview e nuova Control Room ancora Astro-owned;
+- file probe e reserved paths non diventano articoli;
+- tutte le regressioni pubbliche e private verdi.
 
 ## Track M4 parallela
 
@@ -244,15 +208,12 @@ Regole:
 
 ```text
 SEO contract parity ≠ route cutover
-route policy target ≠ owner live
+route target ≠ owner live
 canonical Astro compiled ≠ canonical Astro served
 homepage candidata ≠ apice migrato
-listing preview ≠ listing canonico migrato
-article preview ≠ articolo canonico migrato
 published row ≠ review row
 progressi M5 ≠ M4 completato
 GA4/GTM creati ≠ tracking attivo
-service account creato ≠ credenziale configurata
 approved draft ≠ published page
 CI verde ≠ verifica live
 JSON-LD ≠ JavaScript applicativo
@@ -265,7 +226,7 @@ JSON-LD ≠ JavaScript applicativo
 - niente pubblicazione automatica;
 - niente secret o PII nel client, URL, storage, log o repository;
 - niente affiliazioni o tracking anticipati;
-- niente cambio live di route canoniche nella route policy foundation;
+- niente cambio della matrice attiva prima di M5.7;
 - niente migrazione live di sitemap, robots o provider redirect;
 - niente cutover dell’apice;
 - nessuna rimozione legacy finché resta un fallback operativo.

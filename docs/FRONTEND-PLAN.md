@@ -26,13 +26,11 @@ Custom Cloudflare Worker
 └── gate editoriali e di pubblicazione
 ```
 
-Il backend non viene riscritto come parte della migrazione frontend. Le estensioni server-side sono limitate a contratti espliciti e restano nello stesso execution plane.
-
-M5 pubblico procede in parallelo alle mutation M4 residue secondo `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
+Il backend non viene riscritto come parte della migrazione frontend. M5 pubblico procede in parallelo alle mutation M4 residue secondo `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
 
 ## Principio operativo
 
-Non si costruiscono da zero componenti generici già risolti dall’ecosistema.
+Non si ricostruiscono primitive generiche già risolte da librerie mature.
 
 Da riusare:
 
@@ -51,9 +49,7 @@ Da scrivere nel progetto:
 - route ownership e fallback fail-closed;
 - test end-to-end delle operazioni e delle route pubbliche.
 
-## Stack
-
-### Operativo
+## Stack operativo
 
 - Astro come frontend principale;
 - adapter Cloudflare;
@@ -65,43 +61,37 @@ Da scrivere nel progetto:
 - validazione runtime dei payload;
 - smoke D1, `workerd` e Chromium.
 
-### Da adottare soltanto quando serve
-
-- TanStack Query per cache, retry e mutation più numerose;
-- TanStack Table per dataset operativi più grandi;
-- React Hook Form per form articolati;
-- Zod se i contratti condivisi richiedono una libreria dedicata.
-
-Una libreria viene aggiunta soltanto quando riduce complessità reale.
+TanStack Query, TanStack Table, React Hook Form e Zod vengono aggiunti soltanto quando riducono complessità reale.
 
 ## Integrazione Cloudflare
-
-Il progetto usa un singolo Worker:
 
 ```text
 richiesta
 → custom Worker entrypoint
-→ route policy e precedenza
+→ activePublicRouteDecision
 → Access guard per /control-room-foundation*
-→ handler Astro per route possedute da Astro
-→ router backend per route possedute dal backend
+→ handler Astro per route Astro-owned
+→ router backend per route backend-owned
 ```
 
-Stato live corrente:
+### Matrice attiva
 
 ```text
-Astro owner:
+Astro:
   /astro-foundation*
   /control-room-foundation*
 
-Backend owner:
-  tutte le route canoniche
+Backend:
+  route canoniche
   sitemap e robots
   provider redirect
   API ed execution plane
+  legacy Control Room
+  asset tecnici
+  articolo fallback e 404
 ```
 
-Owner target, non ancora attivo:
+### Matrice target, non attiva
 
 ```text
 Astro:
@@ -123,7 +113,7 @@ Il contratto è documentato in `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md`.
 apps/
   web/                 # Astro, React island e componenti pubblici/Control Room
 
-src/                   # backend, read model condivisi ed execution plane
+src/                   # backend, route policy, read model ed execution plane
 migrations/
 containers/
 scripts/
@@ -142,8 +132,9 @@ mutation operative una per branch
 Track B — frontend pubblico M5
 preview noindex
 → contratto SEO condiviso
-→ route ownership foundation
+→ route policy foundation
 → canonical parity sotto test
+→ SEO endpoint parity
 → catalogo pilot
 → cutover apex separato
 ```
@@ -156,6 +147,7 @@ Regole:
 - M5 non cambia gli stati editoriali;
 - M4 non viene dichiarato completo perché esiste una preview pubblica;
 - owner target non equivale a owner live;
+- canonical Astro compilato non equivale a canonical Astro servito;
 - la legacy Control Room e il renderer pubblico legacy hanno exit criteria separati.
 
 ## Fasi Control Room
@@ -186,39 +178,9 @@ Regole:
 
 ### F3 — Migrare la Control Room
 
-#### Letture e parità
+Letture e parità completate con PR #32, #34, #37, #39, #40, #42, #44, #47, #49, #50 e #52.
 
-Completati:
-
-1. overview e health — PR #32;
-2. radar e brief — PR #34;
-3. claim, fonti e scadenze — PR #37;
-4. readiness ed evidence bundle — PR #39 + #40;
-5. draft e decisioni read-only — PR #42;
-6. queue e audit — PR #44;
-7. dettaglio draft completo — PR #47;
-8. audit parità legacy — PR #49;
-9. linkage claim → task — PR #50;
-10. linkage audit → versione draft — PR #52.
-
-Non restano gap read-only noti in CI.
-
-#### Azioni operative
-
-Regola:
-
-```text
-una capacità mutabile
-→ una branch
-→ una route privata
-→ conferma esplicita
-→ state machine server-side
-→ audit persistito
-→ reload dello stato
-→ test end-to-end
-```
-
-Ordine:
+Mutation:
 
 ```text
 decisione brief
@@ -238,7 +200,7 @@ proposed → accepted | dismissed
 
 ## F4 — Migrare il sito pubblico
 
-**Stato: M5.0–M5.5a concluse; M5.5b route ownership in avvio; nessuna route canonica migrata.**
+**Stato: M5.0–M5.5a concluse; M5.5b.1 completata in CI; nessuna route canonica migrata.**
 
 ### F4.0 — Shell pubblico preview
 
@@ -260,9 +222,7 @@ proposed → accepted | dismissed
 ### F4.2 — Homepage e listing
 
 - [x] homepage candidata;
-- [x] Destinazioni preview;
-- [x] Guide preview;
-- [x] Confronti preview;
+- [x] Destinazioni, Guide e Confronti preview;
 - [x] read model published-only condiviso;
 - [x] internal linking deterministico;
 - [x] route matrix dei listing e fail-fast;
@@ -273,8 +233,7 @@ proposed → accepted | dismissed
 - [x] `/astro-foundation/articoli/[slug]`;
 - [x] published-only;
 - [x] read model condiviso;
-- [x] blocchi strutturati;
-- [x] FAQ native;
+- [x] blocchi strutturati e FAQ native;
 - [x] fonti HTTPS e provenance pubblica;
 - [x] dati operativi interni esclusi;
 - [x] related links deterministici;
@@ -287,8 +246,7 @@ proposed → accepted | dismissed
 #### F4.4a — Contratto SEO condiviso
 
 - [x] `src/public-seo.ts`;
-- [x] title e description condivisi;
-- [x] Open Graph condiviso;
+- [x] title, description e Open Graph condivisi;
 - [x] `WebSite`, `Article` e `FAQPage`;
 - [x] serializer JSON-LD sicuro;
 - [x] canonical e robots route-specific;
@@ -296,41 +254,46 @@ proposed → accepted | dismissed
 - [x] PR #69 mergiata;
 - [x] homepage e articolo verificati nel sorgente live.
 
-#### F4.4b — Routing e ownership
+#### F4.4b.1 — Route policy foundation
 
-Scope:
-
-```text
-docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md
-```
-
-##### Route policy foundation
-
-Branch:
+Branch e PR:
 
 ```text
 feat/public-route-policy-foundation
+PR #71
 ```
 
-- [ ] matrice current/target tipizzata;
-- [ ] precedenza esplicita;
-- [ ] reserved paths e file-probe policy;
-- [ ] custom Worker usa la matrice corrente;
-- [ ] nessun cambio live;
-- [ ] smoke dedicato;
-- [ ] CI completa.
+- [x] `src/public-route-policy.ts`;
+- [x] owner e route kind tipizzati;
+- [x] current/target matrix separate;
+- [x] export attivo fissato alla current matrix;
+- [x] reserved paths e file-probe policy condivisi;
+- [x] validazione slug articolo single-segment;
+- [x] custom Worker usa la matrice attiva;
+- [x] nessun cambio live;
+- [x] smoke dedicato;
+- [x] CI applicativa #323 completamente verde.
 
-##### Canonical Astro parity
+#### F4.4b.2 — Canonical Astro parity
 
-PR separata:
+Prima del codice serve lo scope:
 
-- [ ] componenti preview/canonical;
-- [ ] route Astro canoniche compilate e testate;
-- [ ] internal link canonicali;
-- [ ] 404 Astro;
-- [ ] owner live ancora legacy.
+```text
+docs/public-canonical-astro-parity-scope
+```
 
-##### SEO endpoint parity
+Da definire:
+
+- componenti preview/canonical;
+- route Astro canoniche compilate;
+- test diretto del renderer senza cambiare owner live;
+- internal link canonicali;
+- 404 Astro;
+- published-only, fail-closed e reserved path;
+- parità visuale, accessibile e SEO;
+- owner live ancora legacy.
+
+#### F4.4b.3 — SEO endpoint parity
 
 PR separata:
 
@@ -363,7 +326,7 @@ Richiede:
 
 ### F5 — Hardening
 
-- eliminare renderer HTML, CSS e JavaScript manuali soltanto dopo il cutover verificato;
+- eliminare renderer manuali soltanto dopo il cutover verificato;
 - ridurre codice duplicato;
 - test visuali e browser smoke;
 - budget performance;
@@ -378,8 +341,8 @@ Richiede:
 - nessun componente introduce pubblicazione automatica;
 - claim, bundle e stati editoriali non vengono ricalcolati nel client;
 - una mutation non abilita implicitamente la successiva;
-- una route target non diventa live senza PR di cutover;
-- API e provider redirect non vengono intercettati da un catch-all Astro;
+- la matrice target non diventa attiva senza PR di cutover;
+- API e provider redirect non vengono intercettati da Astro;
 - file probe e route riservate non diventano articoli;
 - M5 preview non equivale a public cutover;
 - la legacy Control Room non viene rimossa finché resta fallback delle mutation;
@@ -396,6 +359,6 @@ Richiede:
 - duplicare query D1 già coperte;
 - copiare il renderer HTML legacy;
 - attivare milioni di URL programmatici;
-- cambiare l’owner live nella route policy foundation;
-- usare flag runtime nascosti per scegliere il renderer;
+- cambiare `activePublicRouteDecision` prima di M5.7;
+- usare flag runtime nascosti o parametri URL per scegliere il renderer;
 - rimuovere una legacy prima del relativo criterio di uscita.
