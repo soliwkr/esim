@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers'
 import PublicFooter from '../components/public/PublicFooter.astro'
 import PublicHeader from '../components/public/PublicHeader.astro'
 import { setPublicResponseHeaders } from '../lib/public-response'
@@ -6,6 +7,12 @@ import type { PublicRenderMode } from '../../../../src/public-render-mode'
 import { publicIsPreview } from '../../../../src/public-render-mode'
 import type { PublicJsonLdDocument, PublicOpenGraphType } from '../../../../src/public-seo'
 import { serializeJsonLd } from '../../../../src/public-seo'
+import {
+  IUBENDA_SCRIPT_URL,
+  iubendaAutoblockingUrl,
+  resolvePublicConsentConfig,
+  serializeIubendaBootstrap,
+} from '../../../../src/public-consent'
 import '../styles/public.css'
 
 interface Props {
@@ -35,6 +42,12 @@ const canonicalUrl = new URL(canonicalPath, base).toString()
 const noindex = forceNoindex || publicIsPreview(mode)
 const robots = noindex ? 'noindex,nofollow' : 'index,follow,max-image-preview:large'
 const schemaJson = schema ? serializeJsonLd(schema) : null
+const consentResolution = noindex
+  ? ({ kind: 'disabled' } as const)
+  : resolvePublicConsentConfig(env)
+const consentConfig = consentResolution.kind === 'enabled' ? consentResolution.config : null
+const consentBootstrap = consentConfig ? serializeIubendaBootstrap(consentConfig) : null
+const consentAutoblockingUrl = consentConfig ? iubendaAutoblockingUrl(consentConfig) : null
 
 setPublicResponseHeaders(Astro.response.headers, mode, forceNoindex)
 ---
@@ -42,6 +55,9 @@ setPublicResponseHeaders(Astro.response.headers, mode, forceNoindex)
 <!doctype html>
 <html lang="it">
   <head>
+    {consentBootstrap && <script is:inline set:html={consentBootstrap}></script>}
+    {consentAutoblockingUrl && <script is:inline src={consentAutoblockingUrl}></script>}
+    {consentConfig && <script is:inline src={IUBENDA_SCRIPT_URL} charset="UTF-8" async></script>}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
@@ -63,6 +79,6 @@ setPublicResponseHeaders(Astro.response.headers, mode, forceNoindex)
     <main id="contenuto" tabindex="-1">
       <slot />
     </main>
-    <PublicFooter mode={mode} />
+    <PublicFooter mode={mode} consentPreferencesEnabled={Boolean(consentConfig)} />
   </body>
 </html>
