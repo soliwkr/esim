@@ -17,9 +17,10 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Primo draft | Approvato editorialmente | draft `2`; pagina materializzata ancora `review` |
 | Control Room nuova | Operativa | parità read-only completa; prima mutation verificata in produzione |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
-| Public shell Astro | In produzione come preview | `/` live resta legacy |
+| Preview Astro | Verificata in produzione | namespace noindex/no-store |
 | Renderer canonico Astro | Compilato e verificato in CI | owner live ancora backend |
-| Sitemap e robots condivisi | Implementati e verificati dalla CI applicativa #359 | PR #75 ancora da chiudere; owner live backend |
+| Sitemap e robots parity | Completata | PR #75, merge `8d52e7e316d632dcda0d5bb45b818a490df9fef6`, CI #365 |
+| Catalogo pilot | Scope in corso | release candidate in review, nessuna pubblicazione autorizzata |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -37,6 +38,7 @@ recent demand
 → evidence bundle
 → draft grounded
 → approvazione editoriale
+→ pagina materializzata in review
 ```
 
 Nessuno di questi passaggi pubblica autonomamente una pagina.
@@ -52,7 +54,7 @@ draft:                  2 / version 2 / approved
 materialized page:      review
 ```
 
-La pagina Cina non è autorizzata alla pubblicazione.
+La pagina Cina non è autorizzata alla pubblicazione e non entra automaticamente nel pilot.
 
 ## Control Room
 
@@ -93,11 +95,10 @@ M4 non è completato e la legacy privata non può ancora essere rimossa.
 preview M5 ≠ cutover pubblico
 owner target ≠ owner live
 canonical Astro compilato ≠ canonical Astro servito
-endpoint Astro compilato ≠ endpoint Astro live-owned
-draft approvato ≠ pagina pubblicata
+candidate ≠ release candidate ≠ published
 ```
 
-### Preview live verificate
+### Preview live
 
 Sono operative sotto `/astro-foundation`:
 
@@ -112,18 +113,20 @@ confronti
 articoli/[slug]
 ```
 
-Contratti:
+Contratti verificati:
 
 - noindex e no-store;
 - fuori sitemap;
-- D1 letto soltanto server-side;
+- D1 server-side;
 - righe `published` soltanto;
 - ordine deterministico;
 - raw HTML senza JavaScript obbligatorio;
-- desktop, mobile, tastiera e assenza di overflow;
-- route canoniche live ancora sul backend legacy.
+- desktop, mobile e tastiera;
+- route canoniche live ancora sul backend.
 
-## M5.5a — Contratto SEO condiviso
+## M5.5 — SEO e routing parity
+
+### M5.5a — Contratto SEO
 
 PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106`.
 
@@ -132,49 +135,17 @@ Condivisi:
 - title e description;
 - Open Graph;
 - `WebSite`, `Article` e `FAQPage`;
-- data modificata e autore Organization;
 - serializer JSON-LD sicuro.
 
-Route-specific:
+### M5.5b.1 — Route policy
 
-- canonical URL;
-- `mainEntityOfPage`;
-- robots;
-- cache.
-
-Homepage e articolo preview sono verificati nel sorgente live. Gli header HTTP live restano un controllo esterno separato.
-
-## M5.5b.1 — Route policy foundation
-
-PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`, CI finale #329.
-
-Implementato:
-
-- owner `astro | backend` e route kind tipizzati;
-- current e target matrix separate;
-- `activePublicRouteDecision = currentPublicRouteDecision`;
-- reserved paths e file-probe policy condivisi;
-- custom Worker collegato alla matrice attiva;
-- boundary stretto per doppi slash iniziali.
-
-Ownership attiva:
+PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`, CI #329.
 
 ```text
-Astro:
-  /astro-foundation*
-  /control-room-foundation*
-
-Backend:
-  route canoniche
-  sitemap e robots
-  /go/*
-  /api/*
-  legacy Control Room
-  asset tecnici
-  articolo fallback e 404
+activePublicRouteDecision = currentPublicRouteDecision
 ```
 
-## M5.5b.2 — Canonical Astro parity
+### M5.5b.2 — Canonical Astro parity
 
 ```text
 PR #73
@@ -182,79 +153,29 @@ merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
 CI finale #350
 ```
 
-Verificato direttamente:
+Home, listing, trust, articolo e 404 canonici sono compilati e testati direttamente senza switch live.
 
-- render mode `preview | canonical`;
-- home, listing, trust, articolo e 404 canonici nel manifest Astro;
-- modalità canonical senza banner o link preview;
-- internal link apex;
-- canonical, robots e cache route-specific;
-- articolo published-only;
-- reserved path e file probe esclusi;
-- 404 noindex e fail-closed;
-- populated ed empty state;
-- desktop, mobile, tastiera e assenza di JavaScript applicativo;
-- runtime production-style ancora legacy-owned.
-
-Nessun cutover o deploy pubblico è stato dichiarato.
-
-## M5.5b.3 — SEO endpoint parity
-
-Scope: `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md`.
+### M5.5b.3 — Sitemap e robots parity
 
 ```text
-branch feat/public-seo-endpoint-parity
-PR #75 — Add shared sitemap and robots parity
-CI applicativa #359 completamente verde
+PR #75
+merge 8d52e7e316d632dcda0d5bb45b818a490df9fef6
+CI finale #365
 ```
 
-### Contratto condiviso
+Completato:
 
-`src/public-seo-endpoints.ts` è la fonte server-only per:
-
-- route statiche canoniche;
-- query D1 `WHERE status='published'`;
-- validazione del site base HTTPS;
-- validazione di slug e `updated_at`;
-- controllo duplicati e limite URL;
-- ordine statiche prima, dinamiche per slug ASC;
-- normalizzazione `lastmod` a `YYYY-MM-DD`;
-- escaping e serializzazione XML;
-- documento robots deterministico;
-- header di successo e fallimento chiuso.
-
-Il backend legacy non mantiene più una propria query/serializzazione sitemap né testo robots inline. Gli handler Astro compilati sono:
-
-```text
-apps/web/src/pages/sitemap.xml.ts
-apps/web/src/pages/robots.txt.ts
-```
-
-### Test diretto senza switch live
-
-Lo smoke usa due runtime sullo stesso tipo di stato D1:
-
-1. production-style con current matrix e endpoint backend-owned;
-2. wrapper temporaneo con soltanto `route.kind === 'seo-endpoint'` Astro-owned.
-
-Verificato:
-
-- body e header equivalenti;
-- GET, HEAD e query string irrilevanti;
-- trailing slash normalizzato dal confine Worker→Astro;
-- XML parseabile, namespace corretto, ordine e unicità;
-- route statiche canoniche;
-- pagine published-only;
-- `lastmod` normalizzato;
-- review, draft, archived, preview, API, Control Room, `/go/*`, 404 e asset esclusi;
-- robots esatto con newline finale;
-- populated state;
-- empty state con sole sette URL statiche;
-- invalid state con risposta generica `500`, `no-store` e nessun XML parziale;
-- homepage, API e tutte le altre route ancora sull’owner corrente;
-- tutte le suite Control Room verdi.
-
-Il primo run #358 ha rilevato la differenza su `/sitemap.xml/` e `/robots.txt/`; il Worker ora inoltra ad Astro la pathname normalizzata della route decision soltanto per `seo-endpoint` Astro-owned. Questo non modifica il runtime live, perché i due endpoint restano backend-owned.
+- `src/public-seo-endpoints.ts` come contratto server-only;
+- route statiche dalla route policy;
+- query `pages.status='published'`;
+- validazione site base, slug, date, duplicati e limite URL;
+- XML deterministico e `lastmod` normalizzato;
+- robots deterministico;
+- backend legacy e Astro sullo stesso builder;
+- GET, HEAD, query string e trailing slash;
+- populated, empty e invalid state;
+- fallimento chiuso senza XML parziale;
+- tutte le suite pubbliche e Control Room.
 
 Ownership live invariata:
 
@@ -263,29 +184,111 @@ Ownership live invariata:
 /robots.txt  → backend
 ```
 
-PR #75 resta draft fino alla CI finale sullo stesso head di codice e documentazione.
+Nessun deploy o cutover è stato eseguito.
+
+## M5.6 — Catalogo pilot
+
+Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
+
+Branch:
+
+```text
+docs/public-catalog-pilot-scope
+```
+
+### Scoperta verificata
+
+Il sistema possiede già:
+
+- `publication_eligible` deterministico;
+- approvazione umana `approved_for_publication`;
+- `ready_for_publication` persistito;
+- draft grounded con provenance;
+- approvazione del draft;
+- materializzazione in `pages.status='review'`.
+
+Non possiede una capacità autorizzata:
+
+```text
+review → published
+```
+
+Poiché il renderer legacy live serve già righe `published`, introdurre quella mutation durante la foundation esporrebbe contenuti reali prima della decisione sul cutover.
+
+### Decisione di scope
+
+M5.6a prepara un massimo di quattro release candidate, tutte ancora in `review`.
+
+```text
+candidate
+→ gate deterministici
+→ approvazione bundle
+→ draft grounded approvato
+→ pagina review coerente
+→ release candidate manifest
+```
+
+Non sono scelti anticipatamente Paesi, dispositivi o provider.
+
+La composizione preferita, non obbligatoria, è:
+
+```text
+1 destinazione
+1 guida
+1 confronto
++ 1 seconda destinazione soltanto se distinta e pienamente idonea
+```
+
+Zero candidate è un risultato valido quando i dati reali non superano i gate.
+
+### Foundation proposta
+
+Branch tecnica dopo il merge dello scope:
+
+```text
+feat/public-catalog-pilot-foundation
+```
+
+Output:
+
+- audit read-only;
+- manifest versionato massimo quattro entry;
+- report ammessi/esclusi e blocker;
+- freshness e latest-version validation;
+- collisioni di slug e intento;
+- fixtures e smoke;
+- nessuna mutation, pubblicazione o route live.
+
+### Pubblicazione
+
+Non autorizzata dallo scope M5.6a.
+
+Richiederà una decisione separata su quando eseguire la prima transizione `review → published`:
+
+1. prima del cutover sul renderer legacy;
+2. insieme a M5.7;
+3. dopo M5.7.
 
 ## Google measurement
 
-GTM, GA4, Search Console e service account sono stati preparati esternamente.
+GTM, GA4, Search Console e service account sono preparati esternamente ma non collegati.
 
-Non sono configurati nel sito:
+Restano assenti:
 
 - CMP e Consent Mode;
 - snippet GTM;
 - eventi GA4;
-- invio sitemap tramite API;
-- credenziali service account.
-
-Nessun tracking viene aggiunto alle preview noindex.
+- invio sitemap;
+- credenziali service account nel progetto.
 
 ## Gap aperti
 
-- CI finale e merge di PR #75;
-- scope M5.6 catalogo pilot;
-- piccolo catalogo con intenti distinti e publication gate;
-- PR separata di cutover apex;
-- verifica HTTP live degli header preview;
+- merge dello scope M5.6;
+- candidate audit foundation;
+- audit dati reali e manifest release candidate;
+- decisione separata di pubblicazione;
+- M5.7 cutover apex;
+- header HTTP live delle preview;
 - linkage recenti Control Room nel browser reale;
 - topic-mismatch sul primo run autorizzato;
 - conversione brief e mutation M4 residue;
@@ -295,8 +298,9 @@ Nessun tracking viene aggiunto alle preview noindex.
 ## Prossimo checkpoint
 
 ```text
-canonici aggiornati su PR #75
-→ CI finale code + documentazione
-→ merge senza cambiare activePublicRouteDecision
-→ scope M5.6 catalogo pilot
+scope M5.6 in PR documentale
+→ CI completa
+→ merge
+→ feat/public-catalog-pilot-foundation
+→ audit read-only e manifest
 ```
