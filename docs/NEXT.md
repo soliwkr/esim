@@ -2,146 +2,215 @@
 
 Ultimo aggiornamento: **24 luglio 2026**.
 
-Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap completa vive in `ROADMAP.md`; il piano frontend vive in `docs/FRONTEND-PLAN.md`.
+Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Rendere pronta e mergiare la PR #69
+### 1. Chiudere la PR documentale M5.5a → M5.5b
 
 Branch:
 
 ```text
-feat/public-seo-contract-foundation
+docs/public-seo-routing-ownership-scope
 ```
 
-PR:
+Obiettivi:
 
-```text
-#69 — Add shared public SEO contract foundation
-```
+- registrare il checkpoint live della homepage SEO;
+- registrare il checkpoint live dell’articolo SEO;
+- dichiarare M5.5a completata;
+- documentare l’ownership corrente delle route;
+- definire l’ownership target;
+- autorizzare soltanto la foundation della route policy.
 
 Scope canonico:
 
 ```text
-docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md
+docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md
 ```
 
-Stato verificato:
+La PR è documentale. Non modifica runtime, routing, D1 o deploy pubblico oltre al normale deploy dei soli documenti non serviti dal sito.
 
-- implementazione completata;
-- documentazione canonica allineata;
-- typecheck e build verdi;
-- migrazioni, quality gate, golden evaluation e Container verdi;
-- tutti gli smoke pubblici verdi;
-- nuovo smoke SEO verde;
-- tutte le suite Control Room verdi;
-- CI completa sul head con codice e documentazione verde.
+### 2. Implementare la route policy foundation
 
-Prossima sequenza:
+Branch autorizzata dopo il merge dello scope:
 
 ```text
-PR #69 ready
-→ merge
-→ deploy automatico
+feat/public-route-policy-foundation
 ```
 
-Il merge non equivale ancora a checkpoint live e non autorizza M5.5b.
-
-### 2. Verificare il checkpoint live della fondazione SEO
-
-Dopo il deploy controllare almeno:
+Obiettivo esclusivo:
 
 ```text
-/astro-foundation
-/astro-foundation/articoli/<slug-published>
+current route ownership
++ target route ownership
+→ typed route matrix
+→ custom Worker uses current matrix
+→ zero live ownership changes
 ```
 
-Homepage preview:
+Implementare:
 
-- title e description uguali al contratto canonico;
-- `og:type=website`;
-- `WebSite` JSON-LD valido;
-- canonical ancora `/astro-foundation`;
-- robots ancora `noindex,nofollow`;
-- `X-Robots-Tag` e `Cache-Control: no-store` preservati.
+- modulo server-only tipizzato per categorie e owner;
+- route statiche canoniche esplicite;
+- namespace preview esplicito;
+- namespace Control Room esplicito;
+- API e provider redirect backend-owned;
+- reserved path set condiviso;
+- file-probe policy condivisa;
+- precedenza del router verificabile;
+- matrice corrente separata dalla matrice target;
+- smoke dedicato.
 
-Articolo preview:
-
-- title e description uguali alla pagina pubblicata;
-- `og:type=article`;
-- `Article` JSON-LD valido;
-- `FAQPage` presente soltanto quando la FAQ è presente;
-- `mainEntityOfPage` sulla route preview;
-- canonical ancora namespaced;
-- noindex/no-store preservati;
-- nessuno script eseguibile o Astro island.
-
-Verificare inoltre che la resa visuale osservata per M5.4 non sia cambiata e che non compaia overflow orizzontale.
-
-### 3. Non aprire ancora M5.5b
-
-La prossima slice di routing/ownership SEO resta bloccata fino al checkpoint live M5.5a.
-
-Non migrare adesso:
+La matrice attiva deve continuare a produrre:
 
 ```text
-/
-/destinazioni
-/guide
-/confronti
-/{slug}
-/sitemap.xml
-/robots.txt
-/go/{provider}
+Astro:
+  /astro-foundation*
+  /control-room-foundation*
+
+Backend:
+  /
+  /destinazioni
+  /guide
+  /confronti
+  /metodo
+  /trasparenza
+  /privacy
+  /{slug}
+  /sitemap.xml
+  /robots.txt
+  /go/*
+  /api/*
+  /control-room
 ```
 
-Dopo il checkpoint, eseguire una discovery separata per decidere:
+### 3. Acceptance della route policy foundation
 
-- route matrix di cutover;
-- ownership futura di canonical, sitemap e robots;
-- gestione schema sotto routing finale;
-- preservazione redirect provider;
-- drift test di cutover;
-- rollback.
+Richiesto prima del merge:
 
-Nessuna di queste decisioni è implicita nella PR #69.
+- generazione tipi Cloudflare;
+- typecheck TypeScript e Astro;
+- build Astro e custom Worker;
+- migrazioni D1;
+- quality smoke e golden evaluation;
+- Container build e smoke;
+- runtime Astro/backend;
+- smoke pubblici esistenti;
+- smoke SEO;
+- nuovo smoke route policy;
+- tutte le suite Control Room.
 
-### 4. Contratti coperti dallo smoke SEO
+Regressioni obbligatorie:
 
-Il comando:
+- `/` ancora backend-owned;
+- listing canonici ancora backend-owned;
+- trust canoniche ancora backend-owned;
+- `/{slug}` ancora backend-owned;
+- sitemap e robots ancora backend-owned;
+- `/go/*` mai intercettato da Astro;
+- `/api/*` mai intercettato da Astro;
+- preview ancora Astro-owned;
+- Control Room foundation ancora Astro-owned e protetta;
+- file probe e route riservate non diventano articoli;
+- nessuna route di pubblicazione.
+
+### 4. Preparare le slice successive, ma non implementarle insieme
+
+Dopo la route policy foundation:
 
 ```text
-npm run smoke:public-seo-contracts
+M5.5b.2 canonical Astro parity
+→ M5.5b.3 sitemap/robots/404 parity
+→ M5.6 catalog pilot
+→ M5.7 cutover separato
 ```
 
-usa D1 temporanea, `workerd` e Chromium e verifica:
+#### Canonical Astro parity
 
-- parità title, description e Open Graph tra legacy e Astro;
-- parità normalizzata di `Article` e `FAQPage`;
-- differenze consentite soltanto per canonical, `mainEntityOfPage` e robots;
-- JSON-LD valido con fixture `</script>`, `<example>`, virgolette, apostrofi e accenti;
-- zero elementi arbitrari creati nel DOM;
-- zero JavaScript eseguibile;
-- sitemap canonica senza preview, `review` o `draft`;
-- robots con sitemap e disallow correnti;
-- redirect provider HTTPS, `no-store` e `noindex`;
-- vere 404 canonical e preview;
-- file probe esclusi dal fallback articolo;
-- desktop/mobile senza overflow;
+PR separata:
+
+- componenti parametrizzati per preview o canonical;
+- route canonicali Astro compilate e testate;
+- internal link canonicali;
+- published-only e 404;
+- nessuna attivazione live.
+
+#### SEO endpoint parity
+
+PR separata:
+
+- builder condiviso sitemap e robots;
+- handler Astro testati;
+- output semantico equivalente;
+- ownership live ancora legacy.
+
+#### Cutover
+
+Il cutover non appartiene a M5.5b.1.
+
+Richiederà:
+
+- PR dedicata;
+- autorizzazione esplicita;
+- modifica minima della route matrix attiva;
+- smoke live;
+- rollback immediato verso il backend legacy.
+
+## Checkpoint M5.5a chiuso
+
+PR #69:
+
+```text
+Add shared public SEO contract foundation
+merge 46f1d66a591dd7860c101c86cb8295d97e4a2106
+```
+
+Verificato dalla CI:
+
+- contratto SEO tipizzato condiviso;
+- title, description e Open Graph;
+- `WebSite`, `Article` e `FAQPage`;
+- serializer JSON-LD sicuro;
+- drift legacy/Astro;
+- sitemap, robots, provider redirect e 404;
+- nessun JavaScript applicativo pubblico;
 - tutte le regressioni Control Room.
 
-La prima CI runtime aveva rilevato un’asserzione troppo ampia che scambiava il carattere `<` dentro attributi HTML quotati per un elemento DOM. Il test è stato corretto sul comportamento reale senza indebolire la protezione.
+Verificato nel sorgente live della homepage:
 
-### 5. Non attivare ancora Google measurement
+- noindex,nofollow;
+- canonical `/astro-foundation`;
+- `og:type=website`;
+- `WebSite` JSON-LD.
 
-Sono stati preparati esternamente:
+Verificato nel sorgente live dell’articolo `migliore-esim`:
 
-- Google Tag Manager;
-- Google Analytics 4;
-- Search Console;
-- service account con accesso alle proprietà.
+- canonical namespaced;
+- `og:type=article`;
+- `Article` JSON-LD;
+- `FAQPage` JSON-LD;
+- `mainEntityOfPage` preview;
+- autore Organization e data modificata.
 
-Questo non equivale a tracking attivo.
+Gli header HTTP live `X-Robots-Tag` e `Cache-Control: no-store` restano una verifica operativa separata; sono coperti dalla CI.
+
+## Track M4 parallela
+
+Le mutation residue continuano soltanto su branch separate:
+
+```text
+conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
+```
+
+Ogni mutation richiede Access, conferma, state machine server-side, audit, idempotenza, reload e test end-to-end.
+
+## Google measurement ancora bloccato
+
+Sono stati preparati esternamente GTM, GA4, Search Console e service account.
 
 M6 resta:
 
@@ -157,41 +226,14 @@ CMP
 
 Regole:
 
-- nessun JSON o private key in chat o GitHub;
+- nessuna private key in chat o GitHub;
 - nessuna credenziale nel frontend;
 - nessun tracking sulle preview noindex;
-- nessuna configurazione service account fuori da una branch M6 esplicita.
-
-### 6. Continuare M4 soltanto su branch separate
-
-```text
-conversione brief
-→ operazioni claim
-→ decisione draft
-→ eventuale retry queue
-```
-
-Ogni mutation richiede Access, conferma, state machine server-side, audit, idempotenza, reload e test end-to-end.
-
-## Checkpoint M5.4 chiuso
-
-PR #67:
-
-- CI applicativa #302 verde;
-- CI finale #307 verde;
-- merge `4810c0c32d54dca6f85de19d507a6da13f3dc574`;
-- articolo `published` verificato live desktop/mobile;
-- hero, risposta diretta, disclosure, blocchi, FAQ, provenance, fonti e footer verificati;
-- nessun overflow orizzontale visibile;
-- route canoniche ancora legacy;
-- nessun tracking, affiliazione, mutation o pubblicazione introdotti.
-
-PR #68 ha registrato il checkpoint e autorizzato M5.5a; merge `bc2d6baa894e98a5cd9ce005c12ee4d2969e46b8`, CI #309 verde.
+- nessuna configurazione Google fuori da una branch M6 esplicita.
 
 ## Verifiche operative aperte
 
-- checkpoint live metadata e JSON-LD dopo il merge della PR #69;
-- header HTTP delle preview su controllo esterno dedicato;
+- header HTTP live delle preview;
 - linkage claim → task nel browser reale;
 - linkage audit → ID/versione draft nel browser reale;
 - topic-mismatch sul primo run autorizzato;
@@ -201,16 +243,16 @@ PR #68 ha registrato il checkpoint e autorizzato M5.5a; merge `bc2d6baa894e98a5c
 ## Separazioni obbligatorie
 
 ```text
+SEO contract parity ≠ route cutover
+route policy target ≠ owner live
+canonical Astro compiled ≠ canonical Astro served
 homepage candidata ≠ apice migrato
 listing preview ≠ listing canonico migrato
 article preview ≠ articolo canonico migrato
-SEO contract parity ≠ route cutover
 published row ≠ review row
-preview M5 ≠ cutover pubblico
 progressi M5 ≠ M4 completato
 GA4/GTM creati ≠ tracking attivo
 service account creato ≠ credenziale configurata
-brief accepted ≠ brief converted
 approved draft ≠ published page
 CI verde ≠ verifica live
 JSON-LD ≠ JavaScript applicativo
@@ -223,7 +265,7 @@ JSON-LD ≠ JavaScript applicativo
 - niente pubblicazione automatica;
 - niente secret o PII nel client, URL, storage, log o repository;
 - niente affiliazioni o tracking anticipati;
-- niente sostituzione delle route canoniche nella foundation SEO;
-- niente migrazione di sitemap, robots o provider redirect nella prima slice M5.5;
+- niente cambio live di route canoniche nella route policy foundation;
+- niente migrazione live di sitemap, robots o provider redirect;
 - niente cutover dell’apice;
 - nessuna rimozione legacy finché resta un fallback operativo.
