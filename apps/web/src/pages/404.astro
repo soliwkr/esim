@@ -1,0 +1,12 @@
+---
+import { env } from 'cloudflare:workers'
+import PublicArticleErrorPage from '../components/public/PublicArticleErrorPage.astro'
+
+Astro.response.status = 404
+---
+
+<PublicArticleErrorPage
+  mode="canonical"
+  kind="missing"
+  siteName={env.SITE_NAME}
+/>
