@@ -13,13 +13,9 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/DECISIONS.md` — decisioni accettate;
 - `docs/FRONTEND-PLAN.md` — migrazione Astro e Control Room;
 - `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
-- `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — homepage candidata;
-- `docs/PUBLIC-LISTING-PREVIEWS.md` — listing preview;
-- `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — renderer articolo Astro;
-- `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md` — M5.5a;
-- `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md` — M5.5b.1;
-- `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md` — M5.5b.2;
-- `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md` — M5.5b.3.
+- `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md` — route policy;
+- `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md` — renderer canonico Astro;
+- `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md` — sitemap e robots.
 
 ## Principi non negoziabili
 
@@ -29,13 +25,11 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 4. Claim insufficienti o scaduti non alimentano testo fattuale.
 5. Il browser non accede direttamente a D1.
 6. Ogni mutation richiede identità verificata, conferma, state machine, audit e test.
-7. Astro è il frontend pubblico; React resta un’isola realmente interattiva.
+7. Astro è il frontend principale; React resta una island per interattività complessa.
 8. Una preview Astro non equivale a un cutover.
 9. Una riga `review` non equivale a contenuto pubblico.
-10. Un owner target non equivale all’owner live.
-11. Canonical Astro compilato non equivale a canonical Astro servito.
-12. Endpoint Astro compilato non equivale a endpoint Astro live-owned.
-13. Il repository è la memoria canonica.
+10. Owner target, codice compilato e owner live sono concetti distinti.
+11. Il repository è la memoria canonica.
 
 ## M0 — Fondazioni tecniche
 
@@ -61,7 +55,6 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] golden evaluation;
 - [x] topic-mismatch gate;
 - [x] snapshot Control Room;
-- [x] audit repository esterni;
 - [ ] verifica live topic-mismatch;
 - [ ] health aggregato;
 - [ ] log errori unificati.
@@ -99,7 +92,6 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 - [x] Astro shell e React island;
 - [x] shadcn/ui;
-- [x] custom Worker;
 - [x] Cloudflare Access;
 - [x] sessione server-side;
 - [x] browser senza credenziali applicative;
@@ -123,7 +115,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.5a verificate in produzione; M5.5b.1–M5.5b.2 completate in CI senza cutover; scope M5.5b.3 definito.**
+**Stato: M5.0–M5.5b.2 completate; M5.5b.3 implementata e verificata dalla CI applicativa #359, con PR #75 ancora da chiudere; nessun cutover.**
 
 ### M5.0 — Public shell
 
@@ -133,27 +125,23 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] mobile e tastiera;
 - [x] `/` invariato;
 - [x] fuori sitemap;
-- [x] checkpoint mobile live.
+- [x] checkpoint live.
 
 ### M5.1 — Trust pages
 
 - [x] Metodo, Trasparenza e Privacy preview;
 - [x] componente condiviso;
 - [x] route canoniche legacy preservate;
-- [x] CI completa;
-- [x] checkpoint mobile live 3/3.
+- [x] checkpoint mobile 3/3.
 
 ### M5.2 — Homepage candidata
 
 - [x] read model server-only condiviso;
-- [x] soltanto righe `published`;
+- [x] righe `published` soltanto;
 - [x] limiti e ordine deterministici;
-- [x] raw HTML, noindex, no-store e sitemap exclusion;
-- [x] `/` ancora legacy;
-- [x] fixture populated/empty;
-- [x] desktop, mobile, tastiera e 404;
-- [x] PR #63 e CI finale #284;
-- [x] checkpoint visuale live.
+- [x] noindex/no-store e sitemap exclusion;
+- [x] desktop, mobile, tastiera e empty state;
+- [x] PR #63 e CI finale #284.
 
 ### M5.3 — Listing preview
 
@@ -161,129 +149,95 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] read model published-only;
 - [x] internal linking deterministico;
 - [x] route matrix e fail-fast;
-- [x] PR #65 e CI finale #296;
-- [x] checkpoint visuale live.
+- [x] PR #65 e CI finale #296.
 
 ### M5.4 — Renderer editoriale Astro
 
 - [x] `/astro-foundation/articoli/[slug]`;
 - [x] read model condiviso;
-- [x] blocchi strutturati e FAQ native;
-- [x] provenance e fonti HTTPS;
-- [x] dati operativi interni esclusi;
+- [x] blocchi, FAQ, fonti e provenance;
 - [x] related links published-only;
 - [x] vera 404 e fail-closed;
-- [x] noindex, no-store e sitemap exclusion;
-- [x] smoke D1/workerd/Chromium;
-- [x] PR #67 e CI finale #307;
-- [x] checkpoint visuale live.
+- [x] noindex/no-store;
+- [x] PR #67 e CI finale #307.
 
 ### M5.5 — Parità SEO e routing
 
 #### M5.5a — Contratto SEO condiviso
 
-- [x] modello tipizzato condiviso;
 - [x] title, description e Open Graph;
 - [x] `WebSite`, `Article` e `FAQPage`;
 - [x] serializer JSON-LD sicuro;
 - [x] canonical, robots e cache route-specific;
 - [x] drift e regressioni;
-- [x] zero JavaScript eseguibile;
-- [x] PR #69 e CI completa;
-- [x] sorgente live homepage e articolo;
+- [x] PR #69;
 - [ ] header HTTP live da controllo esterno dedicato.
 
 #### M5.5b.1 — Route policy foundation
 
-- [x] matrice current/target tipizzata;
+- [x] current/target matrix tipizzate;
 - [x] route kind e precedenza esplicite;
-- [x] reserved paths e file-probe policy;
-- [x] custom Worker usa `activePublicRouteDecision`;
-- [x] export attivo fissato alla current matrix;
-- [x] API e `/go/*` backend-owned;
-- [x] preview e Control Room foundation Astro-owned;
-- [x] boundary doppi slash preservato;
-- [x] smoke dedicato;
+- [x] reserved path e file-probe policy;
+- [x] `activePublicRouteDecision = currentPublicRouteDecision`;
 - [x] PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`;
-- [x] CI finale #329 completamente verde.
+- [x] CI finale #329.
 
 #### M5.5b.2 — Canonical Astro parity
 
-Scope: `docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md`.
-
-```text
-feat/public-canonical-astro-parity
-PR #73
-merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
-CI finale #350
-```
-
-- [x] render mode `preview | canonical` tipizzato;
-- [x] route Astro canoniche compilate;
-- [x] componenti condivisi senza copy preview in modalità canonical;
-- [x] internal link interamente canonici;
-- [x] canonical, robots e cache route-specific;
-- [x] articolo published-only e fail-closed;
-- [x] reserved path e file probe esclusi dagli articoli;
-- [x] 404 Astro reale e noindex;
-- [x] Worker factory tipizzata per smoke locale;
-- [x] default production ancora su `activePublicRouteDecision`;
-- [x] nessun flag runtime o route di test;
-- [x] smoke diretto del renderer Astro canonicale;
-- [x] populated ed empty state;
-- [x] desktop, mobile, tastiera e overflow;
-- [x] runtime production-style ancora legacy-owned;
-- [x] CI finale code + canonici #350 completamente verde.
-
-Route compilate:
-
-```text
-/
-/destinazioni
-/guide
-/confronti
-/metodo
-/trasparenza
-/privacy
-/{slug-published}
-/404
-```
-
-Nessun cutover o deploy pubblico è stato dichiarato. Sitemap e robots restano backend-owned.
+- [x] render mode `preview | canonical`;
+- [x] home, listing, trust, articolo e 404 canonici compilati;
+- [x] internal link apex;
+- [x] published-only e fail-closed;
+- [x] factory `createPublicWorker(routeDecision)`;
+- [x] smoke diretto senza switch live;
+- [x] PR #73, merge `b3a6625bfe6e3a06a46412e58f89a033dc82b9ff`;
+- [x] CI finale #350.
 
 #### M5.5b.3 — SEO endpoint parity
 
 Scope: `docs/PUBLIC-SEO-ENDPOINT-PARITY-SCOPE.md`.
 
-Branch documentale:
-
-```text
-docs/public-seo-endpoint-parity-scope
-```
-
-Branch tecnica autorizzata dopo il merge dello scope:
+Branch e PR:
 
 ```text
 feat/public-seo-endpoint-parity
+PR #75
 ```
 
-- [x] scope separato prima del codice;
-- [x] current ownership e confini documentati;
-- [x] contratto sitemap published-only, deterministico e fail-closed;
-- [x] contratto robots condiviso documentato;
-- [x] modalità di confronto legacy/Astro definita;
-- [x] populated, empty e invalid state definiti;
-- [ ] builder sitemap/robots condivisi;
-- [ ] handler Astro compilati e testati;
-- [ ] output legacy/Astro equivalente;
-- [ ] preview, review, draft e route tecniche escluse;
-- [ ] ownership live ancora legacy verificata dalla CI.
+- [x] builder server-only condivisi per sitemap e robots;
+- [x] route statiche derivate da `PUBLIC_CANONICAL_STATIC_PATHS`;
+- [x] query D1 `status='published'` soltanto;
+- [x] validazione origin, slug, date, duplicati e limite URL;
+- [x] XML deterministico con escaping dedicato;
+- [x] `lastmod` normalizzato;
+- [x] robots deterministico con newline finale;
+- [x] legacy backend delegato al contratto condiviso;
+- [x] handler Astro `/sitemap.xml` e `/robots.txt` compilati;
+- [x] GET, HEAD, query string e trailing slash coerenti;
+- [x] populated, empty e invalid state;
+- [x] fallimento chiuso senza sitemap parziale;
+- [x] confronto body e header legacy/Astro;
+- [x] runtime production-style ancora backend-owned;
+- [x] tutte le suite Control Room verdi nella CI applicativa #359;
+- [ ] CI finale code + canonici;
+- [ ] PR #75 pronta e merge.
+
+Ownership live ancora invariata:
+
+```text
+/sitemap.xml → backend
+/robots.txt  → backend
+```
 
 ### M5.6 — Catalogo pilot
 
+**Prossima fase dopo il merge di PR #75.**
+
+- [ ] scope documentale separato;
 - [ ] piccolo set di pagine con intento distinto;
-- [ ] evidence e publication eligibility;
+- [ ] evidence e publication eligibility esplicite;
 - [ ] nessuna generazione massiva;
+- [ ] criteri di pubblicazione e rollback;
 - [ ] indicizzazione e click prima della scala.
 
 ### M5.7 — Cutover apex
@@ -306,10 +260,9 @@ feat/public-seo-endpoint-parity
 - [ ] dizionario eventi;
 - [ ] GTM;
 - [ ] GA4;
-- [ ] Search Console e sitemap;
+- [ ] Search Console e submission sitemap;
 - [ ] verifica dati reali;
-- [ ] report query, landing, CTR e indicizzazione;
-- [ ] registro esperimenti.
+- [ ] report query, landing, CTR e indicizzazione.
 
 M6 parte dopo route pubbliche stabili. Nessun tracking sulle preview noindex.
 
@@ -354,9 +307,9 @@ conversione brief
 ### Track B — M5
 
 ```text
-merge scope sitemap/robots parity
-→ implementazione endpoint parity senza attivazione
-→ catalogo pilot
+chiusura PR #75 sitemap/robots parity
+→ scope catalogo pilot
+→ catalogo pilot ristretto
 → cutover apex separato
 ```
 

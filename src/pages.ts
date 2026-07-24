@@ -3,6 +3,7 @@ import { loadPublishedArticle, loadRelatedPublishedArticles, type PublicArticleS
 import { loadPublishedListingCards, loadPublicHomepageCards } from './public-page-cards';
 import { publicListingDefinition } from './public-listing-routes';
 import { publicArticleSeo, publicHomepageSeo } from './public-seo';
+import { publicSitemapResponse } from './public-seo-endpoints';
 import { affiliateEnabled, esc, siteBase } from './utils';
 import { layout, renderBlocks, renderFaq } from './render';
 
@@ -75,11 +76,7 @@ export function staticPage(env: Env, type: 'privacy' | 'trasparenza' | 'metodo')
 }
 
 export async function sitemap(env: Env): Promise<Response> {
-  const result = await env.DB.prepare("SELECT slug,updated_at FROM pages WHERE status='published' ORDER BY slug").all<{ slug: string; updated_at: string }>();
-  const base = siteBase(env);
-  const staticPaths = ['/', '/destinazioni', '/guide', '/confronti', '/metodo', '/trasparenza', '/privacy'];
-  const urls = [...staticPaths.map((path) => `<url><loc>${esc(`${base}${path}`)}</loc></url>`), ...result.results.map((row) => `<url><loc>${esc(`${base}/${row.slug}`)}</loc><lastmod>${esc(row.updated_at.slice(0, 10))}</lastmod></url>`)].join('');
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`, { headers: { 'content-type': 'application/xml;charset=UTF-8', 'cache-control': 'public,max-age=3600' } });
+  return publicSitemapResponse(env.DB, siteBase(env));
 }
 
 export function favicon(): Response {
