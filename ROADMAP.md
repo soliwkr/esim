@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **23 luglio 2026**.
+Ultimo aggiornamento: **24 luglio 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`.
 
@@ -13,9 +13,10 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/DECISIONS.md` — decisioni accettate;
 - `docs/FRONTEND-PLAN.md` — migrazione Astro e Control Room;
 - `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md` — separazione M4/M5;
-- `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — implementazione homepage candidata;
-- `docs/PUBLIC-LISTING-PREVIEWS.md` — implementazione e checkpoint listing preview;
-- `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — scope e implementazione del renderer articolo Astro.
+- `docs/PUBLIC-HOMEPAGE-CANDIDATE-SCOPE.md` — homepage candidata;
+- `docs/PUBLIC-LISTING-PREVIEWS.md` — listing preview;
+- `docs/PUBLIC-ARTICLE-RENDERER-SCOPE.md` — renderer articolo Astro;
+- `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md` — prima slice M5.5.
 
 ## Principi non negoziabili
 
@@ -88,23 +89,18 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 **Stato: letture complete; prima mutation in produzione; mutation residue aperte.**
 
-### Foundation
+### Foundation e letture
 
 - [x] Astro shell e React island;
 - [x] shadcn/ui;
 - [x] custom Worker;
 - [x] Cloudflare Access;
 - [x] sessione server-side;
-- [x] browser senza credenziali applicative.
-
-### Letture
-
-- [x] overview e health;
-- [x] radar, segnali e brief;
+- [x] browser senza credenziali applicative;
+- [x] overview, health, radar, segnali e brief;
 - [x] claim, fonti, scadenze e task;
 - [x] readiness e bundle;
-- [x] draft e dettaglio;
-- [x] queue e audit;
+- [x] draft, dettaglio, queue e audit;
 - [x] linkage canonici;
 - [x] parità legacy read-only.
 
@@ -121,7 +117,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: track parallela attiva; shell, trust pages, homepage candidata e listing preview verificate in produzione; renderer articolo implementato nella PR draft #67 con CI applicativa #302 verde, ma non ancora mergiato né verificato live.**
+**Stato: M5.0–M5.4 verificati in produzione come preview; M5.5 avviata con una prima slice di contratto SEO, senza route canoniche migrate.**
 
 ### M5.0 — Public shell
 
@@ -147,70 +143,90 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 Branch: `feat/public-homepage-candidate`.
 
-- [x] read model server-only condiviso tra legacy e Astro;
+- [x] read model server-only condiviso;
 - [x] soltanto righe `published`;
 - [x] guide featured, limite 9;
 - [x] destinazioni, limite 6;
 - [x] ordine deterministico;
 - [x] raw HTML, noindex, no-store e sitemap exclusion;
 - [x] `/` ancora legacy;
-- [x] fixture published/review/draft;
-- [x] empty state;
-- [x] desktop, mobile, tastiera, 404 e regressioni Control Room;
-- [x] CI finale #284 verde;
+- [x] fixture published/review/draft ed empty state;
+- [x] desktop, mobile, tastiera e 404;
 - [x] PR #63 mergiata nel commit `7ba767d`;
-- [x] checkpoint visuale live desktop e mobile sul catalogo remoto.
+- [x] CI finale #284 verde;
+- [x] checkpoint visuale live desktop/mobile.
 
 ### M5.3 — Listing preview
 
 Branch: `feat/public-listing-previews`.
 
-- [x] Destinazioni preview;
-- [x] Guide preview;
-- [x] Confronti preview;
+- [x] Destinazioni, Guide e Confronti preview;
 - [x] stesso read model published-only;
 - [x] internal linking deterministico;
 - [x] route matrix e fail-fast;
-- [x] CI #291 applicativa e CI #296 finale completamente verdi;
 - [x] PR #65 mergiata nel commit `2483fbfd1327754a1a526e8c3e6b201a412e610d`;
-- [x] deploy e risposte `200` delle tre route;
-- [x] checkpoint visuale live mobile/narrow 3/3 e desktop largo su Guide.
+- [x] CI #291 applicativa e CI #296 finale verdi;
+- [x] deploy e risposte delle tre route;
+- [x] checkpoint visuale live mobile/narrow 3/3 e desktop largo.
 
 ### M5.4 — Renderer editoriale Astro
 
 Branch: `feat/public-article-renderer`.
 
-- [x] route articolo preview published-only in `/astro-foundation/articoli/[slug]`;
+- [x] route published-only `/astro-foundation/articoli/[slug]`;
 - [x] read model server-only condiviso con il renderer legacy;
-- [x] pagina articolo grounded in raw HTML Astro;
+- [x] pagina grounded in raw HTML Astro;
 - [x] blocchi strutturati, non HTML AI grezzo;
-- [x] FAQ native con `details` e `summary`;
-- [x] provenance pubblica page-level e fonti HTTPS senza dati operativi interni;
-- [x] claim esclusi non letti né presentati come fatti;
-- [x] related links published-only e deterministici nello stesso cluster;
+- [x] FAQ native `details`/`summary`;
+- [x] provenance pubblica page-level e fonti HTTPS;
+- [x] nessun claim escluso o dato operativo interno esposto;
+- [x] related links published-only e deterministici;
 - [x] vera 404 per slug assente, `review` o `draft`;
-- [x] fail-closed con risposta generica per righe `published` strutturalmente invalide;
+- [x] fail-closed per righe pubblicate strutturalmente invalide;
 - [x] noindex, no-store e sitemap exclusion;
-- [x] preview home e listing collegate alle route articolo namespaced;
-- [x] route canoniche articolo, home e listing ancora legacy;
+- [x] preview home/listing collegate agli articoli namespaced;
+- [x] route canoniche ancora legacy;
 - [x] smoke D1/workerd/Chromium dedicato;
-- [x] CI applicativa #302 completamente verde;
-- [ ] CI finale sul commit documentale;
-- [ ] PR #67 mergiata e distribuita;
-- [ ] checkpoint visuale live desktop/mobile su un articolo pubblicato.
+- [x] CI applicativa #302 verde;
+- [x] CI finale #307 verde;
+- [x] PR #67 mergiata nel commit `4810c0c32d54dca6f85de19d507a6da13f3dc574`;
+- [x] deploy e checkpoint visuale live desktop/mobile su un articolo `published`.
 
-M5.5 resta bloccata fino al checkpoint live del renderer.
+Il checkpoint live mostra hero, risposta diretta, disclosure, blocchi, FAQ, provenance, fonti e footer. Nessun overflow orizzontale è visibile. La sezione related è omessa quando il query set è vuoto.
 
 ### M5.5 — Parità SEO
 
-- [ ] canonical;
-- [ ] sitemap;
-- [ ] robots;
-- [ ] schema;
-- [ ] disclosure condizionale;
-- [ ] redirect provider;
-- [ ] vere 404;
-- [ ] drift/regression test.
+#### M5.5a — Fondazione del contratto SEO
+
+Branch autorizzata:
+
+```text
+feat/public-seo-contract-foundation
+```
+
+Scope canonico: `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md`.
+
+- [ ] modello SEO tipizzato condiviso tra legacy e Astro;
+- [ ] title, description e Open Graph derivati dallo stesso contratto;
+- [ ] `Article` e `FAQPage` JSON-LD da dati pubblici validati;
+- [ ] serializzazione JSON-LD sicura contro terminazione dello script;
+- [ ] preview ancora noindex, no-store e self-canonical;
+- [ ] route canoniche ancora legacy e indicizzabili;
+- [ ] drift smoke tra valori SEO normalizzati;
+- [ ] regressioni sitemap, robots, redirect provider e 404;
+- [ ] zero JavaScript eseguibile aggiunto al sito pubblico.
+
+Questa slice non migra `/sitemap.xml`, `/robots.txt`, `/go/{provider}`, l’apice, i listing o `/{slug}`.
+
+#### M5.5b — Routing e ownership SEO
+
+Da scoprire e autorizzare soltanto dopo M5.5a:
+
+- [ ] ownership futura di canonical, sitemap e robots;
+- [ ] route matrix di cutover;
+- [ ] schema e redirect provider sotto routing finale;
+- [ ] drift/regression test di cutover;
+- [ ] rollback.
 
 ### M5.6 — Catalogo pilot
 
@@ -288,9 +304,9 @@ conversione brief
 ### Track B — M5
 
 ```text
-chiusura PR #67
-→ deploy e checkpoint articolo preview
-→ parità SEO
+fondazione contratto SEO condiviso
+→ verifica drift e sicurezza JSON-LD
+→ scope routing/ownership SEO
 → catalogo pilot
 → cutover apex separato
 ```
