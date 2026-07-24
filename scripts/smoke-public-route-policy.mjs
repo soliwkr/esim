@@ -74,6 +74,7 @@ try {
   assert.equal(publicArticleSlugCandidate('esim-estero/'), 'esim-estero');
   for (const value of [
     '/',
+    '/404',
     '/guide',
     '/api',
     '/go',
@@ -110,6 +111,7 @@ try {
     ['/metodo', 'canonical-static'],
     ['/trasparenza', 'canonical-static'],
     ['/privacy', 'canonical-static'],
+    ['/404', 'public-404'],
     ['/migliore-esim', 'canonical-article'],
     ['/sitemap.xml', 'seo-endpoint'],
     ['/robots.txt', 'seo-endpoint'],
@@ -140,6 +142,7 @@ try {
     '/metodo',
     '/trasparenza',
     '/privacy',
+    '/404',
     '/migliore-esim',
     '/sitemap.xml',
     '/robots.txt',
@@ -170,6 +173,7 @@ try {
 
   const comparisonPaths = [
     '/',
+    '/404',
     '/guide',
     '/migliore-esim',
     '/sitemap.xml',
