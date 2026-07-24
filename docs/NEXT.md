@@ -6,127 +6,157 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Verificare la route privata sui dati remoti
+### 1. Chiudere i canonici su PR #81
 
-Implementazione completata:
-
-```text
-PR #79
-merge df890103310cf1591eb2d8137a8385135c665d71
-CI finale #386
-```
-
-Route:
-
-```text
-https://senzaroaming.it/control-room-foundation/api/catalog-pilot-audit
-```
-
-Checkpoint richiesti dopo Cloudflare Access:
-
-- risposta HTTP 200;
-- `Cache-Control: no-store`;
-- `X-Robots-Tag: noindex, nofollow`;
-- `ok=true`;
-- report leggibile;
-- nessun token, secret o PII;
-- selected count compreso tra zero e quattro;
-- selected candidate ancora `review`;
-- nessuna variazione osservata negli stati editoriali.
-
-Una risposta 404 indica che il deploy non contiene ancora il merge. Una risposta Access/403 senza sessione è invece coerente con il perimetro privato.
-
-### 2. Registrare il primo audit remoto
-
-Possibili esiti:
-
-```text
-0 candidate → manifest resta vuoto
-1–4 candidate → manifest con ID e versioni reali
->4 candidate → cap a quattro
-```
-
-Zero candidate è un risultato valido e non blocca il nuovo design.
-
-Dopo il report:
-
-- registrare soltanto dati sanitizzati;
-- aggiornare `data/public-catalog-pilot.json` solo con ID reali verificati;
-- mantenere tutte le entry in `pages.status='review'`;
-- registrare blocker e warning;
-- non generare lavoro editoriale fittizio;
-- non pubblicare alcuna pagina.
-
-### 3. Aprire M5.7 — apex design cutover
-
-Il nuovo design diventa la priorità immediata dopo l’audit remoto.
-
-Branch proposta:
+Branch e PR:
 
 ```text
 feat/public-apex-cutover
+PR #81 — Cut over canonical public routes to Astro
+CI applicativa #397 completamente verde
 ```
 
-Scope esclusivo:
+Già verificato sul codice:
+
+- `activePublicRouteDecision = targetPublicRouteDecision`;
+- Cloudflare Assets con `run_worker_first = ["/*", "!/_astro/*"]`;
+- homepage, listing, trust pages, articoli, sitemap, robots e 404 serviti da Astro;
+- API, `/go/*`, Control Room e asset tecnici ancora backend-owned;
+- righe `published` soltanto;
+- pagine `review` e `draft` sempre 404;
+- preview ancora noindex/no-store;
+- provider redirect preservato;
+- nessuna publication capability;
+- tutte le suite pubbliche e private verdi.
+
+Prima del merge devono essere sullo stesso head:
 
 ```text
-activePublicRouteDecision
-current → target
+ROADMAP
+STATUS
+NEXT
+ARCHITECTURE
+DECISIONS
+FRONTEND-PLAN
+remote audit result
 ```
 
-La PR trasferisce ad Astro soltanto:
+### 2. Eseguire la CI finale
 
-- homepage canonica;
-- Destinazioni, Guide e Confronti;
-- Metodo, Trasparenza e Privacy;
-- articoli canonici;
-- sitemap, robots e 404 pubblica.
+La CI finale deve ripassare:
 
-Restano backend-owned:
-
-- `/api/*`;
-- `/go/*`;
-- Control Room nuova e legacy;
-- D1, Workflow, Container e AI;
-- gate editoriali e publication capability.
-
-### 4. Acceptance M5.7
-
-Sul medesimo head finale:
-
-- types, typecheck e build;
-- migrazioni invariate;
+- tipi Cloudflare;
+- typecheck e build;
+- migrazioni D1 invariate;
 - quality gate e golden evaluation;
-- Container;
-- regressioni pubbliche e private;
+- Container build e smoke;
+- runtime pubblico completo con matrice target attiva;
 - canonical metadata e JSON-LD;
-- sitemap e robots;
-- vere 404;
-- provider redirect preservati;
-- pagine `review` e `draft` sempre 404;
-- pagine `published` valide servite da Astro;
-- confronto current/target;
-- rollback documentato.
-
-Dopo deploy verificare live:
-
-- `/`;
-- `/destinazioni`;
-- `/guide`;
-- `/confronti`;
-- trust pages;
-- almeno un articolo published;
-- `/sitemap.xml`;
-- `/robots.txt`;
-- 404;
+- sitemap, robots e vere 404;
+- review/draft hidden;
+- API health e maintenance;
 - `/go/*`;
-- Control Room;
-- mobile e desktop;
-- header cache e robots.
+- preview Astro;
+- catalog pilot audit privato;
+- asset `/_astro/*`;
+- tutte le suite Control Room.
 
-### 5. Publication capability resta separata
+Non si usa il verde #397 come scorciatoia dopo gli aggiornamenti documentali.
 
-Il cutover del design non introduce:
+### 3. Rendere pronta e mergiare PR #81
+
+Soltanto dopo la CI finale verde:
+
+```text
+aggiornare descrizione PR
+→ ready for review
+→ merge con expected head SHA
+```
+
+Il merge non equivale ancora a verifica live.
+
+### 4. Verificare il deploy del nuovo design
+
+Dopo il merge attendere che il deploy automatico abbia distribuito il commit M5.7.
+
+Controllare live:
+
+```text
+/
+/destinazioni
+/guide
+/confronti
+/metodo
+/trasparenza
+/privacy
+/migliore-esim
+/sitemap.xml
+/robots.txt
+```
+
+Verifiche obbligatorie:
+
+- nuovo design Astro visibile sull’apice;
+- canonical URL senza `/astro-foundation`;
+- `index,follow,max-image-preview:large` sulle route canoniche;
+- JSON-LD `WebSite`, `Article` e `FAQPage` dove previsto;
+- `Cache-Control: public,max-age=300` sulle pagine valide;
+- sitemap soltanto canonica e published-only;
+- robots corretto;
+- URL inesistente, file probe e pagina `review` restituiscono vera 404 noindex/no-store;
+- `/go/airalo` o altro provider noto conserva il redirect backend;
+- `/api/health` resta operativo;
+- Control Room anonima bloccata e autenticata operativa;
+- `/astro-foundation*` resta noindex/no-store;
+- nessun overflow desktop o mobile;
+- nessun JavaScript applicativo sul sito pubblico.
+
+### 5. Rollback se il checkpoint fallisce
+
+Rollback di ownership:
+
+```ts
+export const activePublicRouteDecision = currentPublicRouteDecision;
+```
+
+Il rollback richiede una PR/versione esplicita e nuovo deploy. Non esistono flag, query string o header che cambino renderer a runtime.
+
+Non rimuovere il renderer pubblico legacy prima del checkpoint live concluso.
+
+### 6. Chiudere M5.7
+
+Dopo verifica live positiva:
+
+- registrare commit di merge e deploy verificato;
+- aggiornare ROADMAP, STATUS, NEXT, ARCHITECTURE e DECISIONS;
+- decidere in una fase separata quando rimuovere il renderer pubblico legacy;
+- mantenere separata la publication capability;
+- avviare M6 soltanto dopo stabilizzazione delle route canoniche.
+
+## Audit remoto chiuso
+
+Risultato live del 24 luglio 2026:
+
+```text
+candidateCount: 1
+eligibleCount: 0
+selectedCount: 0
+excludedCount: 1
+```
+
+La candidate `esim-cina-senza-vpn` resta `review`, non è pubblicabile e non entra nel manifest.
+
+Documento:
+
+```text
+docs/PUBLIC-CATALOG-REMOTE-AUDIT-RESULT-2026-07-24.md
+```
+
+Zero selected candidate è un esito valido e non blocca il cutover visuale.
+
+## Publication capability resta separata
+
+M5.7 non introduce:
 
 ```text
 review → published
@@ -143,7 +173,7 @@ La prima pubblicazione richiede ancora:
 - idempotenza;
 - freshness recheck;
 - rollback/deindicizzazione;
-- test end-to-end.
+- test end-to-end e verifica live.
 
 ## Checkpoint chiusi
 
@@ -156,6 +186,7 @@ PR #76  catalog pilot scope — CI #367
 PR #77  catalog pilot foundation — CI #379
 PR #78  remote audit scope — CI #381
 PR #79  private remote audit route — CI #386
+PR #80  remote audit closeout — CI #388
 ```
 
 ## Track M4 parallela
@@ -169,7 +200,7 @@ conversione brief
 
 M4 non blocca M5.7, ma la legacy privata resta finché serve come fallback operativo.
 
-## Google measurement ancora bloccato
+## M6 dopo il cutover
 
 ```text
 CMP
@@ -177,11 +208,9 @@ CMP
 → dizionario eventi
 → GTM
 → GA4
-→ Search Console / sitemap
+→ Search Console / sitemap submission
 → verifica dati reali
 ```
-
-M6 parte dopo il cutover e la stabilizzazione delle route canoniche.
 
 ## Freeze immediato
 
@@ -193,5 +222,5 @@ M6 parte dopo il cutover e la stabilizzazione delle route canoniche.
 - niente generazione massiva;
 - niente analytics o affiliazioni anticipate;
 - niente sitemap submission prima del cutover verificato;
-- niente rimozione della legacy privata;
+- niente rimozione della legacy pubblica o privata prima dei checkpoint;
 - niente modifica di API, redirect provider o gate editoriali durante M5.7.
