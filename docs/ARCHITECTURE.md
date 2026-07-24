@@ -4,9 +4,7 @@ Data di riferimento: **24 luglio 2026**.
 
 ## Scopo
 
-Senza Roaming è un execution project autonomo per contenuti eSIM: raccoglie domanda, conserva fonti e claim, governa il ciclo editoriale, serve pagine pubbliche e misurerà il passaggio verso i provider.
-
-Non è il sistema operativo generale dello studio.
+Senza Roaming è un execution project autonomo per contenuti eSIM. Raccoglie domanda, conserva fonti e claim, governa il ciclo editoriale e serve pagine pubbliche. Non è il sistema operativo generale dello studio.
 
 ## Architettura target
 
@@ -19,65 +17,44 @@ Custom Cloudflare Worker
       ├── Cloudflare Access
       ├── handler Astro
       ├── backend legacy durante la migrazione
-      ├── API protette
-      ├── redirect provider
+      ├── API e redirect provider
       ├── D1
-      ├── Workflows
-      ├── Container
+      ├── Workflows e Container
       └── AI Gateway → Vertex AI
-             │
              ├── Astro pubblico content-first
              └── Astro shell + React island Control Room
 ```
-
-La migrazione frontend non riscrive l’execution plane.
 
 ## Responsabilità
 
 ### Astro
 
-- HTML pubblico e layout;
-- routing delle pagine;
-- navigazione;
-- metadata, canonical e schema;
-- sitemap, robots e 404 nel target;
+- HTML pubblico, routing e navigazione;
+- metadata, schema, sitemap, robots e 404 nel target;
 - rendering statico o on-demand;
-- shell della Control Room;
-- caricamento minimo di JavaScript.
+- shell Control Room;
+- JavaScript minimo.
 
 ### React island
 
-- caricamento e refresh delle risorse private;
-- validazione runtime;
-- loading, error, partial failure e retry;
-- tabelle, filtri, form e dialog;
-- mutation nelle fasi autorizzate;
-- accessibilità dei flussi interattivi.
+- risorse private validate;
+- loading, error, retry e guasti parziali;
+- tabelle, form e dialog;
+- mutation soltanto nelle fasi autorizzate.
 
-### Backend ed execution plane
+### Execution plane
 
 - D1 e migrazioni;
 - claim, fonti e verifiche;
-- research runs e segnali;
 - Page Readiness ed evidence bundle;
 - draft e stati editoriali;
-- maintenance queue;
-- Workflows e Container;
-- AI Gateway e Vertex;
+- queue, Workflow, Container e AI;
 - publication guardrails;
 - API protette e redirect provider.
 
 Il browser non accede direttamente a D1.
 
-## Custom Worker e route ownership
-
-L’entrypoint reale è:
-
-```text
-apps/web/src/worker.ts
-```
-
-Il deploy usa:
+## Route ownership
 
 ```text
 createPublicWorker(activePublicRouteDecision)
@@ -98,8 +75,7 @@ Backend:
   /go/*
   /api/*
   legacy Control Room
-  asset tecnici
-  articolo fallback e 404
+  asset tecnici e 404
 ```
 
 ### Target matrix, non attiva
@@ -107,77 +83,45 @@ Backend:
 ```text
 Astro:
   home, listing, trust, articoli
-  sitemap, robots e 404 pubblica
+  sitemap, robots e 404
 
 Backend:
   /api/*
   /go/*
   legacy Control Room finché necessaria
-  D1, Workflow, Container, AI e gate editoriali
+  execution plane
 ```
 
-Il cutover richiede una PR separata.
+## Read model pubblico
 
-## Route policy
-
-`src/public-route-policy.ts` definisce owner, route kind, current/target matrix, route statiche, SEO endpoint, reserved path, file probe e slug articolo validi.
-
-Owner target, route compilata e owner live non sono equivalenti.
-
-## Renderer e read model pubblico
-
-I componenti condividono:
-
-```text
-preview | canonical
-```
-
-D1 viene letto soltanto server-side.
-
-Contratti:
-
+- D1 server-side;
 - righe `published` soltanto;
-- ordine deterministico;
+- ordine e limiti deterministici;
 - validazione runtime;
 - 404 per assente, `review` e `draft`;
 - fail-closed per righe published invalide;
-- related links published-only;
-- nessun dato operativo interno esposto.
+- related links published-only.
 
 ## Contratti SEO
 
-### Pagine
-
-`src/public-seo.ts` produce metadata, Open Graph e JSON-LD condivisi.
-
-### Sitemap e robots
-
-`src/public-seo-endpoints.ts` produce sitemap e robots condivisi tra legacy e Astro.
-
-PR #75 è mergiata nel commit `8d52e7e316d632dcda0d5bb45b818a490df9fef6` dopo CI finale #365 completamente verde.
-
-Ownership live ancora backend.
+- `src/public-seo.ts` — metadata e JSON-LD;
+- `src/public-seo-endpoints.ts` — sitemap e robots;
+- backend legacy e Astro condividono i contratti;
+- owner live ancora backend.
 
 ## Control Room privata
 
 ```text
 browser autenticato
 → Cloudflare Access
-→ validazione JWT nel Worker
+→ validazione JWT
 → Astro shell
 → React island
 → route server-side
 → D1
 ```
 
-Conseguenze:
-
-- nessun maintenance token nel browser;
-- nessun token in URL, HTML, bundle o storage;
-- risposte private no-store e noindex;
-- attore delle mutation derivato dal JWT;
-- state machine e audit in D1;
-- nessuna capacità di pubblicazione implicita.
+Nessun maintenance token vive nel browser. Ogni mutation deriva l’attore dal JWT e usa state machine e audit D1.
 
 ## Flusso editoriale
 
@@ -195,11 +139,9 @@ recent demand
 
 L’AI non possiede un percorso diretto verso `published`.
 
-## Stato e gate persistiti
+## Stati persistiti
 
 ### Evidence bundle
-
-Distingue:
 
 ```text
 review_draft_eligible
@@ -209,11 +151,9 @@ ready_for_publication
 review_status
 ```
 
-`publication_eligible` è deterministico. `ready_for_publication` richiede anche `approved_for_publication` umano.
+`ready_for_publication` richiede gate deterministico positivo e `approved_for_publication` umano.
 
 ### Draft
-
-Distingue:
 
 ```text
 generating
@@ -224,11 +164,7 @@ failed
 superseded
 ```
 
-Un draft approvato non modifica automaticamente la pagina in `published`.
-
 ### Pagina
-
-Distingue:
 
 ```text
 draft
@@ -241,47 +177,29 @@ La generazione grounded materializza soltanto `review` e protegge pagine già `p
 
 ## Catalogo pilot M5.6
 
-Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
-
-### Distinzioni
-
 ```text
 candidate
 ≠ release candidate
 ≠ published page
 ```
 
-- candidate: possibile entry individuata dall’audit;
-- release candidate: bundle e draft approvati, pagina coerente ancora in `review`;
-- published: pagina visibile pubblicamente e inclusa nella sitemap.
-
-### Ragione del confine
-
-Il backend live serve già ogni riga `pages.status='published'`. Non esiste ancora una mutation autorizzata `review → published`.
-
-La foundation M5.6 deve quindi essere read-only: auditare e certificare release candidate senza modificare lo stato pubblico.
-
-### Candidate audit foundation
-
-Branch tecnica proposta:
+### Foundation read-only
 
 ```text
-feat/public-catalog-pilot-foundation
+D1
+→ loadPublicCatalogPilotSnapshot
+→ auditPublicCatalogPilot
+→ selected/excluded report
+→ create/validate manifest
 ```
 
-Architettura:
+Modulo:
 
 ```text
-D1 fixtures / snapshot editoriale
-→ server-only candidate model
-→ latest bundle + draft selection
-→ deterministic gate validation
-→ slug and intent collision checks
-→ candidate report
-→ versioned manifest, max 4
+src/public-catalog-pilot.ts
 ```
 
-Fonti dati:
+Il loader esegue sei gruppi di `SELECT` su:
 
 - `editorial_briefs`;
 - `page_evidence_bundles`;
@@ -290,103 +208,94 @@ Fonti dati:
 - `pages`;
 - claim, verification e source registry.
 
-### Gate release candidate
+### Selezione canonica
 
-- latest bundle non superseded;
-- `publication_eligible=1`;
-- `approved_for_publication`;
-- `ready_for_publication=1`;
-- zero blocker, insufficient, contradicted, pending, expired e conflict;
-- draft grounded approvato sullo stesso bundle;
-- provenance completa;
-- claim usati ancora correnti;
-- pagina materializzata in `review` e identica al draft;
-- `published_at=NULL` e `featured=0`;
-- slug valido e non riservato;
-- intento distinto;
-- nessuna pagina published sovrascritta.
+Per ogni brief:
+
+1. latest evidence bundle per versione;
+2. latest draft per bundle;
+3. publication gate e approvazione umana;
+4. renderer grounded;
+5. provenance completa;
+6. claim atomic/verified con fonti HTTPS attive e non scaduti;
+7. pagina materializzata `review` coerente col draft;
+8. slug e intento sicuri;
+9. cap massimo quattro.
+
+Una versione più recente non approvata blocca la candidate: non si ripiega su una versione precedente approvata.
 
 ### Manifest
-
-Proposta:
 
 ```text
 data/public-catalog-pilot.json
 ```
 
-Contiene massimo quattro entry e collega slug, intento, brief, bundle, draft, claim e fonti.
+Contratto:
 
-Il manifest è un artefatto di audit, non un trigger di pubblicazione.
+- schema versionato;
+- zero–quattro entry;
+- ID e versioni positive;
+- slug e keyword unici;
+- URL HTTPS;
+- nessun secret-like data;
+- `pageStatus='review'`;
+- drift check contro il report corrente.
 
-### Empty state
+Il manifest iniziale è vuoto e non attiva alcun comportamento runtime.
 
-Zero release candidate è un risultato valido. Il sistema deve produrre blocker espliciti senza generare dati fittizi.
+### Test
+
+#### Pure fixtures
+
+Coprono candidate valida, gate negativo, stale claim, latest draft non approved, drift pagina, slug riservato, collisioni, cap, manifest invalido ed empty state.
+
+#### Migrated D1 smoke
+
+Un Worker temporaneo:
+
+- transpila route policy e audit module in ESM;
+- applica le migrazioni reali;
+- esegue il loader sullo schema effettivo;
+- confronta conteggi e stati before/after;
+- verifica nessuna mutation;
+- elimina entry, config e stato locale.
+
+CI applicativa #373 è completamente verde.
 
 ### Publication boundary
 
 M5.6a non introduce:
 
-- mutation D1;
-- endpoint publish;
-- pulsante publish;
-- cambio di route ownership;
-- deploy;
-- sitemap submission.
+- migration o mutation D1;
+- endpoint o pulsante publish;
+- transizione `review → published`;
+- route pubblica;
+- cambio owner;
+- deploy o sitemap submission.
 
-La prima transizione `review → published` richiede branch e autorizzazione separate, recheck di freshness, state machine, audit, idempotenza e rollback.
+La pubblicazione richiede una branch separata, autorizzazione, identity, state machine, audit, idempotenza, freshness recheck e rollback.
 
-L’ordine tra pubblicazione e M5.7 viene deciso soltanto quando esistono release candidate reali.
+## Prossima fase — audit remoto M5.6b
 
-## Separazione delle fonti
+Deve usare un percorso read-only sicuro e produrre un report sanitizzato sui dati reali.
 
-### Fonti ufficiali
+Possibili esiti:
 
-Usate per claim commerciali datati: prezzo, durata, dati, hotspot, fair use, rete, copertura, attivazione, compatibilità, routing e termini.
+```text
+0 candidate → manifest vuoto e blocker report
+1–4 candidate → manifest con identità reali
+>4 candidate → cap deterministico
+```
 
-### Community e domanda recente
-
-Usate per domande, linguaggio, lamentele, confronti, content gap e priorità. Non aggiornano direttamente claim commerciali.
+Nessun Paese o provider viene scelto prima dell’audit.
 
 ## Stato verificato
 
 ```text
-M5.5b.1 route policy:        completata
-M5.5b.2 canonical parity:    completata
-M5.5b.3 SEO endpoint parity: completata
-M5.6 catalog pilot:          scope in corso
+M5.5 SEO/routing parity:     completata
+M5.6a foundation:            CI applicativa #373 verde, PR #77 da chiudere
 active matrix:               current
 cutover:                     non eseguito
 publication mutation:        non autorizzata
+manifest entries:            0
 ```
-
-## Confini delle prossime fasi
-
-### M5.6a
-
-- audit read-only;
-- manifest massimo quattro entry;
-- fixtures e smoke;
-- nessuna pubblicazione.
-
-### M5.6b
-
-- preparazione reale una pagina alla volta;
-- bundle e draft approvati;
-- pagine ancora `review`.
-
-### Publication decision
-
-- branch separata;
-- autorizzazione esplicita;
-- audit e rollback.
-
-### M5.7
-
-- modifica minima della matrice;
-- rollback documentato;
-- schema, sitemap, robots e 404 verificati;
-- provider redirect e publication guardrails preservati.
-
-### M6
-
-CMP e Consent Mode precedono GTM, GA4 e Search Console. Nessuna credenziale Google entra nel repository o nel frontend.
