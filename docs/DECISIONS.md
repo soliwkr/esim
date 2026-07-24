@@ -218,75 +218,110 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** title, description, Open Graph e JSON-LD derivano da un modello server-only condiviso; canonical, robots e cache restano policy della route owner.
 
-**Conseguenza:** legacy e Astro possono essere confrontati senza trasformare una preview noindex in canonicale.
+**Conseguenza:** preview e canonical condividono i dati senza confondere indicizzazione, URL e cache.
 
 ## ADR-028 — Ownership target esplicita e cutover tramite matrice versionata
 
-**Stato:** accettata come target; non attiva.
+**Stato:** accettata; target attivato sulla branch PR #81, deploy live ancora da verificare.
 
-**Decisione:** current e target ownership sono separate; l’owner live cambia soltanto tramite PR di cutover esplicita.
+**Decisione:** current e target ownership sono separate; l’owner cambia soltanto tramite una PR di cutover esplicita.
 
-**Conseguenza:** API, `/go/*`, asset tecnici e legacy private non vengono intercettati da catch-all anticipati.
+**Conseguenza:** API, `/go/*`, asset tecnici e route private non vengono intercettati accidentalmente dal catch-all pubblico.
 
 ## ADR-029 — Renderer canonico Astro testato tramite Worker factory
 
 **Stato:** accettata e verificata con PR #73.
 
-**Decisione:** le route canoniche Astro vengono compilate e testate con `createPublicWorker(routeDecision)` e un wrapper locale temporaneo.
+**Decisione:** prima del cutover le route canoniche Astro vengono compilate e testate con `createPublicWorker(routeDecision)` e un resolver temporaneo.
 
-**Conseguenza:** home, listing, trust, articolo e 404 sono verificati senza modificare `activePublicRouteDecision` o distribuire flag di renderer.
+**Conseguenza:** home, listing, trust, articolo e 404 sono stati verificati senza modificare prematuramente la matrice attiva.
 
 ## ADR-030 — Sitemap e robots condivisi prima del trasferimento di ownership
 
-**Stato:** accettata e verificata con PR #75.
+**Stato:** accettata e verificata con PR #75, CI finale #365.
 
 **Decisione:** query, validazione, XML, robots e response contract vivono in `src/public-seo-endpoints.ts`, condiviso da backend legacy e handler Astro.
 
-**Conseguenza:** route statiche dalla policy, pagine `published` soltanto, output deterministico, fail-closed e parità legacy/Astro. PR #75 è mergiata in `8d52e7e316d632dcda0d5bb45b818a490df9fef6` dopo CI finale #365.
+**Conseguenza:** route statiche dalla policy, pagine `published` soltanto, output deterministico e fail-closed restano invariati durante il cambio owner.
 
 ## ADR-031 — Catalogo pilot come release candidate, non come pubblicazione implicita
 
 **Stato:** accettata e verificata con PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI finale #379.
 
-**Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con un massimo di quattro release candidate. Una release candidate deve avere latest evidence bundle idoneo e approvato, latest draft grounded approvato, provenance completa, claim correnti e pagina materializzata coerente, ma resta `pages.status='review'`.
-
-**Razionale:** il renderer backend live serve qualsiasi riga `published`, mentre non esiste ancora una mutation di pubblicazione autorizzata. Audit e pubblicazione devono restare separati.
+**Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con massimo quattro release candidate. Una release candidate deve superare bundle, approvazione, draft grounded, provenance, claim e coerenza pagina, ma resta `pages.status='review'`.
 
 **Conseguenza:**
 
-- `src/public-catalog-pilot.ts` carica soltanto con `SELECT` e produce report deterministici;
-- latest bundle e latest draft prevalgono sulle versioni precedenti;
-- publication eligibility, `approved_for_publication` e `ready_for_publication` sono obbligatori;
-- provenance, claim atomic/verified, fonti HTTPS attive e freshness vengono ricontrollati;
-- la pagina deve restare `review`, `published_at=NULL`, `featured=0` e coerente col draft;
-- slug riservati, file probe, collisioni di keyword e risposte duplicate bloccano l’entry;
-- il cap è quattro e zero candidate è un esito valido;
-- `data/public-catalog-pilot.json` è inizialmente vuoto e non inventa ID o pagine;
-- fixture pure e Worker temporaneo su D1 migrato verificano i gate;
-- conteggi e stati before/after restano identici;
-- nessuna migration, mutation, route, endpoint publish, deploy o cambio della matrice viene introdotto;
-- la prima transizione `review → published` richiede branch, autorizzazione, state machine, audit, idempotenza, freshness recheck e rollback separati.
+- il loader usa soltanto `SELECT`;
+- latest bundle e latest draft prevalgono;
+- publication eligibility e approvazione umana sono obbligatorie;
+- claim e fonti vengono ricontrollati per freshness;
+- slug, file probe e collisioni possono bloccare l’entry;
+- zero candidate è un esito valido;
+- il manifest iniziale resta vuoto;
+- `review → published` richiede una capacità separata.
 
 ## ADR-032 — Audit remoto privato prima del cutover, pubblicazione non bloccante
 
-**Stato:** accettata come scope con PR #78 e verificata dalla CI applicativa #383 su PR #79; merge e verifica live ancora pendenti.
+**Stato:** accettata e verificata live con PR #78, PR #79, CI finale #386 e audit remoto del 24 luglio 2026.
 
-**Decisione:** il primo audit dei dati editoriali remoti viene esposto soltanto tramite una route Control Room privata, GET-only e protetta da Cloudflare Access. La route usa direttamente il binding D1 server-side e riutilizza il loader e l’audit M5.6a; non accetta query SQL, non richiede maintenance token nel browser e non modifica alcuno stato.
+**Decisione:** il primo audit dei dati editoriali remoti è esposto soltanto tramite una route Control Room privata, GET-only e protetta da Cloudflare Access. La route usa il binding D1 server-side e riutilizza il loader e l’audit M5.6a; non accetta SQL, non richiede maintenance token nel browser e non modifica stato.
 
-**Razionale:** un endpoint SQL generico o un export con credenziali aumenterebbero inutilmente la superficie di rischio. Il custom Worker possiede già identità Access, binding D1 e header privati coerenti.
+**Risultato live:**
+
+```text
+candidateCount: 1
+eligibleCount: 0
+selectedCount: 0
+excludedCount: 1
+```
 
 **Conseguenza:**
 
 - la route è `/control-room-foundation/api/catalog-pilot-audit`;
-- una richiesta anonima viene bloccata prima dell’handler;
-- soltanto GET è accettato;
-- la risposta è `no-store`, `noindex` e `nosniff`;
-- il payload contiene soltanto il report tipizzato e fallisce chiuso su dati secret-like;
-- il browser non riceve maintenance token, JWT, query SQL o dump D1;
-- snapshot editoriale before/after identico e smoke dedicato dimostrano l’assenza di mutation;
-- zero release candidate è un esito valido;
-- un manifest vuoto non blocca M5.7;
-- il nuovo design può passare sull’apice continuando a servire soltanto righe `published`;
-- nuove release candidate possono restare `review` durante e dopo il cutover;
-- `review → published` resta una capability separata con autorizzazione, state machine, audit, freshness recheck e rollback;
-- M5.7 modifica la matrice attiva in una PR separata e reversibile, senza includere publication capability, analytics o affiliazioni.
+- richieste anonime vengono bloccate;
+- la risposta è no-store, noindex e nosniff;
+- nessun token, JWT, SQL o dump D1 entra nel payload;
+- la candidate `esim-cina-senza-vpn` resta `review` ed esclusa;
+- il manifest resta vuoto;
+- zero release candidate non blocca M5.7;
+- publication capability resta separata.
+
+## ADR-033 — Cutover apex tramite matrice target e Worker-first wildcard
+
+**Stato:** accettata e verificata dalla CI applicativa #397 su PR #81; merge, deploy e verifica live ancora pendenti.
+
+**Decisione:** M5.7 attiva il renderer Astro canonico con due modifiche versionate e coordinate:
+
+```ts
+export const activePublicRouteDecision = targetPublicRouteDecision;
+```
+
+```json
+{
+  "run_worker_first": ["/*", "!/_astro/*"]
+}
+```
+
+La wildcard porta le route dinamiche al custom Worker; l’esclusione mantiene gli asset Astro asset-first. Il Worker continua a delegare API, redirect provider, Control Room legacy e asset tecnici al backend.
+
+**Razionale:** cambiare soltanto la route matrix non sarebbe sufficiente se Cloudflare Assets non invocasse il Worker sulle route canoniche. Pattern positivi più specifici insieme a `/*` sono inoltre ridondanti e non validi nel contratto Wrangler.
+
+**Conseguenza:**
+
+- Astro possiede home, listing, trust pages, articoli, sitemap, robots e 404;
+- `/api/*`, `/go/*`, Control Room ed execution plane restano backend-owned;
+- `/_astro/*` resta servito come asset statico;
+- preview e canonical restano render mode distinti;
+- `review`, `draft`, file probe e URL assenti restano 404 noindex/no-store;
+- il Worker di produzione compilato viene testato direttamente, senza wrapper di ownership;
+- provider redirect, health, maintenance e Control Room sono regressioni obbligatorie;
+- desktop, mobile, metadata, JSON-LD e assenza overflow sono acceptance del cutover;
+- non vengono introdotti pubblicazione, analytics, affiliazioni o rimozione legacy;
+- il rollback è la singola modifica versionata:
+
+```ts
+export const activePublicRouteDecision = currentPublicRouteDecision;
+```
+
+Il merge non equivale a verifica live: il nuovo owner viene certificato in produzione soltanto dopo deploy e controllo reale delle route canoniche e backend.
