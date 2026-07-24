@@ -301,28 +301,13 @@ function parseSitemap(xml) {
   return entries;
 }
 
-function assertValidPopulated(snapshot) {
+function assertValidCommon(snapshot) {
   for (const value of [snapshot.sitemap, snapshot.sitemapQuery, snapshot.sitemapSlash]) {
     assertSuccessHeaders(value, 'application/xml;charset=UTF-8');
     assert.equal(value.body, snapshot.sitemap.body);
   }
   assertSuccessHeaders(snapshot.sitemapHead, 'application/xml;charset=UTF-8');
   assert.equal(snapshot.sitemapHead.body, '');
-
-  const entries = parseSitemap(snapshot.sitemap.body);
-  assert.deepEqual(
-    entries.slice(0, staticPaths.length).map((entry) => entry.loc),
-    staticPaths.map((pathname) => `${canonicalBase}${pathname}`),
-  );
-  assert.deepEqual(entries.slice(staticPaths.length), [
-    { loc: `${canonicalBase}/alpha-destination`, lastmod: '2099-01-02' },
-    { loc: `${canonicalBase}/beta-comparison`, lastmod: '2099-01-20' },
-    { loc: `${canonicalBase}/middle-provider`, lastmod: '2099-02-15' },
-    { loc: `${canonicalBase}/zulu-guide`, lastmod: '2099-03-30' },
-  ]);
-  assert.equal(new Set(entries.map((entry) => entry.loc)).size, entries.length);
-  for (const entry of entries.slice(0, staticPaths.length)) assert.equal(entry.lastmod, null);
-  assert.doesNotMatch(snapshot.sitemap.body, /astro-foundation|review-hidden|draft-hidden|archived-hidden|\/404|\/api\/|\/go\/|control-room/);
 
   for (const value of [snapshot.robots, snapshot.robotsQuery, snapshot.robotsSlash]) {
     assertSuccessHeaders(value, 'text/plain;charset=UTF-8');
@@ -341,17 +326,32 @@ function assertValidPopulated(snapshot) {
   assert.equal(health.controlRoomVersion, 3);
 }
 
-function assertValidEmpty(snapshot) {
-  assertValidPopulated({
-    ...snapshot,
-    sitemap: snapshot.sitemap,
-    sitemapQuery: snapshot.sitemapQuery,
-    sitemapSlash: snapshot.sitemapSlash,
-    sitemapHead: snapshot.sitemapHead,
-  });
+function assertSitemapEntries(snapshot, dynamicEntries) {
   const entries = parseSitemap(snapshot.sitemap.body);
-  assert.equal(entries.length, staticPaths.length);
-  assert.deepEqual(entries.map((entry) => entry.loc), staticPaths.map((pathname) => `${canonicalBase}${pathname}`));
+  assert.deepEqual(
+    entries.slice(0, staticPaths.length).map((entry) => entry.loc),
+    staticPaths.map((pathname) => `${canonicalBase}${pathname}`),
+  );
+  assert.deepEqual(entries.slice(staticPaths.length), dynamicEntries);
+  assert.equal(new Set(entries.map((entry) => entry.loc)).size, entries.length);
+  for (const entry of entries.slice(0, staticPaths.length)) assert.equal(entry.lastmod, null);
+  assert.doesNotMatch(snapshot.sitemap.body, /astro-foundation|review-hidden|draft-hidden|archived-hidden|\/404|\/api\/|\/go\/|control-room/);
+}
+
+function assertValidPopulated(snapshot) {
+  assertValidCommon(snapshot);
+  assertSitemapEntries(snapshot, [
+    { loc: `${canonicalBase}/alpha-destination`, lastmod: '2099-01-02' },
+    { loc: `${canonicalBase}/beta-comparison`, lastmod: '2099-01-20' },
+    { loc: `${canonicalBase}/middle-provider`, lastmod: '2099-02-15' },
+    { loc: `${canonicalBase}/zulu-guide`, lastmod: '2099-03-30' },
+  ]);
+}
+
+function assertValidEmpty(snapshot) {
+  assertValidCommon(snapshot);
+  assertSitemapEntries(snapshot, []);
+  assert.equal(parseSitemap(snapshot.sitemap.body).length, staticPaths.length);
 }
 
 function assertInvalid(snapshot) {
@@ -363,6 +363,7 @@ function assertInvalid(snapshot) {
     assert.doesNotMatch(value.body, /robots\.txt|urlset|<url>/);
   }
   assert.equal(snapshot.sitemapHead.status, 500);
+  assert.equal(snapshot.sitemapHead.contentType, 'text/plain;charset=UTF-8');
   assert.equal(snapshot.sitemapHead.cacheControl, 'no-store');
   assert.equal(snapshot.sitemapHead.body, '');
 
@@ -372,6 +373,12 @@ function assertInvalid(snapshot) {
   }
   assertSuccessHeaders(snapshot.robotsHead, 'text/plain;charset=UTF-8');
   assert.equal(snapshot.robotsHead.body, '');
+
+  assert.equal(snapshot.home.status, 200);
+  assert.match(snapshot.home.body, /<section class="hero">/);
+  assert.doesNotMatch(snapshot.home.body, /data-public-homepage="canonical"/);
+  assert.equal(snapshot.health.status, 200);
+  assert.equal(JSON.parse(snapshot.health.body).controlRoomVersion, 3);
 }
 
 function assertEquivalent(legacy, astro, mode) {
