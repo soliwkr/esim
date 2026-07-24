@@ -1,0 +1,14 @@
+---
+import { env } from 'cloudflare:workers'
+import { loadPublicHomepageCards } from '../../../../src/public-page-cards'
+import PublicHomepagePage from '../components/public/PublicHomepagePage.astro'
+
+const { featured, destinations } = await loadPublicHomepageCards(env.DB)
+---
+
+<PublicHomepagePage
+  mode="canonical"
+  siteName={env.SITE_NAME}
+  featured={featured}
+  destinations={destinations}
+/>
