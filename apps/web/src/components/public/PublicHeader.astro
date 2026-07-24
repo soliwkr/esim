@@ -5,14 +5,13 @@ import { PUBLIC_LISTING_DEFINITIONS } from '../../../../../src/public-listing-ro
 
 interface Props {
   mode: PublicRenderMode
-  previewBase?: string
 }
 
 const { mode } = Astro.props
 const homeHref = publicHomePath(mode)
 const navigation = [
   ...PUBLIC_LISTING_DEFINITIONS.map((item) => ({
-    href: publicListingPath(mode, item.pageType),
+    href: publicListingPath(mode, item.type),
     label: item.navLabel,
   })),
   { href: publicTrustPath(mode, 'metodo'), label: 'Metodo' },
