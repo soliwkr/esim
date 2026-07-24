@@ -6,12 +6,18 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile. La roadmap c
 
 ## Now
 
-### 1. Implementare la fondazione del contratto SEO pubblico
+### 1. Chiudere la PR #69 sul vero head documentale
 
-Branch autorizzata:
+Branch:
 
 ```text
 feat/public-seo-contract-foundation
+```
+
+PR:
+
+```text
+#69 — Add shared public SEO contract foundation
 ```
 
 Scope canonico:
@@ -20,135 +26,137 @@ Scope canonico:
 docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md
 ```
 
-Obiettivo esclusivo:
+Implementazione completata:
 
 ```text
-validated published page
-→ shared typed SEO model
+validated public page
+→ src/public-seo.ts
+→ typed SEO document
 → legacy canonical renderer OR Astro noindex preview
-→ deterministic metadata and structured data
 ```
 
-Implementare:
+Il contratto condiviso ora produce:
 
-- un modulo server-only condiviso, candidato `src/public-seo.ts`;
-- title e meta description derivati dallo stesso modello nei due renderer;
-- Open Graph tipizzato con `website` o `article`;
-- `Article` JSON-LD per gli articoli pubblicati;
-- `FAQPage` JSON-LD soltanto quando la FAQ validata è presente;
-- `WebSite` schema condiviso per la homepage, soltanto se resta nella stessa slice stretta;
-- serializer JSON-LD sicuro contro `</script>` e caratteri di terminazione;
-- props tipizzate nel layout Astro, senza accettare HTML o JSON arbitrario;
-- smoke dedicato di drift e regressione.
+- title e meta description;
+- Open Graph `website` o `article`;
+- `WebSite` JSON-LD per la homepage;
+- `Article` JSON-LD per gli articoli;
+- `FAQPage` soltanto quando la FAQ validata è presente;
+- `dateModified` normalizzata;
+- `Organization` come autore;
+- `mainEntityOfPage` scelto dalla route chiamante.
 
-Policy route da preservare:
+La policy route resta distinta:
 
 ```text
-legacy article:
-  /{slug}
-  canonical production URL
+legacy:
+  / e /{slug}
   index,follow,max-image-preview:large
+  canonical produzione
 
-Astro preview article:
+Astro preview:
+  /astro-foundation
   /astro-foundation/articoli/{slug}
-  self-canonical preview URL
   noindex,nofollow
   X-Robots-Tag: noindex,nofollow
   Cache-Control: no-store
+  self-canonical preview
 ```
 
-La preview può usare lo stesso title, description e contenuto schema del renderer canonico, ma canonical URL, `mainEntityOfPage` e robots restano specifici della route.
-
-### 2. Aggiungere il drift smoke SEO
-
-Comando previsto:
+CI applicativa #312 è completamente verde. Dopo gli aggiornamenti canonici occorre attendere la nuova CI sul head reale della PR. Soltanto allora:
 
 ```text
-npm run smoke:public-seo-contracts
+PR #69 ready
+→ merge
+→ deploy automatico
 ```
 
-Il test usa D1 temporanea e il runtime `workerd` reale.
+Non dichiarare completata o distribuita M5.5a prima di questi passaggi.
 
-Confrontare per la stessa pagina pubblicata:
+### 2. Verificare il checkpoint live della fondazione SEO
 
-- title;
-- meta description;
-- Open Graph title, description e type;
-- Article headline e description;
-- FAQ questions e answers;
-- dateModified;
-- organization author;
-- canonical e `mainEntityOfPage` secondo la policy della route.
-
-Differenze consentite:
+Dopo il deploy controllare almeno:
 
 ```text
-canonical URL
-mainEntityOfPage URL
-robots/indexing policy
-banner e navigazione propri della preview
+/astro-foundation
+/astro-foundation/articoli/<slug-published>
 ```
 
-Ogni altro drift deve fallire la CI.
+Homepage preview:
 
-Fixture di sicurezza obbligatoria:
+- title e description uguali al contratto canonico;
+- `og:type=website`;
+- `WebSite` JSON-LD valido;
+- canonical ancora `/astro-foundation`;
+- robots ancora `noindex,nofollow`;
+- `X-Robots-Tag` e `Cache-Control: no-store` preservati.
+
+Articolo preview:
+
+- title e description uguali alla pagina pubblicata;
+- `og:type=article`;
+- `Article` JSON-LD valido;
+- `FAQPage` presente soltanto quando la FAQ è presente;
+- `mainEntityOfPage` sulla route preview;
+- canonical ancora namespaced;
+- noindex/no-store preservati;
+- nessuno script eseguibile o Astro island.
+
+Verificare inoltre che la resa visuale osservata per M5.4 non sia cambiata e che non compaia overflow orizzontale.
+
+### 3. Non aprire ancora M5.5b
+
+La prossima slice di routing/ownership SEO resta bloccata fino al checkpoint live M5.5a.
+
+Non migrare adesso:
 
 ```text
-</script>
-<example>
-virgolette e apostrofi
-caratteri italiani accentati
-```
-
-Acceptance:
-
-- JSON-LD valido e parsabile;
-- nessun elemento eseguibile iniettato;
-- nessun raw HTML da D1;
-- testo visibile escapato;
-- soltanto script `type="application/ld+json"` autorizzati;
-- zero JavaScript applicativo aggiunto al sito pubblico.
-
-### 3. Conservare l’ownership SEO corrente
-
-Questa branch non sposta:
-
-```text
+/
+/destinazioni
+/guide
+/confronti
+/{slug}
 /sitemap.xml
 /robots.txt
 /go/{provider}
 ```
 
-Aggiungere soltanto regressioni che verifichino:
+Dopo il checkpoint, eseguire una discovery separata per decidere:
 
-- sitemap con route canoniche statiche e articoli `published`;
-- nessuna route `/astro-foundation` in sitemap;
-- nessuna riga `review` o `draft` in sitemap;
-- robots con sitemap canonica e disallow correnti;
-- redirect provider soltanto verso destinazioni HTTPS;
-- redirect `no-store` e `noindex`;
-- nessuna intercettazione da parte delle route Astro;
-- vere 404 per canonical mancante e preview assente/review/draft;
-- file probe esclusi dal fallback articolo.
+- route matrix di cutover;
+- ownership futura di canonical, sitemap e robots;
+- gestione schema sotto routing finale;
+- preservazione redirect provider;
+- drift test di cutover;
+- rollback.
 
-La futura migrazione di sitemap, robots, provider redirect e route canoniche richiederà una seconda slice M5.5 esplicita.
+Nessuna di queste decisioni è implicita nella PR #69.
 
-### 4. Verifica richiesta prima del merge
+### 4. Contratti verificati dalla CI #312
 
-La PR nasce draft e deve completare:
+Il nuovo comando:
 
-- generazione tipi Cloudflare;
-- typecheck TypeScript e Astro;
-- build Astro e Worker;
-- migrazioni D1;
-- quality smoke e golden evaluation;
-- Container build e smoke;
-- runtime Astro/backend;
-- smoke pubblici esistenti;
-- nuovo smoke SEO;
-- tutte le suite Control Room.
+```text
+npm run smoke:public-seo-contracts
+```
 
-Non indebolire le asserzioni esistenti. Gli smoke che oggi richiedono zero `<script>` devono essere aggiornati a distinguere JSON-LD non eseguibile da JavaScript applicativo.
+usa D1 temporanea, `workerd` e Chromium e verifica:
+
+- parità title, description e Open Graph tra legacy e Astro;
+- parità normalizzata di `Article` e `FAQPage`;
+- differenze consentite soltanto per canonical, `mainEntityOfPage` e robots;
+- JSON-LD valido con fixture `</script>`, `<example>`, virgolette, apostrofi e accenti;
+- zero elementi arbitrari creati nel DOM;
+- zero JavaScript eseguibile;
+- sitemap canonica senza preview, `review` o `draft`;
+- robots con sitemap e disallow correnti;
+- redirect provider HTTPS, `no-store` e `noindex`;
+- vere 404 canonical e preview;
+- file probe esclusi dal fallback articolo;
+- desktop/mobile senza overflow;
+- tutte le regressioni Control Room.
+
+CI #311 aveva rilevato un’asserzione troppo ampia che scambiava il carattere `<` dentro attributi HTML quotati per un elemento DOM. Il test è stato corretto sul comportamento reale senza indebolire la protezione.
 
 ### 5. Non attivare ancora Google measurement
 
@@ -195,29 +203,20 @@ Ogni mutation richiede Access, conferma, state machine server-side, audit, idemp
 
 PR #67:
 
-```text
-Add published-only Astro article renderer
-```
-
-Stato definitivo:
-
-- CI applicativa #302 completamente verde;
-- CI finale #307 completamente verde;
-- merge commit `4810c0c32d54dca6f85de19d507a6da13f3dc574`;
-- route `/astro-foundation/articoli/[slug]` distribuita;
-- articolo `published` verificato live desktop e mobile;
-- hero, risposta diretta, disclosure, blocchi, FAQ, provenance e fonti renderizzati;
-- FAQ espansa verificata su mobile;
-- fonti e footer verificati desktop/mobile;
+- CI applicativa #302 verde;
+- CI finale #307 verde;
+- merge `4810c0c32d54dca6f85de19d507a6da13f3dc574`;
+- articolo `published` verificato live desktop/mobile;
+- hero, risposta diretta, disclosure, blocchi, FAQ, provenance, fonti e footer verificati;
 - nessun overflow orizzontale visibile;
-- related section omessa correttamente quando non esistono righe correlate exact-cluster;
 - route canoniche ancora legacy;
 - nessun tracking, affiliazione, mutation o pubblicazione introdotti.
 
-Gli screenshot attestano la resa visuale. Published-only, 404, noindex/no-store, sitemap exclusion, HTTPS sources, fail-closed e link parity restano attestati dalla CI.
+PR #68 ha registrato il checkpoint e autorizzato M5.5a; merge `bc2d6baa894e98a5cd9ce005c12ee4d2969e46b8`, CI #309 verde.
 
 ## Verifiche operative aperte
 
+- checkpoint live metadata e JSON-LD dopo il merge della PR #69;
 - header HTTP delle preview su controllo esterno dedicato;
 - linkage claim → task nel browser reale;
 - linkage audit → ID/versione draft nel browser reale;
@@ -239,23 +238,10 @@ GA4/GTM creati ≠ tracking attivo
 service account creato ≠ credenziale configurata
 brief accepted ≠ brief converted
 approved draft ≠ published page
-CI verde ≠ verifica visuale live
+CI applicativa verde ≠ CI finale verde
+CI verde ≠ verifica live
 JSON-LD ≠ JavaScript applicativo
 ```
-
-## Checkpoint completati recenti
-
-- PR #54 — decisione brief in produzione;
-- PR #57 — audit repository esterni;
-- PR #58 — track M5 parallela;
-- PR #59 — public shell preview;
-- PR #60 — checkpoint mobile public shell;
-- PR #61 — trust pages e checkpoint mobile 3/3;
-- PR #62 — scope homepage candidata;
-- PR #63 — homepage candidata, merge `7ba767d`, CI finale #284 e checkpoint live;
-- PR #65 — listing preview, merge `2483fbf`, CI finale #296 e checkpoint live;
-- PR #66 — chiusura M5.3 e scope renderer, merge `76aab5a`;
-- PR #67 — renderer articolo, merge `4810c0c`, CI finale #307 e checkpoint live completato.
 
 ## Freeze immediato
 
