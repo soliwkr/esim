@@ -10,7 +10,9 @@ import { publicArticleSlugCandidate } from '../../../../src/public-route-policy'
 import { affiliateEnabled } from '../../../../src/utils'
 import PublicArticleErrorPage from '../components/public/PublicArticleErrorPage.astro'
 import PublicArticlePage from '../components/public/PublicArticlePage.astro'
+import { setPublicResponseHeaders } from '../lib/public-response'
 
+setPublicResponseHeaders(Astro.response.headers, 'canonical')
 const slug = publicArticleSlugCandidate(Astro.url.pathname)
 const result: PublicArticleLoadResult = slug
   ? await loadPublishedArticle(env.DB, slug)
@@ -21,8 +23,10 @@ if (result.kind === 'found') {
   related = await loadRelatedPublishedArticles(env.DB, result.article.cluster, result.article.slug, 5)
 } else if (result.kind === 'missing') {
   Astro.response.status = 404
+  setPublicResponseHeaders(Astro.response.headers, 'canonical', true)
 } else {
   Astro.response.status = 500
+  setPublicResponseHeaders(Astro.response.headers, 'canonical', true)
   console.error(`Invalid published canonical article for ${slug ?? Astro.url.pathname}: ${result.reason}`)
 }
 ---
