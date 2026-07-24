@@ -1,4 +1,6 @@
 import type { ContentBlock, Env, FaqItem } from './types';
+import type { PublicJsonLdDocument, PublicOpenGraphType } from './public-seo';
+import { serializeJsonLd } from './public-seo';
 import { esc, siteBase } from './utils';
 
 export function renderBlocks(blocks: ContentBlock[]): string {
@@ -23,14 +25,18 @@ export function layout(env: Env, options: {
   description: string;
   canonicalPath: string;
   content: string;
-  schema?: Record<string, unknown> | Record<string, unknown>[];
+  schema?: PublicJsonLdDocument | PublicJsonLdDocument[];
+  ogType?: PublicOpenGraphType;
   noindex?: boolean;
   status?: number;
 }): Response {
   const canonical = `${siteBase(env)}${options.canonicalPath}`;
   const robots = options.noindex ? 'noindex,nofollow' : 'index,follow,max-image-preview:large';
-  const schema = options.schema ? `<script type="application/ld+json">${JSON.stringify(options.schema)}</script>` : '';
-  const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(options.title)}</title><meta name="description" content="${esc(options.description)}"><meta name="robots" content="${robots}"><link rel="canonical" href="${esc(canonical)}"><meta property="og:title" content="${esc(options.title)}"><meta property="og:description" content="${esc(options.description)}"><meta property="og:url" content="${esc(canonical)}"><meta name="theme-color" content="#102a43"><link rel="icon" href="/favicon.svg" type="image/svg+xml">${schema}<style>${styles}</style></head><body><header class="topbar"><nav class="wrap"><a class="brand" href="/">Senza <span>Roaming</span></a><div class="navlinks"><a href="/destinazioni">Destinazioni</a><a href="/guide">Guide</a><a href="/confronti">Confronti</a><a href="/metodo">Metodo</a></div></nav></header>${options.content}<footer class="footer"><div class="wrap"><strong>${esc(env.SITE_NAME)}</strong><p>Progetto editoriale indipendente sulle eSIM da viaggio. Prezzi, copertura e condizioni possono cambiare: verifichiamo le fonti e indichiamo la data dell’ultimo controllo.</p><a href="/trasparenza">Trasparenza</a><a href="/privacy">Privacy</a><a href="/metodo">Metodo editoriale</a></div></footer></body></html>`;
+  const schema = options.schema
+    ? `<script type="application/ld+json">${serializeJsonLd(options.schema)}</script>`
+    : '';
+  const ogType = options.ogType ?? 'website';
+  const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(options.title)}</title><meta name="description" content="${esc(options.description)}"><meta name="robots" content="${robots}"><link rel="canonical" href="${esc(canonical)}"><meta property="og:type" content="${esc(ogType)}"><meta property="og:locale" content="it_IT"><meta property="og:site_name" content="${esc(env.SITE_NAME)}"><meta property="og:title" content="${esc(options.title)}"><meta property="og:description" content="${esc(options.description)}"><meta property="og:url" content="${esc(canonical)}"><meta name="theme-color" content="#102a43"><link rel="icon" href="/favicon.svg" type="image/svg+xml">${schema}<style>${styles}</style></head><body><header class="topbar"><nav class="wrap"><a class="brand" href="/">Senza <span>Roaming</span></a><div class="navlinks"><a href="/destinazioni">Destinazioni</a><a href="/guide">Guide</a><a href="/confronti">Confronti</a><a href="/metodo">Metodo</a></div></nav></header>${options.content}<footer class="footer"><div class="wrap"><strong>${esc(env.SITE_NAME)}</strong><p>Progetto editoriale indipendente sulle eSIM da viaggio. Prezzi, copertura e condizioni possono cambiare: verifichiamo le fonti e indichiamo la data dell’ultimo controllo.</p><a href="/trasparenza">Trasparenza</a><a href="/privacy">Privacy</a><a href="/metodo">Metodo editoriale</a></div></footer></body></html>`;
   const headers: Record<string, string> = {
     'content-type': 'text/html;charset=UTF-8',
     'cache-control': options.noindex ? 'no-store' : 'public,max-age=300',
