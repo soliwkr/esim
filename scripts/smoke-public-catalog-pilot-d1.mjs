@@ -2,12 +2,15 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { readFile, rm, writeFile } from 'node:fs/promises';
+import ts from 'typescript';
 
 const port = Number(process.env.PUBLIC_CATALOG_PILOT_D1_PORT || 8841);
 const origin = `http://127.0.0.1:${port}`;
 const serverDirectory = 'apps/web/dist/server';
 const builtConfigPath = `${serverDirectory}/wrangler.json`;
-const entryPath = `${serverDirectory}/catalog-pilot-d1-entry.ts`;
+const entryPath = `${serverDirectory}/catalog-pilot-d1-entry.mjs`;
+const modulePath = `${serverDirectory}/catalog-pilot-module.mjs`;
+const routePolicyPath = `${serverDirectory}/catalog-pilot-route-policy.mjs`;
 const configPath = `${serverDirectory}/catalog-pilot-d1-wrangler.json`;
 const stateRoot = '.wrangler/public-catalog-pilot-d1-smoke';
 
@@ -20,6 +23,96 @@ function wrangler(args) {
   if (result.status !== 0) {
     throw new Error(`Wrangler command failed:\n${result.stdout}\n${result.stderr}`);
   }
+}
+
+function compile(source, fileName) {
+  const result = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      strict: true,
+    },
+    fileName,
+    reportDiagnostics: true,
+  });
+  const errors = (result.diagnostics || []).filter(
+    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
+  );
+  assert.deepEqual(
+    errors.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')),
+    [],
+    `${fileName} must transpile without diagnostics.`,
+  );
+  return result.outputText;
+}
+
+async function prepareRuntimeFiles() {
+  const [builtConfigRaw, routePolicySource, moduleSource] = await Promise.all([
+    readFile(builtConfigPath, 'utf8'),
+    readFile('src/public-route-policy.ts', 'utf8'),
+    readFile('src/public-catalog-pilot.ts', 'utf8'),
+  ]);
+
+  await writeFile(
+    routePolicyPath,
+    compile(routePolicySource, 'src/public-route-policy.ts'),
+    'utf8',
+  );
+  await writeFile(
+    modulePath,
+    compile(moduleSource, 'src/public-catalog-pilot.ts')
+      .replace("from './public-route-policy';", "from './catalog-pilot-route-policy.mjs';"),
+    'utf8',
+  );
+  await writeFile(entryPath, `
+import {
+  auditPublicCatalogPilot,
+  loadPublicCatalogPilotSnapshot,
+} from './catalog-pilot-module.mjs';
+
+export { Last30DaysContainer, RecentDemandWorkflow } from './entry.mjs';
+
+async function counts(database) {
+  const row = await database.prepare(\`
+    SELECT
+      (SELECT COUNT(*) FROM editorial_briefs) AS briefs,
+      (SELECT COUNT(*) FROM page_evidence_bundles) AS bundles,
+      (SELECT COUNT(*) FROM editorial_review_drafts) AS drafts,
+      (SELECT COUNT(*) FROM pages) AS pages,
+      (SELECT COUNT(*) FROM pages WHERE status='published') AS published,
+      (SELECT COUNT(*) FROM pages WHERE status='review') AS review
+  \`).first();
+  return {
+    briefs: Number(row?.briefs || 0),
+    bundles: Number(row?.bundles || 0),
+    drafts: Number(row?.drafts || 0),
+    pages: Number(row?.pages || 0),
+    published: Number(row?.published || 0),
+    review: Number(row?.review || 0),
+  };
+}
+
+export default {
+  async fetch(request, env) {
+    if (new URL(request.url).pathname !== '/audit') return new Response('Not found', { status: 404 });
+    const before = await counts(env.DB);
+    const snapshot = await loadPublicCatalogPilotSnapshot(env.DB);
+    const report = auditPublicCatalogPilot(snapshot, new Date('2026-07-24T12:00:00.000Z'));
+    const after = await counts(env.DB);
+    return Response.json({ before, after, report, snapshotCounts: {
+      briefs: snapshot.briefs.length,
+      bundles: snapshot.bundles.length,
+      drafts: snapshot.drafts.length,
+      pages: snapshot.pages.length,
+      claims: snapshot.claims.length,
+    } }, { headers: { 'cache-control': 'no-store' } });
+  },
+};
+`, 'utf8');
+
+  const builtConfig = JSON.parse(builtConfigRaw);
+  builtConfig.main = 'catalog-pilot-d1-entry.mjs';
+  await writeFile(configPath, `${JSON.stringify(builtConfig, null, 2)}\n`, 'utf8');
 }
 
 function startRuntime() {
@@ -86,72 +179,16 @@ async function stopRuntime(runtime) {
   ]);
   if (graceful) return;
   signalRuntime(runtime, 'SIGKILL');
-  await Promise.race([once(runtime.child, 'exit'), new Promise((resolve) => setTimeout(resolve, 5_000))]);
+  await Promise.race([
+    once(runtime.child, 'exit'),
+    new Promise((resolve) => setTimeout(resolve, 5_000)),
+  ]);
 }
 
 let runtime;
 try {
   await rm(stateRoot, { recursive: true, force: true });
-  const builtConfig = JSON.parse(await readFile(builtConfigPath, 'utf8'));
-  builtConfig.main = 'catalog-pilot-d1-entry.ts';
-  await writeFile(configPath, `${JSON.stringify(builtConfig, null, 2)}\n`, 'utf8');
-  await writeFile(entryPath, `
-import {
-  auditPublicCatalogPilot,
-  loadPublicCatalogPilotSnapshot,
-} from '../../../../src/public-catalog-pilot';
-
-export { Last30DaysContainer, RecentDemandWorkflow } from './entry.mjs';
-
-type Env = { DB: D1Database };
-
-type Counts = {
-  briefs: number;
-  bundles: number;
-  drafts: number;
-  pages: number;
-  published: number;
-  review: number;
-};
-
-async function counts(database: D1Database): Promise<Counts> {
-  const row = await database.prepare(\`
-    SELECT
-      (SELECT COUNT(*) FROM editorial_briefs) AS briefs,
-      (SELECT COUNT(*) FROM page_evidence_bundles) AS bundles,
-      (SELECT COUNT(*) FROM editorial_review_drafts) AS drafts,
-      (SELECT COUNT(*) FROM pages) AS pages,
-      (SELECT COUNT(*) FROM pages WHERE status='published') AS published,
-      (SELECT COUNT(*) FROM pages WHERE status='review') AS review
-  \`).first<Record<string, number>>();
-  return {
-    briefs: Number(row?.briefs || 0),
-    bundles: Number(row?.bundles || 0),
-    drafts: Number(row?.drafts || 0),
-    pages: Number(row?.pages || 0),
-    published: Number(row?.published || 0),
-    review: Number(row?.review || 0),
-  };
-}
-
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    if (new URL(request.url).pathname !== '/audit') return new Response('Not found', { status: 404 });
-    const before = await counts(env.DB);
-    const snapshot = await loadPublicCatalogPilotSnapshot(env.DB);
-    const report = auditPublicCatalogPilot(snapshot, new Date('2026-07-24T12:00:00.000Z'));
-    const after = await counts(env.DB);
-    return Response.json({ before, after, report, snapshotCounts: {
-      briefs: snapshot.briefs.length,
-      bundles: snapshot.bundles.length,
-      drafts: snapshot.drafts.length,
-      pages: snapshot.pages.length,
-      claims: snapshot.claims.length,
-    } }, { headers: { 'cache-control': 'no-store' } });
-  },
-} satisfies ExportedHandler<Env>;
-`, 'utf8');
-
+  await prepareRuntimeFiles();
   wrangler(['d1', 'migrations', 'apply', 'DB', '--local', '--config', configPath, '--persist-to', stateRoot]);
   runtime = startRuntime();
   const response = await waitForRuntime(runtime);
@@ -172,6 +209,8 @@ export default {
   if (runtime) await stopRuntime(runtime);
   await Promise.all([
     rm(entryPath, { force: true }),
+    rm(modulePath, { force: true }),
+    rm(routePolicyPath, { force: true }),
     rm(configPath, { force: true }),
     rm(stateRoot, { recursive: true, force: true }),
   ]);
