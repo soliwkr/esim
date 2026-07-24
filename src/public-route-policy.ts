@@ -175,5 +175,6 @@ export function targetPublicRouteDecision(pathname: string): PublicRouteDecision
   return Object.freeze({ ...classified, owner });
 }
 
-// Production remains on the current matrix until an explicit M5.7 cutover PR changes this export.
-export const activePublicRouteDecision = currentPublicRouteDecision;
+// M5.7 apex cutover: production now uses the versioned target ownership matrix.
+// Rollback is the single-line reversal to currentPublicRouteDecision.
+export const activePublicRouteDecision = targetPublicRouteDecision;
