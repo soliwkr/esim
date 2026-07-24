@@ -20,8 +20,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Renderer canonico Astro | Compilato e verificato in CI | owner live ancora backend |
 | Sitemap e robots parity | Completata | PR #75, CI finale #365 |
 | Catalog pilot foundation | Completata | PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI finale #379 |
-| Remote catalog audit | Implementato e verificato dalla CI applicativa #383 | PR #79 draft; non ancora verificato sui dati remoti live |
-| Nuovo design sull’apice | Non ancora live | previsto in M5.7 dopo il primo audit remoto |
+| Remote catalog audit | Implementazione completata | PR #79, merge `df890103310cf1591eb2d8137a8385135c665d71`, CI finale #386; verifica live aperta |
+| Nuovo design sull’apice | Non ancora live | M5.7 parte dopo il primo audit remoto riuscito |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC non collegati |
 
@@ -135,21 +135,21 @@ Manifest corrente:
 Scope:
 
 ```text
-docs/PUBLIC-CATALOG-REMOTE-AUDIT-SCOPE.md
 PR #78
 merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd
 CI #381
 ```
 
-Branch tecnica:
+Implementazione:
 
 ```text
-feat/public-catalog-remote-audit
-PR #79 — Add private read-only catalog audit route
-CI applicativa #383 completamente verde
+PR #79
+merge df890103310cf1591eb2d8137a8385135c665d71
+CI applicativa #383
+CI finale #386
 ```
 
-Implementato:
+Route privata:
 
 ```text
 GET /control-room-foundation/api/catalog-pilot-audit
@@ -176,23 +176,23 @@ Lo smoke dedicato dimostra:
 - credenziali assenti dal payload;
 - snapshot editoriale identico prima e dopo la chiamata.
 
-La route non è ancora stata verificata sui dati remoti live.
+Non è ancora verificato che il deploy live contenga la route né è stato letto il report remoto reale.
 
 ## Quando va live il nuovo design
 
 Il nuovo design va live con **M5.7**, dopo il primo audit remoto riuscito.
 
-La sequenza corrente è:
+Sequenza:
 
 ```text
-chiusura PR #79
-→ verifica route privata in produzione
+verifica live della route privata
 → audit remoto reale, anche con 0 candidate
 → PR M5.7 di cutover
-→ deploy e verifica live
+→ deploy esplicito
+→ verifica live desktop/mobile
 ```
 
-Un manifest vuoto non blocca M5.7. Il cutover Astro continuerà a servire esclusivamente righe `published`; tutte le pagine `review` resteranno invisibili.
+Un manifest vuoto non blocca M5.7. Il renderer Astro target continua a servire esclusivamente righe `published`; tutte le pagine `review` restano invisibili.
 
 La pubblicazione di nuove release candidate è una mutation separata e può avvenire dopo il cutover del design.
 
@@ -201,7 +201,7 @@ La pubblicazione di nuove release candidate è una mutation separata e può avve
 - nessuna migration nuova;
 - nessuna transizione `review → published`;
 - nessun endpoint o pulsante publish;
-- active route matrix invariata in PR #79;
+- active route matrix ancora current;
 - nessun analytics o affiliazione;
 - nessuna sitemap submission;
 - API, `/go/*` e Control Room ancora backend-owned;
@@ -209,12 +209,11 @@ La pubblicazione di nuove release candidate è una mutation separata e può avve
 
 ## Gap aperti
 
-- CI finale code + canonici e merge PR #79;
-- verifica live della route privata;
-- primo audit remoto e report reale;
-- eventuale aggiornamento del manifest con ID verificati;
-- PR M5.7 e cutover apex;
-- verifica live e rollback M5.7;
+- verificare che la route privata sia live;
+- eseguire il primo audit remoto e registrare il report;
+- aggiornare il manifest soltanto con ID reali verificati;
+- aprire PR M5.7 e cutover apex;
+- verificare live e rollback M5.7;
 - publication capability separata;
 - header HTTP live delle preview;
 - topic-mismatch sul primo run autorizzato;
@@ -224,9 +223,7 @@ La pubblicazione di nuove release candidate è una mutation separata e può avve
 ## Prossimo checkpoint
 
 ```text
-canonici aggiornati su PR #79
-→ CI finale
-→ merge
-→ audit remoto reale
+verifica route /control-room-foundation/api/catalog-pilot-audit
+→ report remoto
 → M5.7 cutover del nuovo design
 ```
