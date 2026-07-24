@@ -1,0 +1,6 @@
+---
+import { env } from 'cloudflare:workers'
+import PublicPrivacyPage from '../components/public/PublicPrivacyPage.astro'
+---
+
+<PublicPrivacyPage mode="canonical" siteName={env.SITE_NAME} />
