@@ -264,10 +264,20 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-027 — Contratto SEO pubblico condiviso, policy di route separate
 
-**Stato:** accettata e verificata in CI con PR #69
+**Stato:** accettata e verificata in produzione con PR #69
 
 **Decisione:** title, description, Open Graph e JSON-LD di homepage e articoli derivano da un modello tipizzato server-only condiviso tra renderer legacy e Astro. Canonical URL, `mainEntityOfPage`, robots e cache restano invece policy della route che possiede la risposta.
 
 **Razionale:** duplicare metadata e schema aveva già prodotto drift: l’articolo Astro usava copy da preview, `og:type=website` e nessun JSON-LD, mentre il renderer legacy possedeva metadata e schema propri. Unificare il documento SEO senza trasferire routing consente di verificare la parità prima del cutover e impedisce che una preview noindex diventi accidentalmente canonica.
 
-**Conseguenza:** `src/public-seo.ts` valida valori JSON compatibili, produce `WebSite`, `Article` e `FAQPage`, normalizza le date e serializza JSON-LD escapando `<`, U+2028 e U+2029. Il legacy resta indexabile e canonico su `/` e `/{slug}`; Astro resta noindex, no-store e self-canonical su `/astro-foundation`. `/sitemap.xml`, `/robots.txt` e `/go/{provider}` restano legacy-owned. Il smoke D1/workerd/Chromium confronta valori normalizzati, prova fixture `</script>` e verifica assenza di JavaScript eseguibile, regressioni sitemap/robots/redirect/404 e tutte le suite Control Room. CI #312 è completamente verde. Nessuna route, D1, pubblicazione, analytics o affiliazione è stata attivata.
+**Conseguenza:** `src/public-seo.ts` valida valori JSON compatibili, produce `WebSite`, `Article` e `FAQPage`, normalizza le date e serializza JSON-LD escapando `<`, U+2028 e U+2029. Il legacy resta indexabile e canonico su `/` e `/{slug}`; Astro resta noindex, no-store e self-canonical su `/astro-foundation`. `/sitemap.xml`, `/robots.txt` e `/go/{provider}` restano legacy-owned. Il smoke D1/workerd/Chromium confronta valori normalizzati, prova fixture `</script>` e verifica assenza di JavaScript eseguibile, regressioni sitemap/robots/redirect/404 e tutte le suite Control Room. PR #69 è mergiata nel commit `46f1d66a591dd7860c101c86cb8295d97e4a2106`; homepage e articolo sono verificati nel sorgente live. Nessuna route, D1, pubblicazione, analytics o affiliazione è stata attivata.
+
+## ADR-028 — Ownership target esplicita e cutover tramite route matrix versionata
+
+**Stato:** accettata come target; non attiva
+
+**Decisione:** dopo il cutover pubblico, Astro sarà owner delle route editoriali canoniche, della sitemap, di robots e della 404 pubblica. Il backend resterà owner permanente di `/api/*`, `/go/{provider}`, legacy Control Room finché necessaria ed execution plane. L’owner live viene scelto da una matrice versionata nel custom Worker; la matrice target resta inattiva fino a una PR di cutover esplicita.
+
+**Razionale:** oggi il custom Worker delega ad Astro soltanto `/astro-foundation*` e `/control-room-foundation*`, mentre `src/index.ts` possiede tutte le route canoniche e tecniche. Un catch-all Astro anticipato potrebbe intercettare API, provider redirect, file probe o route private. Una route matrix tipizzata rende precedenza, owner e rollback verificabili prima di spostare traffico.
+
+**Conseguenza:** la prima slice `feat/public-route-policy-foundation` modellerà owner corrente e target separatamente, centralizzerà reserved paths e file-probe policy e farà usare al Worker soltanto la matrice corrente. Nessuna route live cambierà owner. Le route Astro canoniche e gli endpoint SEO verranno compilati e testati in PR successive senza attivazione; il cutover M5.7 sarà una modifica minima e reversibile della matrice attiva. Il namespace `/astro-foundation*` resterà noindex e no-store almeno fino al cutover verificato. Non viene introdotto alcun flag runtime nascosto, parametro URL di renderer, D1 mutation, tracking, affiliazione o capacità di pubblicazione.
