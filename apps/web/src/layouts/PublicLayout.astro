@@ -3,7 +3,7 @@ import PublicFooter from '../components/public/PublicFooter.astro'
 import PublicHeader from '../components/public/PublicHeader.astro'
 import { setPublicResponseHeaders } from '../lib/public-response'
 import type { PublicRenderMode } from '../../../../src/public-render-mode'
-import { publicIsPreview, publicPreviewBase } from '../../../../src/public-render-mode'
+import { publicIsPreview } from '../../../../src/public-render-mode'
 import type { PublicJsonLdDocument, PublicOpenGraphType } from '../../../../src/public-seo'
 import { serializeJsonLd } from '../../../../src/public-seo'
 import '../styles/public.css'
@@ -16,6 +16,7 @@ interface Props {
   siteName?: string
   ogType?: PublicOpenGraphType
   schema?: PublicJsonLdDocument | PublicJsonLdDocument[]
+  noindex?: boolean
 }
 
 const {
@@ -26,16 +27,16 @@ const {
   siteName = 'Senza Roaming',
   ogType = 'website',
   schema,
+  noindex: forceNoindex = false,
 } = Astro.props
 
 const base = Astro.site ?? new URL(Astro.url.origin)
 const canonicalUrl = new URL(canonicalPath, base).toString()
-const noindex = publicIsPreview(mode)
+const noindex = forceNoindex || publicIsPreview(mode)
 const robots = noindex ? 'noindex,nofollow' : 'index,follow,max-image-preview:large'
 const schemaJson = schema ? serializeJsonLd(schema) : null
-const previewBase = publicPreviewBase(mode)
 
-setPublicResponseHeaders(Astro.response.headers, mode)
+setPublicResponseHeaders(Astro.response.headers, mode, forceNoindex)
 ---
 
 <!doctype html>
@@ -58,10 +59,10 @@ setPublicResponseHeaders(Astro.response.headers, mode)
   </head>
   <body>
     <a class="skip-link" href="#contenuto">Vai al contenuto</a>
-    <PublicHeader mode={mode} previewBase={previewBase} />
+    <PublicHeader mode={mode} />
     <main id="contenuto" tabindex="-1">
       <slot />
     </main>
-    <PublicFooter mode={mode} previewBase={previewBase} />
+    <PublicFooter mode={mode} />
   </body>
 </html>
