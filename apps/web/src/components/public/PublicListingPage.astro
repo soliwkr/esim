@@ -12,6 +12,7 @@ import {
 } from '../../../../../src/public-listing-routes'
 import type { PublicListingType } from '../../../../../src/public-page-cards'
 import { loadPublishedListingCards } from '../../../../../src/public-page-cards'
+import { setPublicResponseHeaders } from '../../lib/public-response'
 import PublicLayout from '../../layouts/PublicLayout.astro'
 import PublicPageCardGrid from './PublicPageCardGrid.astro'
 import '../../styles/public-listings.css'
@@ -24,6 +25,7 @@ interface Props {
 const { mode, type } = Astro.props
 const preview = publicIsPreview(mode)
 const definition = publicListingDefinition(type)
+setPublicResponseHeaders(Astro.response.headers, mode)
 const items = await loadPublishedListingCards(env.DB, type, 100)
 const canonicalPath = publicListingPath(mode, type)
 const homeHref = publicHomePath(mode)
