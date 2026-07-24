@@ -280,4 +280,14 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Razionale:** oggi il custom Worker delega ad Astro soltanto `/astro-foundation*` e `/control-room-foundation*`, mentre `src/index.ts` possiede tutte le route canoniche e tecniche. Un catch-all Astro anticipato potrebbe intercettare API, provider redirect, file probe o route private. Una route matrix tipizzata rende precedenza, owner e rollback verificabili prima di spostare traffico.
 
-**Conseguenza:** la prima slice `feat/public-route-policy-foundation` modellerà owner corrente e target separatamente, centralizzerà reserved paths e file-probe policy e farà usare al Worker soltanto la matrice corrente. Nessuna route live cambierà owner. Le route Astro canoniche e gli endpoint SEO verranno compilati e testati in PR successive senza attivazione; il cutover M5.7 sarà una modifica minima e reversibile della matrice attiva. Il namespace `/astro-foundation*` resterà noindex e no-store almeno fino al cutover verificato. Non viene introdotto alcun flag runtime nascosto, parametro URL di renderer, D1 mutation, tracking, affiliazione o capacità di pubblicazione.
+**Conseguenza:** `feat/public-route-policy-foundation` ha introdotto current e target matrix separate, reserved paths, file-probe policy e smoke dedicato. PR #71 è mergiata nel commit `bd51faddddbb54647c22c3361dd04c5bc65e7681` dopo CI finale #329 verde. L’export attivo resta la current matrix; la target matrix non serve traffico. Non viene introdotto alcun flag runtime nascosto, parametro URL di renderer, D1 mutation, tracking, affiliazione o capacità di pubblicazione.
+
+## ADR-029 — Renderer canonico Astro testato tramite Worker factory, senza switch di produzione
+
+**Stato:** accettata come scope M5.5b.2; implementazione non avviata
+
+**Decisione:** compilare le future route canoniche Astro nel build normale e testarle attraverso una factory tipizzata `createPublicWorker(routeDecision)`. L’export default del deploy continua a istanziare la factory con `activePublicRouteDecision`; uno smoke locale genera invece un wrapper e una configurazione Wrangler temporanei che assegnano ad Astro soltanto route canoniche editoriali e 404.
+
+**Razionale:** aggiungere route Astro al manifest non deve renderle live prima del cutover, ma testare soltanto componenti isolati non prova routing, status, header, D1 e manifest reali. Una factory con dipendenza esplicita consente un runtime locale completo senza introdurre variabili d’ambiente, query parameter, header, cookie o route di test che possano cambiare renderer in produzione.
+
+**Conseguenza:** M5.5b.2 può aggiungere home, listing, trust, articolo e 404 Astro, parametrizzare i componenti con render mode `preview | canonical` e verificare canonical, cache, robots, JSON-LD, internal link, published-only e fail-closed. Il runtime production-style continua a usare la current matrix e quindi il backend legacy. Sitemap, robots, `/go/*`, `/api/*`, D1, publication gate, analytics e affiliazioni restano invariati. Wrapper, configurazione e stato di test vengono eliminati al termine dello smoke. Il cutover resta una PR M5.7 separata.

@@ -18,13 +18,11 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room nuova | Operativa | parità read-only completa; prima mutation verificata in produzione |
 | Control Room legacy | Transitoria e necessaria | fallback delle mutation residue |
 | Public shell Astro | In produzione come preview | `/` resta legacy |
-| Trust pages Astro | Verificate in produzione | checkpoint mobile 3/3 |
-| Homepage candidata Astro | Verificata in produzione | desktop, mobile e sorgente SEO live |
-| Listing Astro | Verificati in produzione | Destinazioni, Guide e Confronti |
+| Trust, homepage e listing Astro | Verificati in produzione | namespace preview noindex/no-store |
 | Renderer articolo Astro | Verificato in produzione | desktop, mobile e sorgente SEO live |
-| Fondazione SEO condivisa | Completata e verificata live | PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106` |
-| Route policy foundation | Implementata e verificata in CI | PR #71; matrice corrente ancora attiva |
-| Route canonicali Astro | Non implementate | owner live ancora backend |
+| Fondazione SEO condivisa | Completata e verificata live | PR #69 |
+| Route policy foundation | Completata | PR #71, merge `bd51faddddbb54647c22c3361dd04c5bc65e7681`, CI #329 |
+| Canonical Astro parity | Scope definito | implementazione non avviata; owner live ancora backend |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -61,8 +59,6 @@ La pagina Cina non è autorizzata alla pubblicazione.
 
 ## Control Room
 
-Architettura:
-
 ```text
 Cloudflare Access
 → validazione origine
@@ -74,8 +70,7 @@ Cloudflare Access
 
 Completato:
 
-- overview e health;
-- radar, segnali e brief;
+- overview, health, radar, segnali e brief;
 - claim, fonti, scadenze e task;
 - readiness ed evidence bundle;
 - inventario e dettaglio draft;
@@ -83,8 +78,6 @@ Completato:
 - linkage claim → task;
 - linkage audit → ID/versione draft;
 - decisione brief `proposed → accepted | dismissed`.
-
-La prima mutation è verificata in produzione con identità Access, conferma esplicita, state machine D1, audit append-only, idempotenza e `publicationTriggered: false`.
 
 Mutation residue:
 
@@ -102,12 +95,13 @@ M4 non è completato e la legacy privata non può ancora essere rimossa.
 ```text
 preview M5 ≠ cutover pubblico
 owner target ≠ owner live
+canonical Astro compilato ≠ canonical Astro servito
 draft approvato ≠ pagina pubblicata
 ```
 
-### Preview pubbliche verificate
+### Preview verificate
 
-Sono in produzione sotto `/astro-foundation`:
+Sono operative sotto `/astro-foundation`:
 
 ```text
 /
@@ -123,42 +117,33 @@ articoli/[slug]
 Contratti verificati:
 
 - noindex e no-store;
-- esclusione dalla sitemap;
+- fuori sitemap;
 - D1 letto soltanto server-side;
 - righe `published` soltanto;
 - ordine deterministico;
-- raw HTML utile senza JavaScript obbligatorio;
+- raw HTML senza JavaScript obbligatorio;
 - desktop, mobile, tastiera e assenza di overflow;
-- route canoniche ancora sul renderer legacy.
+- route canoniche ancora sul backend legacy.
 
-### Renderer articolo — M5.4
+### M5.4 — Renderer articolo
 
 Implementato e verificato:
 
-- query fissa `WHERE slug=? AND status='published'`;
+- query `WHERE slug=? AND status='published'`;
 - validazione runtime di scalari, date, blocchi, FAQ e fonti;
-- blocchi strutturati, non HTML AI grezzo;
-- FAQ native `details/summary`;
-- fonti HTTPS e provenance pubblica page-level;
-- nessun claim escluso o dato operativo interno esposto;
+- blocchi strutturati e FAQ native;
+- fonti HTTPS e provenance pubblica;
+- nessun dato operativo interno esposto;
 - related links published-only e deterministici;
-- vera 404 per slug assente, `review` o `draft`;
+- vera 404 per assente, `review` o `draft`;
 - fail-closed per riga `published` invalida;
-- tabelle con overflow locale;
-- nessuna Astro island o JavaScript applicativo.
+- nessun HTML AI grezzo o JavaScript applicativo.
 
-Il checkpoint live desktop/mobile è completo. M5.4 è chiusa.
+Il checkpoint live desktop/mobile è completo.
 
 ## M5.5a — Contratto SEO condiviso
 
-PR:
-
-```text
-#69 — Add shared public SEO contract foundation
-merge: 46f1d66a591dd7860c101c86cb8295d97e4a2106
-```
-
-Architettura:
+PR #69, merge `46f1d66a591dd7860c101c86cb8295d97e4a2106`.
 
 ```text
 validated public page
@@ -167,56 +152,49 @@ validated public page
 → legacy canonical renderer OR Astro noindex preview
 ```
 
-Il modello condiviso produce title, description, Open Graph, `WebSite`, `Article`, `FAQPage`, `dateModified`, autore Organization e `mainEntityOfPage` route-specific.
+Condivisi:
 
-Sicurezza:
+- title e description;
+- Open Graph;
+- `WebSite`, `Article` e `FAQPage`;
+- data modificata e autore Organization;
+- serializer JSON-LD sicuro.
 
-- valori limitati a JSON compatibile;
-- numeri non finiti e oggetti non plain rifiutati;
-- profondità limitata;
-- `<`, U+2028 e U+2029 escapati;
-- fixture con `</script>`, `<example>`, virgolette, apostrofi e accenti;
-- nessuno script eseguibile;
-- `set:html` usato soltanto per JSON-LD già serializzato.
+Route-specific:
 
-Checkpoint live conclusivo:
+- canonical URL;
+- `mainEntityOfPage`;
+- robots;
+- cache.
 
-- homepage: noindex, self-canonical, `og:type=website`, `WebSite` JSON-LD;
-- articolo `migliore-esim`: noindex, canonical namespaced, `og:type=article`, `Article` e `FAQPage`, `mainEntityOfPage`, data e autore.
+Homepage e articolo preview sono verificati nel sorgente live. Gli header HTTP live restano una verifica separata, già coperta dalla CI.
 
-Gli header HTTP live `X-Robots-Tag` e `Cache-Control: no-store` restano una verifica operativa separata; sono coperti dalla CI.
-
-M5.5a è chiusa. Nessun cutover è avvenuto.
+M5.5a è chiusa.
 
 ## M5.5b.1 — Route policy foundation
 
-Scope canonico:
+Scope: `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md`.
+
+PR #71:
 
 ```text
-docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md
-```
-
-Branch e PR:
-
-```text
-feat/public-route-policy-foundation
-PR #71 — Add typed public route ownership policy
+Add typed public route ownership policy
+merge bd51faddddbb54647c22c3361dd04c5bc65e7681
+CI finale #329
 ```
 
 Implementato:
 
-- `src/public-route-policy.ts` server-only;
-- owner tipizzati `astro | backend`;
-- categorie esplicite per preview, Control Room, API, provider redirect, legacy Control Room, route canoniche statiche, endpoint SEO, asset tecnici, articolo e 404;
-- normalizzazione pathname;
-- reserved single-segment paths;
-- file-probe policy condivisa;
-- validazione dello slug articolo single-segment;
-- `currentPublicRouteDecision` e `targetPublicRouteDecision` separate;
+- `src/public-route-policy.ts`;
+- owner `astro | backend` e route kind tipizzati;
+- current e target matrix separate;
 - `activePublicRouteDecision = currentPublicRouteDecision`;
-- decisioni immutabili;
-- custom Worker collegato all’export attivo;
-- backend legacy collegato alla stessa file-probe policy.
+- reserved paths e file-probe policy condivisi;
+- validazione slug articolo single-segment;
+- custom Worker collegato alla matrice attiva;
+- backend legacy collegato alla stessa probe policy;
+- smoke route policy dedicato;
+- boundary stretto per doppi slash iniziali.
 
 Ownership attiva invariata:
 
@@ -235,54 +213,78 @@ Backend:
   articolo fallback e 404
 ```
 
-La matrice target è documentata e testata, ma non viene usata per servire traffico.
+CI #329 completamente verde, comprese tutte le suite pubbliche e Control Room.
 
-### Verifica CI #323
+## M5.5b.2 — Canonical Astro parity
 
-Completamente verdi:
+Scope canonico:
 
-- generazione tipi Cloudflare;
-- typecheck TypeScript e Astro;
-- build Astro e custom Worker;
-- migrazioni D1;
-- quality gate e golden evaluation;
-- Container build e smoke;
-- runtime Astro/backend;
-- nuovo smoke route policy;
-- public shell, homepage, trust, listing, articolo e SEO;
-- tutte le suite Control Room.
+```text
+docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md
+```
 
-Il runtime conferma che `/`, listing, trust, articoli, sitemap, robots, `/go/*` e `/api/*` restano backend-owned. Nessuna route di pubblicazione è stata introdotta.
+Branch tecnica autorizzata dopo il merge dello scope:
 
-## Prossima fase — canonical Astro parity
+```text
+feat/public-canonical-astro-parity
+```
 
-Prima del codice serve una PR di scope separata che definisca:
+Obiettivo:
 
-- come compilare le route Astro canoniche senza servirle live;
-- come testare direttamente il renderer Astro bypassando soltanto nel test la matrice attiva;
-- parametrizzazione preview/canonical dei componenti;
-- internal linking canonicale;
-- 404 Astro;
-- published-only e fail-closed;
-- criterio di parità visuale, accessibile e SEO;
-- nessuna migrazione live di sitemap, robots o provider redirect.
+```text
+canonical Astro routes compiled
++ direct local target-matrix smoke
++ active production matrix still current
+```
 
-## Google measurement stack
+Route previste:
 
-Preparati esternamente:
+```text
+/
+/destinazioni
+/guide
+/confronti
+/metodo
+/trasparenza
+/privacy
+/{slug-published}
+404 editoriale
+```
 
-- Google Tag Manager;
-- Google Analytics 4;
-- Search Console;
-- service account con accesso alle proprietà.
+Decisioni principali:
 
-Non sono configurati nel sito CMP, Consent Mode, snippet GTM, eventi GA4, invio sitemap tramite API o credenziali service account. Nessun tracking viene aggiunto alle preview noindex.
+- render mode tipizzato `preview | canonical`;
+- componenti condivisi, non route duplicate;
+- canonical mode senza banner o copy preview;
+- cache canonicale `public,max-age=300`;
+- internal link interamente canonicali;
+- published-only, fail-closed e SEO condivisi;
+- Worker costruibile tramite factory tipizzata;
+- default production sempre sulla matrice attiva corrente;
+- smoke locale con wrapper e configurazione temporanei;
+- nessun env flag, header, cookie o query parameter per cambiare renderer;
+- sitemap e robots rinviati a M5.5b.3.
+
+Nessun runtime è modificato dalla branch documentale corrente.
+
+## Google measurement
+
+GTM, GA4, Search Console e service account sono stati preparati esternamente.
+
+Non sono configurati nel sito:
+
+- CMP e Consent Mode;
+- snippet GTM;
+- eventi GA4;
+- invio sitemap tramite API;
+- credenziali service account.
+
+Nessun tracking viene aggiunto alle preview noindex.
 
 ## Gap aperti
 
-- scope canonical Astro parity;
-- route canonicali Astro compilate e testate senza attivazione;
-- parity di sitemap, robots e 404 Astro;
+- implementazione canonical Astro parity senza attivazione;
+- parity Astro di sitemap e robots;
 - piccolo catalogo pilot;
 - PR separata di cutover apex;
 - verifica HTTP live degli header preview;
@@ -295,9 +297,9 @@ Non sono configurati nel sito CMP, Consent Mode, snippet GTM, eventi GA4, invio 
 ## Prossimo checkpoint
 
 ```text
-merge PR #71
-→ scope canonical Astro parity
-→ route Astro canoniche compilate ma non servite live
+merge scope canonical Astro parity
+→ branch feat/public-canonical-astro-parity
+→ route Astro canoniche compilate e testate direttamente
+→ runtime production-style ancora legacy-owned
 → CI completa
-→ owner attivo ancora legacy
 ```
