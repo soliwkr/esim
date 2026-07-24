@@ -2,7 +2,9 @@
 import { env } from 'cloudflare:workers'
 import { loadPublicHomepageCards } from '../../../../src/public-page-cards'
 import PublicHomepagePage from '../components/public/PublicHomepagePage.astro'
+import { setPublicResponseHeaders } from '../lib/public-response'
 
+setPublicResponseHeaders(Astro.response.headers, 'canonical')
 const { featured, destinations } = await loadPublicHomepageCards(env.DB)
 ---
 
