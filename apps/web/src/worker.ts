@@ -2,6 +2,10 @@ import { handle } from '@astrojs/cloudflare/handler';
 import backendWorker from '../../../src/index';
 import { handleControlRoomBriefDecision } from '../../../src/editorial-brief-decisions';
 import {
+  auditPublicCatalogPilot,
+  loadPublicCatalogPilotSnapshot,
+} from '../../../src/public-catalog-pilot';
+import {
   activePublicRouteDecision,
   isControlRoomFoundationPath,
   type PublicRouteDecision,
@@ -17,6 +21,8 @@ export type PublicRouteDecisionResolver = (pathname: string) => PublicRouteDecis
 const CONTROL_ROOM_SNAPSHOT_PATH = '/control-room-foundation/api/snapshot';
 const CONTROL_ROOM_DRAFT_DETAIL_PATH = '/control-room-foundation/api/draft-detail';
 const CONTROL_ROOM_BRIEF_DECISION_PATH = '/control-room-foundation/api/brief-decision';
+const CONTROL_ROOM_CATALOG_PILOT_AUDIT_PATH = '/control-room-foundation/api/catalog-pilot-audit';
+const SECRET_LIKE_PATTERN = /(?:api[_-]?key|access[_-]?token|maintenance[_-]?token|private[_-]?key|client[_-]?secret|authorization|bearer\s+[a-z0-9._-]+)/i;
 
 function privateJson(data: unknown, status: number, extraHeaders?: HeadersInit): Response {
   const headers = new Headers(extraHeaders);
@@ -98,6 +104,26 @@ async function controlRoomBriefDecision(request: Request, env: Env): Promise<Res
   }
 }
 
+async function controlRoomCatalogPilotAudit(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'GET') {
+    return privateJson({ ok: false, error: 'method_not_allowed' }, 405, { allow: 'GET' });
+  }
+
+  try {
+    const snapshot = await loadPublicCatalogPilotSnapshot(env.DB);
+    const report = auditPublicCatalogPilot(snapshot);
+    const payload = { ok: true, report } as const;
+
+    if (SECRET_LIKE_PATTERN.test(JSON.stringify(payload))) {
+      return privateJson({ ok: false, error: 'catalog_pilot_audit_unsafe_payload' }, 500);
+    }
+
+    return privateJson(payload, 200);
+  } catch {
+    return privateJson({ ok: false, error: 'catalog_pilot_audit_unavailable' }, 500);
+  }
+}
+
 function astroRequest(request: Request, route: PublicRouteDecision): Request {
   if (route.kind !== 'seo-endpoint') return request;
 
@@ -128,6 +154,10 @@ export function createPublicWorker(routeDecision: PublicRouteDecisionResolver): 
 
       if (pathname === CONTROL_ROOM_BRIEF_DECISION_PATH) {
         return controlRoomBriefDecision(request, env);
+      }
+
+      if (pathname === CONTROL_ROOM_CATALOG_PILOT_AUDIT_PATH) {
+        return controlRoomCatalogPilotAudit(request, env);
       }
 
       if (route.owner === 'astro') {

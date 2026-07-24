@@ -246,7 +246,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-031 — Catalogo pilot come release candidate, non come pubblicazione implicita
 
-**Stato:** accettata e verificata dalla CI applicativa #373 su PR #77; merge ancora pendente.
+**Stato:** accettata e verificata con PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI finale #379.
 
 **Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con un massimo di quattro release candidate. Una release candidate deve avere latest evidence bundle idoneo e approvato, latest draft grounded approvato, provenance completa, claim correnti e pagina materializzata coerente, ma resta `pages.status='review'`.
 
@@ -266,3 +266,27 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 - conteggi e stati before/after restano identici;
 - nessuna migration, mutation, route, endpoint publish, deploy o cambio della matrice viene introdotto;
 - la prima transizione `review → published` richiede branch, autorizzazione, state machine, audit, idempotenza, freshness recheck e rollback separati.
+
+## ADR-032 — Audit remoto privato prima del cutover, pubblicazione non bloccante
+
+**Stato:** accettata come scope con PR #78 e verificata dalla CI applicativa #383 su PR #79; merge e verifica live ancora pendenti.
+
+**Decisione:** il primo audit dei dati editoriali remoti viene esposto soltanto tramite una route Control Room privata, GET-only e protetta da Cloudflare Access. La route usa direttamente il binding D1 server-side e riutilizza il loader e l’audit M5.6a; non accetta query SQL, non richiede maintenance token nel browser e non modifica alcuno stato.
+
+**Razionale:** un endpoint SQL generico o un export con credenziali aumenterebbero inutilmente la superficie di rischio. Il custom Worker possiede già identità Access, binding D1 e header privati coerenti.
+
+**Conseguenza:**
+
+- la route è `/control-room-foundation/api/catalog-pilot-audit`;
+- una richiesta anonima viene bloccata prima dell’handler;
+- soltanto GET è accettato;
+- la risposta è `no-store`, `noindex` e `nosniff`;
+- il payload contiene soltanto il report tipizzato e fallisce chiuso su dati secret-like;
+- il browser non riceve maintenance token, JWT, query SQL o dump D1;
+- snapshot editoriale before/after identico e smoke dedicato dimostrano l’assenza di mutation;
+- zero release candidate è un esito valido;
+- un manifest vuoto non blocca M5.7;
+- il nuovo design può passare sull’apice continuando a servire soltanto righe `published`;
+- nuove release candidate possono restare `review` durante e dopo il cutover;
+- `review → published` resta una capability separata con autorizzazione, state machine, audit, freshness recheck e rollback;
+- M5.7 modifica la matrice attiva in una PR separata e reversibile, senza includere publication capability, analytics o affiliazioni.
