@@ -1,8 +1,20 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **24 luglio 2026**.
+Ultimo aggiornamento: **25 luglio 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`.
+
+## Documenti operativi
+
+- `ROADMAP.md` — milestone e criteri di uscita;
+- `docs/STATUS.md` — stato verificato;
+- `docs/NEXT.md` — lavoro immediato;
+- `docs/ARCHITECTURE.md` — confini tecnici;
+- `docs/DECISIONS.md` — decisioni accettate;
+- `docs/FRONTEND-PLAN.md` — piano frontend;
+- `docs/MEASUREMENT-CONSENT-SCOPE.md` — scope M6;
+- `docs/CMP-SPIKE.md` — confronto CMP;
+- `docs/MEASUREMENT-EVENT-DICTIONARY.md` — eventi e parametri canonici.
 
 ## Principi non negoziabili
 
@@ -13,9 +25,11 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 5. Il browser non accede direttamente a D1.
 6. Ogni mutation richiede identità verificata, conferma, state machine, audit e test.
 7. Astro è il frontend pubblico principale; React resta confinato alla Control Room.
-8. Preview, renderer compilato, owner versionato e owner verificato live sono stati distinti.
+8. Preview, owner versionato e owner verificato live sono stati distinti.
 9. Candidate, release candidate e pagina `published` sono stati distinti.
-10. Il repository è la memoria canonica.
+10. Eventi e KPI vengono definiti prima dell’attivazione analytics.
+11. Nessun tracking non essenziale parte prima del consenso.
+12. Il repository è la memoria canonica.
 
 ## M0 — Fondazioni tecniche
 
@@ -82,7 +96,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [ ] eventuale retry queue;
 - [ ] rimozione legacy privata dopo parità mutabile.
 
-M4 non blocca il frontend pubblico, ma la legacy privata resta finché serve come fallback operativo.
+M4 non blocca il prodotto pubblico, ma la legacy privata resta finché serve come fallback operativo.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
@@ -114,9 +128,9 @@ PR #75  sitemap/robots parity — CI #365
 ### M5.6 — Catalog pilot e audit remoto
 
 ```text
-PR #77  catalog pilot foundation — merge fa9ed9486e400e77ad915153284c7b277a51b4d0 — CI #379
-PR #78  remote audit scope — merge bc0050b891b93678631fa80d3d46ac36a1fbb2fd — CI #381
-PR #79  private audit route — merge df890103310cf1591eb2d8137a8385135c665d71 — CI #386
+PR #77  catalog pilot foundation — CI #379
+PR #78  remote audit scope — CI #381
+PR #79  private audit route — CI #386
 ```
 
 Risultato live:
@@ -132,9 +146,8 @@ excludedCount: 1
 - [x] gate deterministici e approvazioni umane;
 - [x] claim, fonti, provenance e freshness;
 - [x] cap massimo quattro;
-- [x] manifest versionato;
+- [x] manifest versionato e vuoto;
 - [x] audit remoto protetto da Cloudflare Access;
-- [x] manifest confermato vuoto;
 - [x] `esim-cina-senza-vpn` resta `review` e non pubblicabile.
 
 ### M5.7 — Apex design cutover
@@ -142,55 +155,96 @@ excludedCount: 1
 ```text
 PR #81 — Cut over canonical public routes to Astro
 merge e62b570248bf97afaa3f283cfbb847ceea01f529
-CI finale #404 completamente verde
+CI finale #404
+PR #82 — closeout live
+merge 6735a05515c2155eb990a9315d6168d111b9261c
+CI #406
 ```
-
-Verifica live conclusa:
 
 - [x] nuovo design Astro sull’apice;
-- [x] homepage canonica;
-- [x] articolo `/migliore-esim`;
-- [x] sitemap XML;
-- [x] robots;
-- [x] redirect provider `/go/airalo`;
-- [x] API, Control Room ed execution plane ancora backend-owned;
+- [x] homepage e articolo canonico verificati;
+- [x] sitemap, robots e redirect provider verificati;
+- [x] API, Control Room ed execution plane backend-owned;
 - [x] pagine `review` e `draft` non esposte;
 - [x] preview namespaced preservata;
-- [x] nessuna publication capability introdotta;
-- [x] nessuna rimozione legacy nello stesso cutover.
-
-Documento di verifica:
-
-```text
-docs/PUBLIC-APEX-CUTOVER-RESULT-2026-07-24.md
-```
+- [x] nessuna publication capability o rimozione legacy nel cutover.
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: prossima milestone; proprietà esterne preparate, integrazione applicativa assente.**
+**Stato: scope documentale in corso; nessun tracking attivo.**
 
-Ordine obbligatorio:
+Branch:
 
 ```text
-scope e inventario privacy
-→ CMP
-→ Consent Mode
-→ dizionario eventi
-→ GTM
-→ GA4
-→ Search Console
-→ sitemap submission
-→ verifica dati reali
+docs/measurement-consent-scope
 ```
 
-- [ ] definire scope M6 e data-flow;
-- [ ] scegliere/configurare CMP compatibile;
-- [ ] implementare Consent Mode;
-- [ ] versionare il dizionario eventi;
-- [ ] collegare GTM e GA4 senza duplicazioni;
-- [ ] verificare Search Console;
-- [ ] inviare sitemap soltanto dopo controllo finale;
-- [ ] verificare dati reali e assenza di tracking pre-consenso.
+Contratti versionati:
+
+```text
+docs/MEASUREMENT-CONSENT-SCOPE.md
+docs/CMP-SPIKE.md
+docs/MEASUREMENT-EVENT-DICTIONARY.md
+```
+
+### Discovery completata
+
+- [x] `GTM_ID` esiste come variabile vuota;
+- [x] nessun renderer usa `GTM_ID`;
+- [x] nessuno snippet GTM, GA4, `gtag` o CMP è attivo;
+- [x] JSON-LD resta l’unico script pubblico;
+- [x] privacy page dichiara correttamente analytics inattivi;
+- [x] redirect provider registra già i click effettivi server-side in D1;
+- [x] preview e Control Room sono escluse dalla futura misurazione.
+
+### Decisione proposta per la prima release
+
+```text
+Consent Mode Basic
+analytics_storage denied di default
+nessun tag Google prima del consenso
+ad_storage denied
+ad_user_data denied
+ad_personalization denied
+```
+
+- [x] Basic Mode scelto nello scope iniziale;
+- [x] advanced/cookieless pings esclusi da M6;
+- [x] analytics-only, senza Ads o affiliate;
+- [x] route incluse/escluse definite;
+- [x] dati vietati e URL sanitizzati definiti;
+- [x] event dictionary v1 definito;
+- [x] iubenda selezionata come candidato principale per lo spike;
+- [ ] CI e merge della PR documentale;
+- [ ] spike tecnico iubenda;
+- [ ] decisione vendor finale;
+- [ ] consent foundation;
+- [ ] GTM e GA4;
+- [ ] verifica dati reali;
+- [ ] Search Console e sitemap submission.
+
+### Eventi iniziali
+
+```text
+page_view
+provider_redirect_intent
+consent_update (locale/debug, non GA4)
+```
+
+`article_view` e `listing_view` non sono eventi separati: vengono descritti da parametri bounded del `page_view`.
+
+### Ordine obbligatorio
+
+```text
+scope e inventario
+→ spike CMP
+→ Consent Mode Basic
+→ GTM
+→ GA4
+→ verifica live
+→ Search Console
+→ sitemap submission
+```
 
 ## M7 — Intelligence SEO
 
@@ -226,14 +280,15 @@ conversione brief
 → rimozione legacy privata
 ```
 
-### Track B — Prodotto pubblico
+### Track B — Measurement M6
 
 ```text
-M5.7 live closeout
-→ M6 measurement foundation
-→ dati reali
-→ M7 intelligence SEO
-→ M8 monetizzazione controllata
+scope consent e misurazione
+→ spike iubenda
+→ consent foundation
+→ GTM/GA4 foundation
+→ verifica live
+→ Search Console
 ```
 
-Publication capability resta una branch separata e non è autorizzata da M5.7 o M6.
+Publication capability resta una branch separata e non è autorizzata da M6.
