@@ -117,7 +117,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.4 verificate in produzione; M5.5a implementata e verde in CI, ma non ancora mergiata o verificata live. Nessuna route canonica è migrata.**
+**Stato: M5.0–M5.4 verificate in produzione; M5.5a implementata e verificata dalla CI completa, pronta al merge ma non ancora verificata live. Nessuna route canonica è migrata.**
 
 ### M5.0 — Public shell
 
@@ -218,12 +218,12 @@ Scope canonico: `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md`.
 - [x] regressioni sitemap, robots, redirect provider e 404;
 - [x] zero JavaScript eseguibile aggiunto al sito pubblico;
 - [x] fixture di sicurezza con `</script>`, `<example>`, virgolette e caratteri accentati;
-- [x] CI applicativa #312 completamente verde;
-- [ ] CI finale sul head documentale;
+- [x] CI applicativa completamente verde;
+- [x] CI completa sul head con codice e documentazione;
 - [ ] merge e deploy automatico;
 - [ ] checkpoint live di metadata e JSON-LD su homepage e articolo preview.
 
-CI #311 ha rilevato un’asserzione troppo ampia dello smoke sugli attributi HTML quotati. La verifica è stata corretta sul DOM reale senza ridurre il guardrail: nessun elemento arbitrario, nessuno script eseguibile e JSON-LD non interrompibile.
+La prima CI runtime ha rilevato un’asserzione troppo ampia dello smoke sugli attributi HTML quotati. La verifica è stata corretta sul DOM reale senza ridurre il guardrail: nessun elemento arbitrario, nessuno script eseguibile e JSON-LD non interrompibile.
 
 Questa slice non migra `/sitemap.xml`, `/robots.txt`, `/go/{provider}`, l’apice, i listing o `/{slug}`.
 
@@ -313,7 +313,7 @@ conversione brief
 ### Track B — M5
 
 ```text
-CI finale e merge della fondazione SEO
+merge della fondazione SEO
 → checkpoint live metadata/JSON-LD
 → scope routing/ownership SEO
 → catalogo pilot
