@@ -10,6 +10,7 @@ import { cloudflareAccessActor, requireCloudflareAccess } from './lib/cloudflare
 
 export { Last30DaysContainer } from '../../../src/last30days-container';
 export { RecentDemandWorkflow } from '../../../src/recent-demand-workflow';
+export { currentPublicRouteDecision, targetPublicRouteDecision } from '../../../src/public-route-policy';
 
 export type PublicRouteDecisionResolver = (pathname: string) => PublicRouteDecision;
 
