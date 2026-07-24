@@ -4,12 +4,14 @@ Data di riferimento: **24 luglio 2026**.
 
 ## Decisione
 
-Senza Roaming non usa il Cloudflare Worker come generatore di nuove interfacce HTML, CSS e JavaScript applicative.
+Senza Roaming usa Astro come frontend principale e React soltanto per interfacce fortemente interattive.
 
 ```text
 Astro
 ├── sito pubblico content-first
-├── layout, navigazione, SEO e pagine
+├── layout, navigazione e SEO
+├── pagine statiche e on-demand
+├── sitemap, robots e 404
 └── shell della Control Room
 
 React island
@@ -17,64 +19,70 @@ React island
 
 Custom Cloudflare Worker
 ├── route ownership e precedenza
-├── Cloudflare Access e route server-side
+├── Cloudflare Access
+├── proxy e mutation private autorizzate
 ├── API
 ├── D1
-├── Workflows
-├── Container
+├── Workflows e Container
 ├── AI Gateway / Vertex
 └── gate editoriali e di pubblicazione
 ```
 
-Il backend non viene riscritto come parte della migrazione frontend. M5 pubblico procede in parallelo alle mutation M4 residue secondo `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
-
-## Principio operativo
-
-Non si ricostruiscono primitive generiche già risolte da librerie mature.
-
-Da riusare:
-
-- button, input, select, dialog, AlertDialog, Sheet e toast;
-- tabelle, filtri e stati vuoti;
-- loading, error, retry e focus management;
-- responsive layout e primitive accessibili.
-
-Da scrivere nel progetto:
-
-- flussi brief → claim → readiness → draft;
-- contratti e validazione dei dati di dominio;
-- state machine e guardrail editoriali;
-- viste specifiche di Senza Roaming;
-- layout, navigazione e renderer editoriali pubblici;
-- route ownership e fallback fail-closed;
-- test end-to-end delle operazioni e delle route pubbliche.
+Il Worker non viene usato per creare nuove interfacce applicative tramite stringhe HTML, CSS o JavaScript.
 
 ## Stack operativo
 
-- Astro come frontend principale;
-- adapter Cloudflare;
+- Astro con adapter Cloudflare;
 - React soltanto per la Control Room e isole realmente interattive;
 - TypeScript strict;
-- shadcn/ui con primitive Radix e sorgenti versionati;
-- Lucide;
 - Tailwind 4;
+- shadcn/ui e primitive Radix;
+- Lucide;
 - validazione runtime dei payload;
-- smoke D1, `workerd` e Chromium.
+- D1 server-side;
+- smoke `workerd` e Chromium.
 
-TanStack Query, TanStack Table, React Hook Form e Zod vengono aggiunti soltanto quando riducono complessità reale.
+Librerie aggiuntive vengono introdotte soltanto se riducono complessità reale.
+
+## Confini non negoziabili
+
+- il browser non accede direttamente a D1;
+- il browser non riceve maintenance token o secret;
+- Cloudflare Access protegge la Control Room;
+- l’attore delle mutation deriva dall’identità verificata;
+- ogni mutation è una capacità separata;
+- nessun componente introduce pubblicazione automatica;
+- una preview non equivale a un cutover;
+- owner target e owner live restano distinti;
+- la legacy non viene rimossa finché è un fallback operativo.
 
 ## Integrazione Cloudflare
 
 ```text
 richiesta
-→ custom Worker entrypoint
+→ apps/web/src/worker.ts
 → activePublicRouteDecision
 → Access guard per /control-room-foundation*
 → handler Astro per route Astro-owned
-→ router backend per route backend-owned
+→ backend per route backend-owned
 ```
 
-### Matrice attiva
+Il Worker espone la factory:
+
+```text
+createPublicWorker(routeDecision)
+```
+
+Il deploy normale resta:
+
+```text
+createPublicWorker(activePublicRouteDecision)
+activePublicRouteDecision = currentPublicRouteDecision
+```
+
+La factory viene usata dagli smoke locali per provare matrici target limitate senza distribuire flag, cookie, header, query parameter o route di test.
+
+## Matrice attiva
 
 ```text
 Astro:
@@ -83,15 +91,16 @@ Astro:
 
 Backend:
   route canoniche
-  sitemap e robots
-  provider redirect
-  API ed execution plane
+  /sitemap.xml
+  /robots.txt
+  /go/*
+  /api/*
   legacy Control Room
   asset tecnici
   articolo fallback e 404
 ```
 
-### Matrice target, non attiva
+## Matrice target, non attiva
 
 ```text
 Astro:
@@ -105,275 +114,221 @@ Backend:
   D1, Workflow, Container, AI e gate editoriali
 ```
 
-Il contratto è documentato in `docs/PUBLIC-SEO-ROUTING-OWNERSHIP-SCOPE.md`.
+Il cutover richiede una PR M5.7 separata.
 
-## Struttura incrementale
+## Componenti e read model pubblici
+
+I componenti pubblici condividono un render mode tipizzato:
 
 ```text
-apps/
-  web/                 # Astro, React island e componenti pubblici/Control Room
-
-src/                   # backend, route policy, read model ed execution plane
-migrations/
-containers/
-scripts/
+preview | canonical
 ```
 
-La riorganizzazione completa del repository viene valutata soltanto dopo il rilascio stabile della Control Room e del frontend pubblico.
+La modalità preview mantiene:
+
+- namespace `/astro-foundation`;
+- noindex;
+- no-store;
+- banner e copy di isolamento;
+- link interni namespaced.
+
+La modalità canonical mantiene:
+
+- URL apex;
+- robots indicizzabili sulle risposte valide;
+- cache pubblica;
+- nessun banner preview;
+- link interni canonici.
+
+Read model e validazione restano server-only.
+
+## Contratto SEO delle pagine
+
+`src/public-seo.ts` è la fonte condivisa per:
+
+- title;
+- description;
+- Open Graph;
+- `WebSite`;
+- `Article`;
+- `FAQPage`;
+- serializer JSON-LD sicuro.
+
+Canonical URL, robots e cache restano policy della route che possiede la risposta.
+
+## Contratto sitemap e robots
+
+M5.5b.3 introduce:
+
+```text
+src/public-seo-endpoints.ts
+apps/web/src/pages/sitemap.xml.ts
+apps/web/src/pages/robots.txt.ts
+```
+
+Il modulo condiviso gestisce:
+
+- route statiche da `PUBLIC_CANONICAL_STATIC_PATHS`;
+- pagine D1 `published` soltanto;
+- validazione HTTPS del site base;
+- slug e `updated_at`;
+- duplicati e limite URL;
+- ordine deterministico;
+- `lastmod` normalizzato;
+- XML escaping;
+- robots deterministico;
+- header e fail-closed.
+
+Backend legacy e Astro delegano allo stesso contratto.
+
+Quando un `seo-endpoint` è Astro-owned in uno smoke o in una futura matrice, il Worker inoltra ad Astro la pathname normalizzata della route decision. Questo rende coerenti query string e trailing slash senza cambiare il runtime live corrente.
 
 ## Modello a due track
 
-```text
-Track A — Control Room M4
-mutation operative una per branch
-→ parità completa
-→ rimozione legacy privata
+### Track A — Control Room M4
 
-Track B — frontend pubblico M5
+```text
+letture complete
+→ decisione brief
+→ conversione brief
+→ operazioni claim
+→ decisione draft
+→ eventuale retry queue
+→ rimozione legacy privata
+```
+
+### Track B — frontend pubblico M5
+
+```text
 preview noindex
 → contratto SEO condiviso
-→ route policy foundation
-→ canonical renderer parity verificata
-→ SEO endpoint parity
+→ route policy
+→ canonical parity
+→ sitemap/robots parity
 → catalogo pilot
 → cutover apex separato
 ```
 
-Regole:
+Una branch appartiene a una sola track.
 
-- una branch appartiene a una sola track;
-- una PR M5 non introduce mutation M4;
-- una PR M4 non esegue il cutover pubblico;
-- M5 non cambia gli stati editoriali;
-- M4 non viene dichiarato completo perché esiste una preview pubblica;
-- owner target non equivale a owner live;
-- canonical Astro compilato non equivale a canonical Astro servito;
-- la legacy Control Room e il renderer pubblico legacy hanno exit criteria separati.
+## Fasi completate
 
-## Fasi Control Room
+### F0–F2 — Foundation e perimetro privato
 
-### F0 — Congelare la UI artigianale
-
-- [x] Control Room v3 riconosciuta come transitoria;
-- [x] solo fallback e bugfix critici;
-- [x] nessuna nuova funzione importante nella dashboard HTML manuale;
-- [x] nessuna nuova pagina pubblica costruita con template string nel Worker.
-
-### F1 — Frontend foundation
-
-- [x] `apps/web` con Astro, React e Cloudflare;
+- [x] `apps/web` Astro/React;
 - [x] custom Worker entrypoint;
-- [x] binding, Workflow, Container e API verificati in `workerd`;
-- [x] assenza di route di pubblicazione;
-- [x] fondazione distribuita e verificata in produzione.
-
-### F2 — Control Room UI e perimetro privato
-
-- [x] shadcn/ui con componenti sorgente versionati;
-- [x] shell responsive in una React island;
-- [x] Cloudflare Access e validazione nell'origine;
+- [x] shadcn/ui;
+- [x] Cloudflare Access;
 - [x] sessione mediata dal Worker;
 - [x] credenziali browser rimosse;
-- [x] hydration, loading, error, empty, tastiera e mobile coperti.
+- [x] loading, error, empty, tastiera e mobile.
 
-### F3 — Migrare la Control Room
+### F3 — Control Room read-only e prima mutation
 
-Letture e parità completate con PR #32, #34, #37, #39, #40, #42, #44, #47, #49, #50 e #52.
+- [x] overview e health;
+- [x] radar, segnali e brief;
+- [x] claim, fonti, scadenze e task;
+- [x] readiness e bundle;
+- [x] draft, dettaglio, queue e audit;
+- [x] parità legacy read-only;
+- [x] decisione brief `proposed → accepted | dismissed`.
 
-Mutation:
+Mutation residue:
 
 ```text
-decisione brief
-→ conversione brief
+conversione brief
 → operazioni claim
 → decisione draft
 → eventuale retry queue
 ```
 
-Prima mutation verificata:
+### F4.0–F4.3 — Preview pubbliche
 
-```text
-proposed → accepted | dismissed
-```
-
-`accepted → converted` resta un gate successivo.
-
-## F4 — Migrare il sito pubblico
-
-**Stato: M5.0–M5.5a concluse; M5.5b.1 e M5.5b.2 completate in CI; nessuna route canonica live migrata.**
-
-### F4.0 — Shell pubblico preview
-
-- [x] `/astro-foundation` noindex;
-- [x] layout, metadata, header, navigazione e footer;
-- [x] raw HTML senza JavaScript necessario;
-- [x] current public routing invariato;
-- [x] checkpoint live.
-
-### F4.1 — Trust e pagine statiche
-
-- [x] metodo editoriale;
-- [x] trasparenza;
-- [x] privacy;
-- [x] componente condiviso;
-- [x] checkpoint mobile 3/3;
-- [x] route canoniche legacy preservate.
-
-### F4.2 — Homepage e listing
-
+- [x] shell `/astro-foundation`;
+- [x] trust pages;
 - [x] homepage candidata;
-- [x] Destinazioni, Guide e Confronti preview;
-- [x] read model published-only condiviso;
-- [x] internal linking deterministico;
-- [x] route matrix dei listing e fail-fast;
-- [x] deploy e checkpoint visuale live.
+- [x] listing Destinazioni, Guide e Confronti;
+- [x] renderer articolo;
+- [x] published-only, 404 e fail-closed;
+- [x] checkpoint desktop/mobile.
 
-### F4.3 — Renderer editoriale Astro
-
-- [x] `/astro-foundation/articoli/[slug]`;
-- [x] published-only;
-- [x] read model condiviso;
-- [x] blocchi strutturati e FAQ native;
-- [x] fonti HTTPS e provenance pubblica;
-- [x] dati operativi interni esclusi;
-- [x] related links deterministici;
-- [x] vere 404 e fail-closed;
-- [x] noindex, no-store e sitemap exclusion;
-- [x] PR #67, CI finale #307 e checkpoint live desktop/mobile.
-
-### F4.4 — Parità SEO pubblica
-
-#### F4.4a — Contratto SEO condiviso
+### F4.4a — Contratto SEO condiviso
 
 - [x] `src/public-seo.ts`;
-- [x] title, description e Open Graph condivisi;
-- [x] `WebSite`, `Article` e `FAQPage`;
-- [x] serializer JSON-LD sicuro;
-- [x] canonical e robots route-specific;
-- [x] drift e regressioni;
-- [x] PR #69 mergiata;
-- [x] homepage e articolo verificati nel sorgente live.
+- [x] metadata e schema condivisi;
+- [x] regressioni e drift testati;
+- [x] PR #69.
 
-#### F4.4b.1 — Route policy foundation
+### F4.4b.1 — Route policy
 
-Branch e PR:
+- [x] current/target matrix;
+- [x] route kind e precedenza;
+- [x] file probe e reserved path;
+- [x] PR #71 e CI #329.
 
-```text
-feat/public-route-policy-foundation
-PR #71
-```
+### F4.4b.2 — Canonical Astro parity
 
-- [x] `src/public-route-policy.ts`;
-- [x] owner e route kind tipizzati;
-- [x] current/target matrix separate;
-- [x] export attivo fissato alla current matrix;
-- [x] reserved paths e file-probe policy condivisi;
-- [x] validazione slug articolo single-segment;
-- [x] custom Worker usa la matrice attiva;
-- [x] nessun cambio live;
-- [x] smoke dedicato;
-- [x] CI finale #329 completamente verde.
+- [x] home, listing, trust, articolo e 404 compilati;
+- [x] factory Worker per smoke;
+- [x] runtime diretto senza switch live;
+- [x] PR #73 e CI finale #350.
 
-#### F4.4b.2 — Canonical Astro parity
-
-Scope:
+### F4.4b.3 — SEO endpoint parity
 
 ```text
-docs/PUBLIC-CANONICAL-ASTRO-PARITY-SCOPE.md
+PR #75
+CI applicativa #359 verde
+merge ancora pendente
 ```
 
-Branch e PR:
+- [x] builder sitemap/robots condivisi;
+- [x] handler Astro compilati;
+- [x] legacy delegato;
+- [x] populated, empty e invalid state;
+- [x] GET, HEAD, query e trailing slash;
+- [x] output legacy/Astro equivalente;
+- [x] owner live ancora backend;
+- [ ] CI finale code + canonici;
+- [ ] merge.
 
-```text
-feat/public-canonical-astro-parity
-PR #73
-```
+## Prossima fase — F4.5 catalogo pilot
 
-- [x] render mode `preview | canonical`;
-- [x] layout, header, footer e contenuti condivisi;
-- [x] route canoniche home, listing, trust, articolo e 404 compilate;
-- [x] modalità canonical senza banner o link preview;
-- [x] internal link canonicali;
-- [x] canonical, robots e cache route-specific;
-- [x] published-only e fail-closed;
-- [x] reserved path e file probe esclusi;
-- [x] 404 Astro reale e noindex;
-- [x] factory `createPublicWorker(routeDecision)`;
-- [x] default production su `activePublicRouteDecision` corrente;
-- [x] wrapper e Wrangler config soltanto temporanei nello smoke;
-- [x] nessun flag runtime, cookie, header, query parameter o route di test;
-- [x] D1 populated/empty, workerd e Chromium;
-- [x] parità visuale, accessibile e SEO;
-- [x] CI applicativa #345 completamente verde;
-- [x] owner live ancora legacy.
+La prima azione è uno scope documentale separato.
 
-#### F4.4b.3 — SEO endpoint parity
+Deve definire:
 
-PR separata, preceduta da scope:
+- massimo quattro pagine iniziali, salvo evidenza contraria;
+- intenti distinti;
+- fonti ufficiali e freshness;
+- evidence bundle minimo;
+- publication eligibility;
+- revisione umana e audit;
+- rollback;
+- criteri di misura prima della scala.
 
-- [ ] builder sitemap/robots condivisi;
-- [ ] handler Astro compilati e testati;
-- [ ] output semantico equivalente;
-- [ ] preview, review, draft e route tecniche esclusi;
-- [ ] owner live ancora legacy.
+Lo scope non pubblica pagine e non cambia la matrice attiva.
 
-### F4.5 — Catalogo pilot
-
-- piccolo set di pagine con intento distinto;
-- nessuna generazione massiva;
-- evidence e publication eligibility richieste;
-- nessuna promessa su indicizzazione o conversione.
-
-### F4.6 — Cutover apex
-
-PR separata e autorizzazione esplicita.
+## F4.6 — Cutover apex
 
 Richiede:
 
-- modifica minima della matrice attiva;
+- autorizzazione esplicita;
+- modifica minima e reversibile della matrice;
 - confronto route e metadata;
 - schema, sitemap, robots e 404 validi;
-- smoke mobile e accessibilità;
 - provider redirect preservati;
 - publication guardrails preservati;
 - rollback documentato;
-- assenza di pagine review pubblicate accidentalmente.
-
-### F5 — Hardening
-
-- eliminare renderer manuali soltanto dopo il cutover verificato;
-- ridurre codice duplicato;
-- test visuali e browser smoke;
-- budget performance;
-- documentazione del design system;
-- eventuale riorganizzazione completa del repository.
-
-## Guardrail
-
-- Astro e React non accedono direttamente a D1 dal browser;
-- tutte le route Control Room sono protette da Access;
-- l’attore delle mutation deriva dall’identità verificata;
-- nessun componente introduce pubblicazione automatica;
-- claim, bundle e stati editoriali non vengono ricalcolati nel client;
-- una mutation non abilita implicitamente la successiva;
-- la matrice target non diventa attiva senza PR di cutover;
-- API e provider redirect non vengono intercettati da Astro;
-- file probe e route riservate non diventano articoli;
-- M5 preview non equivale a public cutover;
-- la legacy Control Room non viene rimossa finché resta fallback delle mutation;
-- il renderer pubblico legacy non viene rimosso finché il cutover Astro non è verificato.
+- assenza di pagine review esposte.
 
 ## Cosa non facciamo adesso
 
 - riscrivere l’intero backend;
 - introdurre più mutation nella stessa branch;
-- pubblicare la pagina Cina;
-- costruire un design system proprietario;
-- aggiungere librerie senza necessità dimostrata;
-- ampliare la Control Room legacy;
-- duplicare query D1 già coperte;
-- copiare il renderer HTML legacy;
-- attivare milioni di URL programmatici;
+- pubblicare automaticamente la pagina Cina;
+- creare un design system proprietario;
+- attivare sitemap index o milioni di URL;
+- inviare la sitemap a Search Console;
+- aggiungere analytics prima di CMP e Consent Mode;
 - cambiare `activePublicRouteDecision` prima di M5.7;
-- usare flag runtime nascosti o parametri URL per scegliere il renderer;
 - rimuovere una legacy prima del relativo criterio di uscita.
