@@ -1,11 +1,14 @@
 ---
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import { publicTrustPath } from '../../../../../src/public-render-mode'
+
 interface Props {
+  mode: PublicRenderMode
   previewBase?: string
 }
 
-const { previewBase } = Astro.props
+const { mode } = Astro.props
 const year = new Date().getUTCFullYear()
-const trustHref = (slug: string) => previewBase ? `${previewBase}/${slug}` : `/${slug}`
 ---
 
 <footer class="site-footer">
@@ -19,9 +22,9 @@ const trustHref = (slug: string) => previewBase ? `${previewBase}/${slug}` : `/$
 
     <nav aria-label="Trasparenza e informazioni">
       <p class="footer-heading">Come lavoriamo</p>
-      <a href={trustHref('metodo')}>Metodo editoriale</a>
-      <a href={trustHref('trasparenza')}>Trasparenza</a>
-      <a href={trustHref('privacy')}>Privacy</a>
+      <a href={publicTrustPath(mode, 'metodo')}>Metodo editoriale</a>
+      <a href={publicTrustPath(mode, 'trasparenza')}>Trasparenza</a>
+      <a href={publicTrustPath(mode, 'privacy')}>Privacy</a>
     </nav>
 
     <div>
