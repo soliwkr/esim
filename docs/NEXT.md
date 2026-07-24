@@ -6,109 +6,150 @@ Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
 ## Now
 
-### 1. Chiudere PR #75 — M5.5b.3
+### 1. Chiudere lo scope M5.6
 
-```text
-branch feat/public-seo-endpoint-parity
-PR #75 — Add shared sitemap and robots parity
-CI applicativa #359 completamente verde
-```
-
-Stato verificato:
-
-- builder sitemap/robots server-only condivisi;
-- legacy e Astro delegano allo stesso contratto;
-- pagine D1 `published` soltanto;
-- route statiche derivate dalla route policy;
-- slug, date, origin, duplicati e limite URL validati;
-- XML deterministico, ordinato e correttamente escapato;
-- `lastmod` normalizzato;
-- robots esatto e newline finale;
-- GET, HEAD, query string e trailing slash coerenti;
-- populated, empty e invalid state;
-- fallimento chiuso senza XML parziale;
-- body e header legacy/Astro equivalenti;
-- tutte le suite pubbliche e Control Room verdi;
-- `activePublicRouteDecision` invariata;
-- sitemap e robots live ancora backend-owned.
-
-Prima del merge restano obbligatori:
-
-```text
-sei canonici aggiornati sullo stesso head
-→ CI finale code + documentazione
-→ PR pronta per review
-→ merge senza deploy e senza cutover
-```
-
-### 2. Aprire lo scope M5.6 dopo il merge
-
-Branch documentale proposta:
+Branch:
 
 ```text
 docs/public-catalog-pilot-scope
 ```
 
+Documento:
+
+```text
+docs/PUBLIC-CATALOG-PILOT-SCOPE.md
+```
+
 Obiettivo esclusivo:
 
 ```text
-small evidence-backed catalog
-+ explicit publication gates
-+ no mass generation
-+ no apex cutover
+read-only candidate audit
++ maximum four release candidates
++ versioned manifest
++ no publication mutation
 ```
 
-La discovery deve definire:
+Decisioni già definite:
 
-- numero massimo di pagine del pilot;
-- intenti distinti e non cannibalizzanti;
-- criteri per scegliere destinazioni, guide e confronti;
-- evidence bundle minimo per pagina;
-- claim richiesti, freshness e fonti ufficiali;
-- publication eligibility separata dall’approvazione del draft;
-- revisione umana e audit;
-- processo di materializzazione e pubblicazione autorizzata;
-- criteri di rollback o deindicizzazione;
-- metriche minime prima della scala;
-- confine con M5.7 cutover e M6 measurement.
+- candidate, release candidate e published sono stati distinti;
+- una release candidate resta `pages.status='review'`;
+- il pilot può contenere da zero a quattro entry;
+- nessun Paese, dispositivo o provider viene scelto prima dell’audit reale;
+- latest bundle, publication eligibility, approvazione umana e latest approved draft sono obbligatori;
+- provenance, freshness e coerenza draft/pagina sono obbligatorie;
+- slug riservati, file probe e collisioni vengono esclusi;
+- intenti duplicati o cannibalizzanti vengono esclusi;
+- la pagina Cina non è candidata automaticamente;
+- la foundation non introduce `review → published`;
+- nessun deploy o cutover.
 
-La PR di scope non deve pubblicare pagine, cambiare D1, modificare il Worker o fare deploy.
+La PR di scope modifica soltanto documentazione canonica.
 
-### 3. Definire il pilot prima del codice o dei contenuti
+### 2. Implementare M5.6a dopo il merge dello scope
 
-Il pilot deve restare piccolo e verificabile. Ipotesi iniziale da validare nello scope:
+Branch tecnica autorizzata:
 
 ```text
-2 destinazioni
-+ 1 guida dispositivo/attivazione
-+ 1 confronto provider
-= massimo 4 pagine
+feat/public-catalog-pilot-foundation
 ```
 
-Ogni pagina deve avere:
-
-- intento primario distinto;
-- slug definitivo;
-- fonti ufficiali identificabili;
-- claim con data di verifica;
-- evidence bundle;
-- draft grounded;
-- approvazione editoriale;
-- publication eligibility esplicita;
-- nessuna dipendenza da claim insufficienti o scaduti.
-
-Non vengono scelti Paesi o provider prima dell’audit della domanda e dello stato reale dei claim.
-
-### 4. Tenere separate le fasi
+Output previsto:
 
 ```text
-M5.5b.3 sitemap/robots parity
-→ M5.6 catalog pilot ristretto
-→ M5.7 cutover apex separato
-→ M6 measurement e Search Console
+src/public-catalog-pilot.ts
+data/public-catalog-pilot.json
+scripts/smoke-public-catalog-pilot.mjs
 ```
 
-M5.6 non modifica automaticamente la matrice attiva. M5.7 richiede una PR dedicata e autorizzazione esplicita.
+I nomi finali possono cambiare soltanto se la struttura reale del repository richiede un’alternativa più semplice.
+
+La foundation deve includere:
+
+- modello tipizzato server-only;
+- query o adapter read-only sui dati editoriali;
+- candidate report con ammessi, esclusi, blocker e warning;
+- manifest schema e validazione;
+- massimo quattro entry;
+- latest bundle e draft validation;
+- publication eligibility e approvazioni persistite;
+- coerenza tra brief, bundle, draft, provenance e pagina;
+- freshness runtime;
+- collisioni di slug e intento;
+- fixture eligible, ineligible, stale, superseded, duplicate ed empty;
+- nessuna mutation D1;
+- nessun endpoint pubblico;
+- nessuna pubblicazione.
+
+### 3. Acceptance M5.6a
+
+Sul medesimo head finale:
+
+- tipi Cloudflare;
+- typecheck e build;
+- migrazioni D1 invariate;
+- quality gate e golden evaluation;
+- Container build e smoke;
+- regressioni preview;
+- canonical renderer parity;
+- sitemap/robots parity;
+- candidate audit fixtures;
+- manifest validation;
+- tutte le suite Control Room.
+
+Deve inoltre essere dimostrato:
+
+```text
+active matrix invariata
+pages published create/update count = 0
+publication endpoint count = 0
+public deploy count = 0
+```
+
+### 4. Audit dei dati reali soltanto dopo la foundation
+
+L’audit operativo deve leggere:
+
+- brief reali;
+- evidence bundle reali;
+- claim e scadenze;
+- draft approvati;
+- pagine materializzate in review;
+- intenti e slug.
+
+Possibili risultati:
+
+```text
+0 candidate → blocker report, nessuna forzatura
+1–4 candidate → manifest reale
+>4 candidate → selezione motivata, nessuna espansione del cap
+```
+
+Non viene creato lavoro editoriale fittizio soltanto per riempire il pilot.
+
+### 5. Tenere separata la pubblicazione
+
+Dopo che esistono release candidate reali, serve una decisione esplicita:
+
+```text
+pubblicare sul legacy prima del cutover
+OR
+pubblicare insieme a M5.7
+OR
+pubblicare dopo M5.7
+```
+
+La mutation `review → published` richiede:
+
+- branch separata;
+- identità verificata;
+- conferma esplicita;
+- state machine D1;
+- audit append-only;
+- idempotenza;
+- freshness recheck;
+- rollback/deindicizzazione;
+- test end-to-end;
+- autorizzazione dell’utente.
 
 ## Checkpoint chiusi
 
@@ -119,8 +160,6 @@ PR #69
 merge 46f1d66a591dd7860c101c86cb8295d97e4a2106
 ```
 
-Metadata e JSON-LD condivisi tra legacy e Astro.
-
 ### M5.5b.1 — Route policy
 
 ```text
@@ -128,8 +167,6 @@ PR #71
 merge bd51faddddbb54647c22c3361dd04c5bc65e7681
 CI finale #329
 ```
-
-Current matrix attiva; target matrix inattiva.
 
 ### M5.5b.2 — Canonical Astro parity
 
@@ -139,21 +176,17 @@ merge b3a6625bfe6e3a06a46412e58f89a033dc82b9ff
 CI finale #350
 ```
 
-Home, listing, trust, articolo e 404 canonici compilati e testati senza switch live.
-
-### Scope M5.5b.3
+### M5.5b.3 — Sitemap e robots parity
 
 ```text
-PR #74
-merge 6a0cea5ab5a012fb24facbd8ba00bfe43b2e8dfe
-CI #352
+PR #75
+merge 8d52e7e316d632dcda0d5bb45b818a490df9fef6
+CI finale #365
 ```
 
-Contratto sitemap/robots e test plan approvati.
+Legacy e Astro condividono builder, output e fallimento chiuso. Ownership live ancora backend.
 
 ## Track M4 parallela
-
-Le mutation residue continuano soltanto su branch separate:
 
 ```text
 conversione brief
@@ -162,7 +195,7 @@ conversione brief
 → eventuale retry queue
 ```
 
-Ogni mutation richiede Access, conferma, state machine server-side, audit, idempotenza, reload e test end-to-end.
+Ogni mutation richiede Access, conferma, state machine, audit, idempotenza, reload e test end-to-end.
 
 ## Google measurement ancora bloccato
 
@@ -176,12 +209,7 @@ CMP
 → verifica dati reali
 ```
 
-Regole:
-
-- nessuna private key in chat o GitHub;
-- nessuna credenziale nel frontend;
-- nessun tracking sulle preview noindex;
-- nessuna sitemap submission durante M5.5b.3 o lo scope M5.6.
+Nessuna credenziale Google entra nel repository o nel frontend.
 
 ## Verifiche operative aperte
 
@@ -194,13 +222,14 @@ Regole:
 
 ## Freeze immediato
 
-- niente HTML applicativo nuovo nel Worker;
-- niente accesso browser a D1;
 - niente pubblicazione automatica;
-- niente secret o PII nel client, URL, storage, log o repository;
+- niente endpoint o pulsante publish in M5.6a;
+- niente scelta anticipata di Paesi o provider;
+- niente generazione massiva;
+- niente accesso browser a D1;
+- niente secret o PII nel client, URL, manifest, log o repository;
 - niente affiliazioni o tracking anticipati;
 - niente cambio della matrice attiva prima di M5.7;
-- niente migrazione live di sitemap, robots o provider redirect nella PR #75;
 - niente Search Console submission;
 - niente cutover dell’apice;
 - nessuna rimozione legacy finché resta un fallback operativo.
