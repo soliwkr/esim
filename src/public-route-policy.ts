@@ -69,22 +69,26 @@ const backendExactPaths = new Set<string>(PUBLIC_BACKEND_EXACT_PATHS);
 const articleSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const fileProbePattern = /(^|\/)\.|(^|\/)[^/]+\.(?:bak|config|env|ini|js|json|log|map|php|properties|py|sql|txt|ya?ml)$/i;
 
-export function normalizePublicPathname(value: string): string {
+function routingPathname(value: string): string {
   const withoutQuery = value.split(/[?#]/, 1)[0] || '/';
-  const withLeadingSlash = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+  return withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+}
+
+export function normalizePublicPathname(value: string): string {
+  const withLeadingSlash = routingPathname(value);
   const collapsed = withLeadingSlash.replace(/\/{2,}/g, '/');
   if (collapsed === '/') return collapsed;
   return collapsed.replace(/\/+$/, '') || '/';
 }
 
 export function isControlRoomFoundationPath(pathname: string): boolean {
-  const path = normalizePublicPathname(pathname);
+  const path = routingPathname(pathname);
   return path === CONTROL_ROOM_FOUNDATION_BASE
     || path.startsWith(`${CONTROL_ROOM_FOUNDATION_BASE}/`);
 }
 
 export function isPublicPreviewPath(pathname: string): boolean {
-  const path = normalizePublicPathname(pathname);
+  const path = routingPathname(pathname);
   return path === PUBLIC_PREVIEW_BASE
     || path.startsWith(`${PUBLIC_PREVIEW_BASE}/`);
 }
@@ -109,10 +113,12 @@ export function publicArticleSlugCandidate(pathname: string): string | null {
 function routeKind(pathname: string): Omit<PublicRouteDecision, 'owner'> {
   const path = normalizePublicPathname(pathname);
 
-  if (isControlRoomFoundationPath(path)) {
+  // These two namespaces must retain the exact prefix semantics used before the policy module.
+  // In particular, malformed leading-double-slash paths must not become newly Astro-owned.
+  if (isControlRoomFoundationPath(pathname)) {
     return { pathname: path, kind: 'control-room-foundation', articleSlug: null };
   }
-  if (isPublicPreviewPath(path)) {
+  if (isPublicPreviewPath(pathname)) {
     return { pathname: path, kind: 'preview', articleSlug: null };
   }
   if (path === '/api' || path.startsWith('/api/')) {
