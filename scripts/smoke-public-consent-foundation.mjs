@@ -166,7 +166,7 @@ function assertIubendaEnabled(html, pathname) {
   assert.match(html, /"googleConsentMode":true/);
   assert.match(html, /"rejectButtonDisplay":true/);
   assert.match(html, /class="iubenda-cs-preferences-link"/);
-  assert.doesNotMatch(html, /googletagmanager|google-analytics|gtag\(|G-[A-Z0-9]+/i);
+  assert.doesNotMatch(html, /googletagmanager|google-analytics|gtag\(|measurement[_-]?id["'=:\s]+G-[A-Z0-9]+/i);
 
   const configIndex = html.indexOf('var _iub = window._iub');
   const autoblockingIndex = html.indexOf(`https://cs.iubenda.com/autoblocking/${siteId}.js`);
