@@ -11,7 +11,9 @@ import { publicArticleSlugCandidate } from '../../../../../../src/public-route-p
 import { affiliateEnabled } from '../../../../../../src/utils'
 import PublicArticleErrorPage from '../../../components/public/PublicArticleErrorPage.astro'
 import PublicArticlePage from '../../../components/public/PublicArticlePage.astro'
+import { setPublicResponseHeaders } from '../../../lib/public-response'
 
+setPublicResponseHeaders(Astro.response.headers, 'preview')
 const rawSlug = Astro.params.slug ?? ''
 const slug = publicArticleSlugCandidate(`/${rawSlug}`)
 const result: PublicArticleLoadResult = slug
