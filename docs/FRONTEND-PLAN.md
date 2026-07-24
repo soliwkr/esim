@@ -45,20 +45,32 @@ Custom Cloudflare Worker
 - Cloudflare Access protegge la Control Room;
 - ogni mutation è una capacità separata;
 - nessun componente introduce pubblicazione automatica;
-- preview, canonical compiled e live owner sono distinti;
+- preview, canonical compilato, owner sulla branch e owner live sono distinti;
 - candidate, release candidate e published sono distinti;
-- la legacy resta finché è fallback operativo.
+- la legacy privata resta finché è fallback operativo;
+- la legacy pubblica non viene rimossa nello stesso momento del cutover.
 
-## Route ownership
+## Route ownership M5.7
 
-Il deploy normale resta:
+Il Worker reale resta:
 
 ```text
 createPublicWorker(activePublicRouteDecision)
-activePublicRouteDecision = currentPublicRouteDecision
 ```
 
-### Matrice attiva
+### Configurazione Assets sulla branch PR #81
+
+```json
+{
+  "run_worker_first": ["/*", "!/_astro/*"]
+}
+```
+
+- `/*` porta le route dinamiche al custom Worker;
+- `!/_astro/*` mantiene gli asset compilati asset-first;
+- il Worker conserva la precedenza esplicita di API, `/go/*`, Control Room e path tecnici.
+
+### Matrice current e rollback
 
 ```text
 Astro:
@@ -67,41 +79,86 @@ Astro:
 
 Backend:
   route canoniche
-  /sitemap.xml
-  /robots.txt
+  sitemap e robots
   /go/*
   /api/*
   legacy Control Room
   asset tecnici e 404
 ```
 
-### Matrice target, non attiva
+```ts
+currentPublicRouteDecision(pathname)
+```
+
+### Matrice target attiva sulla branch
 
 ```text
 Astro:
-  home, listing, trust, articoli
+  homepage canonica
+  Destinazioni, Guide e Confronti
+  Metodo, Trasparenza e Privacy
+  articoli canonici published-only
   sitemap, robots e 404
+  preview
+  shell Control Room
 
 Backend:
   /api/*
   /go/*
-  legacy Control Room finché necessaria
-  execution plane
+  legacy Control Room
+  asset tecnici
+  D1, Workflow, Container e AI
+  gate editoriali e publication capability
 ```
 
-## Renderer e contratti SEO
+```ts
+export const activePublicRouteDecision = targetPublicRouteDecision;
+```
 
-I componenti pubblici condividono:
+La CI applicativa #397 verifica questa matrice nel Worker compilato di produzione. Merge, deploy e verifica live restano checkpoint distinti.
+
+Rollback:
+
+```ts
+export const activePublicRouteDecision = currentPublicRouteDecision;
+```
+
+## Renderer pubblico
+
+I componenti condividono:
 
 ```text
 preview | canonical
 ```
 
-- `src/public-seo.ts` produce metadata e JSON-LD;
+### Preview
+
+- route sotto `/astro-foundation*`;
+- noindex/nofollow;
+- no-store;
+- canonical namespaced;
+- banner di isolamento;
+- link namespaced.
+
+### Canonical
+
+- route apex;
+- index/follow;
+- cache pubblica breve;
+- canonical apex;
+- link apex;
+- nessun banner preview.
+
+Entrambe le modalità leggono soltanto righe `published`. `review`, `draft`, archived, slug mancanti e file probe restano 404.
+
+## Contratti SEO
+
+- `src/public-seo.ts` produce metadata, Open Graph e JSON-LD;
 - `src/public-seo-endpoints.ts` produce sitemap e robots;
-- D1 viene letto soltanto server-side;
-- righe `review` e `draft` non vengono servite pubblicamente;
-- route canoniche e SEO endpoint live restano backend-owned.
+- JSON-LD è l’unico script pubblico;
+- sitemap include route statiche e articoli published-only;
+- canonical, robots e cache dipendono dalla route response;
+- gli endpoint falliscono chiusi su dati invalidi.
 
 ## Modello a due track
 
@@ -124,10 +181,13 @@ preview noindex
 → canonical parity
 → sitemap/robots parity
 → catalog audit foundation
-→ release candidates reali
-→ publication decision
-→ cutover apex
+→ remote audit live
+→ apex cutover
+→ verifica live
+→ eventuale rimozione legacy pubblica
 ```
+
+Publication capability resta un percorso separato.
 
 ## Fasi completate
 
@@ -147,88 +207,132 @@ preview noindex
 - [x] contratto SEO;
 - [x] route policy;
 - [x] canonical Astro parity;
-- [x] sitemap e robots parity;
-- [x] live ownership ancora backend.
+- [x] sitemap e robots parity.
 
-## F4.5 — Catalogo pilot M5.6
+### F4.5 — Catalogo pilot M5.6
 
-Scope: `docs/PUBLIC-CATALOG-PILOT-SCOPE.md`.
-
-### Candidate audit foundation
+Foundation:
 
 ```text
-branch feat/public-catalog-pilot-foundation
 PR #77
-CI applicativa #373 verde
+merge fa9ed9486e400e77ad915153284c7b277a51b4d0
+CI #379
+```
+
+Comprende:
+
+- `src/public-catalog-pilot.ts` server-only;
+- loader D1 con sole `SELECT`;
+- report deterministic selected/excluded;
+- latest bundle e draft;
+- publication gate e approvazioni;
+- provenance e freshness;
+- coerenza pagina `review`;
+- cap massimo quattro;
+- manifest vuoto versionato;
+- fixture pure e migrated-D1 smoke;
+- before/after invariato.
+
+Remote audit:
+
+```text
+scope PR #78 — CI #381
+route PR #79 — CI #386
+```
+
+Risultato live:
+
+```text
+candidateCount: 1
+eligibleCount: 0
+selectedCount: 0
+excludedCount: 1
+```
+
+La candidate `esim-cina-senza-vpn` resta `review`; il manifest resta vuoto. Documento:
+
+```text
+docs/PUBLIC-CATALOG-REMOTE-AUDIT-RESULT-2026-07-24.md
+```
+
+### F4.6 — Cutover apex M5.7
+
+Branch e PR:
+
+```text
+feat/public-apex-cutover
+PR #81
+CI applicativa #397 verde
 ```
 
 Implementato:
 
-- `src/public-catalog-pilot.ts` server-only;
-- loader D1 con sole `SELECT`;
-- report deterministico selected/excluded;
-- latest bundle e latest draft;
-- publication gate e approvazioni;
-- grounded renderer e provenance;
-- freshness di claim e fonti;
-- coerenza draft/pagina;
-- slug/route safety e collisioni;
-- cap massimo quattro;
-- manifest creation/validation;
-- empty manifest versionato;
-- fixture pure;
-- smoke sul D1 realmente migrato;
-- before/after invariato.
+- target matrix attiva sulla branch;
+- Worker-first wildcard valida;
+- asset Astro esclusi dal Worker;
+- canonical homepage, listing, trust, articoli, sitemap, robots e 404;
+- backend boundaries preservati;
+- published-only e fail-closed;
+- preview noindex preservata;
+- review/draft hidden;
+- rollback una riga;
+- smoke attivo sul Worker di produzione;
+- desktop e mobile;
+- tutte le suite Control Room.
 
-File:
+Restano:
 
 ```text
-src/public-catalog-pilot.ts
-data/public-catalog-pilot.json
-scripts/smoke-public-catalog-pilot.mjs
-scripts/smoke-public-catalog-pilot-d1.mjs
+canonici finali
+→ CI finale code + documentazione
+→ ready e merge PR #81
+→ deploy
+→ verifica live
+→ closeout M5.7
 ```
 
-La foundation non introduce UI, route, API o mutation. Non cambia il rendering pubblico.
+## Acceptance live M5.7
 
-### Audit remoto e release-candidate preparation
+Verificare dopo deploy:
 
-Fase successiva:
+- homepage e navigazione canonica;
+- listing e trust pages;
+- almeno un articolo published;
+- metadata, canonical e JSON-LD;
+- sitemap e robots;
+- 404, file probe, review e draft;
+- `/api/health`;
+- redirect `/go/*`;
+- Control Room anonima/autenticata;
+- preview namespaced;
+- CSS asset;
+- desktop, mobile e tastiera;
+- header cache e robots.
 
-```text
-safe remote read-only audit
-→ blocker report
-→ 0–4 real candidates
-→ prepare one page at a time
-→ materialized review page
-→ manifest entry
-```
+## Publication decision
 
-Nessuna pagina viene scelta in anticipo.
+M5.7 non introduce `review → published`.
 
-### Publication decision
+La prima pubblicazione richiede:
 
-Separata e non autorizzata dalla foundation. Deve decidere se la prima pubblicazione avviene prima, durante o dopo M5.7.
-
-## F4.6 — Cutover apex M5.7
-
-Richiede:
-
-- autorizzazione esplicita;
-- modifica minima e reversibile della matrice;
-- confronto route, metadata, sitemap, robots e 404;
-- provider redirect e publication guardrails preservati;
-- rollback documentato;
-- nessuna pagina review esposta.
+- branch mutation separata;
+- identità verificata;
+- conferma umana;
+- state machine D1;
+- audit append-only;
+- idempotenza;
+- freshness recheck;
+- rollback/deindicizzazione;
+- test end-to-end.
 
 ## Cosa non facciamo adesso
 
 - riscrivere l’intero backend;
 - pubblicare automaticamente la pagina Cina;
-- scegliere pagine senza audit reale;
 - generazione massiva o pSEO a template;
-- endpoint publish nella foundation;
+- endpoint publish in M5.7;
 - Search Console submission;
 - analytics prima di CMP e Consent Mode;
-- cambio della matrice prima di M5.7;
-- rimozione legacy anticipata.
+- affiliazioni anticipate;
+- rimozione legacy pubblica prima del checkpoint live;
+- rimozione legacy privata mentre resta fallback operativo.
