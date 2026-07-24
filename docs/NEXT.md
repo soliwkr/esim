@@ -4,152 +4,147 @@ Ultimo aggiornamento: **25 luglio 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
-## Now — chiudere lo scope M6
-
-Branch:
+## Now — chiudere PR #84
 
 ```text
-docs/measurement-consent-scope
+branch spike/iubenda-consent-foundation
+PR #84 — Spike iubenda consent foundation
+CI applicativa #411 completamente verde
 ```
 
-Documenti sul branch:
+Già verificato:
 
-```text
-docs/MEASUREMENT-CONSENT-SCOPE.md
-docs/CMP-SPIKE.md
-docs/MEASUREMENT-EVENT-DICTIONARY.md
-```
-
-Lo scope stabilisce:
-
-- Consent Mode Basic;
-- nessun tag o ping Google prima del consenso;
-- analytics-only;
-- advertising consent sempre negato in M6;
-- route canonical incluse;
-- preview, Control Room, API, redirect, sitemap, robots e 404 escluse;
-- parametri vietati;
-- D1 come fonte di verità per redirect completati;
-- iubenda come candidato principale per lo spike;
-- event dictionary v1.
-
-### 1. Verificare la branch documentale
-
-Controllare che il diff contenga soltanto documentazione e canonici.
-
-Poi:
-
-```text
-PR draft
-→ CI completa
-→ ready
-→ merge
-```
-
-Nessun tracking viene attivato da questa PR.
-
-## Dopo il merge — spike CMP
-
-Branch proposta:
-
-```text
-spike/iubenda-consent-foundation
-```
-
-### Scope esclusivo
-
-- configurazione pubblica CMP validata server-side;
-- script iubenda soltanto sulle route canonical 200;
-- CMP come primo script eseguibile nel `<head>`;
-- nessun GTM o GA4;
-- Basic Consent Mode / blocco completo dei servizi Google;
-- banner italiano;
-- Accetta, Rifiuta e Personalizza;
+- configurazione server-only fail-closed;
+- vars CMP vuote per default;
+- nessun cambiamento alla produzione quando la configurazione è assente;
+- iubenda soltanto sulle route canonical indexable con fixture locale;
+- nessuna CMP su preview, Control Room, API, redirect, sitemap, robots, 404 e file probe;
+- ordine config inline → autoblocking → runtime iubenda;
+- autoblocking senza `async` o `defer`;
+- `googleConsentMode: true`;
+- Accetta, Rifiuta e Personalizza configurati;
 - link footer per riaprire le preferenze;
-- aggiornamento della pagina Privacy coerente con il comportamento reale;
-- nessuna CMP in preview, Control Room, API, redirect, sitemap, robots o 404;
-- test desktop, mobile e tastiera;
-- baseline di performance e richieste di rete;
-- rollback rimuovendo adapter/configurazione CMP.
+- Privacy condizionale;
+- nessun GTM o GA4;
+- nessuna richiesta Google nel browser smoke;
+- desktop, mobile, tastiera e assenza overflow;
+- tutte le suite Control Room verdi.
 
-### Configurazione esterna richiesta
-
-Prima o durante lo spike servirà un account CMP e gli identificativi pubblici del sito. Non servono chiavi API nel browser.
-
-Variabili previste:
+Documento:
 
 ```text
-CMP_PROVIDER=iubenda
-CMP_SITE_ID=
-CMP_COOKIE_POLICY_ID=
+docs/IUBENDA-CONSENT-SPIKE-RESULT.md
 ```
 
-Gli identificativi pubblici possono vivere nelle vars Cloudflare. Token, password e service-account key non vengono versionati.
+### Prima del merge
 
-### Acceptance dello spike
+```text
+STATUS + NEXT + DECISIONS sullo stesso head
+→ CI finale code + documentazione
+→ aggiornamento descrizione PR
+→ ready
+→ merge con expected head SHA
+```
 
-- nessuna richiesta a domini Google prima del consenso;
-- CMP caricata una sola volta;
-- rifiuto persistito;
-- accettazione analytics persistita;
-- revoca funzionante;
-- preferenze riapribili dal footer;
-- UI accessibile da tastiera e mobile;
-- sito leggibile anche se la CMP fallisce;
-- nessun React pubblico;
-- preview e Control Room escluse;
-- privacy page aggiornata;
-- impatto prestazionale misurato;
-- CI completa verde.
+La CI #411 non viene riutilizzata come scorciatoia dopo gli aggiornamenti documentali.
 
-Se iubenda fallisce i gate, il fallback è CookieYes. Non si passa direttamente a una CMP custom.
+## Subito dopo — configurare iubenda reale
 
-## Dopo lo spike — consent foundation
+Lo spike non può certificare il vendor reale senza un sito configurato nella dashboard iubenda.
 
-Branch tecnica separata:
+### Passaggi esterni richiesti
+
+1. creare o aprire il sito `senzaroaming.it` nell’account iubenda;
+2. attivare Privacy Controls and Cookie Solution;
+3. impostare lingua italiana;
+4. applicare GDPR a tutti gli utenti;
+5. mostrare Accetta, Rifiuta e Personalizza;
+6. disabilitare la chiusura implicita del banner;
+7. abilitare blocco preventivo/autoblocking;
+8. abilitare Google Consent Mode v2;
+9. mantenere TCF/Ads/remarketing disattivati;
+10. recuperare dal codice Embed:
+
+```text
+siteId
+cookiePolicyId
+```
+
+Questi sono identificativi pubblici, non secret. Non condividere password, token, chiavi API o service-account JSON.
+
+## Branch di attivazione CMP-only
+
+Dopo aver verificato gli ID reali:
 
 ```text
 feat/public-consent-foundation
 ```
 
-La decisione vendor finale deve essere registrata in `docs/DECISIONS.md` prima dell’implementazione definitiva.
-
-Contratto Consent Mode:
+Configurazione Cloudflare prevista:
 
 ```text
-analytics_storage = denied di default
-ad_storage = denied
-ad_user_data = denied
-ad_personalization = denied
+CMP_PROVIDER=iubenda
+CMP_SITE_ID=<public siteId>
+CMP_COOKIE_POLICY_ID=<public cookiePolicyId>
+GTM_ID=
 ```
 
-Soltanto un consenso analytics esplicito può aggiornare:
+GTM deve restare vuoto.
 
-```text
-analytics_storage = granted
-```
+### Scope esclusivo
 
-## GTM/GA4 foundation
+- configurare le tre vars pubbliche;
+- nessun altro codice analytics;
+- deploy della sola CMP;
+- aggiornamento Privacy con comportamento reale;
+- verifica live del banner e della revoca;
+- misura performance e richieste vendor;
+- decisione definitiva iubenda vs fallback CookieYes;
+- rollback azzerando le vars o revertendo la configurazione.
 
-Branch successiva:
+### Checkpoint live obbligatori
+
+- prima visita mostra il banner;
+- Accetta funziona;
+- Rifiuta funziona;
+- Personalizza funziona;
+- rifiuto e consenso persistono;
+- il footer riapre le preferenze;
+- revoca e modifica funzionano;
+- nessuna richiesta GTM/GA4/Google Analytics;
+- nessuna CMP su `/astro-foundation*`;
+- nessuna CMP nella Control Room;
+- nessuna CMP su 404, sitemap, robots o API;
+- pagina leggibile se il vendor non risponde;
+- nessun overflow mobile;
+- accessibilità da tastiera;
+- impatto prestazionale registrato;
+- privacy page coerente;
+- nessun cambiamento D1 o editoriale.
+
+## Dopo il checkpoint CMP — GTM/GA4 foundation
+
+Branch separata:
 
 ```text
 feat/public-gtm-ga4-foundation
 ```
 
-### Prima release
+Non parte prima della verifica live CMP.
+
+Prima release:
 
 - un solo container GTM;
-- caricamento soltanto dopo consenso;
+- GTM assente prima del consenso analytics;
 - una sola configurazione GA4;
 - un solo `page_view` per pagina;
 - `page_location = origin + pathname`;
 - nessuna query string custom;
 - nessun evento da preview o Control Room;
-- nessun Ads tag;
-- nessun affiliate tag.
+- advertising consent sempre denied;
+- nessun Ads o affiliate tag.
 
-### Eventi
+Eventi:
 
 ```text
 page_view
@@ -157,20 +152,21 @@ provider_redirect_intent
 consent_update locale/debug
 ```
 
-`article_view` e `listing_view` restano parametri del `page_view`, non eventi separati.
+Il redirect effettivo continua a essere registrato server-side in D1.
 
-`provider_redirect_intent` viene attivato soltanto dopo il checkpoint del page view. Il redirect effettivo continua a essere registrato server-side in D1.
+## Infrastruttura Google da verificare
 
-### Verifica
+Senza esporre secret:
 
-- Tag Assistant;
-- Network panel;
-- GA4 DebugView;
-- denied/granted/revoke;
-- anti-duplicazione;
-- route escluse;
-- performance;
-- CI e smoke Chromium.
+- ID container GTM;
+- proprietà e data stream GA4;
+- proprietà Search Console;
+- permessi service account;
+- dominio verificato;
+- ambiente production del container;
+- eventuali collegamenti Ads da lasciare inattivi.
+
+“Creato” non equivale a “collegato”.
 
 ## Search Console
 
@@ -183,21 +179,7 @@ verifica proprietà dominio
 → registrazione risultato
 ```
 
-Non forzare indicizzazione di preview, Control Room o pagine `review`.
-
-## Infrastruttura Google da inventariare
-
-Senza esporre secret, confermare:
-
-- ID container GTM;
-- proprietà e data stream GA4;
-- proprietà Search Console;
-- permessi del service account;
-- dominio verificato;
-- eventuali collegamenti Ads esistenti da mantenere disattivati;
-- ambiente production usato dal container.
-
-“Creato” non equivale a “collegato”.
+Preview, Control Room e pagine `review` restano escluse.
 
 ## Track parallela M4
 
@@ -222,7 +204,9 @@ La prima pubblicazione richiede ancora branch, identità, conferma, state machin
 
 ## Freeze immediato
 
-- niente snippet GTM o GA4 prima della consent foundation;
+- niente ID fittizi o di esempio in produzione;
+- niente deploy CMP prima della configurazione iubenda reale;
+- niente GTM o GA4 nella branch CMP-only;
 - niente Advanced Consent Mode o cookieless pings;
 - niente tracking pre-consenso;
 - niente eventi fuori dal dizionario;
@@ -233,4 +217,4 @@ La prima pubblicazione richiede ancora branch, identità, conferma, state machin
 - niente secret nel repository;
 - niente mutation D1, Workflow, Container, AI o gate editoriali;
 - niente pubblicazione automatica;
-- niente rimozione legacy durante M6 foundation.
+- niente rimozione legacy durante M6.
