@@ -98,6 +98,15 @@ async function controlRoomBriefDecision(request: Request, env: Env): Promise<Res
   }
 }
 
+function astroRequest(request: Request, route: PublicRouteDecision): Request {
+  if (route.kind !== 'seo-endpoint') return request;
+
+  const url = new URL(request.url);
+  if (url.pathname === route.pathname) return request;
+  url.pathname = route.pathname;
+  return new Request(url, request);
+}
+
 export function createPublicWorker(routeDecision: PublicRouteDecisionResolver): ExportedHandler<Env> {
   return {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -122,7 +131,7 @@ export function createPublicWorker(routeDecision: PublicRouteDecisionResolver): 
       }
 
       if (route.owner === 'astro') {
-        return handle(request, env, ctx);
+        return handle(astroRequest(request, route), env, ctx);
       }
 
       return backendWorker.fetch(request, env);
