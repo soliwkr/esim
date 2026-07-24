@@ -2,6 +2,8 @@
 import PublicFooter from '../components/public/PublicFooter.astro'
 import PublicHeader from '../components/public/PublicHeader.astro'
 import { setPublicPreviewResponseHeaders } from '../lib/public-preview-response'
+import type { PublicJsonLdDocument, PublicOpenGraphType } from '../../../../src/public-seo'
+import { serializeJsonLd } from '../../../../src/public-seo'
 import '../styles/public.css'
 
 interface Props {
@@ -10,6 +12,9 @@ interface Props {
   canonicalPath: string
   noindex?: boolean
   previewBase?: string
+  siteName?: string
+  ogType?: PublicOpenGraphType
+  schema?: PublicJsonLdDocument | PublicJsonLdDocument[]
 }
 
 const {
@@ -18,11 +23,15 @@ const {
   canonicalPath,
   noindex = false,
   previewBase,
+  siteName = 'Senza Roaming',
+  ogType = 'website',
+  schema,
 } = Astro.props
 
 const base = Astro.site ?? new URL(Astro.url.origin)
 const canonicalUrl = new URL(canonicalPath, base).toString()
-const robots = noindex ? 'noindex,nofollow' : 'index,follow'
+const robots = noindex ? 'noindex,nofollow' : 'index,follow,max-image-preview:large'
+const schemaJson = schema ? serializeJsonLd(schema) : null
 
 if (noindex) {
   setPublicPreviewResponseHeaders(Astro.response.headers)
@@ -37,14 +46,15 @@ if (noindex) {
     <meta name="description" content={description} />
     <meta name="robots" content={robots} />
     <link rel="canonical" href={canonicalUrl} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:locale" content="it_IT" />
-    <meta property="og:site_name" content="Senza Roaming" />
+    <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta name="theme-color" content="#073f43" />
     <title>{title}</title>
+    {schemaJson && <script type="application/ld+json" set:html={schemaJson}></script>}
   </head>
   <body>
     <a class="skip-link" href="#contenuto">Vai al contenuto</a>

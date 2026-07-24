@@ -22,7 +22,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Homepage candidata Astro | Verificata in produzione | desktop e mobile; `/` resta legacy |
 | Listing Astro | Verificati in produzione | Destinazioni, Guide e Confronti |
 | Renderer articolo Astro | Verificato in produzione | PR #67, CI finale #307, desktop e mobile |
-| Parità SEO Astro | Autorizzata, non implementata | prima slice `feat/public-seo-contract-foundation` |
+| Fondazione SEO condivisa | Implementata e verificata dalla CI completa | PR #69; merge, deploy e checkpoint live ancora aperti |
 | Affiliazioni | Disabilitate | nessun ranking o link remunerato attivo |
 | Analytics | Proprietà preparate, integrazione assente | GTM, GA4 e GSC creati; nessun codice collegato |
 | Service account Google | Preparato esternamente, non configurato | nessuna credenziale nel repository |
@@ -221,30 +221,96 @@ Le verifiche tecniche di published-only, noindex/no-store, sitemap exclusion, 40
 
 M5.4 è chiusa. Nessun cutover è autorizzato.
 
-## M5.5 — Fondazione del contratto SEO
+## M5.5a — Fondazione del contratto SEO
 
-Prima slice autorizzata:
+Branch:
 
 ```text
 feat/public-seo-contract-foundation
 ```
 
-Scope canonico:
+PR:
 
 ```text
-docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md
+#69 — Add shared public SEO contract foundation
 ```
 
-Obiettivo:
+Architettura implementata:
 
-- un modello SEO tipizzato condiviso tra legacy e Astro;
-- title, description e Open Graph derivati dallo stesso contratto;
-- `Article` e `FAQPage` JSON-LD da dati pubblici validati;
-- serializzazione JSON-LD sicura;
-- drift smoke tra renderer;
-- regressioni sitemap, robots, redirect provider e 404.
+```text
+validated public page
+→ src/public-seo.ts
+→ typed SEO document
+→ legacy canonical renderer OR Astro noindex preview
+```
 
-Restano invariati in questa slice:
+Il modello condiviso produce:
+
+- title e meta description;
+- Open Graph `website` o `article`;
+- `WebSite` JSON-LD per la homepage;
+- `Article` JSON-LD per gli articoli;
+- `FAQPage` soltanto quando la FAQ validata è presente;
+- `dateModified` normalizzata;
+- `Organization` come autore già supportato;
+- `mainEntityOfPage` determinato dalla route chiamante.
+
+La policy della route resta separata:
+
+```text
+legacy:
+  / e /{slug}
+  index,follow,max-image-preview:large
+  canonical produzione
+
+Astro preview:
+  /astro-foundation
+  noindex,nofollow
+  no-store
+  self-canonical preview
+```
+
+Sicurezza JSON-LD:
+
+- valori ricorsivi limitati a JSON compatibile;
+- numeri non finiti e oggetti non plain rifiutati;
+- profondità limitata;
+- `<`, U+2028 e U+2029 escapati prima dell’inserimento;
+- fixture con `</script>`, `<example>`, virgolette, apostrofi e accenti;
+- nessuno script con `src` e nessun JavaScript eseguibile;
+- `set:html` usato soltanto per il JSON-LD già serializzato dal modulo condiviso, mai per contenuto editoriale.
+
+Smoke dedicato:
+
+```text
+npm run smoke:public-seo-contracts
+```
+
+Verifica in D1 temporanea, `workerd` e Chromium:
+
+- parità di title, description e Open Graph;
+- parità normalizzata di Article e FAQ;
+- differenze attese soltanto per canonical, `mainEntityOfPage` e robots;
+- JSON-LD valido e non interrompibile;
+- nessun elemento arbitrario creato dalla fixture;
+- sitemap canonica senza preview, review o draft;
+- robots con sitemap e disallow correnti;
+- redirect provider HTTPS, `no-store` e `noindex`;
+- vere 404 canonical e preview;
+- file probe esclusi dal fallback articolo;
+- desktop/mobile senza overflow;
+- tutte le suite Control Room.
+
+Validazione:
+
+- typecheck e build verdi;
+- migrazioni, quality gate, golden evaluation e Container verdi;
+- la prima CI runtime ha rilevato un’asserzione troppo ampia che trattava `<` dentro attributi quotati come un elemento DOM;
+- il test è stato corretto senza modificare la protezione: ora verifica DOM reale, zero elementi `<example>`, zero script eseguibili e impossibilità di chiudere il JSON-LD;
+- CI applicativa completamente verde;
+- CI completa sul head con codice e documentazione completamente verde.
+
+Ownership invariata:
 
 ```text
 /
@@ -257,7 +323,7 @@ Restano invariati in questa slice:
 /go/{provider}
 ```
 
-La preview resta noindex, no-store e self-canonical. Nessuna indicizzazione, analytics, affiliazione o pubblicazione viene attivata.
+La PR #69 non è ancora mergiata o distribuita. Nessun cutover, indicizzazione, analytics, affiliazione, D1 mutation o pubblicazione è stato introdotto.
 
 ## Google measurement stack
 
@@ -280,8 +346,8 @@ Regole:
 
 ## Gap aperti
 
-- implementazione della fondazione SEO condivisa;
-- futura ownership di canonical, sitemap, robots e routing Astro, da scoprire dopo la foundation;
+- merge, deploy e checkpoint live della fondazione SEO condivisa;
+- futura ownership di canonical, sitemap, robots e routing Astro, da scoprire dopo il checkpoint M5.5a;
 - piccolo catalogo pilot;
 - PR separata di cutover apex;
 - linkage recenti Control Room nel browser reale;
@@ -293,10 +359,9 @@ Regole:
 ## Prossimo checkpoint
 
 ```text
-checkpoint live M5.4 completato
-→ branch feat/public-seo-contract-foundation
-→ modello SEO condiviso e JSON-LD sicuro
-→ drift/regression smoke D1 + workerd
-→ CI completa
-→ merge e checkpoint preview
+CI completa verde
+→ PR #69 ready e merge
+→ deploy automatico
+→ verificare metadata e JSON-LD della preview live
+→ poi scoprire la slice M5.5b di routing/ownership
 ```

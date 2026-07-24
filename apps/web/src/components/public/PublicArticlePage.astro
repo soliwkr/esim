@@ -1,6 +1,8 @@
 ---
 import type { PageCard } from '../../../../../src/types'
 import type { PublicArticle } from '../../../../../src/public-article'
+import { publicArticlePreviewPath } from '../../../../../src/public-article'
+import { publicArticleSeo } from '../../../../../src/public-seo'
 import PublicLayout from '../../layouts/PublicLayout.astro'
 import PublicArticleBlocks from './PublicArticleBlocks.astro'
 import PublicArticleFaq from './PublicArticleFaq.astro'
@@ -11,22 +13,28 @@ import '../../styles/public-article.css'
 interface Props {
   article: PublicArticle
   related: PageCard[]
+  siteName: string
 }
 
-const { article, related } = Astro.props
+const { article, related, siteName } = Astro.props
 const section = article.page_type === 'destination'
   ? { label: 'Destinazioni', href: '/astro-foundation/destinazioni' }
   : article.page_type === 'comparison'
     ? { label: 'Confronti', href: '/astro-foundation/confronti' }
     : { label: 'Guide', href: '/astro-foundation/guide' }
-const canonicalPath = `/astro-foundation/articoli/${encodeURIComponent(article.slug)}`
+const canonicalPath = publicArticlePreviewPath(article.slug)
+const base = Astro.site ?? new URL(Astro.url.origin)
+const seo = publicArticleSeo(article, new URL(canonicalPath, base).toString(), siteName)
 ---
 
 <PublicLayout
-  title={`${article.title} — preview Astro`}
-  description={`Preview non indicizzabile. ${article.meta_description}`}
+  title={seo.title}
+  description={seo.description}
   canonicalPath={canonicalPath}
   previewBase="/astro-foundation"
+  siteName={siteName}
+  ogType={seo.ogType}
+  schema={seo.schema}
   noindex
 >
   <div class="preview-band" data-public-shell="astro-preview" data-public-article={article.slug}>

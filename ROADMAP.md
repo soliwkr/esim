@@ -117,7 +117,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 
 ## M5 — Frontend pubblico Astro e catalogo
 
-**Stato: M5.0–M5.4 verificati in produzione come preview; M5.5 avviata con una prima slice di contratto SEO, senza route canoniche migrate.**
+**Stato: M5.0–M5.4 verificate in produzione; M5.5a implementata e verificata dalla CI completa, pronta al merge ma non ancora verificata live. Nessuna route canonica è migrata.**
 
 ### M5.0 — Public shell
 
@@ -198,29 +198,38 @@ Il checkpoint live mostra hero, risposta diretta, disclosure, blocchi, FAQ, prov
 
 #### M5.5a — Fondazione del contratto SEO
 
-Branch autorizzata:
+Branch:
 
 ```text
 feat/public-seo-contract-foundation
 ```
 
+PR draft: `#69`.
+
 Scope canonico: `docs/PUBLIC-SEO-CONTRACT-FOUNDATION-SCOPE.md`.
 
-- [ ] modello SEO tipizzato condiviso tra legacy e Astro;
-- [ ] title, description e Open Graph derivati dallo stesso contratto;
-- [ ] `Article` e `FAQPage` JSON-LD da dati pubblici validati;
-- [ ] serializzazione JSON-LD sicura contro terminazione dello script;
-- [ ] preview ancora noindex, no-store e self-canonical;
-- [ ] route canoniche ancora legacy e indicizzabili;
-- [ ] drift smoke tra valori SEO normalizzati;
-- [ ] regressioni sitemap, robots, redirect provider e 404;
-- [ ] zero JavaScript eseguibile aggiunto al sito pubblico.
+- [x] modello SEO tipizzato condiviso tra legacy e Astro;
+- [x] title, description e Open Graph derivati dallo stesso contratto;
+- [x] `WebSite`, `Article` e `FAQPage` JSON-LD da dati pubblici validati;
+- [x] serializzazione JSON-LD sicura contro terminazione dello script;
+- [x] preview ancora noindex, no-store e self-canonical;
+- [x] route canoniche ancora legacy e indicizzabili;
+- [x] drift smoke tra valori SEO normalizzati;
+- [x] regressioni sitemap, robots, redirect provider e 404;
+- [x] zero JavaScript eseguibile aggiunto al sito pubblico;
+- [x] fixture di sicurezza con `</script>`, `<example>`, virgolette e caratteri accentati;
+- [x] CI applicativa completamente verde;
+- [x] CI completa sul head con codice e documentazione;
+- [ ] merge e deploy automatico;
+- [ ] checkpoint live di metadata e JSON-LD su homepage e articolo preview.
+
+La prima CI runtime ha rilevato un’asserzione troppo ampia dello smoke sugli attributi HTML quotati. La verifica è stata corretta sul DOM reale senza ridurre il guardrail: nessun elemento arbitrario, nessuno script eseguibile e JSON-LD non interrompibile.
 
 Questa slice non migra `/sitemap.xml`, `/robots.txt`, `/go/{provider}`, l’apice, i listing o `/{slug}`.
 
 #### M5.5b — Routing e ownership SEO
 
-Da scoprire e autorizzare soltanto dopo M5.5a:
+Da scoprire e autorizzare soltanto dopo il checkpoint live di M5.5a:
 
 - [ ] ownership futura di canonical, sitemap e robots;
 - [ ] route matrix di cutover;
@@ -304,8 +313,8 @@ conversione brief
 ### Track B — M5
 
 ```text
-fondazione contratto SEO condiviso
-→ verifica drift e sicurezza JSON-LD
+merge della fondazione SEO
+→ checkpoint live metadata/JSON-LD
 → scope routing/ownership SEO
 → catalogo pilot
 → cutover apex separato

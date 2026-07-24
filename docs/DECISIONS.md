@@ -261,3 +261,13 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 **Razionale:** Astro, il custom Worker e il backend sono già isolati; la parità read-only della Control Room è completa; la prima mutation è verificata in produzione; gli stati editoriali e il publication gate non dipendono dal renderer pubblico. Attendere tutte le mutation prima di iniziare layout, navigazione e componenti pubblici prolungherebbe il lancio senza ridurre il rischio, purché le due track mantengano scope ed exit criteria separati.
 
 **Conseguenza:** M4 non viene dichiarato completato e la legacy Control Room resta il fallback operativo. M5 può introdurre layout, metadata, navigazione, footer, token visuali, route statiche e renderer Astro in una preview non canonica. Non può modificare D1, attivare affiliazioni, pubblicare pagine review, cambiare `/`, rimuovere il renderer legacy o anticipare CMP/analytics. Il cutover apex richiede verifica di canonical, sitemap, schema, 404, accessibilità, rollback e assenza di pubblicazioni accidentali. Il piano eseguibile è registrato in `docs/PUBLIC-FRONTEND-PARALLEL-TRACK.md`.
+
+## ADR-027 — Contratto SEO pubblico condiviso, policy di route separate
+
+**Stato:** accettata e verificata in CI con PR #69
+
+**Decisione:** title, description, Open Graph e JSON-LD di homepage e articoli derivano da un modello tipizzato server-only condiviso tra renderer legacy e Astro. Canonical URL, `mainEntityOfPage`, robots e cache restano invece policy della route che possiede la risposta.
+
+**Razionale:** duplicare metadata e schema aveva già prodotto drift: l’articolo Astro usava copy da preview, `og:type=website` e nessun JSON-LD, mentre il renderer legacy possedeva metadata e schema propri. Unificare il documento SEO senza trasferire routing consente di verificare la parità prima del cutover e impedisce che una preview noindex diventi accidentalmente canonica.
+
+**Conseguenza:** `src/public-seo.ts` valida valori JSON compatibili, produce `WebSite`, `Article` e `FAQPage`, normalizza le date e serializza JSON-LD escapando `<`, U+2028 e U+2029. Il legacy resta indexabile e canonico su `/` e `/{slug}`; Astro resta noindex, no-store e self-canonical su `/astro-foundation`. `/sitemap.xml`, `/robots.txt` e `/go/{provider}` restano legacy-owned. Il smoke D1/workerd/Chromium confronta valori normalizzati, prova fixture `</script>` e verifica assenza di JavaScript eseguibile, regressioni sitemap/robots/redirect/404 e tutte le suite Control Room. CI #312 è completamente verde. Nessuna route, D1, pubblicazione, analytics o affiliazione è stata attivata.

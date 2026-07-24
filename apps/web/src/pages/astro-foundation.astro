@@ -1,19 +1,26 @@
 ---
 import { env } from 'cloudflare:workers'
 import { loadPublicHomepageCards } from '../../../../src/public-page-cards'
+import { publicHomepageSeo } from '../../../../src/public-seo'
 import PublicPageCardGrid from '../components/public/PublicPageCardGrid.astro'
 import PublicLayout from '../layouts/PublicLayout.astro'
 
 // PublicLayout owns the noindex, nofollow response contract for every preview route.
 // D1 is read only on the server; no binding or catalog payload is exposed to browser code.
 const { featured, destinations } = await loadPublicHomepageCards(env.DB)
+const canonicalPath = '/astro-foundation'
+const base = Astro.site ?? new URL(Astro.url.origin)
+const seo = publicHomepageSeo(env.SITE_NAME, new URL(canonicalPath, base).toString())
 ---
 
 <PublicLayout
-  title="Senza Roaming — homepage Astro candidate"
-  description="Preview non indicizzabile della futura homepage Astro di Senza Roaming, alimentata soltanto dal catalogo pubblicato."
-  canonicalPath="/astro-foundation"
+  title={seo.title}
+  description={seo.description}
+  canonicalPath={canonicalPath}
   previewBase="/astro-foundation"
+  siteName={env.SITE_NAME}
+  ogType={seo.ogType}
+  schema={seo.schema}
   noindex
 >
   <div class="preview-band" data-public-shell="astro-preview" data-homepage-candidate>

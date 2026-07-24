@@ -14,6 +14,24 @@ function record(chunk) {
   process.stdout.write(value);
 }
 
+function jsonLdScripts(html) {
+  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].map((match) => ({
+    attributes: match[1],
+    content: match[2],
+  }));
+}
+
+function assertSingleJsonLd(html, expectedType) {
+  const scripts = jsonLdScripts(html);
+  assert.equal(scripts.length, 1);
+  assert.match(scripts[0].attributes, /type=["']application\/ld\+json["']/i);
+  assert.doesNotMatch(scripts[0].attributes, /\bsrc\s*=/i);
+  const document = JSON.parse(scripts[0].content);
+  const documents = Array.isArray(document) ? document : [document];
+  assert.ok(documents.some((item) => item?.['@type'] === expectedType));
+  return documents;
+}
+
 async function waitForRuntime(child, timeoutMs = 180_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -94,12 +112,16 @@ try {
   assert.match(previewHtml, /aria-label="Navigazione principale"/);
   assert.match(previewHtml, /href="#contenuto">Vai al contenuto/);
   assert.doesNotMatch(previewHtml, /<astro-island/);
+  const previewSchema = assertSingleJsonLd(previewHtml, 'WebSite');
+  assert.ok(previewSchema.some((item) => item.url === 'https://senzaroaming.it/astro-foundation'));
 
   const rootResponse = await fetch(`${origin}/`);
   const rootHtml = await rootResponse.text();
   assert.equal(rootResponse.status, 200);
   assert.doesNotMatch(rootHtml, /data-public-shell="astro-preview"/);
   assert.match(rootHtml, /Trova la eSIM giusta prima di partire\./);
+  const rootSchema = assertSingleJsonLd(rootHtml, 'WebSite');
+  assert.ok(rootSchema.some((item) => item.url === 'https://senzaroaming.it/'));
 
   const sitemapResponse = await fetch(`${origin}/sitemap.xml`);
   const sitemap = await sitemapResponse.text();
@@ -119,7 +141,8 @@ try {
   await desktopPage.getByRole('navigation', { name: 'Navigazione principale' }).waitFor();
   await desktopPage.getByRole('heading', { name: 'La pagina arriva dopo le prove.' }).waitFor();
   assert.equal(await desktopPage.locator('astro-island').count(), 0);
-  assert.equal(await desktopPage.locator('script').count(), 0);
+  assert.equal(await desktopPage.locator('script[type="application/ld+json"]').count(), 1);
+  assert.equal(await desktopPage.locator('script:not([type="application/ld+json"])').count(), 0);
   await desktopPage.keyboard.press('Tab');
   assert.equal(await desktopPage.evaluate(() => document.activeElement?.textContent?.trim()), 'Vai al contenuto');
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
@@ -137,6 +160,8 @@ try {
   await menuSummary.waitFor();
   await menuSummary.click();
   await mobilePage.getByRole('navigation', { name: 'Navigazione mobile' }).getByRole('link', { name: 'Destinazioni' }).waitFor();
+  assert.equal(await mobilePage.locator('script[type="application/ld+json"]').count(), 1);
+  assert.equal(await mobilePage.locator('script:not([type="application/ld+json"])').count(), 0);
   assert.equal(await mobilePage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
   assert.deepEqual(mobileConsole, []);
   await mobileContext.close();

@@ -104,6 +104,18 @@ function assertOrder(html, titles) {
   }
 }
 
+function assertWebSiteJsonLd(html, expectedUrl) {
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  assert.equal(scripts.length, 1);
+  assert.match(scripts[0][1], /type=["']application\/ld\+json["']/i);
+  assert.doesNotMatch(scripts[0][1], /\bsrc\s*=/i);
+  const value = JSON.parse(scripts[0][2]);
+  const documents = Array.isArray(value) ? value : [value];
+  const website = documents.find((item) => item?.['@type'] === 'WebSite');
+  assert.ok(website);
+  assert.equal(website.url, expectedUrl);
+}
+
 function startRuntime(persistPath, port) {
   const logs = [];
   const child = spawn(process.execPath, [
@@ -177,7 +189,8 @@ async function verifyPopulatedCandidate() {
     assert.match(previewResponse.headers.get('x-robots-tag') || '', /noindex/);
     assert.match(previewResponse.headers.get('cache-control') || '', /no-store/);
     assert.match(previewHtml, /data-homepage-candidate/);
-    assert.doesNotMatch(previewHtml, /<astro-island|<script(?:\s|>)/i);
+    assert.doesNotMatch(previewHtml, /<astro-island/i);
+    assertWebSiteJsonLd(previewHtml, 'https://senzaroaming.it/astro-foundation');
 
     const featured = sectionHtml(previewHtml, 'featured-guides');
     assertOrder(featured, Array.from({ length: 9 }, (_, index) => `Homepage featured ${10 - index}`));
@@ -196,6 +209,7 @@ async function verifyPopulatedCandidate() {
     assert.match(rootHtml, /Homepage featured 10/);
     assert.match(rootHtml, /href="\/smoke-homepage-featured-10"/);
     assert.doesNotMatch(rootHtml, /astro-foundation\/articoli/);
+    assertWebSiteJsonLd(rootHtml, 'https://senzaroaming.it/');
 
     const sitemapResponse = await fetch(`${origin}/sitemap.xml`);
     const sitemap = await sitemapResponse.text();
@@ -216,6 +230,8 @@ async function verifyPopulatedCandidate() {
     assert.equal(await desktop.locator('[data-public-catalog="featured-guides"] .catalog-grid').evaluate(
       (element) => getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length,
     ), 3);
+    assert.equal(await desktop.locator('script[type="application/ld+json"]').count(), 1);
+    assert.equal(await desktop.locator('script:not([type="application/ld+json"])').count(), 0);
     await desktop.keyboard.press('Tab');
     assert.equal(await desktop.evaluate(() => document.activeElement?.textContent?.trim()), 'Vai al contenuto');
     assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
@@ -227,6 +243,8 @@ async function verifyPopulatedCandidate() {
     assert.equal(await mobile.locator('[data-public-catalog="featured-guides"] .catalog-grid').evaluate(
       (element) => getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length,
     ), 1);
+    assert.equal(await mobile.locator('script[type="application/ld+json"]').count(), 1);
+    assert.equal(await mobile.locator('script:not([type="application/ld+json"])').count(), 0);
     assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     await mobile.close();
   } finally {
@@ -247,11 +265,14 @@ async function verifyEmptyCandidate() {
     assert.equal(response.status, 200);
     assert.equal((html.match(/I contenuti sono in preparazione\./g) || []).length, 2);
     assert.equal((html.match(/<article class="catalog-card"/g) || []).length, 0);
+    assertWebSiteJsonLd(html, 'https://senzaroaming.it/astro-foundation');
 
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await page.goto(`${origin}/astro-foundation`);
     assert.equal(await page.getByRole('status').count(), 2);
+    assert.equal(await page.locator('script[type="application/ld+json"]').count(), 1);
+    assert.equal(await page.locator('script:not([type="application/ld+json"])').count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     await page.close();
   } finally {

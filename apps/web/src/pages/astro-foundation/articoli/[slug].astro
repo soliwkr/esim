@@ -4,6 +4,7 @@ import type { PageCard } from '../../../../../../src/types'
 import {
   loadPublishedArticle,
   loadRelatedPublishedArticles,
+  publicArticlePreviewPath,
 } from '../../../../../../src/public-article'
 import PublicArticlePage from '../../../components/public/PublicArticlePage.astro'
 import PublicLayout from '../../../layouts/PublicLayout.astro'
@@ -12,7 +13,7 @@ import '../../../styles/public-article.css'
 
 const slug = Astro.params.slug ?? ''
 const result = await loadPublishedArticle(env.DB, slug)
-const canonicalPath = `/astro-foundation/articoli/${encodeURIComponent(slug)}`
+const canonicalPath = slug ? publicArticlePreviewPath(slug) : '/astro-foundation/articoli/non-disponibile'
 let related: PageCard[] = []
 
 setPublicPreviewResponseHeaders(Astro.response.headers)
@@ -28,13 +29,14 @@ if (result.kind === 'found') {
 ---
 
 {result.kind === 'found' ? (
-  <PublicArticlePage article={result.article} related={related} />
+  <PublicArticlePage article={result.article} related={related} siteName={env.SITE_NAME} />
 ) : (
   <PublicLayout
     title={result.kind === 'missing' ? 'Articolo non trovato — preview Astro' : 'Articolo non disponibile — preview Astro'}
     description="La pagina richiesta non è disponibile nella preview Astro pubblicata."
     canonicalPath={canonicalPath}
     previewBase="/astro-foundation"
+    siteName={env.SITE_NAME}
     noindex
   >
     <div class="preview-band" data-public-shell="astro-preview" data-public-article-error={result.kind}>
