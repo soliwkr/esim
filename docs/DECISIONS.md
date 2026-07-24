@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **24 luglio 2026**.
+Ultimo aggiornamento: **25 luglio 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Lo storico completo delle formulazioni precedenti resta nel versionamento Git.
 
@@ -70,11 +70,11 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-009 — Metriche definite una volta
 
-**Stato:** accettata come principio.
+**Stato:** accettata come principio e applicata in M6.
 
 **Decisione:** eventi e KPI devono avere definizioni canoniche prima di essere usati da dashboard o AI.
 
-**Conseguenza:** il dizionario eventi precede l’attivazione analytics.
+**Conseguenza:** `docs/MEASUREMENT-EVENT-DICTIONARY.md` precede GTM e GA4; nessun evento viene aggiunto direttamente nel container.
 
 ## ADR-010 — Affiliate mode esplicita e reversibile
 
@@ -86,7 +86,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-011 — Astro come frontend principale
 
-**Stato:** accettata.
+**Stato:** accettata e verificata live.
 
 **Decisione:** Astro gestisce il sito pubblico e la shell della Control Room; React viene usato soltanto per isole realmente interattive.
 
@@ -98,7 +98,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** primitive generiche accessibili non vengono riscritte da zero.
 
-**Conseguenza:** il codice custom si concentra sui flussi e sui guardrail specifici del dominio.
+**Conseguenza:** il codice custom si concentra sui flussi e sui guardrail specifici del dominio; la CMP viene valutata come servizio comprovato invece di costruire un banner proprietario.
 
 ## ADR-013 — Migrazione frontend incrementale
 
@@ -210,7 +210,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** la migrazione pubblica Astro può procedere su branch separate mentre M4 continua con mutation ristrette.
 
-**Conseguenza:** nessuna preview o parità pubblica dichiara M4 completata o autorizza la rimozione della legacy privata.
+**Conseguenza:** M5 non dichiara M4 completata e non autorizza la rimozione della legacy privata.
 
 ## ADR-027 — Contratto SEO condiviso, policy di route separate
 
@@ -222,7 +222,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-028 — Ownership target esplicita e cutover tramite matrice versionata
 
-**Stato:** accettata; target attivato sulla branch PR #81, deploy live ancora da verificare.
+**Stato:** accettata e verificata live con PR #81 e PR #82.
 
 **Decisione:** current e target ownership sono separate; l’owner cambia soltanto tramite una PR di cutover esplicita.
 
@@ -246,26 +246,17 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-031 — Catalogo pilot come release candidate, non come pubblicazione implicita
 
-**Stato:** accettata e verificata con PR #77, merge `fa9ed9486e400e77ad915153284c7b277a51b4d0`, CI finale #379.
+**Stato:** accettata e verificata con PR #77, CI finale #379.
 
 **Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con massimo quattro release candidate. Una release candidate deve superare bundle, approvazione, draft grounded, provenance, claim e coerenza pagina, ma resta `pages.status='review'`.
 
-**Conseguenza:**
-
-- il loader usa soltanto `SELECT`;
-- latest bundle e latest draft prevalgono;
-- publication eligibility e approvazione umana sono obbligatorie;
-- claim e fonti vengono ricontrollati per freshness;
-- slug, file probe e collisioni possono bloccare l’entry;
-- zero candidate è un esito valido;
-- il manifest iniziale resta vuoto;
-- `review → published` richiede una capacità separata.
+**Conseguenza:** latest bundle e draft prevalgono, zero candidate è valido e `review → published` richiede una capacità separata.
 
 ## ADR-032 — Audit remoto privato prima del cutover, pubblicazione non bloccante
 
-**Stato:** accettata e verificata live con PR #78, PR #79, CI finale #386 e audit remoto del 24 luglio 2026.
+**Stato:** accettata e verificata live con PR #78, PR #79, CI #386 e audit del 24 luglio 2026.
 
-**Decisione:** il primo audit dei dati editoriali remoti è esposto soltanto tramite una route Control Room privata, GET-only e protetta da Cloudflare Access. La route usa il binding D1 server-side e riutilizza il loader e l’audit M5.6a; non accetta SQL, non richiede maintenance token nel browser e non modifica stato.
+**Decisione:** il primo audit dei dati editoriali remoti è esposto soltanto tramite una route Control Room privata, GET-only e protetta da Cloudflare Access.
 
 **Risultato live:**
 
@@ -276,22 +267,13 @@ selectedCount: 0
 excludedCount: 1
 ```
 
-**Conseguenza:**
-
-- la route è `/control-room-foundation/api/catalog-pilot-audit`;
-- richieste anonime vengono bloccate;
-- la risposta è no-store, noindex e nosniff;
-- nessun token, JWT, SQL o dump D1 entra nel payload;
-- la candidate `esim-cina-senza-vpn` resta `review` ed esclusa;
-- il manifest resta vuoto;
-- zero release candidate non blocca M5.7;
-- publication capability resta separata.
+**Conseguenza:** la candidate `esim-cina-senza-vpn` resta `review`, il manifest resta vuoto e publication capability resta separata.
 
 ## ADR-033 — Cutover apex tramite matrice target e Worker-first wildcard
 
-**Stato:** accettata e verificata dalla CI applicativa #397 su PR #81; merge, deploy e verifica live ancora pendenti.
+**Stato:** accettata, mergiata con PR #81 e verificata live con PR #82.
 
-**Decisione:** M5.7 attiva il renderer Astro canonico con due modifiche versionate e coordinate:
+**Decisione:** M5.7 attiva il renderer Astro canonico con:
 
 ```ts
 export const activePublicRouteDecision = targetPublicRouteDecision;
@@ -303,25 +285,50 @@ export const activePublicRouteDecision = targetPublicRouteDecision;
 }
 ```
 
-La wildcard porta le route dinamiche al custom Worker; l’esclusione mantiene gli asset Astro asset-first. Il Worker continua a delegare API, redirect provider, Control Room legacy e asset tecnici al backend.
+**Conseguenza:** Astro possiede home, listing, trust pages, articoli, sitemap, robots e 404; API, `/go/*`, Control Room ed execution plane restano backend-owned. Il rollback resta il ripristino versionato di `currentPublicRouteDecision`.
 
-**Razionale:** cambiare soltanto la route matrix non sarebbe sufficiente se Cloudflare Assets non invocasse il Worker sulle route canoniche. Pattern positivi più specifici insieme a `/*` sono inoltre ridondanti e non validi nel contratto Wrangler.
+## ADR-034 — Consent Mode Basic e CMP fail-closed prima di GTM
+
+**Stato:** accettata come foundation M6 con PR #83; integrazione tecnica verificata dalla CI applicativa #411 su PR #84, vendor live ancora non verificato.
+
+**Decisione:** la prima release di misurazione usa Google Consent Mode **Basic** e una CMP esterna comprovata. Nessun Google Tag Manager, Google Analytics o ping Google può partire prima del consenso analytics esplicito.
+
+Default M6:
+
+```text
+analytics_storage = denied
+ad_storage = denied
+ad_user_data = denied
+ad_personalization = denied
+```
+
+Dopo consenso analytics può cambiare soltanto:
+
+```text
+analytics_storage = granted
+```
+
+**Decisione di integrazione:**
+
+- iubenda è il candidato principale; CookieYes è fallback;
+- la configurazione vive in vars pubbliche validate server-side;
+- valori assenti o invalidi disabilitano la CMP senza output parziale;
+- la CMP appare soltanto sulle pagine canonical indexable;
+- preview, Control Room, API, redirect, sitemap, robots e 404 restano esclusi;
+- il codice segue l’ordine config inline → autoblocking → runtime iubenda;
+- GTM e GA4 restano assenti durante lo spike e il successivo checkpoint CMP-only;
+- il footer espone la riapertura delle preferenze soltanto quando la CMP è configurata;
+- la pagina Privacy descrive il comportamento effettivo;
+- Advanced Consent Mode, cookieless pings, Ads, remarketing e affiliate tracking richiedono una decisione futura separata.
+
+**Razionale:** il prodotto non usa Ads o affiliazioni e parte da zero tracking. Basic Mode permette un confine verificabile: nessun dato a Google prima della scelta.
 
 **Conseguenza:**
 
-- Astro possiede home, listing, trust pages, articoli, sitemap, robots e 404;
-- `/api/*`, `/go/*`, Control Room ed execution plane restano backend-owned;
-- `/_astro/*` resta servito come asset statico;
-- preview e canonical restano render mode distinti;
-- `review`, `draft`, file probe e URL assenti restano 404 noindex/no-store;
-- il Worker di produzione compilato viene testato direttamente, senza wrapper di ownership;
-- provider redirect, health, maintenance e Control Room sono regressioni obbligatorie;
-- desktop, mobile, metadata, JSON-LD e assenza overflow sono acceptance del cutover;
-- non vengono introdotti pubblicazione, analytics, affiliazioni o rimozione legacy;
-- il rollback è la singola modifica versionata:
-
-```ts
-export const activePublicRouteDecision = currentPublicRouteDecision;
-```
-
-Il merge non equivale a verifica live: il nuovo owner viene certificato in produzione soltanto dopo deploy e controllo reale delle route canoniche e backend.
+- `src/public-consent.ts` è il contratto fail-closed;
+- la produzione resta invariata con vars vuote;
+- la CI usa ID fittizi e stub vendor per provare route, ordine, accessibilità e assenza di richieste Google;
+- la CI non certifica persistenza, log o UI reale del vendor;
+- l’attivazione richiede un sito iubenda configurato, `siteId` e `cookiePolicyId` pubblici, branch CMP-only, deploy controllato e verifica live;
+- GTM/GA4 partono soltanto dopo il checkpoint live CMP;
+- nessun dato della Control Room, PII o ID editoriale può entrare negli eventi.
