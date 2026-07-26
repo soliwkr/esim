@@ -8,6 +8,12 @@ import { publicIsPreview } from '../../../../src/public-render-mode'
 import type { PublicJsonLdDocument, PublicOpenGraphType } from '../../../../src/public-seo'
 import { serializeJsonLd } from '../../../../src/public-seo'
 import { iubendaEmbedUrl, resolvePublicConsentConfig } from '../../../../src/public-consent'
+import type { PublicMeasurementPageContextInput } from '../../../../src/public-measurement'
+import {
+  publicMeasurementBootstrapScript,
+  resolvePublicMeasurementConfig,
+  resolvePublicMeasurementPageContext,
+} from '../../../../src/public-measurement'
 import '../styles/public.css'
 
 interface Props {
@@ -19,6 +25,7 @@ interface Props {
   ogType?: PublicOpenGraphType
   schema?: PublicJsonLdDocument | PublicJsonLdDocument[]
   noindex?: boolean
+  measurement?: PublicMeasurementPageContextInput
 }
 
 const {
@@ -30,6 +37,7 @@ const {
   ogType = 'website',
   schema,
   noindex: forceNoindex = false,
+  measurement,
 } = Astro.props
 
 const base = Astro.site ?? new URL(Astro.url.origin)
@@ -42,6 +50,15 @@ const consentResolution = noindex
   : resolvePublicConsentConfig(env)
 const consentConfig = consentResolution.kind === 'enabled' ? consentResolution.config : null
 const consentEmbedUrl = consentConfig ? iubendaEmbedUrl(consentConfig) : null
+const measurementResolution = noindex || !measurement
+  ? ({ kind: 'disabled' } as const)
+  : resolvePublicMeasurementConfig(env, consentResolution)
+const measurementContextResolution = measurement
+  ? resolvePublicMeasurementPageContext(measurement)
+  : null
+const measurementScript = measurementResolution.kind === 'enabled' && measurementContextResolution?.kind === 'enabled'
+  ? publicMeasurementBootstrapScript(measurementResolution.config, measurementContextResolution.context)
+  : null
 
 setPublicResponseHeaders(Astro.response.headers, mode, forceNoindex)
 ---
@@ -50,6 +67,15 @@ setPublicResponseHeaders(Astro.response.headers, mode, forceNoindex)
 <html lang="it">
   <head>
     {consentEmbedUrl && <script is:inline type="text/javascript" src={consentEmbedUrl}></script>}
+    {measurementScript && (
+      <script
+        is:inline
+        type="text/plain"
+        class="_iub_cs_activate"
+        data-iub-purposes="4"
+        set:html={measurementScript}
+      ></script>
+    )}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
