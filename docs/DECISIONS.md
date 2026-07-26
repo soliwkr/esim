@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **26 luglio 2026**.
 
-Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Lo storico completo delle formulazioni precedenti resta nel versionamento Git.
+Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
 ## ADR-001 — Cloudflare come runtime principale
 
@@ -96,9 +96,9 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Stato:** accettata.
 
-**Decisione:** primitive generiche accessibili non vengono riscritte da zero.
+**Decisione:** primitive generiche accessibili non vengono riscritte da zero; servizi comprovati vengono preferiti per capacità generiche come la CMP.
 
-**Conseguenza:** il codice custom si concentra sui flussi e sui guardrail specifici del dominio; la CMP viene valutata come servizio comprovato invece di costruire un banner proprietario.
+**Conseguenza:** il codice custom si concentra sui flussi e sui guardrail specifici del dominio.
 
 ## ADR-013 — Migrazione frontend incrementale
 
@@ -202,7 +202,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 **Decisione:** ogni mutation usa una route privata dedicata, attore derivato dal JWT, conferma esplicita, transizione D1 e audit append-only.
 
-**Conseguenza:** la prima capacità è `proposed → accepted | dismissed`; conversione, claim, draft e retry restano fasi separate.
+**Conseguenza:** conversione, claim, draft e retry restano capacità separate.
 
 ## ADR-026 — M5 pubblico in parallelo alle mutation M4 residue
 
@@ -238,7 +238,7 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-030 — Sitemap e robots condivisi prima del trasferimento di ownership
 
-**Stato:** accettata e verificata con PR #75, CI finale #365.
+**Stato:** accettata e verificata con PR #75.
 
 **Decisione:** query, validazione, XML, robots e response contract vivono in `src/public-seo-endpoints.ts`, condiviso da backend legacy e handler Astro.
 
@@ -246,54 +246,35 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-031 — Catalogo pilot come release candidate, non come pubblicazione implicita
 
-**Stato:** accettata e verificata con PR #77, CI finale #379.
+**Stato:** accettata e verificata con PR #77.
 
-**Decisione:** M5.6a costruisce un audit read-only e un manifest versionato con massimo quattro release candidate. Una release candidate deve superare bundle, approvazione, draft grounded, provenance, claim e coerenza pagina, ma resta `pages.status='review'`.
+**Decisione:** M5.6 costruisce un audit read-only e un manifest versionato con massimo quattro release candidate; una release candidate resta `review`.
 
 **Conseguenza:** latest bundle e draft prevalgono, zero candidate è valido e `review → published` richiede una capacità separata.
 
 ## ADR-032 — Audit remoto privato prima del cutover, pubblicazione non bloccante
 
-**Stato:** accettata e verificata live con PR #78, PR #79, CI #386 e audit del 24 luglio 2026.
+**Stato:** accettata e verificata live con PR #78 e PR #79.
 
 **Decisione:** il primo audit dei dati editoriali remoti è esposto soltanto tramite una route Control Room privata, GET-only e protetta da Cloudflare Access.
 
-**Risultato live:**
-
-```text
-candidateCount: 1
-eligibleCount: 0
-selectedCount: 0
-excludedCount: 1
-```
-
-**Conseguenza:** la candidate `esim-cina-senza-vpn` resta `review`, il manifest resta vuoto e publication capability resta separata.
+**Conseguenza:** `esim-cina-senza-vpn` resta `review`, il manifest resta vuoto e publication capability resta separata.
 
 ## ADR-033 — Cutover apex tramite matrice target e Worker-first wildcard
 
 **Stato:** accettata, mergiata con PR #81 e verificata live con PR #82.
 
-**Decisione:** M5.7 attiva il renderer Astro canonico con:
+**Decisione:** M5.7 attiva `targetPublicRouteDecision` e usa `run_worker_first = ["/*", "!/_astro/*"]`.
 
-```ts
-export const activePublicRouteDecision = targetPublicRouteDecision;
-```
-
-```json
-{
-  "run_worker_first": ["/*", "!/_astro/*"]
-}
-```
-
-**Conseguenza:** Astro possiede home, listing, trust pages, articoli, sitemap, robots e 404; API, `/go/*`, Control Room ed execution plane restano backend-owned. Il rollback resta il ripristino versionato di `currentPublicRouteDecision`.
+**Conseguenza:** Astro possiede home, listing, trust pages, articoli, sitemap, robots e 404; API, `/go/*`, Control Room ed execution plane restano backend-owned.
 
 ## ADR-034 — Consent Mode Basic e CMP fail-closed prima di GTM
 
-**Stato:** accettata come foundation M6 con PR #83; spike storico verificato e mergiato con PR #84; formato embed reale implementato dalla PR #85 e verificato dalla CI applicativa #421; vendor live ancora non verificato.
+**Stato:** accettata con PR #83, PR #84 e PR #85; deployment CMP-only verificato lato server il 26 luglio 2026; checkpoint UX vendor ancora aperto.
 
-**Decisione:** la prima release di misurazione usa Google Consent Mode **Basic** e una CMP esterna comprovata. Nessun Google Tag Manager, Google Analytics o ping Google può partire prima del consenso analytics esplicito.
+**Decisione:** la prima release usa Google Consent Mode Basic e un embed iubenda remoto. Nessun GTM, GA4 o ping Google può partire prima del consenso analytics esplicito.
 
-Default M6:
+Default:
 
 ```text
 analytics_storage = denied
@@ -302,39 +283,45 @@ ad_user_data = denied
 ad_personalization = denied
 ```
 
-Dopo consenso analytics può cambiare soltanto:
+Regole:
+
+- il formato canonico è quello restituito dall’account reale: `https://embeds.iubenda.com/widgets/{uuid}.js`;
+- `CMP_PROVIDER` e `CMP_EMBED_ID` sono validati server-side;
+- configurazioni assenti o invalide falliscono chiuse;
+- la CMP appare soltanto sulle pagine canonical indexable;
+- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e file probe restano esclusi;
+- il layout emette un solo script remoto;
+- il config sorgente resta CMP-off;
+- il config compilato viene preparato deterministicamente per il deploy;
+- `GTM_ID` deve restare vuoto;
+- Ads, remarketing, affiliate tracking e Advanced Consent Mode restano fuori scope.
+
+**Conseguenza:** `src/public-consent.ts` è il contratto fail-closed; l’UUID embed è configurazione pubblica versionata; GTM/GA4 attendono la chiusura del checkpoint UX reale.
+
+## ADR-035 — Binding D1 remota risolta soltanto nel config compilato
+
+**Stato:** accettata e verificata con il deploy CMP-only del 26 luglio 2026.
+
+**Decisione:** il `wrangler.jsonc` sorgente conserva `REPLACE_WITH_D1_DATABASE_ID`. Durante `npm run deploy`, Wrangler elenca i database remoti e `scripts/prepare-production-d1-binding.mjs` risolve il solo database chiamato `senza-roaming`, valida il suo UUID e aggiorna esclusivamente `apps/web/dist/server/wrangler.json`.
+
+Guardrail:
+
+- un solo database remoto con nome esatto `senza-roaming`;
+- un solo binding compilato `DB` coerente;
+- UUID valido;
+- nessuna stampa o versione dell’UUID;
+- errore su database mancanti, duplicati, binding ambigue o ID discordanti;
+- nessuna migration o mutation D1 implicita nel deploy.
+
+**Razionale:** il config sorgente resta portabile e privo di identificatori account-specific, mentre il deploy rimane riproducibile e non dipende da copia manuale nella dashboard.
+
+**Conseguenza:** il comando canonico è:
 
 ```text
-analytics_storage = granted
+build
+→ prepare-production-consent-config
+→ prepare-production-d1-binding
+→ wrangler deploy
 ```
 
-**Decisione di integrazione:**
-
-- iubenda resta il candidato principale; CookieYes resta fallback finché il checkpoint live non è chiuso;
-- il formato canonico è quello effettivamente restituito dalla dashboard dell’account, non un esempio documentale dedotto;
-- l’account reale usa un unico embed remoto `https://embeds.iubenda.com/widgets/{uuid}.js`;
-- la configurazione vive in `CMP_PROVIDER` e `CMP_EMBED_ID`, validate server-side;
-- valori assenti o invalidi disabilitano la CMP senza output parziale;
-- la CMP appare soltanto sulle pagine canonical indexable;
-- preview, Control Room, API, redirect, sitemap, robots, 404 e file probe restano esclusi;
-- il layout emette un solo script remoto, senza ricostruire manualmente `siteId`, `cookiePolicyId`, autoblocking o runtime;
-- il config Wrangler base resta CMP-off per sviluppo, CI e regressioni storiche;
-- il config Worker compilato viene preparato deterministicamente prima del deploy reale;
-- il preparatore di deploy rifiuta `GTM_ID` valorizzato e variabili CMP legacy;
-- GTM e GA4 restano assenti durante il checkpoint CMP-only;
-- il footer espone la riapertura delle preferenze soltanto quando la CMP è configurata;
-- la pagina Privacy descrive il comportamento effettivo;
-- Advanced Consent Mode, cookieless pings, Ads, remarketing e affiliate tracking richiedono una decisione futura separata.
-
-**Razionale:** il prodotto non usa Ads o affiliazioni e parte da zero tracking. Basic Mode permette un confine verificabile: nessun dato a Google prima della scelta. La configurazione remota del vendor viene integrata tramite il codice reale dell’account, mentre la preparazione dell’artefatto di deploy conserva GitHub come fonte di verità senza contaminare le suite CMP-off.
-
-**Conseguenza:**
-
-- `src/public-consent.ts` è il contratto fail-closed;
-- `scripts/prepare-production-consent-config.mjs` è il solo passaggio autorizzato ad attivare la CMP nel config compilato;
-- l’UUID embed è configurazione pubblica versionata, non un secret;
-- la CI usa UUID fittizi e stub vendor per provare route, unicità, accessibilità e assenza di richieste Google;
-- la CI non certifica persistenza, revoca, registro, UI o performance reale del vendor;
-- l’attivazione richiede CI finale, merge, deploy controllato e verifica live;
-- GTM/GA4 partono soltanto dopo il checkpoint live CMP;
-- nessun dato della Control Room, PII o ID editoriale può entrare negli eventi.
+La CI include un contratto puro dedicato; il deploy reale del 26 luglio 2026 e la verifica HTTP post-deploy sono riusciti senza versionare l’UUID D1.
