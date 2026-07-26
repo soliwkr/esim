@@ -1,44 +1,99 @@
-# iubenda consent foundation — spike result
+# iubenda consent foundation — spike and remote embed result
 
-Data: **25 luglio 2026**.
+Ultimo aggiornamento: **26 luglio 2026**.
 
-## Branch e PR
+## Fase 1 — spike tecnico
 
 ```text
 branch spike/iubenda-consent-foundation
 PR #84 — Spike iubenda consent foundation
-CI applicativa #411 completamente verde
+merge 6e3b0047af67219af7429749003d86f36af61237
+CI applicativa #411
+CI finale #415
 ```
 
-## Obiettivo
+### Obiettivo
 
-Verificare che Senza Roaming possa integrare iubenda sulle sole pagine pubbliche canoniche, mantenendo il comportamento di produzione invariato finché la configurazione CMP non viene fornita.
+Verificare che Senza Roaming possa integrare una CMP iubenda soltanto sulle pagine pubbliche canoniche, mantenendo il sito invariato quando la configurazione è assente o invalida.
 
-## Implementato
+### Risultato dello spike
 
-- resolver server-only fail-closed per `CMP_PROVIDER`, `CMP_SITE_ID` e `CMP_COOKIE_POLICY_ID`;
-- configurazione disabilitata quando tutte le variabili sono vuote;
-- configurazione rifiutata quando è incompleta, usa un provider non supportato o ID non numerici positivi;
-- script soltanto sulle risposte canonical pubbliche indexable;
-- ordine:
+Lo spike ha verificato:
+
+- resolver server-only fail-closed;
+- configurazione vuota o invalida senza output parziale;
+- CMP soltanto sulle risposte canonical indexable;
+- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e file probe esclusi;
+- footer per riaprire le preferenze;
+- pagina Privacy condizionale;
+- nessun GTM, GA4, Ads o affiliate tracking;
+- nessuna richiesta Google nel browser harness;
+- accessibilità da tastiera, desktop, mobile e assenza overflow;
+- tutte le regressioni pubbliche e private.
+
+Il prototipo iniziale usava il formato documentato legacy:
 
 ```text
-configurazione inline
-→ https://cs.iubenda.com/autoblocking/{siteId}.js
-→ https://cdn.iubenda.com/cs/iubenda_cs.js
+configurazione inline con siteId e cookiePolicyId
+→ autoblocking/{siteId}.js
+→ iubenda_cs.js
 ```
 
-- autoblocking senza `async` o `defer`;
-- runtime iubenda asincrono;
-- `googleConsentMode: true` nella configurazione;
-- applicazione GDPR globale;
-- pulsanti Accetta, Rifiuta e Personalizza;
-- widget fluttuante disattivato;
-- link footer `iubenda-cs-preferences-link` per riaprire le preferenze;
-- Privacy page condizionale e coerente con stato attivo/inattivo;
-- nessun GTM o GA4.
+La CI usava ID numerici fittizi e stub locali. Non certificava l’account iubenda reale.
 
-## Route incluse nella configurazione locale
+## Fase 2 — discovery sull’account reale
+
+Nella dashboard di `senzaroaming.it`, il comando:
+
+```text
+Privacy Controls and Cookie Solution
+→ Integra
+```
+
+non ha restituito il triplet legacy. Ha restituito un solo embed remoto:
+
+```text
+<script type="text/javascript"
+  src="https://embeds.iubenda.com/widgets/{public-uuid}.js"></script>
+```
+
+Il numero presente nell’URL dashboard `/flow/{number}` non viene interpretato come `siteId`. L’identificativo canonico dell’integrazione è l’UUID pubblico incluso nello script fornito dal prodotto.
+
+La configurazione remota rende superfluo ricostruire manualmente `siteId`, `cookiePolicyId`, autoblocking e runtime. Il repository integra il codice effettivamente fornito dall’account invece di dedurre parametri interni.
+
+## Fase 3 — adattamento e attivazione CMP-only
+
+```text
+branch feat/public-consent-foundation
+PR #85 — Activate iubenda remote consent foundation
+CI applicativa #421 completamente verde
+```
+
+### Contratto aggiornato
+
+Variabili runtime:
+
+```text
+CMP_PROVIDER
+CMP_EMBED_ID
+```
+
+Regole:
+
+- entrambi vuoti → `disabled`;
+- uno solo presente → `invalid/incomplete`;
+- provider diverso da `iubenda` → `invalid/unsupported_provider`;
+- UUID malformato → `invalid/invalid_embed_id`;
+- configurazione valida → un solo URL `https://embeds.iubenda.com/widgets/{uuid}.js`.
+
+Le variabili legacy non appartengono più al contratto:
+
+```text
+CMP_SITE_ID
+CMP_COOKIE_POLICY_ID
+```
+
+### Route incluse nel test dedicato
 
 ```text
 /
@@ -51,7 +106,7 @@ configurazione inline
 /{slug-published}
 ```
 
-## Route escluse
+### Route escluse
 
 ```text
 /astro-foundation*
@@ -63,7 +118,35 @@ configurazione inline
 404 e file probe
 ```
 
-## Verifica CI #411
+### Separazione fra base e deploy
+
+Il config Wrangler base resta fail-closed:
+
+```text
+CMP_PROVIDER=
+CMP_EMBED_ID=
+GTM_ID=
+```
+
+Questo preserva sviluppo, CI e regressioni storiche senza CMP.
+
+Prima del deploy, `scripts/prepare-production-consent-config.mjs` modifica il solo config compilato:
+
+```text
+CMP_PROVIDER=iubenda
+CMP_EMBED_ID=<UUID pubblico versionato>
+GTM_ID=
+```
+
+Il preparatore:
+
+- non modifica il config sorgente;
+- rifiuta un `GTM_ID` valorizzato;
+- rifiuta la ricomparsa delle variabili legacy;
+- non legge password, token, API key o service-account JSON;
+- rende riproducibile la configurazione reale di produzione.
+
+### Verifica CI #421
 
 - tipi Cloudflare;
 - Astro check e TypeScript strict;
@@ -71,64 +154,79 @@ configurazione inline
 - migrazioni D1 invariate;
 - quality gate e golden evaluation;
 - Container build e smoke;
-- tutte le regressioni pubbliche storiche con CMP disabilitata;
-- smoke dedicato con ID fittizi;
-- ordine e unicità degli script;
+- regressioni storiche con CMP base disabilitata;
+- contratto puro UUID;
+- preparazione production config e guard `GTM_ID`;
+- runtime isolato con UUID fittizio;
+- un solo embed remoto sulle route incluse;
+- assenza del vecchio triplet iubenda;
 - assenza CMP sulle route escluse;
-- assenza di riferimenti o richieste Google Tag Manager/Analytics;
-- configurazione disponibile a runtime;
-- link preferenze raggiungibile da tastiera;
-- harness locale che verifica l’apertura del controllo preferenze;
+- assenza di richieste Google Analytics, Tag Manager, Ads e DoubleClick;
+- footer preferenze raggiungibile da tastiera;
+- harness locale di riapertura preferenze;
 - desktop, mobile e assenza overflow;
 - tutte le suite Control Room.
 
 ## Limite dichiarato
 
-La CI non contatta o certifica il servizio iubenda reale. Le richieste esterne vengono intercettate e sostituite con stub locali per rendere il test deterministico e per evitare dipendenze di rete.
+La CI intercetta la risorsa remota e la sostituisce con uno stub deterministico. Non certifica ancora:
 
-Non sono ancora verificati con un account reale:
-
-- aspetto e contenuto effettivo del banner;
-- persistenza reale di accettazione e rifiuto;
-- log delle preferenze iubenda;
-- comportamento reale Google Consent Mode;
-- performance della risorsa vendor;
-- eventuali impostazioni remote della dashboard iubenda.
+- aspetto e testo effettivi del banner;
+- presenza reale dei comandi Accetta, Rifiuta e Personalizza;
+- persistenza reale delle scelte;
+- modifica e revoca;
+- registro preferenze iubenda;
+- configurazione remota GDPR e Consent Mode;
+- comportamento in caso di errore vendor reale;
+- peso, timing e impatto prestazionale della risorsa;
+- richieste di rete effettive generate dal vendor.
 
 ## Stato produzione
 
-```text
-CMP_PROVIDER=
-CMP_SITE_ID=
-CMP_COOKIE_POLICY_ID=
-GTM_ID=
-```
-
-Con le variabili vuote:
-
-- nessuno script iubenda viene emesso;
-- il footer non mostra il comando preferenze;
-- la pagina Privacy continua a dichiarare CMP, GTM e GA4 inattivi;
-- il sito mantiene il comportamento M5.7.
-
-## Prossimo checkpoint
-
-1. creare/configurare il sito `senzaroaming.it` nella dashboard iubenda;
-2. configurare Privacy Controls and Cookie Solution in italiano;
-3. impostare Basic Consent Mode e blocco preventivo;
-4. recuperare i due identificativi pubblici `siteId` e `cookiePolicyId` dal codice Embed;
-5. configurare le vars Cloudflare senza secret;
-6. deploy controllato della sola CMP, ancora senza GTM/GA4;
-7. verificare live Accetta, Rifiuta, Personalizza, persistenza, revoca, rete e performance;
-8. registrare la decisione vendor finale.
-
-## Esito
+Prima del merge e deploy della PR #85:
 
 ```text
-integration boundary: verificato
-vendor live: non verificato
 production CMP: disabilitata
 GTM: disabilitato
 GA4: disabilitato
-next: configurazione iubenda reale e live CMP checkpoint
+vendor live: non verificato
+```
+
+La PR #85 non viene dichiarata live sulla sola base della CI.
+
+## Prossimo checkpoint
+
+```text
+canonici finali
+→ CI finale
+→ ready e merge PR #85
+→ deploy CMP-only
+→ verifica browser reale
+```
+
+La verifica live deve coprire:
+
+- banner alla prima visita;
+- Accetta, Rifiuta e Personalizza;
+- persistenza;
+- riapertura dal footer;
+- revoca e modifica;
+- esclusione delle route non canoniche;
+- nessuna richiesta GTM/GA4/Google Analytics;
+- fallback leggibile se il vendor non risponde;
+- tastiera, mobile e overflow;
+- performance;
+- coerenza della pagina Privacy.
+
+## Esito attuale
+
+```text
+integration boundary: verificato
+real embed format: identificato e implementato
+application CI: verde (#421)
+production deploy: non ancora eseguito
+vendor live: non ancora verificato
+GTM: disabilitato
+GA4: disabilitato
+next: CI finale, merge, deploy CMP-only e checkpoint live
 ```

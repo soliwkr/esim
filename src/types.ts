@@ -18,8 +18,7 @@ export interface Env {
   SITE_NAME: string;
   SITE_URL: string;
   CMP_PROVIDER?: string;
-  CMP_SITE_ID?: string;
-  CMP_COOKIE_POLICY_ID?: string;
+  CMP_EMBED_ID?: string;
   GTM_ID: string;
   AFFILIATE_MODE?: string;
   AFFILIATE_LINKS_JSON?: string;

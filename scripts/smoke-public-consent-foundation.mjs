@@ -8,13 +8,18 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import ts from 'typescript';
 import { createAccessTestCredentials } from './access-test-token.mjs';
+import {
+  applyProductionConsentConfig,
+  PRODUCTION_CONSENT_EMBED_ID,
+  PRODUCTION_CONSENT_PROVIDER,
+} from './prepare-production-consent-config.mjs';
 
 const port = Number(process.env.PUBLIC_CONSENT_SMOKE_PORT || 8842);
 const origin = `http://127.0.0.1:${port}`;
 const configPath = 'apps/web/dist/server/wrangler.json';
 const statePath = '.wrangler/public-consent-smoke';
-const siteId = '1234567';
-const cookiePolicyId = '7654321';
+const embedId = '11111111-2222-4333-8444-555555555555';
+const embedUrl = `https://embeds.iubenda.com/widgets/${embedId}.js`;
 const access = createAccessTestCredentials();
 const logs = [];
 
@@ -59,41 +64,51 @@ async function verifyPureContract() {
 
     assert.deepEqual(consent.resolvePublicConsentConfig({}), { kind: 'disabled' });
     assert.deepEqual(
-      consent.resolvePublicConsentConfig({ CMP_PROVIDER: 'iubenda', CMP_SITE_ID: siteId }),
+      consent.resolvePublicConsentConfig({ CMP_PROVIDER: 'iubenda' }),
       { kind: 'invalid', reason: 'incomplete' },
     );
     assert.deepEqual(
-      consent.resolvePublicConsentConfig({
-        CMP_PROVIDER: 'custom',
-        CMP_SITE_ID: siteId,
-        CMP_COOKIE_POLICY_ID: cookiePolicyId,
-      }),
+      consent.resolvePublicConsentConfig({ CMP_PROVIDER: 'custom', CMP_EMBED_ID: embedId }),
       { kind: 'invalid', reason: 'unsupported_provider' },
     );
     assert.deepEqual(
-      consent.resolvePublicConsentConfig({
-        CMP_PROVIDER: 'iubenda',
-        CMP_SITE_ID: '0',
-        CMP_COOKIE_POLICY_ID: cookiePolicyId,
-      }),
-      { kind: 'invalid', reason: 'invalid_site_id' },
+      consent.resolvePublicConsentConfig({ CMP_PROVIDER: 'iubenda', CMP_EMBED_ID: 'not-a-uuid' }),
+      { kind: 'invalid', reason: 'invalid_embed_id' },
     );
 
     const enabled = consent.resolvePublicConsentConfig({
-      CMP_PROVIDER: ' iubenda ',
-      CMP_SITE_ID: siteId,
-      CMP_COOKIE_POLICY_ID: cookiePolicyId,
+      CMP_PROVIDER: ' IUBENDA ',
+      CMP_EMBED_ID: ` ${embedId.toUpperCase()} `,
     });
     assert.equal(enabled.kind, 'enabled');
     assert.equal(Object.isFrozen(enabled), true);
     assert.equal(Object.isFrozen(enabled.config), true);
-    assert.equal(consent.iubendaAutoblockingUrl(enabled.config), `https://cs.iubenda.com/autoblocking/${siteId}.js`);
-    const bootstrap = consent.serializeIubendaBootstrap(enabled.config);
-    assert.match(bootstrap, /googleConsentMode/);
-    assert.match(bootstrap, /rejectButtonDisplay/);
-    assert.match(bootstrap, new RegExp(`"siteId":${siteId}`));
-    assert.match(bootstrap, new RegExp(`"cookiePolicyId":${cookiePolicyId}`));
-    assert.doesNotMatch(bootstrap, /<\/script|googletagmanager|gtag\(/i);
+    assert.equal(enabled.config.embedId, embedId);
+    assert.equal(consent.iubendaEmbedUrl(enabled.config), embedUrl);
+
+    const baseDeploymentConfig = {
+      vars: {
+        SITE_NAME: 'Senza Roaming',
+        CMP_PROVIDER: '',
+        CMP_EMBED_ID: '',
+        GTM_ID: '',
+      },
+    };
+    const productionDeploymentConfig = applyProductionConsentConfig(baseDeploymentConfig);
+    assert.equal(baseDeploymentConfig.vars.CMP_PROVIDER, '');
+    assert.equal(baseDeploymentConfig.vars.CMP_EMBED_ID, '');
+    assert.equal(productionDeploymentConfig.vars.CMP_PROVIDER, PRODUCTION_CONSENT_PROVIDER);
+    assert.equal(productionDeploymentConfig.vars.CMP_EMBED_ID, PRODUCTION_CONSENT_EMBED_ID);
+    assert.equal(productionDeploymentConfig.vars.GTM_ID, '');
+    assert.match(PRODUCTION_CONSENT_EMBED_ID, /^[0-9a-f-]{36}$/);
+    assert.throws(
+      () => applyProductionConsentConfig({ vars: { GTM_ID: 'G-TEST' } }),
+      /GTM_ID to remain empty/,
+    );
+    assert.throws(
+      () => applyProductionConsentConfig({ vars: { GTM_ID: '', CMP_SITE_ID: '1234567' } }),
+      /Legacy consent variable CMP_SITE_ID/,
+    );
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
@@ -107,9 +122,8 @@ function startRuntime() {
   const child = spawn(process.execPath, [
     'node_modules/wrangler/bin/wrangler.js', 'dev', '--config', configPath,
     '--persist-to', statePath, '--port', String(port), '--ip', '127.0.0.1',
-    '--var', `CMP_PROVIDER:iubenda`,
-    '--var', `CMP_SITE_ID:${siteId}`,
-    '--var', `CMP_COOKIE_POLICY_ID:${cookiePolicyId}`,
+    '--var', 'CMP_PROVIDER:iubenda',
+    '--var', `CMP_EMBED_ID:${embedId}`,
     '--var', `CF_ACCESS_TEAM_DOMAIN:${access.issuer}`,
     '--var', `CF_ACCESS_AUD:${access.audience}`,
     '--var', `CF_ACCESS_TEST_JWKS:${access.jwks}`,
@@ -159,30 +173,24 @@ async function stopRuntime(child) {
 }
 
 function assertIubendaEnabled(html, pathname) {
-  assert.match(html, new RegExp(`https://cs\\.iubenda\\.com/autoblocking/${siteId}\\.js`), `${pathname} must include autoblocking.`);
-  assert.match(html, /https:\/\/cdn\.iubenda\.com\/cs\/iubenda_cs\.js/, `${pathname} must include the CMP runtime.`);
-  assert.match(html, new RegExp(`"siteId":${siteId}`));
-  assert.match(html, new RegExp(`"cookiePolicyId":${cookiePolicyId}`));
-  assert.match(html, /"googleConsentMode":true/);
-  assert.match(html, /"rejectButtonDisplay":true/);
+  const escapedUrl = embedUrl.replaceAll('.', '\\.').replaceAll('/', '\\/');
+  const matches = html.match(new RegExp(escapedUrl, 'g')) || [];
+  assert.equal(matches.length, 1, `${pathname} must include one unified iubenda embed.`);
   assert.match(html, /class="iubenda-cs-preferences-link"/);
+  assert.doesNotMatch(html, /cs\.iubenda\.com\/autoblocking|cdn\.iubenda\.com\/cs\/iubenda_cs\.js|csConfiguration/i);
   assert.doesNotMatch(html, /googletagmanager|google-analytics|gtag\(|measurement[_-]?id["'=:\s]+G-[A-Z0-9]+/i);
 
-  const configIndex = html.indexOf('var _iub = window._iub');
-  const autoblockingIndex = html.indexOf(`https://cs.iubenda.com/autoblocking/${siteId}.js`);
-  const runtimeIndex = html.indexOf('https://cdn.iubenda.com/cs/iubenda_cs.js');
-  assert.ok(configIndex > -1 && configIndex < autoblockingIndex && autoblockingIndex < runtimeIndex);
-
-  const autoblockingTag = html.match(new RegExp(`<script[^>]+src="https://cs\\.iubenda\\.com/autoblocking/${siteId}\\.js"[^>]*>`, 'i'))?.[0];
-  assert.ok(autoblockingTag);
-  assert.doesNotMatch(autoblockingTag, /\b(?:async|defer)\b/i);
-  const runtimeTag = html.match(/<script[^>]+src="https:\/\/cdn\.iubenda\.com\/cs\/iubenda_cs\.js"[^>]*>/i)?.[0];
-  assert.ok(runtimeTag);
-  assert.match(runtimeTag, /\basync\b/i);
+  const embedTag = html.match(/<script[^>]+src="https:\/\/embeds\.iubenda\.com\/widgets\/[0-9a-f-]+\.js"[^>]*>/i)?.[0];
+  assert.ok(embedTag, `${pathname} must contain the remote embed script tag.`);
+  assert.doesNotMatch(embedTag, /\b(?:async|defer)\b/i);
 }
 
 function assertIubendaExcluded(body, pathname) {
-  assert.doesNotMatch(body, /iubenda|CMP_SITE_ID|cookiePolicyId|csConfiguration/i, `${pathname} must not include CMP code.`);
+  assert.doesNotMatch(
+    body,
+    /embeds\.iubenda\.com|iubenda-cs-preferences-link|CMP_EMBED_ID/i,
+    `${pathname} must not include CMP code.`,
+  );
 }
 
 async function verifyRuntime() {
@@ -220,17 +228,11 @@ async function verifyRuntime() {
     desktop.on('request', (request) => {
       if (/google-analytics|googletagmanager|doubleclick|googleadservices/i.test(request.url())) googleRequests.push(request.url());
     });
-    await desktop.route('https://cs.iubenda.com/**', async (route) => {
-      await route.fulfill({
-        contentType: 'application/javascript',
-        body: 'window.__iubendaAutoblockingTestLoaded = true;',
-      });
-    });
-    await desktop.route('https://cdn.iubenda.com/**', async (route) => {
+    await desktop.route('https://embeds.iubenda.com/widgets/**', async (route) => {
       await route.fulfill({
         contentType: 'application/javascript',
         body: `
-          window.__iubendaRuntimeTestLoaded = true;
+          window.__iubendaRemoteEmbedTestLoaded = true;
           document.addEventListener('click', function (event) {
             var link = event.target.closest && event.target.closest('.iubenda-cs-preferences-link');
             if (!link) return;
@@ -250,14 +252,10 @@ async function verifyRuntime() {
 
     await desktop.goto(`${origin}/`);
     await desktop.getByRole('heading', { level: 1, name: 'Trova la eSIM giusta prima di partire.' }).waitFor();
-    await desktop.waitForFunction(() => window.__iubendaRuntimeTestLoaded === true);
-    const configuration = await desktop.evaluate(() => window._iub?.csConfiguration);
-    assert.equal(configuration.siteId, Number(siteId));
-    assert.equal(configuration.cookiePolicyId, Number(cookiePolicyId));
-    assert.equal(configuration.googleConsentMode, true);
-    assert.equal(configuration.banner.rejectButtonDisplay, true);
+    await desktop.waitForFunction(() => window.__iubendaRemoteEmbedTestLoaded === true);
     assert.deepEqual(googleRequests, []);
     assert.equal(await desktop.locator('script[src*="googletagmanager"],script[src*="google-analytics"]').count(), 0);
+    assert.equal(await desktop.locator(`script[src="${embedUrl}"]`).count(), 1);
     assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
 
     const preferences = desktop.getByRole('link', { name: 'Gestisci preferenze cookie' });
@@ -268,8 +266,7 @@ async function verifyRuntime() {
     await desktop.close();
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
-    await mobile.route('https://cs.iubenda.com/**', (route) => route.fulfill({ contentType: 'application/javascript', body: '' }));
-    await mobile.route('https://cdn.iubenda.com/**', (route) => route.fulfill({ contentType: 'application/javascript', body: '' }));
+    await mobile.route('https://embeds.iubenda.com/widgets/**', (route) => route.fulfill({ contentType: 'application/javascript', body: '' }));
     await mobile.goto(`${origin}/privacy`);
     await mobile.getByRole('heading', { level: 1, name: 'Raccogliere meno, spiegare meglio.' }).waitFor();
     await mobile.getByRole('link', { name: 'Gestisci preferenze cookie' }).waitFor();
