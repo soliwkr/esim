@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **25 luglio 2026**.
+Data di riferimento: **26 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -19,8 +19,9 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| Scope measurement M6 | Completato | PR #83, merge `83f784fccf562a38e48de7fca483f3d56483ccc4`, CI #408 |
-| iubenda consent spike | Implementato, default disabilitato | PR #84, CI applicativa #411; vendor live non verificato |
+| Scope measurement M6 | Completato | PR #83, CI #408 |
+| iubenda consent spike | Mergiato | PR #84, CI finale #415; vecchio harness locale |
+| Remote embed activation | Implementata in draft | PR #85, CI applicativa #421 verde; non ancora deployata |
 | GTM e GA4 | Non attivi | nessun tag o ping Google |
 | Affiliazioni | Disabilitate | nessun link remunerato attivo |
 
@@ -96,14 +97,6 @@ merge 83f784fccf562a38e48de7fca483f3d56483ccc4
 CI #408 completamente verde
 ```
 
-Documenti canonici:
-
-```text
-docs/MEASUREMENT-CONSENT-SCOPE.md
-docs/CMP-SPIKE.md
-docs/MEASUREMENT-EVENT-DICTIONARY.md
-```
-
 Contratto iniziale:
 
 ```text
@@ -127,76 +120,124 @@ consent_update locale/debug
 
 Il redirect `/go/{provider}` continua a scrivere in D1 `page_slug`, `provider_slug`, `placement`, `monetized` e `created_at`. D1 resta la fonte di verità per il redirect completato; il futuro evento GA4 rappresenterà soltanto l’intento browser.
 
-## iubenda consent spike
+## PR #84 — spike storico
+
+```text
+branch spike/iubenda-consent-foundation
+PR #84 — Spike iubenda consent foundation
+merge 6e3b0047af67219af7429749003d86f36af61237
+CI applicativa #411
+CI finale #415
+```
+
+Lo spike ha dimostrato:
+
+- boundary server-only fail-closed;
+- route incluse ed escluse;
+- footer preferenze e Privacy condizionale;
+- assenza GTM/GA4 e richieste Google;
+- desktop, mobile, tastiera e regressioni complete.
+
+Il suo harness usava però il formato iubenda legacy con configurazione inline, `siteId`, `cookiePolicyId`, autoblocking e runtime separati. Non certificava il formato reale restituito dall’account.
+
+## PR #85 — remote embed reale
+
+La dashboard reale di `senzaroaming.it` restituisce un embed unificato a configurazione remota:
+
+```text
+https://embeds.iubenda.com/widgets/{public-uuid}.js
+```
 
 Branch e PR:
 
 ```text
-spike/iubenda-consent-foundation
-PR #84 — Spike iubenda consent foundation
-CI applicativa #411 completamente verde
+feat/public-consent-foundation
+PR #85 — Activate iubenda remote consent foundation
+CI applicativa #421 completamente verde
 ```
 
 ### Implementato
 
-- `src/public-consent.ts` con configurazione server-only fail-closed;
-- vars pubbliche `CMP_PROVIDER`, `CMP_SITE_ID`, `CMP_COOKIE_POLICY_ID` vuote per default;
-- configurazione incompleta o non valida non carica script;
-- iubenda soltanto sulle pagine canonical indexable;
+- `src/public-consent.ts` ora valida `CMP_PROVIDER` e `CMP_EMBED_ID`;
+- il valore embed deve essere un UUID canonico;
+- configurazione vuota, incompleta, non supportata o malformata fallisce chiusa;
+- un solo script remoto viene emesso sulle pagine canonical indexable;
 - nessuna CMP su preview, Control Room, API, redirect, sitemap, robots, 404 o file probe;
-- ordine config inline → autoblocking → runtime CMP;
-- autoblocking senza `async` o `defer`;
-- `googleConsentMode: true`;
-- pulsanti Accetta, Rifiuta e Personalizza;
-- link footer per riaprire le preferenze;
-- pagina Privacy condizionale;
-- nessun GTM o GA4.
+- il vecchio triplet inline/autoblocking/runtime non viene più emesso;
+- footer e Privacy restano condizionali;
+- GTM e GA4 restano assenti.
 
-### Verificato dalla CI applicativa #411
+### Separazione CI e produzione
 
-- tipi Cloudflare, typecheck e build;
-- migrazioni D1 invariate;
-- quality gate, golden evaluation e Container;
-- tutte le regressioni pubbliche con CMP disabilitata;
-- runtime isolato con ID fittizi;
-- ordine e unicità degli script;
-- route incluse ed escluse;
-- nessuna richiesta a domini Google Analytics/Tag Manager;
-- link preferenze raggiungibile da tastiera;
-- harness locale del controllo preferenze;
-- desktop, mobile e assenza overflow;
-- tutte le suite Control Room.
-
-Documento di risultato:
-
-```text
-docs/IUBENDA-CONSENT-SPIKE-RESULT.md
-```
-
-### Limite
-
-La CI usa stub locali per le risorse iubenda. Non certifica ancora il servizio vendor reale, la persistenza reale del consenso, il log delle preferenze o le configurazioni remote della dashboard.
-
-## Stato produzione measurement
+Il `wrangler.jsonc` base resta:
 
 ```text
 CMP_PROVIDER=
-CMP_SITE_ID=
-CMP_COOKIE_POLICY_ID=
+CMP_EMBED_ID=
 GTM_ID=
 ```
 
-Con valori vuoti:
+Questo mantiene disabilitata la CMP in sviluppo, CI e regressioni storiche.
 
-- nessuno script iubenda viene emesso;
-- nessun link preferenze viene mostrato;
-- Privacy continua a dichiarare CMP, GTM e GA4 inattivi;
-- nessuna richiesta Google viene effettuata;
-- il comportamento M5.7 resta invariato.
+Il comando di deploy esegue invece:
+
+```text
+npm run build
+→ scripts/prepare-production-consent-config.mjs
+→ wrangler deploy
+```
+
+Il preparatore modifica soltanto il config Worker compilato:
+
+```text
+CMP_PROVIDER=iubenda
+CMP_EMBED_ID=<UUID pubblico versionato>
+GTM_ID=
+```
+
+Il preparatore rifiuta il deploy se `GTM_ID` è valorizzato o se ricompaiono le variabili legacy `CMP_SITE_ID` e `CMP_COOKIE_POLICY_ID`.
+
+### Verificato dalla CI applicativa #421
+
+- tipi Cloudflare, Astro check, TypeScript strict e build;
+- migrazioni D1 invariate;
+- quality gate e golden evaluation;
+- Container build e smoke;
+- regressioni pubbliche storiche con CMP disabilitata;
+- contratto puro UUID e preparazione production config;
+- Worker isolato con embed UUID fittizio;
+- unicità dello script e assenza del triplet legacy;
+- route incluse ed escluse;
+- nessuna richiesta Google Analytics, Tag Manager, Ads o DoubleClick;
+- link preferenze raggiungibile da tastiera;
+- desktop, mobile e assenza overflow;
+- tutte le suite Control Room.
+
+## Stato produzione measurement
+
+Lo stato attualmente verificato su `main` resta:
+
+```text
+CMP non attiva
+GTM non attivo
+GA4 non attivo
+```
+
+La PR #85 non viene descritta come live finché non sono completati:
+
+```text
+canonici finali
+→ CI finale
+→ ready e merge
+→ deploy
+→ verifica browser reale
+```
+
+La CI non certifica ancora UI reale del banner, persistenza, revoca, registro preferenze, impostazioni remote o performance vendor.
 
 ## Guardrail invariati
 
-- nessun tracking attivo;
+- nessun tracking Google attivo prima del checkpoint live;
 - nessun analytics nella Control Room o preview;
 - nessun Ads, remarketing o affiliazione;
 - nessuna PII, token, JWT o ID editoriali negli eventi;
@@ -208,16 +249,13 @@ Con valori vuoti:
 
 ## Gap aperti
 
-- aggiornamento finale dei canonici PR #84;
+- aggiornamento finale dei canonici PR #85;
 - CI finale code + documentazione;
-- ready e merge PR #84;
-- creazione/configurazione reale del sito iubenda;
-- recupero di `siteId` e `cookiePolicyId` pubblici;
-- configurazione Cloudflare vars;
+- ready e merge PR #85;
 - deploy controllato CMP-only;
-- verifica live Accetta/Rifiuta/Personalizza, persistenza, revoca, rete e performance;
+- verifica live Accetta, Rifiuta, Personalizza, persistenza, revoca, rete e performance;
+- verifica della configurazione remota iubenda e Basic Consent Mode;
 - decisione vendor finale;
-- consent foundation definitiva;
 - GTM e GA4 post-consenso;
 - Tag Assistant, Network e DebugView;
 - Search Console e sitemap submission;
