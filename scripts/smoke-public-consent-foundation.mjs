@@ -8,6 +8,11 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import ts from 'typescript';
 import { createAccessTestCredentials } from './access-test-token.mjs';
+import {
+  applyProductionConsentConfig,
+  PRODUCTION_CONSENT_EMBED_ID,
+  PRODUCTION_CONSENT_PROVIDER,
+} from './prepare-production-consent-config.mjs';
 
 const port = Number(process.env.PUBLIC_CONSENT_SMOKE_PORT || 8842);
 const origin = `http://127.0.0.1:${port}`;
@@ -80,6 +85,30 @@ async function verifyPureContract() {
     assert.equal(Object.isFrozen(enabled.config), true);
     assert.equal(enabled.config.embedId, embedId);
     assert.equal(consent.iubendaEmbedUrl(enabled.config), embedUrl);
+
+    const baseDeploymentConfig = {
+      vars: {
+        SITE_NAME: 'Senza Roaming',
+        CMP_PROVIDER: '',
+        CMP_EMBED_ID: '',
+        GTM_ID: '',
+      },
+    };
+    const productionDeploymentConfig = applyProductionConsentConfig(baseDeploymentConfig);
+    assert.equal(baseDeploymentConfig.vars.CMP_PROVIDER, '');
+    assert.equal(baseDeploymentConfig.vars.CMP_EMBED_ID, '');
+    assert.equal(productionDeploymentConfig.vars.CMP_PROVIDER, PRODUCTION_CONSENT_PROVIDER);
+    assert.equal(productionDeploymentConfig.vars.CMP_EMBED_ID, PRODUCTION_CONSENT_EMBED_ID);
+    assert.equal(productionDeploymentConfig.vars.GTM_ID, '');
+    assert.match(PRODUCTION_CONSENT_EMBED_ID, /^[0-9a-f-]{36}$/);
+    assert.throws(
+      () => applyProductionConsentConfig({ vars: { GTM_ID: 'G-TEST' } }),
+      /GTM_ID to remain empty/,
+    );
+    assert.throws(
+      () => applyProductionConsentConfig({ vars: { GTM_ID: '', CMP_SITE_ID: '1234567' } }),
+      /Legacy consent variable CMP_SITE_ID/,
+    );
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
