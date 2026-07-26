@@ -4,7 +4,7 @@ Ultimo aggiornamento: **26 luglio 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
-## Now — verificare la foundation PR #91 nel browser
+## Now — chiudere i checkpoint residui della PR #91
 
 Branch e PR:
 
@@ -20,8 +20,9 @@ CMP iubenda: live
 Google access: verificato
 Search Console: collegata
 sitemap: inviata
-CI PR #91: verde
+CI PR #91: verde sul commit precedente al checkpoint docs
 workspace GTM M6: configurato, non pubblicato
+Preview GTM locale: verificata
 GTM produzione: spento
 GA4 produzione: spento
 ```
@@ -31,10 +32,10 @@ La branch introduce la foundation consent-gated:
 - `GTM_ID` e `GA4_MEASUREMENT_ID` fail-closed;
 - bootstrap GTM inerte `type=text/plain`;
 - classificazione iubenda `purpose 4` — Misurazione;
-- nessuna richiesta Google prima del consenso;
+- nessuna richiesta Google reale prima del consenso;
 - contesto pagina bounded;
 - `page_location = origin + pathname`;
-- preview, Control Room e route tecniche escluse;
+- preview, Control Room e route tecniche escluse dal contratto;
 - preparazione deterministica del config compilato;
 - smoke pure, workerd e Chromium;
 - Privacy coerente con lo stato runtime.
@@ -45,11 +46,6 @@ La branch introduce la foundation consent-gated:
 container: GTM-W3LSK9RZ
 workspace ID: 3
 workspace: M6 - Consent-gated GA4 foundation
-```
-
-Audit API:
-
-```text
 errors: 0
 variables: 7
 triggers: 1
@@ -75,29 +71,43 @@ Checklist:
 docs/GTM-GA4-CONTAINER-CHECKLIST.md
 ```
 
-## Checkpoint browser e dati
+## Checkpoint browser locale — completato per grant e reload
 
-Restano da verificare:
+Ambiente:
 
-1. Consent Overview nel workspace GTM;
-2. prima della scelta non parte alcuna richiesta Google;
-3. Rifiuta mantiene GTM e GA4 bloccati;
-4. consenso Misurazione carica GTM una sola volta;
-5. Tag Assistant mostra un solo `page_view`;
-6. `page_location` non contiene query string o hash;
-7. i parametri bounded sono corretti;
-8. DebugView riceve solo il test autorizzato;
-9. reload conserva correttamente la scelta;
-10. revoca e reload bloccano nuovamente GTM;
-11. preview e Control Room restano senza container;
-12. mobile, tastiera, overflow e performance restano accettabili.
+```text
+runtime: http://127.0.0.1:8787
+GTM workspace: Anteprima
+container publish: non eseguito
+production deploy: non eseguito
+```
 
-Il codice della PR non è ancora live. Il checkpoint integrato richiede quindi un ambiente applicativo esplicitamente autorizzato: locale oppure preview Cloudflare separata. Non si pubblica il container GTM e non si modifica l’apice per aggirare questo gate.
+La policy iubenda è stata completata aggiungendo i servizi **Google Analytics 4** e **Google Tag Manager**. Dopo reset dei dati locali, il banner ha esposto e salvato la finalità `4` — Misurazione.
+
+Verificato:
+
+1. prima del consenso il bootstrap resta `type=text/plain` e il container reale non viene caricato;
+2. il consenso salvato espone `{1: true, 4: true}`;
+3. Tag Assistant trova `GTM-W3LSK9RZ` e `G-GWJ9YPPVJW` soltanto dopo il grant;
+4. parte un hit `page_view` verso GA4;
+5. i parametri homepage risultano bounded: `home`, `home`, slug vuoto, `canonical`, `it`;
+6. il reload conserva il consenso e non ripropone il banner;
+7. due page load producono due attivazioni totali: una sola per ciascun caricamento.
+
+## Checkpoint residui prima di rendere pronta la PR
+
+1. rifiuto esplicito: nessuna richiesta Google reale;
+2. `page_location` nel hit reale senza query string o hash;
+3. revoca della finalità Misurazione e reload: GTM nuovamente bloccato;
+4. route preview e Control Room senza container nel browser reale;
+5. verifica nella UI GA4 DebugView del solo test autorizzato;
+6. controllo mobile, tastiera, overflow e performance;
+7. CI verde sull'ultimo commit documentale.
 
 ## Dopo il checkpoint
 
 ```text
-Preview / Tag Assistant / Network / DebugView verificati
+checkpoint residui verificati
 → PR #91 ready
 → merge con expected head SHA
 → pubblicazione container esplicitamente autorizzata
@@ -143,7 +153,7 @@ La legacy privata resta finché serve come fallback operativo.
 ## Freeze immediato
 
 - niente deploy o merge PR #91 prima del checkpoint integrato;
-- niente pubblicazione container senza Preview e DebugView;
+- niente pubblicazione container senza completare i checkpoint residui;
 - niente Advanced Consent Mode o cookieless pings;
 - niente tracking pre-consenso;
 - niente eventi fuori dal dizionario;
