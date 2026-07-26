@@ -28,8 +28,8 @@
   "vars": {
     "SITE_NAME": "Senza Roaming",
     "SITE_URL": "https://senzaroaming.it",
-    "CMP_PROVIDER": "",
-    "CMP_EMBED_ID": "",
+    "CMP_PROVIDER": "iubenda",
+    "CMP_EMBED_ID": "f8ebd840-9f82-427c-a9b7-1425cb627a87",
     "GTM_ID": "",
     "AFFILIATE_MODE": "disabled",
     "CLOUDFLARE_ACCOUNT_ID": "60496826f56a093a72602bfae074fdcf",
