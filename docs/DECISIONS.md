@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **25 luglio 2026**.
+Ultimo aggiornamento: **26 luglio 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Lo storico completo delle formulazioni precedenti resta nel versionamento Git.
 
@@ -289,7 +289,7 @@ export const activePublicRouteDecision = targetPublicRouteDecision;
 
 ## ADR-034 — Consent Mode Basic e CMP fail-closed prima di GTM
 
-**Stato:** accettata come foundation M6 con PR #83; integrazione tecnica verificata dalla CI applicativa #411 su PR #84, vendor live ancora non verificato.
+**Stato:** accettata come foundation M6 con PR #83; spike storico verificato e mergiato con PR #84; formato embed reale implementato dalla PR #85 e verificato dalla CI applicativa #421; vendor live ancora non verificato.
 
 **Decisione:** la prima release di misurazione usa Google Consent Mode **Basic** e una CMP esterna comprovata. Nessun Google Tag Manager, Google Analytics o ping Google può partire prima del consenso analytics esplicito.
 
@@ -310,25 +310,31 @@ analytics_storage = granted
 
 **Decisione di integrazione:**
 
-- iubenda è il candidato principale; CookieYes è fallback;
-- la configurazione vive in vars pubbliche validate server-side;
+- iubenda resta il candidato principale; CookieYes resta fallback finché il checkpoint live non è chiuso;
+- il formato canonico è quello effettivamente restituito dalla dashboard dell’account, non un esempio documentale dedotto;
+- l’account reale usa un unico embed remoto `https://embeds.iubenda.com/widgets/{uuid}.js`;
+- la configurazione vive in `CMP_PROVIDER` e `CMP_EMBED_ID`, validate server-side;
 - valori assenti o invalidi disabilitano la CMP senza output parziale;
 - la CMP appare soltanto sulle pagine canonical indexable;
-- preview, Control Room, API, redirect, sitemap, robots e 404 restano esclusi;
-- il codice segue l’ordine config inline → autoblocking → runtime iubenda;
-- GTM e GA4 restano assenti durante lo spike e il successivo checkpoint CMP-only;
+- preview, Control Room, API, redirect, sitemap, robots, 404 e file probe restano esclusi;
+- il layout emette un solo script remoto, senza ricostruire manualmente `siteId`, `cookiePolicyId`, autoblocking o runtime;
+- il config Wrangler base resta CMP-off per sviluppo, CI e regressioni storiche;
+- il config Worker compilato viene preparato deterministicamente prima del deploy reale;
+- il preparatore di deploy rifiuta `GTM_ID` valorizzato e variabili CMP legacy;
+- GTM e GA4 restano assenti durante il checkpoint CMP-only;
 - il footer espone la riapertura delle preferenze soltanto quando la CMP è configurata;
 - la pagina Privacy descrive il comportamento effettivo;
 - Advanced Consent Mode, cookieless pings, Ads, remarketing e affiliate tracking richiedono una decisione futura separata.
 
-**Razionale:** il prodotto non usa Ads o affiliazioni e parte da zero tracking. Basic Mode permette un confine verificabile: nessun dato a Google prima della scelta.
+**Razionale:** il prodotto non usa Ads o affiliazioni e parte da zero tracking. Basic Mode permette un confine verificabile: nessun dato a Google prima della scelta. La configurazione remota del vendor viene integrata tramite il codice reale dell’account, mentre la preparazione dell’artefatto di deploy conserva GitHub come fonte di verità senza contaminare le suite CMP-off.
 
 **Conseguenza:**
 
 - `src/public-consent.ts` è il contratto fail-closed;
-- la produzione resta invariata con vars vuote;
-- la CI usa ID fittizi e stub vendor per provare route, ordine, accessibilità e assenza di richieste Google;
-- la CI non certifica persistenza, log o UI reale del vendor;
-- l’attivazione richiede un sito iubenda configurato, `siteId` e `cookiePolicyId` pubblici, branch CMP-only, deploy controllato e verifica live;
+- `scripts/prepare-production-consent-config.mjs` è il solo passaggio autorizzato ad attivare la CMP nel config compilato;
+- l’UUID embed è configurazione pubblica versionata, non un secret;
+- la CI usa UUID fittizi e stub vendor per provare route, unicità, accessibilità e assenza di richieste Google;
+- la CI non certifica persistenza, revoca, registro, UI o performance reale del vendor;
+- l’attivazione richiede CI finale, merge, deploy controllato e verifica live;
 - GTM/GA4 partono soltanto dopo il checkpoint live CMP;
 - nessun dato della Control Room, PII o ID editoriale può entrare negli eventi.
