@@ -22,7 +22,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | iubenda CMP | Live | deploy e boundary server-side verificati; banner confermato nel browser |
 | Google access | Verificato | GA4, GTM e Search Console accessibili via service account impersonato |
 | Search Console | Collegata | proprietà dominio verificata e sitemap inviata |
-| GTM e GA4 | Non attivi in produzione | foundation in PR draft #91, nessun deploy |
+| Workspace GTM M6 | Configurato, non pubblicato | 7 variabili, 1 trigger, 1 tag; audit API senza errori |
+| GTM e GA4 produzione | Non attivi | foundation in PR draft #91, nessun deploy |
 | Affiliazioni | Disabilitate | nessun link remunerato attivo |
 
 ## Architettura live
@@ -187,7 +188,7 @@ info@trovatemi.it
 
 Nessuna chiave privata JSON è stata creata o versionata.
 
-Identificativi verificati tramite API read-only:
+Identificativi verificati tramite API:
 
 ```text
 GA4 account: 402095950
@@ -220,6 +221,7 @@ Le richieste manuali di indicizzazione sono rinviate finché homepage, listing e
 ```text
 branch: feat/public-gtm-ga4-foundation
 PR: #91 draft
+CI: verde
 production deploy: non autorizzato
 GTM container publish: non eseguito
 ```
@@ -240,7 +242,45 @@ Implementato sulla branch:
 - smoke pure, workerd e Chromium;
 - Privacy condizionale aggiornata.
 
-In produzione resta:
+## Workspace GTM M6
+
+Workspace verificato:
+
+```text
+workspace ID: 3
+name: M6 - Consent-gated GA4 foundation
+errors: 0
+variables: 7
+triggers: 1
+tags: 1
+```
+
+Risorse:
+
+```text
+trigger ID 10: CE - sr_page_view_ready
+tag ID 11: GA4 - page_view - consent gated
+tag type: gaawe
+event: page_view
+measurement ID: {{DLV - sr_ga4_measurement_id}}
+tag firing option: oncePerLoad
+additional consent: analytics_storage
+```
+
+Parametri evento:
+
+```text
+page_location
+route_class
+page_type
+content_slug
+render_mode
+site_language
+```
+
+Non sono presenti trigger All Pages, History Change o Click. Non sono presenti Ads, Floodlight, remarketing, affiliate o Custom HTML. Il container non è stato pubblicato e la produzione non è cambiata.
+
+## Stato produzione measurement
 
 ```text
 CMP iubenda: attiva
@@ -262,8 +302,8 @@ affiliate tracking: non attivo
 
 ## Gap aperti
 
-- CI e review PR #91;
-- workspace GTM configurato ma non pubblicato;
+- Consent Overview nel workspace GTM;
+- ambiente applicativo locale o preview Cloudflare esplicitamente autorizzato;
 - Tag Assistant, Network e DebugView;
 - verifica rifiuto, consenso, reload e revoca;
 - un solo `page_view` reale;
