@@ -21,6 +21,7 @@ const preview = publicIsPreview(mode)
     : 'Come selezioniamo provider e gestiamo i link affiliati.'}
   canonicalPath={publicTrustPath(mode, 'trasparenza')}
   siteName={siteName}
+  measurement={{ routeClass: 'trust', pageType: 'transparency' }}
 >
   <TrustPage
     mode={mode}
