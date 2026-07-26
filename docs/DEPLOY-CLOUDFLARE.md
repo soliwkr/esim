@@ -1,14 +1,45 @@
 # Deploy Cloudflare
 
-## 1. Database D1
+Ultimo aggiornamento: **26 luglio 2026**.
+
+## Principio
+
+Il repository conserva un config sorgente portabile e fail-closed. Gli identificatori remoti specifici dell’account vengono risolti soltanto durante il deploy e inseriti nel config Worker compilato.
+
+Non versionare token, secret o UUID D1.
+
+## Database D1
+
+Binding canonica:
+
+```text
+binding: DB
+database_name: senza-roaming
+database_id: REPLACE_WITH_D1_DATABASE_ID
+```
+
+Il placeholder nel `wrangler.jsonc` è intenzionale.
+
+Durante il deploy:
+
+```text
+scripts/prepare-production-d1-binding.mjs
+```
+
+- usa Wrangler autenticato per elencare i database remoti;
+- richiede un solo database chiamato `senza-roaming`;
+- valida il relativo UUID;
+- aggiorna soltanto `apps/web/dist/server/wrangler.json`;
+- non stampa e non versiona l’UUID;
+- fallisce su database mancanti, duplicati, binding ambigue o ID discordanti.
+
+Creazione iniziale, soltanto per un account nuovo:
 
 ```bash
 npx wrangler d1 create senza-roaming
 ```
 
-Copiare il `database_id` restituito dentro `wrangler.jsonc`.
-
-## 2. Migrazioni
+## Migrazioni
 
 Locale:
 
@@ -22,51 +53,98 @@ Produzione:
 npm run db:migrate:remote
 ```
 
-## 3. Variabili
+Le migrazioni remote restano un’operazione distinta dal deploy del frontend e non vengono eseguite implicitamente da `npm run deploy`.
 
-Aggiornare in `wrangler.jsonc`:
+## Configurazione pubblica
+
+Il `wrangler.jsonc` sorgente conserva:
 
 ```text
-SITE_NAME
-SITE_URL
-GTM_ID
-AFFILIATE_MODE
+SITE_NAME=Senza Roaming
+SITE_URL=https://senzaroaming.it
+CMP_PROVIDER=
+CMP_EMBED_ID=
+GTM_ID=
+AFFILIATE_MODE=disabled
 ```
 
-## 4. Secret
+Sviluppo e CI restano quindi CMP-off e analytics-off per default.
 
-Dopo approvazione affiliate:
+Il deploy CMP-only prepara nel solo config compilato:
 
-```bash
-npx wrangler secret put AFFILIATE_LINKS_JSON
+```text
+CMP_PROVIDER=iubenda
+CMP_EMBED_ID=<UUID pubblico versionato>
+GTM_ID=
 ```
 
-## 5. GitHub Actions
+`scripts/prepare-production-consent-config.mjs` rifiuta:
 
-Aggiungere nei secret del repository:
+- `GTM_ID` valorizzato;
+- `CMP_SITE_ID` o `CMP_COOKIE_POLICY_ID` legacy;
+- configurazioni incomplete o non previste.
+
+## Secret GitHub Actions
+
+Richiesti per il deploy Wrangler:
 
 ```text
 CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ACCOUNT_ID
 ```
 
-Il push esegue soltanto il typecheck. Il deploy è manuale tramite `workflow_dispatch` per evitare pubblicazioni accidentali.
+Altri secret applicativi restano configurati in Cloudflare e non devono essere stampati, copiati nelle PR o inseriti nel repository.
 
-## 6. Dominio
+## Comando canonico
 
-Il brand di lavoro è **Senza Roaming**. Prima di modificare `SITE_URL`, verificare e registrare il dominio scelto presso un registrar. Non assumere che un dominio sia disponibile finché l'ordine non è completato.
-
-## 7. Tracking
-
-`GTM_ID` è predisposto ma va attivato soltanto insieme a una CMP e al consenso appropriato. L'evento applicativo da configurare è:
-
-```text
-outbound_click
+```bash
+npm run deploy
 ```
 
-Parametri previsti:
+Sequenza:
 
 ```text
-provider
-placement
+Astro build
+→ preparazione consent CMP-only
+→ risoluzione binding D1 remota
+→ wrangler deploy sul config compilato
 ```
+
+Il comando non esegue migrazioni D1 e non introduce pubblicazione editoriale.
+
+## Checkpoint prima del deploy
+
+- CI completamente verde;
+- `GTM_ID` vuoto;
+- nessun Ads, remarketing o affiliate tracking;
+- nessuna mutation D1 o modifica dei gate editoriali;
+- scope e rollback dichiarati.
+
+## Checkpoint dopo il deploy
+
+- route canoniche operative;
+- binding D1 valida;
+- CMP soltanto sulle route pubbliche canonical indexable;
+- preview, Control Room, API, `/go/*`, sitemap, robots e 404 escluse;
+- nessun GTM o GA4 prima del relativo scope separato;
+- risultato registrato nei documenti canonici.
+
+## Dominio
+
+Il dominio operativo e canonico è:
+
+```text
+https://senzaroaming.it
+```
+
+Il redirect `www → apex` resta un checkpoint separato da ricontrollare.
+
+## Misurazione
+
+Gli eventi canonici M6 sono definiti in:
+
+```text
+docs/MEASUREMENT-EVENT-DICTIONARY.md
+```
+
+La CMP non autorizza automaticamente GTM o GA4. La loro attivazione richiede una branch separata dopo la verifica completa del banner reale.
