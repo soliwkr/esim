@@ -31,6 +31,11 @@ const canonicalPath = publicListingPath(mode, type)
 const homeHref = publicHomePath(mode)
 const title = preview ? `${definition.title} preview | ${env.SITE_NAME}` : `${definition.title} | ${env.SITE_NAME}`
 const description = preview ? `Preview non indicizzabile. ${definition.description}` : definition.description
+const measurementPageType = type === 'destination'
+  ? 'destination_listing'
+  : type === 'comparison'
+    ? 'comparison_listing'
+    : 'guide_listing'
 ---
 
 <PublicLayout
@@ -39,6 +44,7 @@ const description = preview ? `Preview non indicizzabile. ${definition.descripti
   description={description}
   canonicalPath={canonicalPath}
   siteName={env.SITE_NAME}
+  measurement={{ routeClass: 'listing', pageType: measurementPageType }}
 >
   {preview && (
     <div
