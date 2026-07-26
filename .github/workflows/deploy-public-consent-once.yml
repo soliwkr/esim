@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: senza-roaming-production-deploy
@@ -33,3 +34,74 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify live consent boundary
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+
+          const origin = 'https://senzaroaming.it';
+          const embedId = 'f8ebd840-9f82-427c-a9b7-1425cb627a87';
+          const embedUrl = `https://embeds.iubenda.com/widgets/${embedId}.js`;
+
+          async function load(pathname, expectedStatus = 200) {
+            let lastError;
+            for (let attempt = 1; attempt <= 30; attempt += 1) {
+              try {
+                const response = await fetch(`${origin}${pathname}`, {
+                  headers: { 'cache-control': 'no-cache' },
+                  redirect: 'manual',
+                });
+                const body = await response.text();
+                if (response.status === expectedStatus) return { response, body };
+                lastError = new Error(`${pathname}: expected ${expectedStatus}, got ${response.status}`);
+              } catch (error) {
+                lastError = error;
+              }
+              await new Promise((resolve) => setTimeout(resolve, 5_000));
+            }
+            throw lastError;
+          }
+
+          const home = await load('/');
+          const privacy = await load('/privacy');
+          const preview = await load('/astro-foundation');
+          const health = await load('/api/health');
+          const sitemap = await load('/sitemap.xml');
+          const robots = await load('/robots.txt');
+
+          for (const [pathname, body] of [['/', home.body], ['/privacy', privacy.body]]) {
+            assert.equal(body.split(embedUrl).length - 1, 1, `${pathname} must contain exactly one iubenda embed.`);
+            assert.match(body, /Gestisci preferenze cookie/);
+            assert.doesNotMatch(body, /googletagmanager|google-analytics|doubleclick|googleadservices|gtag\(/i);
+          }
+
+          for (const [pathname, body] of [
+            ['/astro-foundation', preview.body],
+            ['/api/health', health.body],
+            ['/sitemap.xml', sitemap.body],
+            ['/robots.txt', robots.body],
+          ]) {
+            assert.doesNotMatch(body, /embeds\.iubenda\.com|iubenda-cs-preferences-link/i, `${pathname} must exclude the CMP.`);
+          }
+
+          assert.match(privacy.body, /iubenda è configurata; GTM e GA4 restano inattivi\./);
+          console.log('Live CMP-only consent boundary verified.');
+          NODE
+
+      - name: Record successful deployment
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/86/comments" \
+            -f body="✅ CMP-only deploy and live verification succeeded for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Record failed deployment
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/86/comments" \
+            -f body="❌ CMP-only deploy or live verification failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
