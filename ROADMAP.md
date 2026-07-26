@@ -14,7 +14,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/FRONTEND-PLAN.md` — piano frontend;
 - `docs/MEASUREMENT-CONSENT-SCOPE.md` — scope M6;
 - `docs/CMP-SPIKE.md` — confronto CMP;
-- `docs/MEASUREMENT-EVENT-DICTIONARY.md` — eventi e parametri canonici.
+- `docs/MEASUREMENT-EVENT-DICTIONARY.md` — eventi e parametri canonici;
+- `docs/GTM-GA4-FOUNDATION.md` — contratto tecnico della foundation analytics.
 
 ## Principi non negoziabili
 
@@ -171,7 +172,7 @@ CI #406
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: CMP-only implementata sulla PR #85; deploy e verifica vendor live ancora aperti.**
+**Stato: CMP live; accessi Google e sitemap verificati; foundation GTM/GA4 in PR draft #91, non deployata.**
 
 Contratti versionati:
 
@@ -180,21 +181,19 @@ docs/MEASUREMENT-CONSENT-SCOPE.md
 docs/CMP-SPIKE.md
 docs/MEASUREMENT-EVENT-DICTIONARY.md
 docs/IUBENDA-CONSENT-SPIKE-RESULT.md
+docs/PUBLIC-CONSENT-DEPLOY-RESULT-2026-07-26.md
+docs/GOOGLE-MEASUREMENT-ACCESS-RESULT-2026-07-26.md
+docs/GTM-GA4-FOUNDATION.md
 ```
 
 ### Discovery e scope
 
-- [x] `GTM_ID` esiste come variabile vuota;
-- [x] nessun renderer usa GTM;
-- [x] nessuno snippet GTM, GA4 o `gtag` è attivo;
-- [x] privacy page descrive il comportamento effettivo;
-- [x] redirect provider registra già i click effettivi server-side in D1;
-- [x] preview e Control Room sono escluse dalla futura misurazione;
-- [x] Basic Consent Mode scelto;
-- [x] Advanced/cookieless pings esclusi;
+- [x] Consent Mode Basic scelto;
+- [x] Advanced Mode e cookieless pings esclusi;
 - [x] analytics-only, senza Ads o affiliate;
-- [x] dati vietati e URL sanitizzati definiti;
-- [x] event dictionary v1 definito;
+- [x] dati vietati, URL sanitizzati ed eventi bounded definiti;
+- [x] redirect provider server-side D1 preservato;
+- [x] preview e Control Room escluse;
 - [x] PR documentale #83 mergiata — CI #408.
 
 ### CMP foundation
@@ -205,23 +204,68 @@ merge 6e3b0047af67219af7429749003d86f36af61237
 CI finale #415
 
 PR #85 — remote embed reale e activation foundation
-CI applicativa #421 verde
+merge f421d247e5a2ce250ba432e445f2aedf74af6f50
+CI finale #426
+
+PR #90 — deploy osservabile e contratto D1 production
+merge c29bf0cf31a66bf830cb74a7cf46d57a7f060c76
+CI #448
 ```
 
 - [x] boundary CMP server-only fail-closed;
-- [x] route incluse ed escluse verificate;
-- [x] formato reale dell’account identificato come embed remoto UUID;
-- [x] contratto `CMP_PROVIDER` + `CMP_EMBED_ID` implementato;
-- [x] un solo script remoto sulle pagine canonical indexable;
-- [x] regressioni storiche mantenute CMP-off;
-- [x] preparazione deterministica del config compilato di produzione;
-- [x] deploy guard che richiede `GTM_ID` vuoto;
-- [x] CI applicativa completa della PR #85;
-- [ ] CI finale code + documentazione;
-- [ ] merge PR #85;
-- [ ] deploy CMP-only;
-- [ ] verifica live banner, persistenza, revoca, rete e performance;
+- [x] formato account reale come embed remoto UUID;
+- [x] un solo script iubenda sulle route canoniche indexable;
+- [x] preview, private e route tecniche escluse;
+- [x] deploy CMP-only riuscito;
+- [x] verifica HTTP live riuscita;
+- [x] banner reale confermato nel browser dall’utente;
+- [ ] persistenza, revoca, rete vendor e performance da certificare integralmente;
 - [ ] decisione vendor finale.
+
+### Infrastruttura Google verificata
+
+```text
+GA4 property: 546858987
+GA4 stream: 15310040016
+Measurement ID: G-GWJ9YPPVJW
+GTM container: GTM-W3LSK9RZ
+Search Console: sc-domain:senzaroaming.it
+```
+
+- [x] service account accessibile tramite impersonazione e ADC, senza key JSON;
+- [x] Analytics Admin API read-only;
+- [x] Tag Manager API read-only;
+- [x] Search Console API read-only;
+- [x] sitemap canonica inviata il 26 luglio 2026;
+- [x] nessuna Indexing API usata;
+- [ ] primi dati di scansione e indicizzazione da attendere senza submission ripetute.
+
+### GTM e GA4 foundation
+
+Branch e PR:
+
+```text
+feat/public-gtm-ga4-foundation
+PR #91 — draft
+```
+
+- [x] contratto fail-closed `GTM_ID` + `GA4_MEASUREMENT_ID`;
+- [x] bootstrap GTM inerte `type=text/plain` prima del consenso;
+- [x] classificazione iubenda `purpose 4` — Misurazione;
+- [x] nessun fallback `noscript` pre-consenso;
+- [x] contesto pagina bounded;
+- [x] `page_location = origin + pathname`;
+- [x] guard anti-duplicazione;
+- [x] route escluse preservate;
+- [x] preparazione deterministica del config compilato;
+- [x] smoke pure, workerd e Chromium aggiunti;
+- [ ] CI PR #91;
+- [ ] workspace GTM configurato ma non pubblicato;
+- [ ] Tag Assistant, Network e DebugView;
+- [ ] rifiuto, consenso, reload e revoca;
+- [ ] un solo `page_view` reale;
+- [ ] controllo performance;
+- [ ] deploy pubblico separatamente autorizzato.
 
 ### Eventi iniziali
 
@@ -231,33 +275,29 @@ provider_redirect_intent
 consent_update (locale/debug, non GA4)
 ```
 
-`article_view` e `listing_view` non sono eventi separati: vengono descritti da parametri bounded del `page_view`.
+`provider_redirect_intent` resta differito finché il checkpoint base `page_view` non è verificato. `article_view` e `listing_view` non sono eventi separati.
 
-### Lavoro successivo
+### Indicizzazione e contenuti
 
-- [ ] GTM e GA4 foundation post-consenso;
-- [ ] verifica dati reali con Tag Assistant, Network e DebugView;
-- [ ] Search Console;
-- [ ] sitemap submission.
+La sitemap è inviata, ma homepage e listing non vengono forzati manualmente in indicizzazione prima della keyword map e del riallineamento SEO dei testi. Le richieste manuali restano riservate alle sole URL prioritarie quando saranno realmente pronte.
 
-### Ordine obbligatorio
+### Ordine operativo corrente
 
 ```text
-scope e inventario
-→ spike CMP
-→ formato reale account
-→ consent foundation CMP-only
-→ verifica live CMP
-→ GTM
-→ GA4
-→ verifica dati
-→ Search Console
-→ sitemap submission
+CI e review PR #91
+→ workspace GTM non pubblicato
+→ Tag Assistant / Network / DebugView
+→ checkpoint consenso e revoca
+→ container publish + deploy esplicitamente autorizzati
+→ verifica dati reali
+→ keyword map e copy SEO
+→ richieste manuali soltanto per URL forti
 ```
 
 ## M7 — Intelligence SEO
 
 - [ ] query e pagine GSC;
+- [ ] keyword map per homepage e listing;
 - [ ] rank tracking e competitor;
 - [ ] Trends e opportunity score v2;
 - [ ] audit tecnico, editoriale e GEO.
@@ -292,12 +332,11 @@ conversione brief
 ### Track B — Measurement M6
 
 ```text
-CI finale e merge PR #85
-→ deploy CMP-only
-→ checkpoint live iubenda
-→ GTM/GA4 foundation
+PR #91 foundation
+→ workspace GTM e debug
+→ publish/deploy autorizzati
 → verifica dati
-→ Search Console
+→ SEO content readiness
 ```
 
 Publication capability resta una branch separata e non è autorizzata da M6.
