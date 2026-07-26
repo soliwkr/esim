@@ -35,7 +35,7 @@
     "eval:research-quality": "node scripts/evaluate-research-quality-golden.mjs",
     "test:runtime": "npm run build && npm run db:migrate:local && npm run smoke:runtime",
     "test:ui": "npm run build && npm run db:migrate:local && npm run smoke:ui && npm run smoke:claims && npm run smoke:readiness && npm run smoke:drafts && npm run smoke:draft-detail && npm run smoke:queue-audit",
-    "deploy": "npm run build && wrangler deploy --config apps/web/dist/server/wrangler.json",
+    "deploy": "npm run build && node scripts/prepare-production-consent-config.mjs && wrangler deploy --config apps/web/dist/server/wrangler.json",
     "typecheck": "astro check --root apps/web && tsc --noEmit",
     "types": "wrangler types src/worker-configuration.d.ts",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state",
