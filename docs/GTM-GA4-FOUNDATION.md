@@ -13,6 +13,8 @@ Measurement ID: G-GWJ9YPPVJW
 Google Tag Manager account: 6367654517
 Web container: 259190865
 Public container ID: GTM-W3LSK9RZ
+Workspace ID: 3
+Workspace name: M6 - Consent-gated GA4 foundation
 
 Search Console property: sc-domain:senzaroaming.it
 ```
@@ -62,26 +64,76 @@ render_mode: canonical
 site_language: it
 ```
 
-## Contratto container GTM
+## Configurazione workspace GTM verificata
 
-Il container non viene pubblicato da questa branch. La configurazione attesa è:
+Audit API del workspace `3`:
 
-1. variabili Data Layer v2 per:
-   - `sr_ga4_measurement_id`;
-   - `route_class`;
-   - `page_type`;
-   - `content_slug`;
-   - `render_mode`;
-   - `site_language`;
-   - `page_location`;
-2. trigger Custom Event esatto `sr_page_view_ready`;
-3. un solo Google tag diretto a `sr_ga4_measurement_id`;
-4. configurazione `page_location` dal dataLayer;
-5. parametri bounded del dizionario eventi;
-6. nessun tag Ads, Floodlight, remarketing, affiliate o Custom HTML;
-7. nessun trigger All Pages alternativo capace di duplicare il page view.
+```text
+variables: 7
+triggers: 1
+tags: 1
+errors: 0
+container published: no
+```
 
-La pubblicazione del container richiede prima Preview/Tag Assistant, Network e GA4 DebugView.
+Variabili Data Layer v2:
+
+```text
+DLV - sr_ga4_measurement_id
+DLV - route_class
+DLV - page_type
+DLV - content_slug
+DLV - render_mode
+DLV - site_language
+DLV - page_location
+```
+
+Trigger:
+
+```text
+ID: 10
+name: CE - sr_page_view_ready
+type: customEvent
+event name: sr_page_view_ready
+```
+
+Tag:
+
+```text
+ID: 11
+name: GA4 - page_view - consent gated
+type: gaawe
+event: page_view
+measurement ID: {{DLV - sr_ga4_measurement_id}}
+trigger: 10
+tag firing option: oncePerLoad
+additional consent required: analytics_storage
+```
+
+Parametri evento:
+
+```text
+page_location
+route_class
+page_type
+content_slug
+render_mode
+site_language
+```
+
+Il workspace non contiene trigger All Pages, History Change o Click; non contiene Ads, Floodlight, remarketing, affiliate o Custom HTML.
+
+## Checkpoint ancora richiesto
+
+La pubblicazione del container richiede prima:
+
+- Consent Overview verificato in UI;
+- Preview e Tag Assistant;
+- Network pre-consenso e post-consenso;
+- rifiuto, consenso, reload e revoca;
+- un solo `page_view`;
+- GA4 DebugView;
+- controllo mobile, tastiera, overflow e performance.
 
 ## Route escluse
 
@@ -116,4 +168,4 @@ build
 → wrangler deploy
 ```
 
-Questa branch non autorizza ancora il deploy. Prima servono container GTM configurato ma non pubblicato, CI verde e verifica in preview/debug.
+Questa branch non autorizza ancora il deploy. CI è verde e il workspace è configurato ma non pubblicato; restano Preview/Tag Assistant, Network, DebugView e il checkpoint completo del consenso.
