@@ -1,8 +1,8 @@
 name: Deploy public consent once
 
 on:
-  push:
-    branches: [main]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -10,10 +10,15 @@ permissions:
 
 concurrency:
   group: senza-roaming-production-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.issue.number == 86 &&
+      github.event.comment.body == '/deploy-consent' &&
+      github.actor == 'soliwkr'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
