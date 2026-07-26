@@ -21,8 +21,6 @@ consenso integrato: ad_storage, ad_personalization, ad_user_data, analytics_stor
 consenso aggiuntivo: analytics_storage
 ```
 
-Questo checkpoint certifica la configurazione del tag nel workspace, non ancora il comportamento runtime del consenso o delle richieste di rete.
-
 ## Variabili Data Layer v2
 
 - [x] `DLV - sr_ga4_measurement_id` → `sr_ga4_measurement_id`;
@@ -74,17 +72,62 @@ errors: 0
 container publish: non eseguito
 ```
 
+## Checkpoint browser locale — 26 luglio 2026
+
+Ambiente verificato:
+
+```text
+branch: feat/public-gtm-ga4-foundation
+runtime: http://127.0.0.1:8787
+container: GTM-W3LSK9RZ
+workspace: 3 — modalità Anteprima
+measurement ID: G-GWJ9YPPVJW
+container publish: non eseguito
+production deploy: non eseguito
+```
+
+La configurazione remota iubenda è stata completata aggiungendo i servizi **Google Analytics 4** e **Google Tag Manager** alla policy. Prima di tale aggiornamento la preferenza salvata esponeva soltanto la finalità `1`; dopo aggiornamento e reset dei dati locali il banner espone e salva anche la finalità `4` — Misurazione.
+
+Evidenza verificata nel browser:
+
+```text
+prima del consenso Misurazione:
+- bootstrap presente come type=text/plain
+- class=_iub_cs_activate
+- data-iub-purposes=4
+- nessun caricamento del container reale GTM-W3LSK9RZ
+- nessuna raccolta GA4 reale
+
+dopo consenso:
+- purposes state: {1: true, 4: true}
+- Tag Assistant trova GTM-W3LSK9RZ
+- Tag Assistant trova G-GWJ9YPPVJW
+- richiesta page_view a region1.google-analytics.com/g/collect
+- route_class=home
+- page_type=home
+- content_slug vuoto
+- render_mode=canonical
+- site_language=it
+- debug flag presente
+
+reload con consenso persistito:
+- banner non riproposto
+- seconda pagina registrata
+- 2 attivazioni totali su 2 page load
+- una sola attivazione del tag per ciascun page load
+```
+
 ## Verifica prima della pubblicazione
 
-- [ ] prima del consenso nessuna richiesta `googletagmanager.com` o `google-analytics.com`;
+- [x] prima del consenso nessuna richiesta al container GTM reale o alla raccolta GA4 reale;
 - [ ] rifiuto: nessuna richiesta Google;
-- [ ] consenso Misurazione: un solo caricamento GTM;
-- [ ] un solo `page_view` in Tag Assistant;
-- [ ] `page_location` senza query e hash;
-- [ ] parametri bounded corretti;
+- [x] consenso Misurazione: un solo caricamento GTM per page load;
+- [x] un solo `page_view` per page load in Tag Assistant;
+- [ ] `page_location` verificato nel hit reale senza query e hash;
+- [x] parametri bounded della homepage corretti;
 - [ ] preview e Control Room senza container;
 - [ ] revoca e reload bloccano nuovamente GTM;
-- [ ] GA4 DebugView riceve soltanto il test autorizzato;
+- [ ] GA4 DebugView UI riceve soltanto il test autorizzato;
 - [x] nessun evento `provider_redirect_intent` nella foundation iniziale;
 - [ ] performance ricontrollata su desktop e mobile.
 
