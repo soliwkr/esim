@@ -4,99 +4,93 @@ Ultimo aggiornamento: **26 luglio 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
-## Now — chiudere PR #85
+## Now — chiudere PR #90
+
+Branch:
 
 ```text
-branch feat/public-consent-foundation
-PR #85 — Activate iubenda remote consent foundation
-CI applicativa #421 completamente verde
+ops/run-public-consent-deploy-now
 ```
 
-La dashboard iubenda reale non ha restituito il vecchio snippet con `siteId` e `cookiePolicyId`. Ha restituito un embed remoto unificato:
+Stato verificato:
 
 ```text
-https://embeds.iubenda.com/widgets/{public-uuid}.js
+CMP-only deploy: riuscito
+workflow run id: 30197982680
+server-side live boundary: verificato
+GTM: spento
+GA4: spento
 ```
 
-La branch adatta quindi la foundation della PR #84 al contratto effettivo del vendor.
+La branch mantiene soltanto il contratto durevole:
 
-### Verificato dalla CI applicativa #421
+- `scripts/prepare-production-d1-binding.mjs`;
+- `scripts/smoke-production-deploy-config.mjs`;
+- `npm run deploy` con preparazione consent e D1;
+- documentazione canonica aggiornata.
 
-- resolver server-only fail-closed per `CMP_PROVIDER` e `CMP_EMBED_ID`;
-- UUID normalizzato e validato;
-- configurazioni assenti, incomplete, non supportate o malformate disabilitate senza output parziale;
-- un solo embed remoto iubenda sulle route canonical indexable;
-- nessuna CMP su preview, Control Room, API, redirect, sitemap, robots, 404 e file probe;
-- nessun vecchio triplet config inline/autoblocking/runtime;
-- footer per riaprire le preferenze;
-- Privacy page condizionale;
-- base Wrangler e regressioni storiche ancora CMP-off;
-- preparazione deterministica del config compilato prima del deploy reale;
-- deploy bloccato se `GTM_ID` non è vuoto;
-- nessuna richiesta Google Analytics, Tag Manager, Ads o DoubleClick;
-- desktop, mobile, tastiera e assenza overflow;
-- migrazioni D1 invariate;
-- quality gate, golden evaluation e Container verdi;
-- tutte le suite Control Room verdi.
+Gli hook temporanei usati per il deploy osservabile sono stati rimossi prima del merge.
 
 ### Prima del merge
 
 ```text
-STATUS + NEXT + DECISIONS + risultato spike sullo stesso head
-→ CI finale code + documentazione
-→ aggiornamento descrizione PR
+STATUS + NEXT + DECISIONS + deploy result sullo stesso head
+→ CI finale completa
+→ aggiornamento descrizione PR #90
 → ready
 → merge con expected head SHA
 ```
 
-La CI #421 non viene riutilizzata come scorciatoia dopo gli aggiornamenti documentali.
+Il run di deploy non sostituisce la CI finale sul codice ripulito e documentato.
 
-## Subito dopo il merge — deploy CMP-only
+## Subito dopo — checkpoint UX iubenda reale
 
-Il comando di deploy:
+Aprire `https://senzaroaming.it` in un browser pulito o in navigazione privata.
 
-```text
-npm run build
-→ scripts/prepare-production-consent-config.mjs
-→ wrangler deploy sul config compilato
-```
-
-La preparazione di produzione imposta soltanto:
-
-```text
-CMP_PROVIDER=iubenda
-CMP_EMBED_ID=<UUID pubblico versionato>
-GTM_ID=
-```
-
-Il config base resta vuoto per mantenere fail-closed sviluppo, CI e regressioni storiche. Il deploy reale viene invece preparato in modo deterministico dal repository, senza valori manuali nella dashboard Cloudflare.
-
-## Checkpoint live obbligatorio
-
-Dopo il deploy verificare nel browser reale:
+Verificare:
 
 - prima visita mostra il banner;
 - Accetta funziona;
 - Rifiuta funziona;
 - Personalizza funziona;
-- consenso e rifiuto persistono;
+- consenso e rifiuto persistono dopo reload;
 - il footer riapre le preferenze;
-- revoca e modifica funzionano;
-- configurazione remota iubenda corrisponde a GDPR globale e Basic Consent Mode;
+- modifica e revoca funzionano;
+- configurazione remota applica GDPR globale;
+- Google Consent Mode resta nel contratto Basic previsto;
 - nessuna richiesta GTM, GA4 o Google Analytics;
 - nessuna CMP su `/astro-foundation*`;
 - nessuna CMP nella Control Room;
 - nessuna CMP su 404, sitemap, robots, API e `/go/*`;
-- pagina leggibile se la risorsa vendor non risponde;
-- accessibilità da tastiera;
+- pagina leggibile se iubenda non risponde;
+- banner utilizzabile da tastiera;
 - nessun overflow mobile;
 - impatto prestazionale registrato;
-- Privacy page coerente;
-- nessun cambiamento D1 o editoriale.
+- Privacy coerente con il comportamento reale.
 
-Il vendor non viene dichiarato definitivamente accettato finché questo checkpoint non è completo.
+Il checkpoint automatico ha già provato route e HTML server-side. Questa verifica chiude invece UI, persistenza, revoca e comportamento reale del vendor.
 
-## Dopo il checkpoint CMP — GTM/GA4 foundation
+## Decisione vendor
+
+Dopo il checkpoint UX:
+
+```text
+tutti i criteri superati
+→ iubenda accettata definitivamente
+
+blocco funzionale, accessibilità o performance non accettabile
+→ rollback CMP
+→ valutazione fallback CookieYes
+```
+
+Rollback CMP-only:
+
+- ripristinare configurazione vuota nel preparatore production consent;
+- nuovo deploy controllato;
+- verificare assenza embed e link preferenze;
+- registrare il risultato.
+
+## Dopo l’accettazione CMP — GTM/GA4 foundation
 
 Branch separata:
 
@@ -104,12 +98,12 @@ Branch separata:
 feat/public-gtm-ga4-foundation
 ```
 
-Non parte prima della verifica live CMP.
+Non parte prima della chiusura del checkpoint UX iubenda.
 
 Prima release:
 
 - un solo container GTM;
-- GTM assente prima del consenso analytics;
+- nessun GTM prima del consenso analytics;
 - una sola configurazione GA4;
 - un solo `page_view` per pagina;
 - `page_location = origin + pathname`;
@@ -154,8 +148,7 @@ La legacy privata resta finché serve come fallback operativo.
 
 ## Freeze immediato
 
-- niente deploy prima di CI finale e merge della PR #85;
-- niente GTM o GA4 nella branch CMP-only;
+- niente GTM o GA4 prima della chiusura UX CMP;
 - niente Advanced Consent Mode o cookieless pings;
 - niente tracking pre-consenso;
 - niente eventi fuori dal dizionario;
@@ -163,7 +156,7 @@ La legacy privata resta finché serve come fallback operativo.
 - niente analytics nella Control Room;
 - niente Ads, remarketing o affiliate tracking;
 - niente sitemap submission prematura;
-- niente secret nel repository;
+- niente secret o UUID D1 nel repository;
 - niente mutation D1, Workflow, Container, AI o gate editoriali;
 - niente pubblicazione automatica;
 - niente rimozione legacy durante M6.
