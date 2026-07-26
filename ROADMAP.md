@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **25 luglio 2026**.
+Ultimo aggiornamento: **26 luglio 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`.
 
@@ -171,13 +171,7 @@ CI #406
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: scope documentale in corso; nessun tracking attivo.**
-
-Branch:
-
-```text
-docs/measurement-consent-scope
-```
+**Stato: CMP-only implementata sulla PR #85; deploy e verifica vendor live ancora aperti.**
 
 Contratti versionati:
 
@@ -185,43 +179,49 @@ Contratti versionati:
 docs/MEASUREMENT-CONSENT-SCOPE.md
 docs/CMP-SPIKE.md
 docs/MEASUREMENT-EVENT-DICTIONARY.md
+docs/IUBENDA-CONSENT-SPIKE-RESULT.md
 ```
 
-### Discovery completata
+### Discovery e scope
 
 - [x] `GTM_ID` esiste come variabile vuota;
-- [x] nessun renderer usa `GTM_ID`;
-- [x] nessuno snippet GTM, GA4, `gtag` o CMP è attivo;
-- [x] JSON-LD resta l’unico script pubblico;
-- [x] privacy page dichiara correttamente analytics inattivi;
+- [x] nessun renderer usa GTM;
+- [x] nessuno snippet GTM, GA4 o `gtag` è attivo;
+- [x] privacy page descrive il comportamento effettivo;
 - [x] redirect provider registra già i click effettivi server-side in D1;
-- [x] preview e Control Room sono escluse dalla futura misurazione.
-
-### Decisione proposta per la prima release
-
-```text
-Consent Mode Basic
-analytics_storage denied di default
-nessun tag Google prima del consenso
-ad_storage denied
-ad_user_data denied
-ad_personalization denied
-```
-
-- [x] Basic Mode scelto nello scope iniziale;
-- [x] advanced/cookieless pings esclusi da M6;
+- [x] preview e Control Room sono escluse dalla futura misurazione;
+- [x] Basic Consent Mode scelto;
+- [x] Advanced/cookieless pings esclusi;
 - [x] analytics-only, senza Ads o affiliate;
-- [x] route incluse/escluse definite;
 - [x] dati vietati e URL sanitizzati definiti;
 - [x] event dictionary v1 definito;
-- [x] iubenda selezionata come candidato principale per lo spike;
-- [ ] CI e merge della PR documentale;
-- [ ] spike tecnico iubenda;
-- [ ] decisione vendor finale;
-- [ ] consent foundation;
-- [ ] GTM e GA4;
-- [ ] verifica dati reali;
-- [ ] Search Console e sitemap submission.
+- [x] PR documentale #83 mergiata — CI #408.
+
+### CMP foundation
+
+```text
+PR #84 — spike tecnico legacy
+merge 6e3b0047af67219af7429749003d86f36af61237
+CI finale #415
+
+PR #85 — remote embed reale e activation foundation
+CI applicativa #421 verde
+```
+
+- [x] boundary CMP server-only fail-closed;
+- [x] route incluse ed escluse verificate;
+- [x] formato reale dell’account identificato come embed remoto UUID;
+- [x] contratto `CMP_PROVIDER` + `CMP_EMBED_ID` implementato;
+- [x] un solo script remoto sulle pagine canonical indexable;
+- [x] regressioni storiche mantenute CMP-off;
+- [x] preparazione deterministica del config compilato di produzione;
+- [x] deploy guard che richiede `GTM_ID` vuoto;
+- [x] CI applicativa completa della PR #85;
+- [ ] CI finale code + documentazione;
+- [ ] merge PR #85;
+- [ ] deploy CMP-only;
+- [ ] verifica live banner, persistenza, revoca, rete e performance;
+- [ ] decisione vendor finale.
 
 ### Eventi iniziali
 
@@ -233,15 +233,24 @@ consent_update (locale/debug, non GA4)
 
 `article_view` e `listing_view` non sono eventi separati: vengono descritti da parametri bounded del `page_view`.
 
+### Lavoro successivo
+
+- [ ] GTM e GA4 foundation post-consenso;
+- [ ] verifica dati reali con Tag Assistant, Network e DebugView;
+- [ ] Search Console;
+- [ ] sitemap submission.
+
 ### Ordine obbligatorio
 
 ```text
 scope e inventario
 → spike CMP
-→ Consent Mode Basic
+→ formato reale account
+→ consent foundation CMP-only
+→ verifica live CMP
 → GTM
 → GA4
-→ verifica live
+→ verifica dati
 → Search Console
 → sitemap submission
 ```
@@ -283,11 +292,11 @@ conversione brief
 ### Track B — Measurement M6
 
 ```text
-scope consent e misurazione
-→ spike iubenda
-→ consent foundation
+CI finale e merge PR #85
+→ deploy CMP-only
+→ checkpoint live iubenda
 → GTM/GA4 foundation
-→ verifica live
+→ verifica dati
 → Search Console
 ```
 
