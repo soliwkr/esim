@@ -8,8 +8,20 @@ Il container `GTM-W3LSK9RZ` resta non pubblicato finché questa checklist non è
 - [x] workspace ID `3` verificato;
 - [x] nessun tag Ads, Floodlight, remarketing, affiliate o Custom HTML;
 - [x] nessun trigger All Pages alternativo;
-- [ ] Consent Overview da verificare in UI;
+- [x] Consent Overview verificato in UI;
 - [x] nessuna modifica al container pubblicato durante la preparazione.
+
+Checkpoint Consent Overview del 26 luglio 2026:
+
+```text
+consenso non configurato: 0 tag
+consenso configurato: 1 tag
+tag: GA4 - page_view - consent gated
+consenso integrato: ad_storage, ad_personalization, ad_user_data, analytics_storage
+consenso aggiuntivo: analytics_storage
+```
+
+Questo checkpoint certifica la configurazione del tag nel workspace, non ancora il comportamento runtime del consenso o delle richieste di rete.
 
 ## Variabili Data Layer v2
 
