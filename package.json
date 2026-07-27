@@ -7,7 +7,7 @@
     "dev": "npm run build && wrangler dev --config apps/web/dist/server/wrangler.json",
     "dev:astro": "astro dev --root apps/web",
     "build": "astro build --root apps/web",
-    "smoke:runtime": "node scripts/smoke-astro-runtime.mjs && npm run smoke:public-route-policy && npm run smoke:public-shell && npm run smoke:public-homepage-candidate && npm run smoke:public-trust-pages && npm run smoke:public-listing-previews && npm run smoke:public-article-renderer && npm run smoke:public-seo-contracts && npm run smoke:public-canonical-astro && npm run smoke:public-seo-endpoint-contract && npm run smoke:public-seo-endpoints && npm run smoke:public-apex-cutover && npm run smoke:public-consent && npm run smoke:public-measurement && npm run smoke:production-deploy-config && npm run smoke:public-catalog-pilot && npm run smoke:public-catalog-pilot-d1",
+    "smoke:runtime": "node scripts/smoke-astro-runtime.mjs && npm run smoke:public-route-policy && npm run smoke:public-shell && npm run smoke:public-homepage-candidate && npm run smoke:public-trust-pages && npm run smoke:public-listing-previews && npm run smoke:public-article-renderer && npm run smoke:public-seo-contracts && npm run smoke:public-canonical-astro && npm run smoke:public-seo-endpoint-contract && npm run smoke:public-seo-endpoints && npm run smoke:public-apex-cutover && npm run smoke:public-consent && npm run smoke:public-measurement && npm run smoke:production-deploy-config && npm run smoke:public-catalog-pilot && npm run smoke:public-catalog-pilot-d1 && npm run smoke:seo-gsc-export",
     "smoke:public-route-policy": "node scripts/smoke-public-route-policy.mjs",
     "smoke:public-shell": "node scripts/smoke-public-shell.mjs",
     "smoke:public-homepage-candidate": "node scripts/smoke-public-homepage-candidate.mjs",
@@ -24,6 +24,7 @@
     "smoke:production-deploy-config": "node scripts/smoke-production-deploy-config.mjs",
     "smoke:public-catalog-pilot": "node scripts/smoke-public-catalog-pilot.mjs",
     "smoke:public-catalog-pilot-d1": "node scripts/smoke-public-catalog-pilot-d1.mjs",
+    "smoke:seo-gsc-export": "node scripts/smoke-search-console-export.mjs",
     "smoke:ui": "node scripts/smoke-control-room-ui.mjs && npm run smoke:catalog-remote-audit && npm run smoke:brief-decisions",
     "smoke:catalog-remote-audit": "node scripts/smoke-public-catalog-remote-audit.mjs",
     "smoke:brief-decisions": "node scripts/run-smoke-control-room-brief-decisions.mjs",
@@ -43,6 +44,7 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "keywords:intake": "node scripts/build-keyword-research.mjs",
+    "seo:gsc-export": "node scripts/export-search-console.mjs",
     "research:ingest": "node scripts/ingest-last30days.mjs"
   },
   "dependencies": {
