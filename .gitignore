@@ -9,5 +9,6 @@ apps/web/node_modules/
 .env.*
 src/worker-configuration.d.ts
 wrangler.production.jsonc
+research/seo/gsc/*/
 .DS_Store
 *.log
