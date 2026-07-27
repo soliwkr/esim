@@ -27,7 +27,7 @@
 }
 
 .listing-hero h1 {
-  max-width: 13ch;
+  max-width: 15ch;
   margin: 0;
   color: var(--public-sea-dark);
   font-family: Georgia, "Times New Roman", serif;
@@ -124,8 +124,84 @@
   font-size: 1rem;
 }
 
+.listing-curated-section {
+  padding: clamp(4rem, 8vw, 6rem) 0 0;
+}
+
+.listing-curated-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+  align-items: end;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.listing-curated-heading h2 {
+  max-width: 17ch;
+  margin: 0;
+  color: var(--public-sea-dark);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.1rem, 4vw, 3.7rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.listing-curated-heading > p {
+  margin: 0;
+  color: var(--public-ink-soft);
+  line-height: 1.7;
+}
+
+.listing-curated-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.listing-curated-card {
+  display: flex;
+  min-height: 13rem;
+  flex-direction: column;
+  padding: 1.45rem;
+  border: 1px solid var(--public-line);
+  border-radius: var(--public-radius-md);
+  background: var(--public-white);
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.listing-curated-card:hover {
+  border-color: rgb(11 111 117 / 42%);
+  box-shadow: 0 1.1rem 2.6rem rgb(7 63 67 / 9%);
+  transform: translateY(-2px);
+}
+
+.listing-curated-card h3 {
+  margin: 0;
+  color: var(--public-sea-dark);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.listing-curated-card p {
+  margin: 1rem 0 1.5rem;
+  color: var(--public-ink-soft);
+  line-height: 1.65;
+}
+
+.listing-curated-card span {
+  margin-top: auto;
+  color: var(--public-sea);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 @media (max-width: 860px) {
-  .listing-hero-grid {
+  .listing-hero-grid,
+  .listing-curated-heading {
     grid-template-columns: 1fr;
     align-items: start;
   }
@@ -134,5 +210,9 @@
 @media (max-width: 560px) {
   .listing-route-nav {
     grid-template-columns: 1fr;
+  }
+
+  .listing-curated-card {
+    min-height: auto;
   }
 }
