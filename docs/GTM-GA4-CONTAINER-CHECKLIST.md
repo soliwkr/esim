@@ -151,6 +151,33 @@ GA4 DebugView:
 - nessun provider_redirect_intent
 ```
 
+## Checkpoint performance locale — 27 luglio 2026
+
+I run Lighthouse 13.0.2 sono stati eseguiti sul runtime locale post-consenso, in una finestra senza estensioni e senza Tag Assistant. Il precedente run con estensioni attive è stato escluso perché Lighthouse segnalava esplicitamente l'interferenza del browser.
+
+```text
+mobile:
+- Performance: 89
+- FCP: 1,7 s
+- LCP: 3,2 s
+- Speed Index: 1,7 s
+- Total Blocking Time: 170 ms
+- CLS: 0
+- run warnings: 0
+
+desktop:
+- Performance: 100
+- FCP: 0,7 s
+- LCP: 0,7 s
+- Speed Index: 0,7 s
+- Total Blocking Time: 20 ms
+- Time to Interactive: 1,2 s
+- CLS: 0
+- run warnings: 0
+```
+
+Il carico residuo osservato è attribuito principalmente agli script terzi iubenda e GTM. Non viene aperto un intervento di ottimizzazione vendor dentro questa foundation.
+
 ## Verifica prima della pubblicazione
 
 - [x] prima del consenso nessuna richiesta al container GTM reale o alla raccolta GA4 reale;
@@ -163,7 +190,7 @@ GA4 DebugView:
 - [x] revoca e reload bloccano nuovamente GTM;
 - [x] GA4 DebugView UI riceve il test autorizzato;
 - [x] nessun evento `provider_redirect_intent` nella foundation iniziale;
-- [ ] performance ricontrollata su desktop e mobile.
+- [x] performance ricontrollata su desktop e mobile.
 
 ## Pubblicazione
 
