@@ -4,7 +4,7 @@ Ultimo aggiornamento: **26 luglio 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
-## Now — chiudere i checkpoint residui della PR #91
+## Now — chiudere il checkpoint performance della PR #91
 
 Branch e PR:
 
@@ -20,7 +20,7 @@ CMP iubenda: live
 Google access: verificato
 Search Console: collegata
 sitemap: inviata
-CI PR #91: verde sul commit precedente al checkpoint docs
+CI #463: verde
 workspace GTM M6: configurato, non pubblicato
 Preview GTM locale: verificata
 GTM produzione: spento
@@ -71,7 +71,7 @@ Checklist:
 docs/GTM-GA4-CONTAINER-CHECKLIST.md
 ```
 
-## Checkpoint browser locale — completato per grant e reload
+## Checkpoint browser locale — completato salvo performance
 
 Ambiente:
 
@@ -87,27 +87,26 @@ La policy iubenda è stata completata aggiungendo i servizi **Google Analytics 4
 Verificato:
 
 1. prima del consenso il bootstrap resta `type=text/plain` e il container reale non viene caricato;
-2. il consenso salvato espone `{1: true, 4: true}`;
-3. Tag Assistant trova `GTM-W3LSK9RZ` e `G-GWJ9YPPVJW` soltanto dopo il grant;
-4. parte un hit `page_view` verso GA4;
-5. i parametri homepage risultano bounded: `home`, `home`, slug vuoto, `canonical`, `it`;
-6. il reload conserva il consenso e non ripropone il banner;
-7. due page load producono due attivazioni totali: una sola per ciascun caricamento.
+2. rifiuto iniziale e reload mantengono finalità `4=false`, bootstrap non eseguito e zero richieste GTM/GA4 reali;
+3. il grant salva `{1: true, 4: true}` e carica GTM/GA4 soltanto dopo consenso;
+4. Tag Assistant mostra un solo `page_view` per page load;
+5. il reload conserva la scelta senza doppia attivazione;
+6. la revoca seguita da reload blocca nuovamente GTM/GA4;
+7. `page_location` rimuove query string e hash;
+8. i parametri homepage risultano bounded: `home`, `home`, slug vuoto, `canonical`, `it`;
+9. preview, Control Room, API, sitemap, robots, redirect e 404 restano senza measurement;
+10. GA4 DebugView riceve il test autorizzato con i parametri previsti;
+11. nessun `provider_redirect_intent` è presente.
 
-## Checkpoint residui prima di rendere pronta la PR
+## Unico checkpoint residuo prima di rendere pronta la PR
 
-1. rifiuto esplicito: nessuna richiesta Google reale;
-2. `page_location` nel hit reale senza query string o hash;
-3. revoca della finalità Misurazione e reload: GTM nuovamente bloccato;
-4. route preview e Control Room senza container nel browser reale;
-5. verifica nella UI GA4 DebugView del solo test autorizzato;
-6. controllo mobile, tastiera, overflow e performance;
-7. CI verde sull'ultimo commit documentale.
+1. controllo performance desktop e mobile sul runtime locale con la foundation post-consenso;
+2. CI verde sull'ultimo commit documentale.
 
 ## Dopo il checkpoint
 
 ```text
-checkpoint residui verificati
+performance verificata
 → PR #91 ready
 → merge con expected head SHA
 → pubblicazione container esplicitamente autorizzata
@@ -152,8 +151,8 @@ La legacy privata resta finché serve come fallback operativo.
 
 ## Freeze immediato
 
-- niente deploy o merge PR #91 prima del checkpoint integrato;
-- niente pubblicazione container senza completare i checkpoint residui;
+- niente deploy o merge PR #91 prima del checkpoint performance;
+- niente pubblicazione container senza completare il checkpoint residuo;
 - niente Advanced Consent Mode o cookieless pings;
 - niente tracking pre-consenso;
 - niente eventi fuori dal dizionario;
