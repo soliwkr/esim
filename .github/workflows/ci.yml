@@ -276,7 +276,7 @@ jobs:
             const { body } = await load(pathname, statuses);
             assert.doesNotMatch(
               body,
-              /embeds\.iubenda\.com|_iub_cs_activate|sr_page_view_ready|GTM-W3LSK9RZ|G-GWJYPPVJW/i,
+              /embeds\.iubenda\.com|_iub_cs_activate|sr_page_view_ready|GTM-W3LSK9RZ|G-GWJ9YPPVJW/i,
               `${pathname} must exclude CMP and measurement markers.`,
             );
           }
