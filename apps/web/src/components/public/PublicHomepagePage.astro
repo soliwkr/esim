@@ -49,15 +49,15 @@ const methodHref = publicTrustPath(mode, 'metodo')
     <section class="public-hero" aria-labelledby="hero-title">
       <div class="public-container hero-grid">
         <div>
-          <p class="eyebrow">Internet in viaggio, senza improvvisare</p>
-          <h1 id="hero-title">Trova la eSIM giusta prima di partire.</h1>
+          <p class="eyebrow">eSIM da viaggio, senza improvvisare</p>
+          <h1 id="hero-title">Scegli la eSIM giusta per il tuo viaggio.</h1>
           <p class="hero-lead">
-            Guide italiane su destinazioni, telefoni compatibili e provider. Mettiamo in ordine dati,
-            durata, hotspot, attivazione e limiti reali senza fingere che un piano vada bene per tutti.
+            Parti dalla destinazione, verifica che il telefono sia compatibile e confronta soltanto i
+            criteri che cambiano davvero: durata, dati, hotspot, attivazione e limiti dichiarati.
           </p>
           <div class="hero-actions">
             <a class="public-button" href={destinationsHref}>Scegli la destinazione</a>
-            <a class="public-button secondary" href={guidesHref}>Capisci come funziona</a>
+            <a class="public-button secondary" href={guidesHref}>Risolvi un dubbio pratico</a>
           </div>
         </div>
 
@@ -65,10 +65,10 @@ const methodHref = publicTrustPath(mode, 'metodo')
           <p class="card-kicker">Prima della scelta</p>
           <h2 id="decision-title">Quattro domande valgono più di cento offerte.</h2>
           <ol class="decision-list">
-            <li><span>1</span><div>Il telefono supporta davvero la eSIM?</div></li>
-            <li><span>2</span><div>Dove andrai e per quanti giorni?</div></li>
-            <li><span>3</span><div>Quanti dati, hotspot e chiamate ti servono?</div></li>
-            <li><span>4</span><div>Quali limiti sono dichiarati nelle condizioni?</div></li>
+            <li><span>1</span><div>Il modello esatto del telefono supporta la eSIM?</div></li>
+            <li><span>2</span><div>In quale Paese andrai e per quanti giorni?</div></li>
+            <li><span>3</span><div>Quanti dati, hotspot e chiamate ti servono davvero?</div></li>
+            <li><span>4</span><div>Quali condizioni e limiti risultano verificati?</div></li>
           </ol>
         </aside>
       </div>
@@ -82,8 +82,8 @@ const methodHref = publicTrustPath(mode, 'metodo')
             <h2 id="start-title">Una strada diversa per ogni domanda.</h2>
           </div>
           <p>
-            Non moltiplichiamo pagine cambiando soltanto il nome di un Paese. Ogni sezione deve aiutare
-            una decisione distinta e restare utile anche senza acquistare nulla.
+            La homepage orienta. Le risposte complete appartengono alla destinazione, alla guida pratica
+            o al confronto corretto, così ogni intento mantiene una sola pagina proprietaria.
           </p>
         </div>
 
@@ -91,21 +91,21 @@ const methodHref = publicTrustPath(mode, 'metodo')
           <a class="route-card" href={destinationsHref}>
             <span class="route-index">01 · DOVE VAI</span>
             <h3>Destinazioni</h3>
-            <p>Parti dal Paese, dalla durata del viaggio e dalle condizioni che possono cambiare sul posto.</p>
+            <p>Scegli il Paese e raggiungi la guida che possiede condizioni, reti e limiti specifici.</p>
             <span class="route-arrow">Esplora le destinazioni →</span>
           </a>
 
           <a class="route-card" href={guidesHref}>
-            <span class="route-index">02 · COME FUNZIONA</span>
+            <span class="route-index">02 · COSA DEVI FARE</span>
             <h3>Guide pratiche</h3>
-            <p>Compatibilità, installazione, attivazione, hotspot, consumi e problemi prima della partenza.</p>
+            <p>Compatibilità, installazione, attivazione, consumi e problemi spiegati in percorsi distinti.</p>
             <span class="route-arrow">Leggi le guide →</span>
           </a>
 
           <a class="route-card" href={comparisonsHref}>
             <span class="route-index">03 · COSA CAMBIA</span>
             <h3>Confronti</h3>
-            <p>Metti a confronto opzioni e limiti senza trasformare una commissione in una classifica automatica.</p>
+            <p>Valuta provider, piani e limiti con criteri dichiarati, senza una classifica automatica.</p>
             <span class="route-arrow">Vai ai confronti →</span>
           </a>
         </div>
@@ -116,7 +116,7 @@ const methodHref = publicTrustPath(mode, 'metodo')
       id="featured-guides"
       eyebrow="Dal catalogo pubblicato"
       title="Guide essenziali"
-      description="Soltanto pagine già pubblicate entrano in questa selezione. Draft e contenuti in review restano esclusi."
+      description="Pagine fondamentali e approfondimenti già pubblicati. Draft e contenuti in review restano esclusi."
       items={featured}
       mode={mode}
     />
@@ -125,7 +125,7 @@ const methodHref = publicTrustPath(mode, 'metodo')
       id="main-destinations"
       eyebrow="Partenze frequenti"
       title="Destinazioni principali"
-      description="Guide pubblicate organizzate per destinazione, ordinate dallo stesso read model usato dal sito corrente."
+      description="Guide pubblicate organizzate per Paese, ognuna proprietaria delle condizioni specifiche della destinazione."
       items={destinations}
       mode={mode}
     />
@@ -159,7 +159,7 @@ const methodHref = publicTrustPath(mode, 'metodo')
           <h2 id="trust-title">Meno promesse. Più stato visibile.</h2>
           <p>
             {preview
-              ? 'Questa preview mostra il futuro involucro pubblico. Non pubblica contenuti in review, non attiva affiliazioni e non sostituisce ancora il renderer corrente.'
+              ? 'Questa preview non pubblica contenuti in review, non attiva affiliazioni e resta isolata dalle route canoniche.'
               : 'Il sito pubblica soltanto contenuti che hanno superato i gate editoriali previsti. Le affiliazioni restano disabilitate finché disclosure, misurazione e controlli non sono pronti.'}
           </p>
         </div>
@@ -167,10 +167,10 @@ const methodHref = publicTrustPath(mode, 'metodo')
         <ul class="trust-list">
           <li><strong>Nessuna pubblicazione autonoma</strong><span>L’AI può aiutare ricerca e draft, ma non promuove una pagina a pubblicata.</span></li>
           <li><strong>Informazioni con scadenza</strong><span>Le condizioni commerciali vengono trattate come dati verificati in un momento preciso.</span></li>
-          <li><strong>Affiliazioni ancora disabilitate</strong><span>Monetizzazione, disclosure e misurazione devono essere pronte insieme.</span></li>
+          <li><strong>Una pagina per ogni intento</strong><span>Homepage e hub distribuiscono; guide e confronti specialistici rispondono.</span></li>
           <li>
             <strong>{preview ? 'Preview isolata' : 'Route pubbliche controllate'}</strong>
-            <span>{preview ? 'L’apice e tutte le route canoniche continuano a essere servite dal sistema pubblico esistente.' : 'Le route pubbliche leggono soltanto il catalogo pubblicato e mantengono separati contenuto, misurazione e monetizzazione.'}</span>
+            <span>{preview ? 'Canonical, cache e collegamenti restano confinati nel namespace di prova.' : 'Le route pubbliche leggono soltanto il catalogo pubblicato e mantengono separati contenuto, misurazione e monetizzazione.'}</span>
           </li>
         </ul>
       </div>
