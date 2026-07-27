@@ -265,7 +265,7 @@ homepage: owner dell’intento umbrella “esim viaggio”
 /destinazioni: hub geografico, non pagina Paese
 /guide: hub dei problemi pratici
 /confronti: hub comparativo, non classifica generale
-CI #506: success
+CI finale #508: success
 deploy: non autorizzato
 ```
 
@@ -314,7 +314,7 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 - nessun tracking Google prima del consenso Misurazione;
 - nessun analytics nella Control Room o preview;
 - nessun Ads, remarketing o affiliazione;
-- nessuna PII, token, JWT o ID editoriali negli eventi;
+- nessuna PII, token, JWT o ID editoriali interni negli eventi;
 - nessuna mutation o migration D1;
 - nessun cambio routing;
 - nessuna publication capability;
