@@ -29,9 +29,7 @@ docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
 
 Non riaprire la foundation per aggiungere eventi, Ads o affiliazioni. Ogni nuova capacità measurement richiede dizionario eventi, scope e branch separati.
 
-## Now — chiusura baseline M7
-
-Completato sulla branch stacked:
+## M7 baseline e Search Console — chiuse
 
 ```text
 PR #95: baseline SEO e keyword ownership
@@ -46,24 +44,9 @@ data: incomplete dal 2026-07-26
 
 L'assenza iniziale di query e pagine non modifica la keyword map e non autorizza nuove submission.
 
-Ordine operativo immediato:
+## Prima slice on-page M7 — verificata, non deployata
 
-```text
-1. CI e review finali PR #95
-2. merge PR #95
-3. riallineare la base della PR #96 a main, se richiesto da GitHub
-4. CI e review finali PR #96
-5. merge PR #96
-6. aprire una PR separata per homepage e tre listing
-7. verificare preview e smoke
-8. affrontare /migliore-esim in una slice successiva
-```
-
-Nessun deploy pubblico è implicito nella chiusura documentale e nel tool locale M7.
-
-## Prima slice on-page M7
-
-Scope:
+PR #97 applica la baseline a:
 
 ```text
 homepage
@@ -72,18 +55,60 @@ homepage
 /confronti
 ```
 
-Output già definiti dalla baseline:
+Stato verificato:
 
-- query target primaria e secondarie per pagina;
-- intento e fase del viaggio;
-- cannibalizzazioni e query escluse;
-- title, H1, promessa e outline;
-- internal linking minimo;
-- priorità editoriale e criterio di successo;
+```text
+homepage owner: esim viaggio
+hub geografico: /destinazioni
+hub pratico: /guide
+hub comparativo: /confronti
+CI #506: success
+runtime smoke: success
+Control Room smoke: success
+deploy: non autorizzato
+```
+
+La slice contiene title, description, H1, promessa, criteri e internal linking verso sole URL esistenti. Preview e canonical usano URL coerenti con il rispettivo namespace.
+
+Non contiene nuove route, pSEO, backend, D1, Workflow, Container, AI, publication capability, affiliazioni o nuovi eventi analytics.
+
+## Now — chiusura PR #97
+
+Ordine immediato:
+
+```text
+1. merge PR #97 con merge commit
+2. verificare CI sul merge in main
+3. non eseguire deploy pubblico
+4. aprire una nuova branch per /migliore-esim
+```
+
+Il deploy e la verifica live della homepage e dei tre hub richiedono un'autorizzazione esplicita separata.
+
+## Prossima slice M7 — `/migliore-esim`
+
+Obiettivo:
+
+```text
+intent commerciale “migliore esim”
+→ struttura decisionale verificabile
+→ criteri e claim datati
+→ fonti e provenance
+→ internal linking
+→ CTA provider coerenti con AFFILIATE_MODE
+→ preview e smoke
+```
+
+Confini:
+
+- una sola pagina decisionale generale;
+- nessuna classifica automatica;
+- nessun vincitore universale senza scenario dichiarato;
+- nessun claim commerciale privo di fonte valida e freshness;
+- nessuna attivazione affiliazioni implicita;
 - nessuna nuova route;
-- nessuna generazione massiva o pSEO.
-
-La slice deve modificare soltanto frontend pubblico Astro e contratti SEO pertinenti, con preview, typecheck e smoke. Non deve toccare backend, D1, Workflow, Container, Control Room, gate editoriali o publication capability.
+- nessuna mutation o pubblicazione automatica;
+- nessun deploy senza richiesta esplicita.
 
 ## Search Console
 
@@ -104,7 +129,7 @@ Regole:
 - attendere dati sostanziali di scansione e ricerca;
 - non trattare zero dati iniziali come errore;
 - non cambiare ownership sulla base di uno snapshot incompleto;
-- richieste manuali soltanto dopo keyword map applicata e copy forte.
+- richieste manuali soltanto dopo keyword map applicata, copy forte e verifica live.
 
 ## Measurement — osservazione post-lancio
 
