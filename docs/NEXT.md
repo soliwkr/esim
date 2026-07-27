@@ -62,7 +62,7 @@ homepage owner: esim viaggio
 hub geografico: /destinazioni
 hub pratico: /guide
 hub comparativo: /confronti
-CI finale #508: success
+CI branch: success
 runtime smoke: success
 Control Room smoke: success
 deploy: non autorizzato
