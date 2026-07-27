@@ -1,10 +1,10 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **26 luglio 2026**.
+Ultimo aggiornamento: **27 luglio 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile.
 
-## Now — chiudere il checkpoint performance della PR #91
+## Now — chiudere la PR #91
 
 Branch e PR:
 
@@ -20,9 +20,10 @@ CMP iubenda: live
 Google access: verificato
 Search Console: collegata
 sitemap: inviata
-CI #463: verde
+CI #465: verde sul precedente head documentale
 workspace GTM M6: configurato, non pubblicato
 Preview GTM locale: verificata
+checkpoint performance: completato
 GTM produzione: spento
 GA4 produzione: spento
 ```
@@ -71,7 +72,7 @@ Checklist:
 docs/GTM-GA4-CONTAINER-CHECKLIST.md
 ```
 
-## Checkpoint browser locale — completato salvo performance
+## Checkpoint browser locale — completato
 
 Ambiente:
 
@@ -98,17 +99,44 @@ Verificato:
 10. GA4 DebugView riceve il test autorizzato con i parametri previsti;
 11. nessun `provider_redirect_intent` è presente.
 
+## Checkpoint performance — completato
+
+Lighthouse 13.0.2 è stato eseguito sul runtime locale post-consenso in una finestra senza estensioni e senza Tag Assistant.
+
+```text
+mobile:
+Performance 89
+FCP 1,7 s
+LCP 3,2 s
+Speed Index 1,7 s
+TBT 170 ms
+CLS 0
+warnings 0
+
+desktop:
+Performance 100
+FCP 0,7 s
+LCP 0,7 s
+Speed Index 0,7 s
+TBT 20 ms
+TTI 1,2 s
+CLS 0
+warnings 0
+```
+
+Il precedente run con estensioni attive è escluso perché Lighthouse segnalava esplicitamente l'interferenza del browser. Il carico residuo è principalmente vendor iubenda/GTM e non apre una fase di ottimizzazione dentro questa foundation.
+
 ## Unico checkpoint residuo prima di rendere pronta la PR
 
-1. controllo performance desktop e mobile sul runtime locale con la foundation post-consenso;
-2. CI verde sull'ultimo commit documentale.
+1. CI verde sull'ultimo commit documentale;
+2. passaggio della PR #91 da draft a ready.
 
 ## Dopo il checkpoint
 
 ```text
-performance verificata
+CI finale della branch verde
 → PR #91 ready
-→ merge con expected head SHA
+→ merge con expected head SHA, soltanto dopo autorizzazione esplicita
 → pubblicazione container esplicitamente autorizzata
 → deploy pubblico separatamente autorizzato
 → verifica live completa
@@ -151,12 +179,13 @@ La legacy privata resta finché serve come fallback operativo.
 
 ## Freeze immediato
 
-- niente deploy o merge PR #91 prima del checkpoint performance;
-- niente pubblicazione container senza completare il checkpoint residuo;
+- niente merge PR #91 prima della CI verde sull'ultimo head e di un'autorizzazione esplicita;
+- niente pubblicazione container senza autorizzazione esplicita;
+- niente deploy pubblico senza autorizzazione esplicita;
 - niente Advanced Consent Mode o cookieless pings;
 - niente tracking pre-consenso;
 - niente eventi fuori dal dizionario;
-- niente `provider_redirect_intent` prima del checkpoint base;
+- niente `provider_redirect_intent` prima del checkpoint base live;
 - niente PII o dati editoriali interni;
 - niente analytics nella Control Room o preview pubblica ordinaria;
 - niente Ads, remarketing o affiliate tracking;
