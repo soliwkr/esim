@@ -141,3 +141,161 @@ jobs:
             control-room-draft-detail-smoke.log
             control-room-queue-audit-smoke.log
           if-no-files-found: warn
+
+  deploy_public_measurement:
+    name: Deploy consent-gated GTM and GA4 foundation
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      contains(github.event.head_commit.message, '[deploy-measurement]')
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: senza-roaming-production-deploy
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy consent-gated production measurement
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify live server-rendered measurement boundary
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+
+          const origin = 'https://senzaroaming.it';
+          const embedId = 'f8ebd840-9f82-427c-a9b7-1425cb627a87';
+          const embedUrl = `https://embeds.iubenda.com/widgets/${embedId}.js`;
+          const gtmId = 'GTM-W3LSK9RZ';
+          const ga4Id = 'G-GWJ9YPPVJW';
+
+          const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+          async function load(pathname, expectedStatuses = [200]) {
+            let lastError;
+            for (let attempt = 1; attempt <= 30; attempt += 1) {
+              try {
+                const response = await fetch(`${origin}${pathname}`, {
+                  headers: { 'cache-control': 'no-cache' },
+                  redirect: 'manual',
+                });
+                const body = await response.text();
+                if (expectedStatuses.includes(response.status)) return { response, body };
+                lastError = new Error(
+                  `${pathname}: expected ${expectedStatuses.join(' or ')}, got ${response.status}`,
+                );
+              } catch (error) {
+                lastError = error;
+              }
+              await new Promise((resolve) => setTimeout(resolve, 5_000));
+            }
+            throw lastError;
+          }
+
+          const canonicalPaths = [
+            '/',
+            '/destinazioni',
+            '/guide',
+            '/confronti',
+            '/metodo',
+            '/trasparenza',
+            '/privacy',
+            '/migliore-esim',
+          ];
+
+          const canonicalResponses = new Map();
+          for (const pathname of canonicalPaths) {
+            canonicalResponses.set(pathname, await load(pathname));
+          }
+
+          for (const [pathname, { body }] of canonicalResponses) {
+            assert.equal(
+              body.split(embedUrl).length - 1,
+              1,
+              `${pathname} must contain exactly one iubenda embed.`,
+            );
+            assert.match(body, /Gestisci preferenze cookie/);
+            assert.doesNotMatch(body, /doubleclick|googleadservices|googlesyndication|googleads/i);
+            assert.doesNotMatch(body, /<noscript[\s\S]*?googletagmanager/i);
+
+            const scripts = [...body.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+            const measurementScripts = scripts.filter(([, , code]) =>
+              code.includes('sr_page_view_ready') || code.includes(gtmId),
+            );
+
+            assert.equal(
+              measurementScripts.length,
+              1,
+              `${pathname} must contain exactly one measurement bootstrap.`,
+            );
+
+            const [, attributes, code] = measurementScripts[0];
+            assert.match(attributes, /\btype=["']text\/plain["']/i);
+            assert.match(attributes, /\bclass=["'][^"']*\b_iub_cs_activate\b[^"']*["']/i);
+            assert.match(attributes, /\bdata-iub-purposes=["']4["']/i);
+            assert.match(code, new RegExp(escapeRegExp(gtmId)));
+            assert.match(code, new RegExp(escapeRegExp(ga4Id)));
+          }
+
+          assert.match(
+            canonicalResponses.get('/privacy').body,
+            /GTM e GA4 sono configurati con caricamento post-consenso/,
+          );
+
+          const excludedRoutes = [
+            ['/astro-foundation', [200]],
+            ['/control-room-foundation', [200, 302, 403]],
+            ['/api/health', [200]],
+            ['/sitemap.xml', [200]],
+            ['/robots.txt', [200]],
+            ['/go/airalo', [302]],
+            ['/file-inesistente.js', [404]],
+          ];
+
+          for (const [pathname, statuses] of excludedRoutes) {
+            const { body } = await load(pathname, statuses);
+            assert.doesNotMatch(
+              body,
+              /embeds\.iubenda\.com|_iub_cs_activate|sr_page_view_ready|GTM-W3LSK9RZ|G-GWJ9YPPVJW/i,
+              `${pathname} must exclude CMP and measurement markers.`,
+            );
+          }
+
+          console.log('Live server-rendered measurement boundary verified.');
+          NODE
+
+      - name: Record successful deployment
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/91/comments" \
+            -f body="✅ Consent-gated GTM/GA4 deploy and server-side live verification succeeded for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Record failed deployment
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/91/comments" \
+            -f body="❌ Consent-gated GTM/GA4 deploy or server-side live verification failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
