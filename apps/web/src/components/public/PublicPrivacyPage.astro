@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers'
 import type { PublicRenderMode } from '../../../../../src/public-render-mode'
 import { publicIsPreview, publicTrustPath } from '../../../../../src/public-render-mode'
 import { resolvePublicConsentConfig } from '../../../../../src/public-consent'
+import { resolvePublicMeasurementConfig } from '../../../../../src/public-measurement'
 import PublicLayout from '../../layouts/PublicLayout.astro'
 import TrustPage from './TrustPage.astro'
 
@@ -15,6 +16,8 @@ const { mode, siteName } = Astro.props
 const preview = publicIsPreview(mode)
 const consentResolution = resolvePublicConsentConfig(env)
 const consentConfigured = !preview && consentResolution.kind === 'enabled'
+const measurementResolution = resolvePublicMeasurementConfig(env, consentResolution)
+const measurementConfigured = !preview && measurementResolution.kind === 'enabled'
 ---
 
 <PublicLayout
@@ -25,6 +28,7 @@ const consentConfigured = !preview && consentResolution.kind === 'enabled'
     : 'Informazioni sul trattamento minimale dei dati.'}
   canonicalPath={publicTrustPath(mode, 'privacy')}
   siteName={siteName}
+  measurement={{ routeClass: 'trust', pageType: 'privacy' }}
 >
   <TrustPage
     mode={mode}
@@ -32,9 +36,11 @@ const consentConfigured = !preview && consentResolution.kind === 'enabled'
     title="Raccogliere meno, spiegare meglio."
     lead={preview
       ? 'Questa preview conserva il contenuto essenziale della pagina privacy attuale. Non introduce CMP, analytics o nuovi trattamenti di dati.'
-      : consentConfigured
-        ? 'La fondazione di consenso è configurata sul sito pubblico. In questo spike iubenda gestisce soltanto banner e preferenze: GTM e GA4 restano assenti.'
-        : 'La pagina descrive il trattamento minimale attuale e separa chiaramente ciò che non viene raccolto dagli strumenti ancora da attivare.'}
+      : measurementConfigured
+        ? 'iubenda gestisce le preferenze. Google Tag Manager e Google Analytics 4 possono caricarsi soltanto dopo il consenso esplicito alla categoria Misurazione.'
+        : consentConfigured
+          ? 'La fondazione di consenso è configurata sul sito pubblico. iubenda gestisce banner e preferenze: GTM e GA4 restano assenti.'
+          : 'La pagina descrive il trattamento minimale attuale e separa chiaramente ciò che non viene raccolto dagli strumenti ancora da attivare.'}
     current="privacy"
   >
     <section aria-labelledby="privacy-dati">
@@ -43,7 +49,7 @@ const consentConfigured = !preview && consentResolution.kind === 'enabled'
         <h2 id="privacy-dati">Non chiediamo dati bancari, documenti, nomi o indirizzi email.</h2>
         <p>
           Il sito pubblico non richiede questi dati per leggere guide, confronti o pagine sulle destinazioni.
-          La fondazione di consenso non modifica il modello editoriale o l’accesso a D1.
+          Consenso e misurazione non modificano il modello editoriale o l’accesso server-side a D1.
         </p>
       </div>
     </section>
@@ -63,19 +69,32 @@ const consentConfigured = !preview && consentResolution.kind === 'enabled'
     <section id="preferenze-cookie" aria-labelledby="privacy-strumenti">
       <div class="trust-status-card">
         <p class="trust-card-label">Stato attuale</p>
-        {consentConfigured ? (
+        {measurementConfigured ? (
+          <>
+            <h2 id="privacy-strumenti">iubenda, GTM e GA4 sono configurati con caricamento post-consenso.</h2>
+            <p>
+              Applichiamo Google Consent Mode Basic: prima del consenso alla Misurazione non viene caricato alcun tag Google
+              e non parte alcuna richiesta verso Google Analytics o Google Tag Manager. Dopo il consenso, un solo container
+              GTM può inviare un solo page view della pagina canonica a GA4.
+            </p>
+            <p>
+              Pubblicità, remarketing, personalizzazione e affiliazioni restano disabilitati. La posizione pagina inviata
+              esclude query string e frammenti.
+            </p>
+          </>
+        ) : consentConfigured ? (
           <>
             <h2 id="privacy-strumenti">iubenda è configurata; GTM e GA4 restano inattivi.</h2>
             <p>
               La CMP viene caricata soltanto sulle pagine pubbliche canoniche e permette di accettare, rifiutare o modificare le preferenze.
-              Questo spike non carica Google Tag Manager, Google Analytics, pubblicità o strumenti di affiliazione.
+              Questo stato non carica Google Tag Manager, Google Analytics, pubblicità o strumenti di affiliazione.
             </p>
           </>
         ) : (
           <>
             <h2 id="privacy-strumenti">CMP, GA4 e GTM non sono ancora attivi.</h2>
             <p>
-              Consenso, analytics e Search Console appartengono a una fase separata. Richiedono configurazione,
+              Consenso e analytics appartengono a una fase separata. Richiedono configurazione,
               documentazione e verifica prima dell’attivazione.
             </p>
           </>
@@ -86,10 +105,10 @@ const consentConfigured = !preview && consentResolution.kind === 'enabled'
     <section aria-labelledby="privacy-confini">
       <h2 id="privacy-confini">Confini di questa pagina</h2>
       <div class="trust-principle-grid">
-        <article class="trust-principle"><h3>Nessun analytics nello spike</h3><p>Google Tag Manager e Google Analytics non vengono caricati.</p></article>
+        <article class="trust-principle"><h3>{measurementConfigured ? 'Analytics dopo consenso' : 'Analytics non attivo'}</h3><p>{measurementConfigured ? 'GTM e GA4 restano completamente bloccati finché la categoria Misurazione non è accettata.' : 'Google Tag Manager e Google Analytics non vengono caricati nello stato attuale.'}</p></article>
         <article class="trust-principle"><h3>Nessun form</h3><p>La pagina non raccoglie dati dell’utente e non invia mutation al backend.</p></article>
         <article class="trust-principle"><h3>{preview ? 'Route non canonica' : 'Informazioni attuali'}</h3><p>{preview ? 'La pagina resta noindex dentro il namespace preview.' : 'La pagina descrive il comportamento tecnico effettivamente configurato.'}</p></article>
-        <article class="trust-principle"><h3>Modifica e revoca</h3><p>{consentConfigured ? 'Il footer espone il comando per riaprire le preferenze cookie.' : 'Il comando comparirà soltanto quando la CMP sarà configurata.'}</p></article>
+        <article class="trust-principle"><h3>Modifica e revoca</h3><p>{consentConfigured ? 'Il footer espone il comando per riaprire e modificare le preferenze cookie.' : 'Il comando comparirà soltanto quando la CMP sarà configurata.'}</p></article>
       </div>
     </section>
   </TrustPage>

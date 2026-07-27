@@ -21,6 +21,7 @@ const preview = publicIsPreview(mode)
     : 'Il processo usato per verificare e aggiornare le guide eSIM.'}
   canonicalPath={publicTrustPath(mode, 'metodo')}
   siteName={siteName}
+  measurement={{ routeClass: 'trust', pageType: 'method' }}
 >
   <TrustPage
     mode={mode}

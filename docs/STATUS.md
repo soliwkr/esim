@@ -19,9 +19,11 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| Scope measurement M6 | Completato | PR #83, CI #408 |
-| iubenda foundation | Live, checkpoint UX aperto | remote embed CMP-only deployato e boundary server-side verificato |
-| GTM e GA4 | Non attivi | nessun tag o ping Google |
+| iubenda CMP | Live | deploy e boundary server-side verificati; banner confermato nel browser |
+| Google access | Verificato | GA4, GTM e Search Console accessibili via service account impersonato |
+| Search Console | Collegata | proprietà dominio verificata e sitemap inviata |
+| Workspace GTM M6 | Configurato, non pubblicato | 7 variabili, 1 trigger, 1 tag; audit API senza errori |
+| GTM e GA4 produzione | Non attivi | foundation in PR draft #91, nessun deploy |
 | Affiliazioni | Disabilitate | nessun link remunerato attivo |
 
 ## Architettura live
@@ -61,6 +63,8 @@ Verificato live:
 - redirect `/go/airalo`;
 - navigazione e rendering operativi.
 
+La homepage e i listing sono fondazioni visuali e di catalogo, non ancora il risultato di una keyword map SEO definitiva.
+
 ## Catalog pilot
 
 ```text
@@ -78,15 +82,7 @@ publication eligible: false
 ready for publication: false
 ```
 
-Manifest:
-
-```json
-{
-  "schemaVersion": 1,
-  "generatedAt": null,
-  "entries": []
-}
-```
+Il manifest pubblico resta vuoto.
 
 ## M6 — scope e contratti
 
@@ -96,12 +92,12 @@ merge 83f784fccf562a38e48de7fca483f3d56483ccc4
 CI #408
 ```
 
-Contratto iniziale:
+Contratto:
 
 ```text
 Consent Mode Basic
 nessun GTM o GA4 prima del consenso
-analytics_storage denied di default
+nessun ping Google pre-consenso
 ad_storage denied
 ad_user_data denied
 ad_personalization denied
@@ -117,151 +113,204 @@ provider_redirect_intent
 consent_update locale/debug
 ```
 
-Il redirect `/go/{provider}` continua a scrivere in D1 il click effettivo. Il futuro evento GA4 rappresenterà soltanto l’intento browser.
+`provider_redirect_intent` resta differito finché il `page_view` base non è verificato. Il redirect `/go/{provider}` continua a scrivere in D1 il click effettivo.
 
-## Consent foundation
-
-### PR #84 — spike tecnico
+## Consent foundation live
 
 ```text
+PR #84 — spike tecnico
 merge 6e3b0047af67219af7429749003d86f36af61237
-CI applicativa #411
 CI finale #415
-```
 
-Ha verificato boundary fail-closed, route incluse/escluse, footer preferenze, Privacy condizionale, assenza Google, desktop, mobile, tastiera e regressioni complete. Usava però il formato iubenda legacy con `siteId` e `cookiePolicyId` fittizi.
-
-### PR #85 — remote embed reale
-
-```text
+PR #85 — remote embed reale
 merge f421d247e5a2ce250ba432e445f2aedf74af6f50
-CI applicativa #421
 CI finale #426
+
+PR #90 — deploy osservabile e contratto D1 production
+merge c29bf0cf31a66bf830cb74a7cf46d57a7f060c76
+CI finale #448
 ```
 
-La dashboard reale restituisce:
+Deploy CMP-only:
 
 ```text
-https://embeds.iubenda.com/widgets/{public-uuid}.js
-```
-
-Implementato:
-
-- `CMP_PROVIDER` + `CMP_EMBED_ID` validati server-side;
-- un solo script remoto sulle pagine canonical indexable;
-- configurazioni assenti, incomplete o malformate fail-closed;
-- nessuna CMP su preview, Control Room, API, `/go/*`, sitemap, robots, 404 o file probe;
-- footer e Privacy condizionali;
-- GTM e GA4 assenti.
-
-## Deploy CMP-only in produzione
-
-Documento di risultato:
-
-```text
-docs/PUBLIC-CONSENT-DEPLOY-RESULT-2026-07-26.md
-```
-
-Run osservabile:
-
-```text
-workflow: Deploy public consent checkpoint
-run id: 30197982680
-head: 933252556d99aa227b428f18eb0ede34f686b06a
+workflow run id: 30197982680
 result: success
 ```
-
-Completati con successo:
-
-- tipi Cloudflare;
-- typecheck e build;
-- smoke isolato della consent foundation;
-- risoluzione remota della binding D1;
-- deploy Wrangler;
-- verifica HTTP post-deploy.
 
 Verificato live lato server:
 
 - `/` e `/privacy` contengono esattamente un embed iubenda;
 - footer preferenze presente;
-- Privacy dichiara iubenda configurata con GTM/GA4 inattivi;
-- nessun riferimento Google Analytics, Tag Manager, Ads o DoubleClick;
-- CMP assente da `/astro-foundation`, `/api/health`, `/sitemap.xml` e `/robots.txt`;
+- GTM, GA4, Ads e DoubleClick assenti;
+- CMP assente da preview, API health, sitemap e robots;
 - nessuna migration, mutation D1 o modifica editoriale.
+
+Verificato dall’utente nel browser:
+
+- il banner reale compare e funziona.
+
+Non ancora certificato integralmente:
+
+- persistenza di accettazione e rifiuto;
+- riapertura, modifica e revoca;
+- GDPR globale e modalità Basic nella configurazione remota;
+- rete vendor;
+- guasto iubenda;
+- tastiera, mobile, overflow e performance sul vendor reale.
 
 ## Contratto di deploy D1
 
-Il config sorgente conserva intenzionalmente:
+Il config sorgente conserva:
 
 ```text
 database_id=REPLACE_WITH_D1_DATABASE_ID
 ```
 
-`scripts/prepare-production-d1-binding.mjs`:
+`scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente il config Worker compilato. Nessuna migration o mutation è implicita nel deploy.
 
-- risolve il database remoto con nome esatto `senza-roaming` tramite Wrangler;
-- richiede un UUID valido e una sola binding `DB` coerente;
-- modifica soltanto il config Worker compilato;
-- non stampa e non versiona l’UUID;
-- fallisce su database mancanti, duplicati o discordanti.
+## Google access verificato
 
-Comando canonico:
+Documento:
 
 ```text
-npm run build
-→ prepare-production-consent-config
-→ prepare-production-d1-binding
-→ wrangler deploy
+docs/GOOGLE-MEASUREMENT-ACCESS-RESULT-2026-07-26.md
 ```
+
+Autenticazione:
+
+```text
+info@trovatemi.it
+→ roles/iam.serviceAccountTokenCreator sul solo service account
+→ senza-roaming@soliwkr.iam.gserviceaccount.com
+→ Application Default Credentials tramite impersonazione
+```
+
+Nessuna chiave privata JSON è stata creata o versionata.
+
+Identificativi verificati tramite API:
+
+```text
+GA4 account: 402095950
+GA4 property: 546858987
+GA4 stream: 15310040016
+Measurement ID: G-GWJ9YPPVJW
+
+GTM account: 6367654517
+GTM container: 259190865
+GTM public ID: GTM-W3LSK9RZ
+
+Search Console: sc-domain:senzaroaming.it
+permission: siteOwner
+```
+
+## Search Console e sitemap
+
+La proprietà dominio è accessibile e la sitemap canonica è stata inviata manualmente il 26 luglio 2026:
+
+```text
+https://senzaroaming.it/sitemap.xml
+```
+
+Il valore iniziale `0 pagine rilevate` non viene trattato come errore. Non è stata usata la Indexing API e non vengono ripetute submission.
+
+Le richieste manuali di indicizzazione sono rinviate finché homepage, listing e prime pagine prioritarie non sono riallineate a una keyword map e a intenti SEO definitivi.
+
+## PR #91 — GTM e GA4 foundation
+
+```text
+branch: feat/public-gtm-ga4-foundation
+PR: #91 draft
+CI: verde
+production deploy: non autorizzato
+GTM container publish: non eseguito
+```
+
+Implementato sulla branch:
+
+- `GTM_ID` e `GA4_MEASUREMENT_ID` validati fail-closed;
+- script GTM emesso soltanto sulle route canoniche indexable;
+- script inerte `type=text/plain` prima del consenso;
+- classificazione iubenda `data-iub-purposes="4"`;
+- nessun fallback GTM `noscript`;
+- un solo `dataLayer` e guard anti-duplicazione;
+- evento tecnico locale `sr_page_view_ready`;
+- contesto bounded;
+- `page_location = origin + pathname`;
+- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e probe esclusi;
+- preparazione deterministica del config compilato con `GTM-W3LSK9RZ` e `G-GWJ9YPPVJW`;
+- smoke pure, workerd e Chromium;
+- Privacy condizionale aggiornata.
+
+## Workspace GTM M6
+
+Workspace verificato:
+
+```text
+workspace ID: 3
+name: M6 - Consent-gated GA4 foundation
+errors: 0
+variables: 7
+triggers: 1
+tags: 1
+```
+
+Risorse:
+
+```text
+trigger ID 10: CE - sr_page_view_ready
+tag ID 11: GA4 - page_view - consent gated
+tag type: gaawe
+event: page_view
+measurement ID: {{DLV - sr_ga4_measurement_id}}
+tag firing option: oncePerLoad
+additional consent: analytics_storage
+```
+
+Parametri evento:
+
+```text
+page_location
+route_class
+page_type
+content_slug
+render_mode
+site_language
+```
+
+Non sono presenti trigger All Pages, History Change o Click. Non sono presenti Ads, Floodlight, remarketing, affiliate o Custom HTML. Il container non è stato pubblicato e la produzione non è cambiata.
 
 ## Stato produzione measurement
 
 ```text
-CMP iubenda: attiva sulle route canoniche previste
+CMP iubenda: attiva
 GTM: non attivo
 GA4: non attivo
 Ads: non attivi
 affiliate tracking: non attivo
 ```
 
-La verifica server-side non certifica ancora l’esperienza reale del banner.
-
-## Checkpoint UX vendor ancora aperto
-
-Da verificare in un browser pulito:
-
-- banner alla prima visita;
-- Accetta, Rifiuta e Personalizza;
-- persistenza;
-- riapertura dal footer;
-- modifica e revoca;
-- GDPR globale e Basic Consent Mode nella configurazione remota;
-- rete vendor e assenza di richieste Google;
-- comportamento in caso di guasto iubenda;
-- tastiera, mobile, overflow e performance.
-
-Il vendor non è ancora dichiarato definitivamente accettato.
-
 ## Guardrail invariati
 
-- nessun GTM o GA4;
 - nessun analytics nella Control Room o preview;
 - nessun Ads, remarketing o affiliazione;
 - nessuna PII, token, JWT o ID editoriali negli eventi;
 - nessuna mutation o migration D1;
 - nessun cambio routing;
 - nessuna publication capability;
-- nessuna sitemap submission;
 - nessuna rimozione legacy.
 
 ## Gap aperti
 
-- cleanup e merge finale della PR #90;
-- checkpoint UX iubenda reale;
-- decisione vendor finale;
-- GTM e GA4 post-consenso;
+- Consent Overview nel workspace GTM;
+- ambiente applicativo locale o preview Cloudflare esplicitamente autorizzato;
 - Tag Assistant, Network e DebugView;
-- Search Console e sitemap submission;
+- verifica rifiuto, consenso, reload e revoca;
+- un solo `page_view` reale;
+- performance post-consenso;
+- decisione vendor finale iubenda;
+- keyword map e copy SEO di homepage/listing;
+- primi dati Search Console;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
 - mutation M4 residue;

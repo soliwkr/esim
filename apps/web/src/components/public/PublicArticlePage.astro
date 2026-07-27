@@ -51,6 +51,7 @@ const disclosure = affiliateEnabled
   siteName={siteName}
   ogType={seo.ogType}
   schema={seo.schema}
+  measurement={{ routeClass: 'article', pageType: sectionType, contentSlug: article.slug }}
 >
   {preview && (
     <div class="preview-band" data-public-shell="astro-preview" data-public-article={article.slug}>

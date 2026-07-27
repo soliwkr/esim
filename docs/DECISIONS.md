@@ -270,9 +270,9 @@ Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming 
 
 ## ADR-034 — Consent Mode Basic e CMP fail-closed prima di GTM
 
-**Stato:** accettata con PR #83, PR #84 e PR #85; deployment CMP-only verificato lato server il 26 luglio 2026; checkpoint UX vendor ancora aperto.
+**Stato:** accettata con PR #83, PR #84 e PR #85; deploy CMP-only verificato con PR #90 il 26 luglio 2026; banner reale confermato nel browser; checkpoint UX completo ancora aperto.
 
-**Decisione:** la prima release usa Google Consent Mode Basic e un embed iubenda remoto. Nessun GTM, GA4 o ping Google può partire prima del consenso analytics esplicito.
+**Decisione:** la prima release usa Google Consent Mode Basic e un embed iubenda remoto. Nessun GTM, GA4 o ping Google può partire prima del consenso esplicito alla Misurazione.
 
 Default:
 
@@ -285,24 +285,21 @@ ad_personalization = denied
 
 Regole:
 
-- il formato canonico è quello restituito dall’account reale: `https://embeds.iubenda.com/widgets/{uuid}.js`;
-- `CMP_PROVIDER` e `CMP_EMBED_ID` sono validati server-side;
+- formato canonico `https://embeds.iubenda.com/widgets/{uuid}.js`;
+- `CMP_PROVIDER` e `CMP_EMBED_ID` validati server-side;
 - configurazioni assenti o invalide falliscono chiuse;
-- la CMP appare soltanto sulle pagine canonical indexable;
-- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e file probe restano esclusi;
-- il layout emette un solo script remoto;
-- il config sorgente resta CMP-off;
-- il config compilato viene preparato deterministicamente per il deploy;
-- `GTM_ID` deve restare vuoto;
-- Ads, remarketing, affiliate tracking e Advanced Consent Mode restano fuori scope.
+- CMP soltanto sulle pagine canoniche indicizzabili;
+- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e probe esclusi;
+- config sorgente CMP-off e config compilato preparato deterministicamente;
+- Ads, remarketing, affiliate tracking e Advanced Consent Mode fuori scope.
 
-**Conseguenza:** `src/public-consent.ts` è il contratto fail-closed; l’UUID embed è configurazione pubblica versionata; GTM/GA4 attendono la chiusura del checkpoint UX reale.
+**Conseguenza:** `src/public-consent.ts` è il contratto fail-closed; persistenza, revoca, rete vendor e performance restano checkpoint separati prima dell’accettazione definitiva del vendor.
 
 ## ADR-035 — Binding D1 remota risolta soltanto nel config compilato
 
 **Stato:** accettata e verificata con il deploy CMP-only del 26 luglio 2026.
 
-**Decisione:** il `wrangler.jsonc` sorgente conserva `REPLACE_WITH_D1_DATABASE_ID`. Durante `npm run deploy`, Wrangler elenca i database remoti e `scripts/prepare-production-d1-binding.mjs` risolve il solo database chiamato `senza-roaming`, valida il suo UUID e aggiorna esclusivamente `apps/web/dist/server/wrangler.json`.
+**Decisione:** il `wrangler.jsonc` sorgente conserva `REPLACE_WITH_D1_DATABASE_ID`. Durante `npm run deploy`, Wrangler risolve il solo database remoto `senza-roaming`, valida UUID e binding e aggiorna esclusivamente `apps/web/dist/server/wrangler.json`.
 
 Guardrail:
 
@@ -310,18 +307,30 @@ Guardrail:
 - un solo binding compilato `DB` coerente;
 - UUID valido;
 - nessuna stampa o versione dell’UUID;
-- errore su database mancanti, duplicati, binding ambigue o ID discordanti;
+- errore su database mancanti, duplicati o discordanti;
 - nessuna migration o mutation D1 implicita nel deploy.
 
-**Razionale:** il config sorgente resta portabile e privo di identificatori account-specific, mentre il deploy rimane riproducibile e non dipende da copia manuale nella dashboard.
+**Conseguenza:** il config sorgente resta portabile e il deploy riproducibile senza copia manuale dell’UUID.
 
-**Conseguenza:** il comando canonico è:
+## ADR-036 — GTM inerte e contesto analytics bounded dopo il consenso
 
-```text
-build
-→ prepare-production-consent-config
-→ prepare-production-d1-binding
-→ wrangler deploy
-```
+**Stato:** accettata come foundation sulla PR draft #91; non ancora live.
 
-La CI include un contratto puro dedicato; il deploy reale del 26 luglio 2026 e la verifica HTTP post-deploy sono riusciti senza versionare l’UUID D1.
+**Decisione:** il layout pubblico può emettere il bootstrap GTM soltanto quando CMP, GTM ID, GA4 Measurement ID e contesto pagina sono tutti validi. Prima del consenso lo script resta inerte come `type="text/plain"`, classe `_iub_cs_activate` e purpose iubenda `4` — Misurazione.
+
+Regole:
+
+- `wrangler.jsonc` conserva vuoti `GTM_ID` e `GA4_MEASUREMENT_ID`;
+- il preparatore production valorizza esclusivamente il config compilato con `GTM-W3LSK9RZ` e `G-GWJ9YPPVJW`;
+- l’embed iubenda precede lo script analytics;
+- nessun fallback GTM `noscript`, perché produrrebbe una richiesta pre-consenso incompatibile con Basic Mode;
+- un guard globale impedisce doppia esecuzione;
+- un solo `dataLayer` espone contesto bounded e l’evento tecnico `sr_page_view_ready`;
+- `page_location` è sempre `origin + pathname`, senza query string o hash;
+- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e probe non ricevono il bootstrap;
+- `provider_redirect_intent` resta differito finché il `page_view` base non è verificato;
+- Ads, Custom HTML non revisionato, remarketing e affiliate tag restano vietati.
+
+**Razionale:** Basic Consent Mode richiede assenza completa di richieste Google prima del consenso. Il contesto viene prodotto server-side con enum e slug validati per evitare cardinalità libera, PII e dati operativi interni.
+
+**Conseguenza:** codice, workspace GTM, pubblicazione container, merge e deploy restano gate distinti. La PR #91 non viene portata ready né deployata prima di Tag Assistant, Network, DebugView, rifiuto, consenso, reload, revoca, anti-duplicazione e controllo performance.
