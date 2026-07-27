@@ -25,7 +25,7 @@ Questa baseline definisce l'ownership degli intenti prima di qualsiasi modifica 
 | `migrations/0005_published_pages.sql` | repository al commit base | quattro pagine fondamentali iniziali | seed versionato, non fotografia autonoma del D1 remoto |
 | route e componenti Astro | repository al commit base | title, H1, promessa e linking correnti | descrive il codice distribuito, non una nuova scansione esterna |
 | `docs/STATUS.md` e risultato M6 | 27 luglio 2026 | superficie pubblica e checkpoint live già verificati | non sostituisce Search Console |
-| Search Console | proprietà `sc-domain:senzaroaming.it` | domanda osservata, pagine e query | dati non acquisiti in questa fase: il connettore disponibile risponde `payment_required` |
+| Search Console | proprietà `sc-domain:senzaroaming.it`; export live 27 luglio 2026 | domanda osservata, pagine e query | snapshot 26–27 luglio fresco: 0 click, 0 impression, 0 righe dimensionali |
 
 Regole:
 
@@ -33,7 +33,7 @@ Regole:
 - un campo senza fonte resta vuoto;
 - `0` significa zero osservato soltanto quando la fonte lo dichiara;
 - Planner misura domanda potenziale, non traffico previsto;
-- Search Console misurerà domanda osservata, non volume di mercato;
+- Search Console misura domanda osservata, non volume di mercato;
 - una keyword non equivale automaticamente a una pagina.
 
 ## Superficie pubblica di acquisizione
@@ -219,27 +219,39 @@ sitemap: https://senzaroaming.it/sitemap.xml
 submission: 26 luglio 2026
 ```
 
-Tentativo M7 del 27 luglio 2026:
+Primo export diretto eseguito il 27 luglio 2026:
 
 ```text
-connector: GSC Wizard
-result: payment_required
-query rows acquired: no
-page rows acquired: no
+source: Search Console Search Analytics API
+range: 2026-07-26 → 2026-07-27
+dataState: all
+daily rows: 2
+query rows: 0
+page rows: 0
+query-page rows: 0
+country rows: 0
+device rows: 0
+clicks: 0
+impressions: 0
+firstIncompleteDate: 2026-07-26
 ```
 
 Conseguenze:
 
-- nessuna impression, posizione, CTR o click viene inserita nella keyword map;
+- l'accesso read-only, la proprietà dominio e l'export diretto sono verificati;
+- nessuna impression, posizione, CTR o click viene inserita nella keyword map oltre agli zero realmente osservati nello snapshot;
+- i dati sono ancora incompleti e possono cambiare;
+- l'assenza di righe dimensionali non modifica l'ownership delle query;
 - la submission della sitemap non viene ripetuta;
 - non viene usata la Indexing API;
 - zero righe non viene trattato come errore di indicizzazione;
-- il primo export reale dovrà riportare intervallo, data di estrazione e fonte.
+- gli export restano locali e non vengono commitati automaticamente.
 
 ## Acceptance criteria della baseline
 
 - [x] route pubbliche prioritarie inventariate;
 - [x] dati Planner esistenti separati dai dati GSC;
+- [x] primo snapshot GSC reale acquisito e registrato senza inferenze premature;
 - [x] intenti informativi, commerciali e comparativi distinti;
 - [x] una sola ownership primaria per URL e keyword;
 - [x] cannibalizzazioni principali esplicitate;
