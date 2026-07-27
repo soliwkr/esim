@@ -1,6 +1,6 @@
 # GTM container checklist — M6 foundation
 
-Il container `GTM-W3LSK9RZ` resta non pubblicato finché questa checklist non è completata.
+Stato finale al **27 luglio 2026**: checklist completata, container pubblicato come versione `2`, deploy produzione verificato.
 
 ## Workspace
 
@@ -11,7 +11,7 @@ Il container `GTM-W3LSK9RZ` resta non pubblicato finché questa checklist non è
 - [x] Consent Overview verificato in UI;
 - [x] nessuna modifica al container pubblicato durante la preparazione.
 
-Checkpoint Consent Overview del 26 luglio 2026:
+Checkpoint Consent Overview:
 
 ```text
 consenso non configurato: 0 tag
@@ -31,8 +31,6 @@ consenso aggiuntivo: analytics_storage
 - [x] `DLV - site_language` → `site_language`;
 - [x] `DLV - page_location` → `page_location`.
 
-Audit API:
-
 ```text
 variables: 7
 errors: 0
@@ -49,111 +47,47 @@ Data Layer version: 2
 
 ## Tag GA4
 
-- [x] tag `GA4 - page_view - consent gated` creato;
+- [x] tag `GA4 - page_view - consent gated`;
 - [x] tag ID `11`;
 - [x] tipo `gaawe`;
 - [x] evento `page_view`;
 - [x] Measurement ID da `DLV - sr_ga4_measurement_id`;
-- [x] trigger esclusivo ID `10` — `sr_page_view_ready`;
+- [x] trigger esclusivo ID `10`;
 - [x] `page_location` da `DLV - page_location`;
 - [x] parametri bounded `route_class`, `page_type`, `content_slug`, `render_mode`, `site_language`;
 - [x] `tagFiringOption = oncePerLoad`;
-- [x] consenso aggiuntivo richiesto `analytics_storage`;
+- [x] consenso aggiuntivo `analytics_storage`;
 - [x] nessuna user property applicativa;
 - [x] nessun parametro con query string, referrer libero o ID interni.
-
-Audit API finale:
 
 ```text
 variables: 7
 triggers: 1
 tags: 1
 errors: 0
-container publish: non eseguito
+published version: 2
 ```
 
-## Checkpoint browser locale — 26 luglio 2026
+## Checkpoint browser locale
 
-Ambiente verificato:
+Verificato prima della pubblicazione:
 
-```text
-branch: feat/public-gtm-ga4-foundation
-runtime: http://127.0.0.1:8787
-container: GTM-W3LSK9RZ
-workspace: 3 — modalità Anteprima
-measurement ID: G-GWJ9YPPVJW
-container publish: non eseguito
-production deploy: non eseguito
-```
+- bootstrap inerte `type=text/plain` prima del consenso;
+- classe `_iub_cs_activate` e purpose `4`;
+- nessuna richiesta GTM/GA4 prima del consenso;
+- consenso con `{1: true, 4: true}`;
+- un solo `page_view` per page load;
+- parametri bounded corretti;
+- reload senza duplicazioni;
+- revoca e rifiuto con zero richieste Google;
+- `page_location` senza query e hash;
+- preview, Control Room e route tecniche escluse;
+- GA4 DebugView;
+- nessun `provider_redirect_intent`.
 
-La configurazione remota iubenda è stata completata aggiungendo i servizi **Google Analytics 4** e **Google Tag Manager** alla policy. Prima di tale aggiornamento la preferenza salvata esponeva soltanto la finalità `1`; dopo aggiornamento e reset dei dati locali il banner espone e salva anche la finalità `4` — Misurazione.
+## Checkpoint performance locale
 
-Evidenza verificata nel browser:
-
-```text
-prima del consenso Misurazione:
-- bootstrap presente come type=text/plain
-- class=_iub_cs_activate
-- data-iub-purposes=4
-- nessun caricamento del container reale GTM-W3LSK9RZ
-- nessuna raccolta GA4 reale
-
-dopo consenso:
-- purposes state: {1: true, 4: true}
-- Tag Assistant trova GTM-W3LSK9RZ
-- Tag Assistant trova G-GWJ9YPPVJW
-- richiesta page_view a region1.google-analytics.com/g/collect
-- route_class=home
-- page_type=home
-- content_slug vuoto
-- render_mode=canonical
-- site_language=it
-- debug flag presente
-
-reload con consenso persistito:
-- banner non riproposto
-- seconda pagina registrata
-- 2 attivazioni totali su 2 page load
-- una sola attivazione del tag per ciascun page load
-
-revoca Misurazione + reload:
-- purposes state: {1: true, 4: false}
-- bootstrap eseguito: false
-- script measurement bloccati: 1
-- richieste GTM/GA4 reali: 0
-
-rifiuto iniziale + reload:
-- preference expressed: true
-- purposes state: {1: true, 4: false}
-- bootstrap eseguito: false
-- script measurement bloccati: 1
-- richieste GTM/GA4 reali: 0
-
-page_location con URL browser contenente query e hash:
-- browser: http://127.0.0.1:8787/?utm_source=checkpoint#fragment
-- page_location: http://127.0.0.1:8787/
-- sr_page_view_ready: 1
-
-route escluse verificate senza measurement:
-- /astro-foundation: 200
-- /control-room-foundation: 403
-- /api/health: 200
-- /sitemap.xml: 200
-- /robots.txt: 200
-- /go/airalo: 302
-- /file-inesistente.js: 404
-
-GA4 DebugView:
-- page_view ricevuto in modalità debug
-- 2 page_view corrispondenti a 2 caricamenti autorizzati
-- presenti page_location, page_type, render_mode, route_class e site_language
-- presenti soltanto gli eventi automatici GA4 attesi: first_visit e session_start
-- nessun provider_redirect_intent
-```
-
-## Checkpoint performance locale — 27 luglio 2026
-
-I run Lighthouse 13.0.2 sono stati eseguiti sul runtime locale post-consenso, in una finestra senza estensioni e senza Tag Assistant. Il precedente run con estensioni attive è stato escluso perché Lighthouse segnalava esplicitamente l'interferenza del browser.
+Lighthouse 13.0.2, runtime locale post-consenso, browser senza estensioni e senza Tag Assistant:
 
 ```text
 mobile:
@@ -163,7 +97,7 @@ mobile:
 - Speed Index: 1,7 s
 - Total Blocking Time: 170 ms
 - CLS: 0
-- run warnings: 0
+- warnings: 0
 
 desktop:
 - Performance: 100
@@ -173,25 +107,77 @@ desktop:
 - Total Blocking Time: 20 ms
 - Time to Interactive: 1,2 s
 - CLS: 0
-- run warnings: 0
+- warnings: 0
 ```
 
-Il carico residuo osservato è attribuito principalmente agli script terzi iubenda e GTM. Non viene aperto un intervento di ottimizzazione vendor dentro questa foundation.
+Il run precedente con estensioni attive è escluso. Il carico residuo osservato è principalmente vendor iubenda/GTM.
 
-## Verifica prima della pubblicazione
+## Pubblicazione container
 
-- [x] prima del consenso nessuna richiesta al container GTM reale o alla raccolta GA4 reale;
-- [x] rifiuto: nessuna richiesta Google reale;
-- [x] consenso Misurazione: un solo caricamento GTM per page load;
-- [x] un solo `page_view` per page load in Tag Assistant;
-- [x] `page_location` verificato nel hit reale senza query e hash;
-- [x] parametri bounded della homepage corretti;
-- [x] preview, Control Room e route tecniche senza container;
-- [x] revoca e reload bloccano nuovamente GTM;
-- [x] GA4 DebugView UI riceve il test autorizzato;
-- [x] nessun evento `provider_redirect_intent` nella foundation iniziale;
-- [x] performance ricontrollata su desktop e mobile.
+```text
+container: GTM-W3LSK9RZ
+version: 2
+name: M6 - Consent-gated GA4 foundation
+published: 27 luglio 2026
+```
 
-## Pubblicazione
+Il riepilogo versione mostra un tag, un trigger e dodici variabili totali; le modifiche M6 sono esattamente sette Data Layer Variables, un trigger e un tag.
 
-La pubblicazione del container e il deploy del codice sono checkpoint separati. Entrambi richiedono evidenza reale e documentazione del risultato.
+## Deploy produzione
+
+```text
+PR applicativa: #91
+PR deploy one-shot: #92
+CI deploy: #470
+PR cleanup workflow: #93
+CI cleanup: #471
+```
+
+Nel run #470 sono riusciti:
+
+```text
+Deploy consent-gated production measurement
+Verify live server-rendered measurement boundary
+```
+
+Il run è rosso soltanto per i due step opzionali di commento PR, falliti con `HTTP 403 — Resource not accessible by integration`. Il Worker è stato deployato e il boundary live è passato; nessun retry è stato eseguito.
+
+## Checkpoint browser live
+
+- [x] rifiuto iniziale: purpose `4=false`, bootstrap non eseguito, zero richieste Google;
+- [x] consenso: purpose `4=true`, bootstrap eseguito, un solo `sr_page_view_ready`;
+- [x] GTM reale caricato;
+- [x] GA4 collect reale inviato;
+- [x] contesto homepage bounded corretto;
+- [x] persistenza dopo reload;
+- [x] nessun doppione nello stesso page load;
+- [x] revoca + reload: purpose `4=false`, bootstrap bloccato, zero richieste Google;
+- [x] preview, Control Room e route tecniche escluse lato server.
+
+Contesto homepage:
+
+```text
+route_class: home
+page_type: home
+content_slug: ""
+render_mode: canonical
+site_language: it
+page_location: https://senzaroaming.it/
+```
+
+## Stato finale
+
+- [x] Consent Mode Basic rispettato;
+- [x] nessun ping Google pre-consenso;
+- [x] container pubblicato;
+- [x] deploy produzione completato;
+- [x] verifica server-side live;
+- [x] verifica browser live completa;
+- [x] job one-shot rimosso;
+- [x] Ads, remarketing, affiliate e `provider_redirect_intent` assenti.
+
+Documento risultato:
+
+```text
+docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
+```
