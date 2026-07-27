@@ -290,7 +290,7 @@ async function verifyRuntime() {
     });
 
     await page.goto(`${origin}/?utm_source=must-not-leak#fragment`);
-    await page.getByRole('heading', { level: 1, name: 'Trova la eSIM giusta prima di partire.' }).waitFor();
+    await page.getByRole('heading', { level: 1, name: 'Scegli la eSIM giusta per il tuo viaggio.' }).waitFor();
     assert.equal(gtmRequests.length, 0);
     assert.equal(await page.evaluate(() => typeof window.dataLayer), 'undefined');
     assert.equal(await page.locator('script._iub_cs_activate[type="text/plain"][data-iub-purposes="4"]').count(), 1);
