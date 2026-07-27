@@ -251,7 +251,7 @@ async function verifyRuntime() {
     });
 
     await desktop.goto(`${origin}/`);
-    await desktop.getByRole('heading', { level: 1, name: 'Trova la eSIM giusta prima di partire.' }).waitFor();
+    await desktop.getByRole('heading', { level: 1, name: 'Scegli la eSIM giusta per il tuo viaggio.' }).waitFor();
     await desktop.waitForFunction(() => window.__iubendaRemoteEmbedTestLoaded === true);
     assert.deepEqual(googleRequests, []);
     assert.equal(await desktop.locator('script[src*="googletagmanager"],script[src*="google-analytics"]').count(), 0);
