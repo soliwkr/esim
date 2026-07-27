@@ -205,9 +205,9 @@ async function verifyPopulated(origin) {
   assert.equal(jsonLd(home).find((item) => item?.['@type'] === 'WebSite')?.url, 'https://senzaroaming.it/');
 
   for (const [pathname, title] of [
-    ['/destinazioni', 'eSIM per destinazione'],
-    ['/guide', 'Guide pratiche sulle eSIM'],
-    ['/confronti', 'Confronti tra eSIM e provider'],
+    ['/destinazioni', 'eSIM per destinazione: scegli il Paese'],
+    ['/guide', 'Guide eSIM: come funzionano, si installano e si usano'],
+    ['/confronti', 'Confronti eSIM: provider, piani e limiti'],
   ]) {
     const response = await fetch(`${origin}${pathname}`);
     const html = await response.text();
@@ -267,7 +267,7 @@ async function verifyPopulated(origin) {
   try {
     const desktop = await browser.newPage({ viewport: { width: 1365, height: 900 } });
     await desktop.goto(`${origin}/`);
-    await desktop.getByRole('heading', { level: 1, name: 'Trova la eSIM giusta prima di partire.' }).waitFor();
+    await desktop.getByRole('heading', { level: 1, name: 'Scegli la eSIM giusta per il tuo viaggio.' }).waitFor();
     assert.equal(await desktop.locator('[data-public-catalog="featured-guides"] .catalog-card').count(), 9);
     assert.equal(await desktop.locator('script:not([type="application/ld+json"])').count(), 0);
     assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
