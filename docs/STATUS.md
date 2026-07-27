@@ -21,7 +21,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
 | iubenda CMP | Live | consenso, persistenza e revoca verificati |
 | Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
-| Search Console | Collegata | proprietà dominio verificata e sitemap inviata |
+| Search Console | Primo export live verificato | 26–27 luglio: 0 click, 0 impression, dati freschi incompleti |
 | GTM container M6 | Pubblicato | versione 2, 7 variabili, 1 trigger, 1 tag |
 | GTM e GA4 produzione | Attivi post-consenso | zero richieste Google prima del consenso Misurazione |
 | Google Ads e remarketing | Disabilitati | fuori scope M6 |
@@ -238,6 +238,21 @@ La proprietà dominio è accessibile e la sitemap canonica è stata inviata il 2
 https://senzaroaming.it/sitemap.xml
 ```
 
+Primo export diretto verificato il 27 luglio 2026:
+
+```text
+property: sc-domain:senzaroaming.it
+range: 2026-07-26 → 2026-07-27
+dataState: all
+daily rows: 2
+clicks: 0
+impressions: 0
+query/page/country/device rows: 0
+firstIncompleteDate: 2026-07-26
+```
+
+L'accesso ADC impersonato, lo scope read-only e il client Search Analytics funzionano. I dati sono ancora freschi e insufficienti per modificare keyword ownership, copy o priorità.
+
 Non è stata usata la Indexing API. Non ripetere la submission. Le richieste manuali restano rinviate finché homepage, listing e prime pagine prioritarie non sono riallineate a una keyword map e a intenti SEO definitivi.
 
 ## Contratto di deploy D1
@@ -274,8 +289,8 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- primi dati Search Console e GA4 da osservare senza modifiche premature;
-- keyword map e copy SEO di homepage/listing;
+- dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
+- applicazione della keyword map a homepage/listing;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
 - mutation M4 residue;
