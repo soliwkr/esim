@@ -172,9 +172,9 @@ async function verifyRuntime() {
   assert.match(assetResponse.headers.get('content-type') || '', /text\/css/);
 
   for (const [pathname, heading] of [
-    ['/guide', 'Guide pratiche sulle eSIM'],
-    ['/destinazioni', 'eSIM per destinazione'],
-    ['/confronti', 'Confronti tra eSIM e provider'],
+    ['/guide', 'Guide eSIM: come funzionano, si installano e si usano'],
+    ['/destinazioni', 'eSIM per destinazione: scegli il Paese'],
+    ['/confronti', 'Confronti eSIM: provider, piani e limiti'],
     ['/metodo', 'La pagina arriva dopo le prove.'],
     ['/trasparenza', 'Una commissione non decide la classifica.'],
     ['/privacy', 'Raccogliere meno, spiegare meglio.'],
@@ -238,7 +238,7 @@ async function verifyRuntime() {
   try {
     const desktop = await browser.newPage({ viewport: { width: 1365, height: 900 } });
     await desktop.goto(`${origin}/`);
-    await desktop.getByRole('heading', { level: 1, name: 'Trova la eSIM giusta prima di partire.' }).waitFor();
+    await desktop.getByRole('heading', { level: 1, name: 'Scegli la eSIM giusta per il tuo viaggio.' }).waitFor();
     assert.equal(await desktop.locator('script:not([type="application/ld+json"])').count(), 0);
     assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     await desktop.close();

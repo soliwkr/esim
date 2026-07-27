@@ -17,6 +17,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room nuova | Operativa | read-only completo; prima mutation live |
 | Control Room legacy | Transitoria | fallback delle mutation residue |
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
+| M7 on-page foundation | Verificata in CI, non deployata | homepage e tre hub riallineati alla keyword ownership |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
 | iubenda CMP | Live | consenso, persistenza e revoca verificati |
@@ -65,7 +66,7 @@ Verificato live:
 - redirect `/go/airalo`;
 - navigazione e rendering operativi.
 
-La homepage e i listing sono fondazioni visuali e di catalogo, non ancora il risultato di una keyword map SEO definitiva.
+La homepage e i listing live sono ancora la versione precedente al riallineamento M7. La nuova slice on-page è verificata in CI ma non è stata deployata.
 
 ## Catalog pilot
 
@@ -255,6 +256,38 @@ L'accesso ADC impersonato, lo scope read-only e il client Search Analytics funzi
 
 Non è stata usata la Indexing API. Non ripetere la submission. Le richieste manuali restano rinviate finché homepage, listing e prime pagine prioritarie non sono riallineate a una keyword map e a intenti SEO definitivi.
 
+## M7 — prima slice on-page
+
+Implementazione verificata sulla PR #97:
+
+```text
+homepage: owner dell’intento umbrella “esim viaggio”
+/destinazioni: hub geografico, non pagina Paese
+/guide: hub dei problemi pratici
+/confronti: hub comparativo, non classifica generale
+CI branch: success
+deploy: non autorizzato
+```
+
+La slice introduce:
+
+- title, description, H1 e promessa coerenti con la keyword map M7;
+- criteri distinti per i tre hub;
+- link curati soltanto verso URL esistenti e pubblicati;
+- link preview-aware nel namespace `/astro-foundation`;
+- smoke dedicato su ownership, title, H1, internal linking e assenza di `/esim-viaggio`;
+- verifica desktop e mobile senza overflow;
+- contratti CMP e measurement invariati.
+
+Non introduce:
+
+- nuove route o pSEO;
+- modifiche a Worker backend, D1, Workflow, Container, AI o Control Room;
+- mutation o publication capability;
+- affiliazioni, Ads o nuovi eventi analytics;
+- submission Search Console o Indexing API;
+- deploy pubblico.
+
 ## Contratto di deploy D1
 
 Il config sorgente conserva:
@@ -281,7 +314,7 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 - nessun tracking Google prima del consenso Misurazione;
 - nessun analytics nella Control Room o preview;
 - nessun Ads, remarketing o affiliazione;
-- nessuna PII, token, JWT o ID editoriali negli eventi;
+- nessuna PII, token, JWT o ID editoriali interni negli eventi;
 - nessuna mutation o migration D1;
 - nessun cambio routing;
 - nessuna publication capability;
@@ -289,8 +322,9 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
+- deploy e verifica live della prima slice M7, solo con autorizzazione esplicita;
+- riallineamento editoriale di `/migliore-esim`;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
-- applicazione della keyword map a homepage/listing;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
 - mutation M4 residue;

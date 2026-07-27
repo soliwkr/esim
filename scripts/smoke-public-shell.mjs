@@ -106,7 +106,8 @@ try {
   assert.match(previewResponse.headers.get('cache-control') || '', /no-store/);
   assert.match(previewResponse.headers.get('x-content-type-options') || '', /nosniff/);
   assert.match(previewHtml, /data-public-shell="astro-preview"/);
-  assert.match(previewHtml, /Trova la eSIM giusta prima di partire\./);
+  assert.match(previewHtml, /Scegli la eSIM giusta per il tuo viaggio\./);
+  assert.match(previewHtml, /<title>eSIM da viaggio: destinazioni, guide e confronti \| Senza Roaming<\/title>/);
   assert.match(previewHtml, /<link rel="canonical" href="https:\/\/senzaroaming\.it\/astro-foundation"/);
   assert.match(previewHtml, /<meta name="robots" content="noindex,nofollow"/);
   assert.match(previewHtml, /aria-label="Navigazione principale"/);
@@ -119,7 +120,8 @@ try {
   const rootHtml = await rootResponse.text();
   assert.equal(rootResponse.status, 200);
   assert.doesNotMatch(rootHtml, /data-public-shell="astro-preview"/);
-  assert.match(rootHtml, /Trova la eSIM giusta prima di partire\./);
+  assert.match(rootHtml, /Scegli la eSIM giusta per il tuo viaggio\./);
+  assert.match(rootHtml, /<title>eSIM da viaggio: destinazioni, guide e confronti \| Senza Roaming<\/title>/);
   const rootSchema = assertSingleJsonLd(rootHtml, 'WebSite');
   assert.ok(rootSchema.some((item) => item.url === 'https://senzaroaming.it/'));
 
@@ -137,7 +139,7 @@ try {
     if (message.type() === 'error') desktopConsole.push(message.text());
   });
   await desktopPage.goto(`${origin}/astro-foundation`);
-  await desktopPage.getByRole('heading', { level: 1, name: 'Trova la eSIM giusta prima di partire.' }).waitFor();
+  await desktopPage.getByRole('heading', { level: 1, name: 'Scegli la eSIM giusta per il tuo viaggio.' }).waitFor();
   await desktopPage.getByRole('navigation', { name: 'Navigazione principale' }).waitFor();
   await desktopPage.getByRole('heading', { name: 'La pagina arriva dopo le prove.' }).waitFor();
   assert.equal(await desktopPage.locator('astro-island').count(), 0);

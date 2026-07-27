@@ -11,9 +11,39 @@ const populatedState = `${stateRoot}/populated`;
 const emptyState = `${stateRoot}/empty`;
 
 const listings = [
-  { type: 'destination', segment: 'destinazioni', title: 'eSIM per destinazione', cardTitle: 'Destinazioni pubblicate', emptyMessage: 'Non ci sono ancora destinazioni pubblicate.', cluster: 'Destinazioni' },
-  { type: 'guide', segment: 'guide', title: 'Guide pratiche sulle eSIM', cardTitle: 'Guide pubblicate', emptyMessage: 'Non ci sono ancora guide pubblicate.', cluster: 'Guide' },
-  { type: 'comparison', segment: 'confronti', title: 'Confronti tra eSIM e provider', cardTitle: 'Confronti pubblicati', emptyMessage: 'Non ci sono ancora confronti pubblicati.', cluster: 'Confronti' },
+  {
+    type: 'destination',
+    segment: 'destinazioni',
+    seoTitle: 'eSIM per destinazione: guide per Paese',
+    title: 'eSIM per destinazione: scegli il Paese',
+    criteriaTitle: 'Prima il Paese, poi le condizioni reali.',
+    curatedSlugs: [],
+    cardTitle: 'Guide eSIM per Paese',
+    emptyMessage: 'Non ci sono ancora destinazioni pubblicate.',
+    cluster: 'Destinazioni',
+  },
+  {
+    type: 'guide',
+    segment: 'guide',
+    seoTitle: 'Guide eSIM: compatibilità, attivazione e uso',
+    title: 'Guide eSIM: come funzionano, si installano e si usano',
+    criteriaTitle: 'Parti dal problema, non dal provider.',
+    curatedSlugs: ['esim-come-funziona', 'esim-telefoni-compatibili', 'esim-estero'],
+    cardTitle: 'Tutte le guide pubblicate',
+    emptyMessage: 'Non ci sono ancora guide pubblicate.',
+    cluster: 'Guide',
+  },
+  {
+    type: 'comparison',
+    segment: 'confronti',
+    seoTitle: 'Confronti eSIM e provider: differenze e criteri',
+    title: 'Confronti eSIM: provider, piani e limiti',
+    criteriaTitle: 'Confronta ciò che cambia davvero.',
+    curatedSlugs: ['migliore-esim'],
+    cardTitle: 'Confronti pubblicati',
+    emptyMessage: 'Non ci sono ancora confronti pubblicati.',
+    cluster: 'Confronti',
+  },
 ];
 
 function wrangler(args) {
@@ -158,12 +188,27 @@ async function stopRuntime(runtime) {
   await Promise.race([once(runtime.child, 'exit'), new Promise((resolve) => setTimeout(resolve, 5_000))]);
 }
 
+function assertCuratedLinks(html, listing, mode) {
+  if (listing.curatedSlugs.length === 0) {
+    assert.doesNotMatch(html, new RegExp(`data-listing-curated-links="${listing.type}"`));
+    return;
+  }
+
+  assert.match(html, new RegExp(`data-listing-curated-links="${listing.type}"`));
+  for (const slug of listing.curatedSlugs) {
+    const expected = mode === 'preview' ? `/astro-foundation/articoli/${slug}` : `/${slug}`;
+    assert.match(html, new RegExp(`href="${escapeRegex(expected)}"`));
+  }
+}
+
 function assertListingBody(html, listing, mode) {
   const catalog = sectionHtml(html, `listing-${listing.type}`);
   assert.match(html, new RegExp(`data-public-listing="${listing.type}"`));
   assert.match(html, new RegExp(`data-public-render-mode="${mode}"`));
   assert.match(html, new RegExp(`<h1 id="listing-title">${escapeRegex(listing.title)}</h1>`));
-  assert.match(html, new RegExp(listing.cardTitle));
+  assert.match(html, new RegExp(escapeRegex(listing.criteriaTitle)));
+  assert.match(html, new RegExp(escapeRegex(listing.cardTitle)));
+  assertCuratedLinks(html, listing, mode);
   assert.doesNotMatch(html, /<astro-island|<script(?:\s|>)/i);
   assertOrder(catalog, [
     `Listing ${listing.type} 2`,
@@ -191,6 +236,7 @@ async function verifyPopulated() {
       assert.equal(previewResponse.status, 200);
       assert.match(previewResponse.headers.get('x-robots-tag') || '', /noindex/);
       assert.match(previewResponse.headers.get('cache-control') || '', /no-store/);
+      assert.match(previewHtml, new RegExp(`<title>${escapeRegex(listing.seoTitle)} preview \\| Senza Roaming<\\/title>`));
       assert.match(previewHtml, new RegExp(`<link rel="canonical" href="https:\/\/senzaroaming\\.it${escapeRegex(previewPath)}"`));
       assert.match(previewCatalog, new RegExp(`href="\/astro-foundation\/articoli\/smoke-listing-${listing.type}-2"`));
       for (const expected of listings) assert.match(previewHtml, new RegExp(`href="\/astro-foundation\/${expected.segment}"`));
@@ -202,6 +248,7 @@ async function verifyPopulated() {
       assert.equal(canonicalResponse.status, 200);
       assert.match(canonicalResponse.headers.get('cache-control') || '', /public,max-age=300/);
       assert.equal(canonicalResponse.headers.get('x-robots-tag'), null);
+      assert.match(canonicalHtml, new RegExp(`<title>${escapeRegex(listing.seoTitle)} \\| Senza Roaming<\\/title>`));
       assert.match(canonicalHtml, new RegExp(`<link rel="canonical" href="https:\/\/senzaroaming\\.it${canonicalPath}"`));
       assert.match(canonicalHtml, /index,follow,max-image-preview:large/);
       assert.match(canonicalCatalog, new RegExp(`href="\/smoke-listing-${listing.type}-2"`));
@@ -240,6 +287,7 @@ async function verifyPopulated() {
     await routeNavigation.getByRole('link', { name: /Confronti/ }).click();
     await desktop.getByRole('heading', { level: 1, name: listings[2].title }).waitFor();
     assert.equal(new URL(desktop.url()).pathname, '/confronti');
+    assert.equal(await desktop.locator('[data-listing-curated-links="comparison"] a').count(), 1);
     assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     assert.equal(await desktop.locator('script').count(), 0);
     await desktop.close();
@@ -253,6 +301,7 @@ async function verifyPopulated() {
       ),
       1,
     );
+    assert.equal(await mobile.locator('[data-listing-curated-links="guide"] a').count(), 3);
     await mobile.getByText('Apri menu', { exact: true }).click();
     const mobileGuide = mobile.getByRole('navigation', { name: 'Navigazione mobile' }).getByRole('link', { name: 'Guide' });
     assert.equal(await mobileGuide.getAttribute('href'), '/guide');
@@ -280,12 +329,14 @@ async function verifyEmpty() {
         assert.equal(response.status, 200);
         assert.match(html, new RegExp(escapeRegex(listing.emptyMessage)));
         assert.equal((html.match(/<article class="catalog-card"/g) || []).length, 0);
+        assertCuratedLinks(html, listing, pathname.startsWith('/astro-foundation') ? 'preview' : 'canonical');
       }
     }
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await page.goto(`${origin}/confronti`);
     assert.equal(await page.getByRole('status').count(), 1);
+    assert.equal(await page.locator('[data-listing-curated-links="comparison"] a').count(), 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     await page.close();
   } finally {

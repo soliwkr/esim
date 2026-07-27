@@ -2,6 +2,7 @@
 import { env } from 'cloudflare:workers'
 import type { PublicRenderMode } from '../../../../../src/public-render-mode'
 import {
+  publicArticlePath,
   publicHomePath,
   publicIsPreview,
   publicListingPath,
@@ -29,7 +30,7 @@ setPublicResponseHeaders(Astro.response.headers, mode)
 const items = await loadPublishedListingCards(env.DB, type, 100)
 const canonicalPath = publicListingPath(mode, type)
 const homeHref = publicHomePath(mode)
-const title = preview ? `${definition.title} preview | ${env.SITE_NAME}` : `${definition.title} | ${env.SITE_NAME}`
+const title = preview ? `${definition.seoTitle} preview | ${env.SITE_NAME}` : `${definition.seoTitle} | ${env.SITE_NAME}`
 const description = preview ? `Preview non indicizzabile. ${definition.description}` : definition.description
 const measurementPageType = type === 'destination'
   ? 'destination_listing'
@@ -73,13 +74,10 @@ const measurementPageType = type === 'destination'
           </div>
 
           <aside class="listing-state" aria-labelledby="listing-state-title">
-            <p class="listing-state-label">{preview ? 'Contratto della preview' : 'Criteri del catalogo'}</p>
-            <h2 id="listing-state-title">Il catalogo pubblico, senza scorciatoie.</h2>
+            <p class="listing-state-label">{definition.criteriaLabel}</p>
+            <h2 id="listing-state-title">{definition.criteriaTitle}</h2>
             <ul>
-              <li>Soltanto pagine con stato <code>published</code>.</li>
-              <li>Ordine condiviso con il catalogo pubblico.</li>
-              <li>Draft e righe in review restano esclusi.</li>
-              <li>Nessun tracking, ranking o affiliazione attiva.</li>
+              {definition.criteriaItems.map((item) => <li>{item}</li>)}
             </ul>
           </aside>
         </div>
@@ -97,6 +95,32 @@ const measurementPageType = type === 'destination'
         </a>
       ))}
     </nav>
+
+    {definition.curatedLinks.length > 0 && (
+      <section
+        class="public-container listing-curated-section"
+        aria-labelledby={`listing-curated-${definition.type}`}
+        data-listing-curated-links={definition.type}
+      >
+        <div class="listing-curated-heading">
+          <div>
+            <p class="eyebrow">Percorsi prioritari</p>
+            <h2 id={`listing-curated-${definition.type}`}>{definition.curatedTitle}</h2>
+          </div>
+          <p>{definition.curatedDescription}</p>
+        </div>
+
+        <div class="listing-curated-grid">
+          {definition.curatedLinks.map((item) => (
+            <a class="listing-curated-card" href={publicArticlePath(mode, item.slug)}>
+              <h3>{item.label}</h3>
+              <p>{item.description}</p>
+              <span>Apri il percorso →</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
 
     <PublicPageCardGrid
       id={`listing-${definition.type}`}
