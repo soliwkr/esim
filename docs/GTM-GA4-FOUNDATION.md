@@ -1,6 +1,25 @@
 # GTM e GA4 — foundation M6
 
-Data: **26 luglio 2026**.
+Data: **27 luglio 2026**.
+
+## Stato
+
+```text
+PR applicativa: #91 — merged
+GTM container version: 2 — published
+production deploy: completed
+server-side live verification: passed
+browser live consent checkpoint: passed
+Google Ads: disabled
+remarketing: disabled
+affiliate tracking: disabled
+```
+
+Risultato completo:
+
+```text
+docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
+```
 
 ## Identificativi verificati
 
@@ -15,15 +34,16 @@ Web container: 259190865
 Public container ID: GTM-W3LSK9RZ
 Workspace ID: 3
 Workspace name: M6 - Consent-gated GA4 foundation
+Published version: 2
 
 Search Console property: sc-domain:senzaroaming.it
 ```
 
-Gli identificativi sono pubblici e non sono credenziali. Il service account viene usato tramite impersonazione e Application Default Credentials locali; nessuna chiave privata JSON è stata creata o versionata.
+Gli identificativi sono pubblici e non sono credenziali. Il service account viene usato tramite impersonazione e Application Default Credentials; nessuna chiave privata JSON è stata creata o versionata.
 
-## Contratto browser
+## Contratto browser live
 
-La prima release applica **Google Consent Mode Basic**:
+La release applica **Google Consent Mode Basic**:
 
 ```text
 prima del consenso Misurazione
@@ -36,7 +56,12 @@ dopo consenso Misurazione
 → un solo bootstrap dataLayer
 → un solo container GTM
 → evento tecnico locale sr_page_view_ready
-→ un solo page_view GA4
+→ un solo page_view GA4 per page load
+
+dopo revoca + reload
+→ purpose 4 false
+→ bootstrap nuovamente inerte
+→ nessuna richiesta Google
 ```
 
 Il bootstrap:
@@ -48,7 +73,7 @@ Il bootstrap:
 - calcola `page_location` come `origin + pathname`;
 - non include query string o hash;
 - non include PII, token, ID editoriali o testo libero;
-- non include il fallback GTM `noscript`, perché produrrebbe una richiesta incompatibile con il contratto Basic pre-consenso.
+- non include il fallback GTM `noscript`.
 
 ## Contesto bounded
 
@@ -64,16 +89,15 @@ render_mode: canonical
 site_language: it
 ```
 
-## Configurazione workspace GTM verificata
+## Configurazione GTM pubblicata
 
-Audit API del workspace `3`:
+Workspace verificato prima della pubblicazione:
 
 ```text
 variables: 7
 triggers: 1
 tags: 1
 errors: 0
-container published: no
 ```
 
 Variabili Data Layer v2:
@@ -121,19 +145,26 @@ render_mode
 site_language
 ```
 
-Il workspace non contiene trigger All Pages, History Change o Click; non contiene Ads, Floodlight, remarketing, affiliate o Custom HTML.
+Il container non contiene trigger All Pages, History Change o Click; non contiene Ads, Floodlight, remarketing, affiliate o Custom HTML.
 
-## Checkpoint ancora richiesto
-
-La pubblicazione del container richiede prima:
+## Checkpoint completati
 
 - Consent Overview verificato in UI;
 - Preview e Tag Assistant;
 - Network pre-consenso e post-consenso;
-- rifiuto, consenso, reload e revoca;
-- un solo `page_view`;
+- rifiuto iniziale;
+- consenso Misurazione;
+- persistenza dopo reload;
+- revoca e reload;
+- un solo `page_view` per page load;
 - GA4 DebugView;
-- controllo mobile, tastiera, overflow e performance.
+- `page_location` senza query e hash;
+- route escluse;
+- Lighthouse locale post-consenso:
+  - mobile Performance 89;
+  - desktop Performance 100;
+- deploy e boundary server-side live;
+- browser checkpoint live completo.
 
 ## Route escluse
 
@@ -158,7 +189,7 @@ GTM_ID
 GA4_MEASUREMENT_ID
 ```
 
-Il comando di deploy prepara soltanto il config compilato, dopo aver verificato la CMP reale e `AFFILIATE_MODE=disabled`:
+Il comando di deploy prepara soltanto il config compilato:
 
 ```text
 build
@@ -168,4 +199,14 @@ build
 → wrangler deploy
 ```
 
-Questa branch non autorizza ancora il deploy. CI è verde e il workspace è configurato ma non pubblicato; restano Preview/Tag Assistant, Network, DebugView e il checkpoint completo del consenso.
+Il deploy non esegue migration o mutation D1.
+
+## Fuori scope invariato
+
+- Advanced Consent Mode e cookieless pings;
+- Google Ads, remarketing e Floodlight;
+- affiliate tracking;
+- `provider_redirect_intent`;
+- analytics nella Control Room o preview;
+- PII o dati editoriali interni;
+- capacità di pubblicazione automatica.
