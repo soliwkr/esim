@@ -265,7 +265,7 @@ homepage: owner dell’intento umbrella “esim viaggio”
 /destinazioni: hub geografico, non pagina Paese
 /guide: hub dei problemi pratici
 /confronti: hub comparativo, non classifica generale
-CI finale #508: success
+CI branch: success
 deploy: non autorizzato
 ```
 
