@@ -59,7 +59,7 @@ Data Layer version: 2
 - [x] parametri bounded `route_class`, `page_type`, `content_slug`, `render_mode`, `site_language`;
 - [x] `tagFiringOption = oncePerLoad`;
 - [x] consenso aggiuntivo richiesto `analytics_storage`;
-- [x] nessuna user property;
+- [x] nessuna user property applicativa;
 - [x] nessun parametro con query string, referrer libero o ID interni.
 
 Audit API finale:
@@ -115,19 +115,53 @@ reload con consenso persistito:
 - seconda pagina registrata
 - 2 attivazioni totali su 2 page load
 - una sola attivazione del tag per ciascun page load
+
+revoca Misurazione + reload:
+- purposes state: {1: true, 4: false}
+- bootstrap eseguito: false
+- script measurement bloccati: 1
+- richieste GTM/GA4 reali: 0
+
+rifiuto iniziale + reload:
+- preference expressed: true
+- purposes state: {1: true, 4: false}
+- bootstrap eseguito: false
+- script measurement bloccati: 1
+- richieste GTM/GA4 reali: 0
+
+page_location con URL browser contenente query e hash:
+- browser: http://127.0.0.1:8787/?utm_source=checkpoint#fragment
+- page_location: http://127.0.0.1:8787/
+- sr_page_view_ready: 1
+
+route escluse verificate senza measurement:
+- /astro-foundation: 200
+- /control-room-foundation: 403
+- /api/health: 200
+- /sitemap.xml: 200
+- /robots.txt: 200
+- /go/airalo: 302
+- /file-inesistente.js: 404
+
+GA4 DebugView:
+- page_view ricevuto in modalità debug
+- 2 page_view corrispondenti a 2 caricamenti autorizzati
+- presenti page_location, page_type, render_mode, route_class e site_language
+- presenti soltanto gli eventi automatici GA4 attesi: first_visit e session_start
+- nessun provider_redirect_intent
 ```
 
 ## Verifica prima della pubblicazione
 
 - [x] prima del consenso nessuna richiesta al container GTM reale o alla raccolta GA4 reale;
-- [ ] rifiuto: nessuna richiesta Google;
+- [x] rifiuto: nessuna richiesta Google reale;
 - [x] consenso Misurazione: un solo caricamento GTM per page load;
 - [x] un solo `page_view` per page load in Tag Assistant;
-- [ ] `page_location` verificato nel hit reale senza query e hash;
+- [x] `page_location` verificato nel hit reale senza query e hash;
 - [x] parametri bounded della homepage corretti;
-- [ ] preview e Control Room senza container;
-- [ ] revoca e reload bloccano nuovamente GTM;
-- [ ] GA4 DebugView UI riceve soltanto il test autorizzato;
+- [x] preview, Control Room e route tecniche senza container;
+- [x] revoca e reload bloccano nuovamente GTM;
+- [x] GA4 DebugView UI riceve il test autorizzato;
 - [x] nessun evento `provider_redirect_intent` nella foundation iniziale;
 - [ ] performance ricontrollata su desktop e mobile.
 
