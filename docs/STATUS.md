@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **26 luglio 2026**.
+Data di riferimento: **27 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -19,12 +19,13 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| iubenda CMP | Live | deploy e boundary server-side verificati; banner confermato nel browser |
-| Google access | Verificato | GA4, GTM e Search Console accessibili via service account impersonato |
+| iubenda CMP | Live | consenso, persistenza e revoca verificati |
+| Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
 | Search Console | Collegata | proprietà dominio verificata e sitemap inviata |
-| Workspace GTM M6 | Configurato, non pubblicato | 7 variabili, 1 trigger, 1 tag; audit API senza errori |
-| GTM e GA4 produzione | Non attivi | foundation in PR draft #91, nessun deploy |
-| Affiliazioni | Disabilitate | nessun link remunerato attivo |
+| GTM container M6 | Pubblicato | versione 2, 7 variabili, 1 trigger, 1 tag |
+| GTM e GA4 produzione | Attivi post-consenso | zero richieste Google prima del consenso Misurazione |
+| Google Ads e remarketing | Disabilitati | fuori scope M6 |
+| Affiliazioni | Disabilitate | nessun tracking o link remunerato attivo |
 
 ## Architettura live
 
@@ -58,6 +59,7 @@ Verificato live:
 
 - homepage con nuovo design;
 - articolo `/migliore-esim`;
+- listing e trust pages;
 - `/sitemap.xml`;
 - `/robots.txt`;
 - redirect `/go/airalo`;
@@ -84,15 +86,9 @@ ready for publication: false
 
 Il manifest pubblico resta vuoto.
 
-## M6 — scope e contratti
+## M6 — Consent e measurement live
 
-```text
-PR #83 — Define M6 consent and measurement foundation
-merge 83f784fccf562a38e48de7fca483f3d56483ccc4
-CI #408
-```
-
-Contratto:
+Contratti:
 
 ```text
 Consent Mode Basic
@@ -105,90 +101,27 @@ ad_personalization denied
 
 Advanced Consent Mode, cookieless pings, Google Ads, remarketing e affiliate tracking restano fuori scope.
 
-Event dictionary v1:
+### CMP
 
 ```text
-page_view
-provider_redirect_intent
-consent_update locale/debug
-```
-
-`provider_redirect_intent` resta differito finché il `page_view` base non è verificato. Il redirect `/go/{provider}` continua a scrivere in D1 il click effettivo.
-
-## Consent foundation live
-
-```text
-PR #84 — spike tecnico
-merge 6e3b0047af67219af7429749003d86f36af61237
-CI finale #415
-
 PR #85 — remote embed reale
 merge f421d247e5a2ce250ba432e445f2aedf74af6f50
-CI finale #426
 
 PR #90 — deploy osservabile e contratto D1 production
 merge c29bf0cf31a66bf830cb74a7cf46d57a7f060c76
-CI finale #448
+CI #448
 ```
 
-Deploy CMP-only:
+Verificato live:
 
-```text
-workflow run id: 30197982680
-result: success
-```
+- un solo embed iubenda sulle route canoniche;
+- CMP assente da preview e route tecniche;
+- banner reale;
+- rifiuto, consenso, persistenza e revoca;
+- finalità `4` — Misurazione;
+- nessuna richiesta Google quando `purpose 4=false`.
 
-Verificato live lato server:
-
-- `/` e `/privacy` contengono esattamente un embed iubenda;
-- footer preferenze presente;
-- GTM, GA4, Ads e DoubleClick assenti;
-- CMP assente da preview, API health, sitemap e robots;
-- nessuna migration, mutation D1 o modifica editoriale.
-
-Verificato dall’utente nel browser:
-
-- il banner reale compare e funziona.
-
-Non ancora certificato integralmente:
-
-- persistenza di accettazione e rifiuto;
-- riapertura, modifica e revoca;
-- GDPR globale e modalità Basic nella configurazione remota;
-- rete vendor;
-- guasto iubenda;
-- tastiera, mobile, overflow e performance sul vendor reale.
-
-## Contratto di deploy D1
-
-Il config sorgente conserva:
-
-```text
-database_id=REPLACE_WITH_D1_DATABASE_ID
-```
-
-`scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente il config Worker compilato. Nessuna migration o mutation è implicita nel deploy.
-
-## Google access verificato
-
-Documento:
-
-```text
-docs/GOOGLE-MEASUREMENT-ACCESS-RESULT-2026-07-26.md
-```
-
-Autenticazione:
-
-```text
-info@trovatemi.it
-→ roles/iam.serviceAccountTokenCreator sul solo service account
-→ senza-roaming@soliwkr.iam.gserviceaccount.com
-→ Application Default Credentials tramite impersonazione
-```
-
-Nessuna chiave privata JSON è stata creata o versionata.
-
-Identificativi verificati tramite API:
+### Google access
 
 ```text
 GA4 account: 402095950
@@ -204,70 +137,38 @@ Search Console: sc-domain:senzaroaming.it
 permission: siteOwner
 ```
 
-## Search Console e sitemap
+Autenticazione tramite impersonazione del service account e ADC; nessuna key JSON creata o versionata.
 
-La proprietà dominio è accessibile e la sitemap canonica è stata inviata manualmente il 26 luglio 2026:
+### GTM e GA4 foundation
 
 ```text
-https://senzaroaming.it/sitemap.xml
+PR #91
+merge 24f473b5de9f714e997c4ddd6e50d77c36c34a29
+CI main #468: success
+GTM version 2: published
+PR deploy #92
+merge 9f4ba922c8cbf0682474c98aebb4b8b7ea2e6297
+CI deploy #470
+PR cleanup #93
+merge f9aaf071b69164e81617840fc85d36d507ec710e
+CI cleanup #471: success
 ```
 
-Il valore iniziale `0 pagine rilevate` non viene trattato come errore. Non è stata usata la Indexing API e non vengono ripetute submission.
-
-Le richieste manuali di indicizzazione sono rinviate finché homepage, listing e prime pagine prioritarie non sono riallineate a una keyword map e a intenti SEO definitivi.
-
-## PR #91 — GTM e GA4 foundation
+Configurazione pubblicata:
 
 ```text
-branch: feat/public-gtm-ga4-foundation
-PR: #91 draft
-CI: verde
-production deploy: non autorizzato
-GTM container publish: non eseguito
-```
-
-Implementato sulla branch:
-
-- `GTM_ID` e `GA4_MEASUREMENT_ID` validati fail-closed;
-- script GTM emesso soltanto sulle route canoniche indexable;
-- script inerte `type=text/plain` prima del consenso;
-- classificazione iubenda `data-iub-purposes="4"`;
-- nessun fallback GTM `noscript`;
-- un solo `dataLayer` e guard anti-duplicazione;
-- evento tecnico locale `sr_page_view_ready`;
-- contesto bounded;
-- `page_location = origin + pathname`;
-- preview, Control Room, API, `/go/*`, sitemap, robots, 404 e probe esclusi;
-- preparazione deterministica del config compilato con `GTM-W3LSK9RZ` e `G-GWJ9YPPVJW`;
-- smoke pure, workerd e Chromium;
-- Privacy condizionale aggiornata.
-
-## Workspace GTM M6
-
-Workspace verificato:
-
-```text
-workspace ID: 3
-name: M6 - Consent-gated GA4 foundation
-errors: 0
 variables: 7
 triggers: 1
 tags: 1
-```
-
-Risorse:
-
-```text
-trigger ID 10: CE - sr_page_view_ready
-tag ID 11: GA4 - page_view - consent gated
-tag type: gaawe
+errors: 0
+trigger: CE - sr_page_view_ready
+tag: GA4 - page_view - consent gated
 event: page_view
-measurement ID: {{DLV - sr_ga4_measurement_id}}
-tag firing option: oncePerLoad
+oncePerLoad: true
 additional consent: analytics_storage
 ```
 
-Parametri evento:
+Parametri bounded:
 
 ```text
 page_location
@@ -278,20 +179,91 @@ render_mode
 site_language
 ```
 
-Non sono presenti trigger All Pages, History Change o Click. Non sono presenti Ads, Floodlight, remarketing, affiliate o Custom HTML. Il container non è stato pubblicato e la produzione non è cambiata.
+### Deploy e verifica live
 
-## Stato produzione measurement
+Il job di produzione ha completato con successo deploy e verifica server-side. Il run #470 è rosso soltanto perché i due step opzionali di commento PR hanno ricevuto `HTTP 403 — Resource not accessible by integration` dopo il successo del deploy.
+
+Non è stato eseguito alcun retry.
+
+Browser live verificato:
 
 ```text
-CMP iubenda: attiva
-GTM: non attivo
-GA4: non attivo
-Ads: non attivi
-affiliate tracking: non attivo
+rifiuto:
+  purpose 4=false
+  bootstrap=false
+  Google requests=0
+
+consenso:
+  purpose 4=true
+  bootstrap=true
+  sr_page_view_ready=1
+  GTM request=present
+  GA4 collect=present
+
+persistenza:
+  banner non riproposto
+  pageReadyCount=1 per page load
+  GTM e GA4 presenti
+
+revoca + reload:
+  purpose 4=false
+  bootstrap=false
+  Google requests=0
 ```
+
+Contesto homepage verificato:
+
+```text
+route_class: home
+page_type: home
+content_slug: ""
+render_mode: canonical
+site_language: it
+page_location: https://senzaroaming.it/
+```
+
+Documenti:
+
+```text
+docs/GTM-GA4-FOUNDATION.md
+docs/GTM-GA4-CONTAINER-CHECKLIST.md
+docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
+```
+
+## Search Console e sitemap
+
+La proprietà dominio è accessibile e la sitemap canonica è stata inviata il 26 luglio 2026:
+
+```text
+https://senzaroaming.it/sitemap.xml
+```
+
+Non è stata usata la Indexing API. Non ripetere la submission. Le richieste manuali restano rinviate finché homepage, listing e prime pagine prioritarie non sono riallineate a una keyword map e a intenti SEO definitivi.
+
+## Contratto di deploy D1
+
+Il config sorgente conserva:
+
+```text
+database_id=REPLACE_WITH_D1_DATABASE_ID
+```
+
+`scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente `apps/web/dist/server/wrangler.json`. Nessuna migration o mutation è implicita nel deploy.
+
+## Performance measurement foundation
+
+Lighthouse locale post-consenso in browser pulito:
+
+```text
+mobile: Performance 89, FCP 1,7 s, LCP 3,2 s, TBT 170 ms, CLS 0
+desktop: Performance 100, FCP 0,7 s, LCP 0,7 s, TBT 20 ms, CLS 0
+```
+
+Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimizzazione vendor è stata inclusa nella foundation.
 
 ## Guardrail invariati
 
+- nessun tracking Google prima del consenso Misurazione;
 - nessun analytics nella Control Room o preview;
 - nessun Ads, remarketing o affiliazione;
 - nessuna PII, token, JWT o ID editoriali negli eventi;
@@ -302,15 +274,8 @@ affiliate tracking: non attivo
 
 ## Gap aperti
 
-- Consent Overview nel workspace GTM;
-- ambiente applicativo locale o preview Cloudflare esplicitamente autorizzato;
-- Tag Assistant, Network e DebugView;
-- verifica rifiuto, consenso, reload e revoca;
-- un solo `page_view` reale;
-- performance post-consenso;
-- decisione vendor finale iubenda;
+- primi dati Search Console e GA4 da osservare senza modifiche premature;
 - keyword map e copy SEO di homepage/listing;
-- primi dati Search Console;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
 - mutation M4 residue;
