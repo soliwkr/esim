@@ -80,8 +80,8 @@ export function serializeJsonLd(
 export function publicHomepageSeo(siteName: string, pageUrl: string): PublicSeoDocument {
   const name = requiredText(siteName, 'siteName', 180);
   const url = absolutePageUrl(pageUrl);
-  const title = `eSIM da viaggio: guide e confronti | ${name}`;
-  const description = 'Confronta eSIM da viaggio, destinazioni, provider e telefoni compatibili con guide italiane aggiornate e trasparenti.';
+  const title = `eSIM da viaggio: destinazioni, guide e confronti | ${name}`;
+  const description = 'Scegli la eSIM da viaggio partendo da destinazione, compatibilità e criteri di confronto, con guide italiane e informazioni verificate.';
 
   return {
     title,
