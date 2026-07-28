@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **28 luglio 2026**.
 
-Questa lista contiene soltanto il lavoro immediatamente eseguibile.
+Questa lista contiene soltanto il lavoro immediatamente eseguibile e i gate operativi già definiti.
 
 ## M6 measurement foundation — chiusa live
 
@@ -72,13 +72,13 @@ La slice contiene title, description, H1, promessa, criteri e internal linking v
 
 Non contiene nuove route, pSEO, backend, D1, Workflow, Container, AI, publication capability, affiliazioni o nuovi eventi analytics.
 
-## Slice M7 `/migliore-esim` — PR draft verificata
+## Slice M7 `/migliore-esim` — verificata, non deployata
 
 ```text
-PR #98: draft
+PR #98: implementazione verificata
 branch: feat/m7-migliore-esim-alignment
 base: 006472311ed8f727873257c94c4f53f271ad5368
-CI applicativa #514: success
+CI branch: success
 deploy: non autorizzato
 ```
 
@@ -98,21 +98,19 @@ Implementato:
 
 Il ponte deve restare incapace di aggiungere fatti commerciali e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded.
 
-## Now — chiusura tecnica PR #98
+## Gate di chiusura PR #98
 
-Ordine immediato:
+La chiusura autorizzata della slice segue questa sequenza:
 
 ```text
-1. CI finale sul commit documentale
-2. verificare diff e head finale della PR #98
-3. mantenere la PR draft finché non viene autorizzata la review finale
+1. rendere ready la PR #98
+2. eseguire il merge con merge commit soltanto dopo CI verde sull’head documentale corrente
+3. verificare la CI del merge commit su main
 4. non eseguire deploy pubblico
-5. non attivare AFFILIATE_MODE
+5. mantenere AFFILIATE_MODE=disabled
 ```
 
-Dopo la CI finale verde, la PR può essere valutata per ready e merge con merge commit. Ready, merge e deploy restano decisioni distinte.
-
-Il deploy e la verifica live della homepage, dei tre hub e di `/migliore-esim` richiedono un'autorizzazione esplicita separata.
+Ready, merge e deploy restano decisioni distinte. Il merge deve usare l’head atteso; il deploy e la verifica live della homepage, dei tre hub e di `/migliore-esim` richiedono un'autorizzazione esplicita separata.
 
 ## Search Console
 

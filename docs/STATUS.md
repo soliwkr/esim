@@ -18,7 +18,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room legacy | Transitoria | fallback delle mutation residue |
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
 | M7 on-page foundation | Verificata in CI, non deployata | homepage e tre hub riallineati alla keyword ownership |
-| M7 `/migliore-esim` | PR draft verificata in CI, non deployata | ponte legacy slug-bound e guida decisionale senza ranking |
+| M7 `/migliore-esim` | Verificata in CI, non deployata | ponte legacy slug-bound e guida decisionale senza ranking |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
 | iubenda CMP | Live | consenso, persistenza e revoca verificati |
@@ -291,13 +291,13 @@ Non introduce:
 
 ## M7 — riallineamento `/migliore-esim`
 
-Implementazione sulla PR draft #98:
+Implementazione verificata sulla PR #98:
 
 ```text
 branch: feat/m7-migliore-esim-alignment
 base: 006472311ed8f727873257c94c4f53f271ad5368
-CI applicativa #514: success
-PR state: draft
+CI branch: success
+implementazione verificata sulla PR #98
 deploy: non autorizzato
 ```
 
@@ -360,8 +360,6 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- CI finale sul closeout documentale della PR draft #98;
-- review e decisione ready/merge della PR #98;
 - deploy e verifica live delle slice M7, soltanto con autorizzazione esplicita separata;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;
