@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **27 luglio 2026**.
+Data di riferimento: **28 luglio 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -18,6 +18,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room legacy | Transitoria | fallback delle mutation residue |
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
 | M7 on-page foundation | Verificata in CI, non deployata | homepage e tre hub riallineati alla keyword ownership |
+| M7 `/migliore-esim` | Verificata in CI, non deployata | ponte legacy slug-bound e guida decisionale senza ranking |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
 | iubenda CMP | Live | consenso, persistenza e revoca verificati |
@@ -288,6 +289,43 @@ Non introduce:
 - submission Search Console o Indexing API;
 - deploy pubblico.
 
+## M7 — riallineamento `/migliore-esim`
+
+Implementazione verificata sulla PR #98:
+
+```text
+branch: feat/m7-migliore-esim-alignment
+base: 006472311ed8f727873257c94c4f53f271ad5368
+CI branch: success
+implementazione verificata sulla PR #98
+deploy: non autorizzato
+```
+
+La slice introduce:
+
+- title, meta description e H1 coerenti con l’ownership `migliore esim`;
+- risposta diretta, criteri, scenari, limiti e FAQ senza vincitore universale;
+- ponte legacy temporaneo e slug-bound nel read model pubblico esistente;
+- fail-closed se il seed non resta `comparison` con primary keyword `migliore esim`;
+- nessun prezzo, ranking, copertura, soglia, velocità o provider vincitore;
+- link in uscita verso homepage, hub e tre guide, con articoli caricati tramite `loadPublishedArticle()` e omessi se non `published`;
+- link canonical e preview coerenti con il rispettivo namespace;
+- disclosure coerente con affiliazioni disabilitate;
+- smoke dedicato su canonical, preview, published-only, desktop, mobile e assenza overflow;
+- internal-linking matrix aggiornata soltanto per i link in uscita.
+
+Il ponte non è una seconda pipeline editoriale: resta limitato al seed legacy pubblicato e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded. Nessuna altra pagina è stata riscritta per aggiungere link in entrata.
+
+La PR non introduce:
+
+- nuove route, backend o API;
+- migrazioni o mutation D1;
+- Workflow, Container, AI, Control Room o gate editoriali;
+- publication capability;
+- affiliazioni, Ads o nuovi eventi analytics;
+- submission Search Console o Indexing API;
+- deploy pubblico.
+
 ## Contratto di deploy D1
 
 Il config sorgente conserva:
@@ -322,8 +360,7 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- deploy e verifica live della prima slice M7, solo con autorizzazione esplicita;
-- riallineamento editoriale di `/migliore-esim`;
+- deploy e verifica live delle slice M7, soltanto con autorizzazione esplicita separata;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;

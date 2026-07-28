@@ -1,6 +1,14 @@
 import type { ContentBlock, FaqItem, PageCard } from './types';
 import { parsePublicPageCard } from './public-page-cards';
 
+export const M7_MIGLIORE_ESIM_SLUG = 'migliore-esim' as const;
+
+const M7_MIGLIORE_ESIM_GUIDE_SLUGS = Object.freeze([
+  'esim-estero',
+  'esim-come-funziona',
+  'esim-telefoni-compatibili',
+] as const);
+
 export type PublicArticleSource = {
   label: string;
   url: string;
@@ -174,6 +182,110 @@ function parseArticleRow(value: unknown): PublicArticle {
   };
 }
 
+/**
+ * Temporary bridge for the pre-grounded published seed `migliore-esim`.
+ *
+ * It is deliberately slug-bound and may add only provider-neutral decision guidance.
+ * It cannot introduce prices, rankings, provider winners or other commercial claims.
+ * Remove it when this page is rematerialized through the grounded editorial workflow.
+ */
+function applyMiglioreEsimLegacyBridge(article: PublicArticle): PublicArticle {
+  if (article.slug !== M7_MIGLIORE_ESIM_SLUG) return article;
+  if (article.page_type !== 'comparison' || article.primary_keyword.toLocaleLowerCase('it') !== 'migliore esim') {
+    throw new TypeError('The migliore-esim legacy bridge requires the canonical comparison seed.');
+  }
+
+  return {
+    ...article,
+    title: 'Migliore eSIM per viaggiare: criteri e confronto | Senza Roaming',
+    meta_description: 'Scegli la migliore eSIM per il tuo viaggio confrontando destinazione, durata, dati, hotspot, rete, attivazione, fair use, chiamate, SMS, prezzo e limiti verificati.',
+    eyebrow: 'Guida alla scelta',
+    h1: 'Qual è la migliore eSIM per viaggiare?',
+    direct_answer: 'La migliore eSIM è quella adatta al viaggio specifico: copre la destinazione e la durata, offre dati e hotspot adeguati, funziona sul telefono e dichiara con chiarezza rete, installazione, attivazione, fair use, chiamate o SMS, prezzo e limiti. Senza verifiche datate non esiste un vincitore universale.',
+    intro: 'Questa pagina non assegna un primo posto. Ti porta dai requisiti non negoziabili ai criteri confrontabili e poi alle guide pubblicate che approfondiscono destinazione, funzionamento, compatibilità e scelta del piano per l’estero.',
+    updated_at: '2026-07-28T00:00:00Z',
+    content: [
+      {
+        type: 'heading',
+        text: 'Decidi in questo ordine',
+      },
+      {
+        type: 'steps',
+        items: [
+          'Definisci destinazione, eventuali Paesi attraversati e durata completa del viaggio.',
+          'Verifica il modello esatto del telefono e l’assenza di blocchi operatore.',
+          'Stima dati, hotspot, chiamate e SMS realmente necessari.',
+          'Controlla rete dichiarata, installazione, momento di attivazione e fair use.',
+          'Confronta il prezzo soltanto insieme alla data della verifica, alle imposte e ai limiti scritti.',
+        ],
+      },
+      {
+        type: 'heading',
+        text: 'I criteri che cambiano davvero la scelta',
+      },
+      {
+        type: 'table',
+        headers: ['Criterio', 'Cosa verificare', 'Perché conta'],
+        rows: [
+          ['Destinazione', 'Paesi e aree inclusi nel piano.', 'Un itinerario non coperto rende irrilevanti gli altri vantaggi.'],
+          ['Durata', 'Giorni di validità e momento iniziale.', 'Il piano deve coprire l’intero viaggio senza partire troppo presto.'],
+          ['Dati', 'Quantità inclusa e unità di misura.', 'Uso leggero, mappe, video e lavoro remoto richiedono consumi diversi.'],
+          ['Hotspot', 'Disponibilità e limiti dichiarati.', 'È essenziale quando altri dispositivi dipendono dalla connessione.'],
+          ['Rete', 'Operatori partner e tecnologie dichiarate.', 'La rete disponibile dipende dalla destinazione e dalle condizioni del piano.'],
+          ['Installazione', 'QR code, app o procedura guidata e connessione necessaria.', 'Preparare il profilo prima della partenza riduce gli imprevisti.'],
+          ['Attivazione', 'Evento che avvia la validità.', 'Installazione e attivazione non devono essere trattate come la stessa cosa.'],
+          ['Fair use', 'Soglie, riduzioni e condizioni dell’uso intensivo.', 'La parola illimitato non basta senza leggere i limiti applicabili.'],
+          ['Chiamate e SMS', 'Inclusione, numero locale o solo dati.', 'Un piano dati non soddisfa automaticamente chi deve telefonare o ricevere SMS.'],
+          ['Prezzo', 'Valuta, imposte, rinnovi e data della verifica.', 'Il prezzo è confrontabile soltanto a condizioni equivalenti e in un momento preciso.'],
+          ['Condizioni', 'Rimborsi, assistenza e altre limitazioni documentate.', 'Le eccezioni possono cambiare l’idoneità del piano allo scenario.'],
+        ],
+      },
+      {
+        type: 'heading',
+        text: 'Cinque scenari, cinque controlli diversi',
+      },
+      {
+        type: 'bullets',
+        items: [
+          'Viaggio breve e uso leggero: priorità a copertura completa, durata corretta e quantità di dati sufficiente.',
+          'Viaggio lungo o uso intenso: controlla quantità di dati, fair use, eventuali riduzioni e possibilità di ricarica.',
+          'Itinerario multi-Paese: verifica ogni tappa e confronta piano locale, regionale o globale nella guida dedicata.',
+          'Lavoro da remoto: hotspot, stabilità dichiarata, consumo previsto e piano di riserva diventano requisiti centrali.',
+          'Necessità di chiamate o SMS: verifica esplicitamente se il piano è solo dati o include servizi voce e messaggistica.',
+        ],
+      },
+      {
+        type: 'callout',
+        title: 'Prezzi e condizioni hanno una data',
+        text: 'Un prezzo, una copertura o una soglia fair use possono cambiare. Prima di scegliere, controlla la fonte ufficiale e la data dell’ultima verifica invece di affidarti a una graduatoria permanente.',
+      },
+      {
+        type: 'callout',
+        title: 'Cosa questa pagina non dichiara',
+        text: 'Non assegna un provider vincitore, non pubblica una classifica automatica e non trasforma dichiarazioni commerciali generiche in fatti. Raccomandazioni numeriche o provider-specifiche richiedono claim atomici, fonti datate e provenance completa.',
+      },
+    ],
+    faq: [
+      {
+        question: 'Qual è la migliore eSIM in assoluto?',
+        answer: 'Non esiste una risposta universale. La scelta dipende da destinazione, durata, telefono, uso dei dati, hotspot, rete, attivazione, fair use, chiamate o SMS, prezzo e condizioni verificate.',
+      },
+      {
+        question: 'La eSIM più economica è sempre la scelta migliore?',
+        answer: 'No. Il prezzo va confrontato soltanto dopo aver verificato copertura dell’itinerario, durata, dati, hotspot, attivazione e limiti applicabili.',
+      },
+      {
+        question: 'Come valuto un piano dichiarato illimitato?',
+        answer: 'Controlla le condizioni scritte: soglie di fair use, eventuali riduzioni di velocità, limiti hotspot e periodo di validità. La parola illimitato, da sola, non descrive l’esperienza completa.',
+      },
+      {
+        question: 'Mi servono chiamate e SMS oltre ai dati?',
+        answer: 'Dipende dal viaggio. Verifica se devi ricevere codici via SMS, chiamare numeri locali o mantenere attiva la SIM principale; molti piani eSIM di viaggio possono essere solo dati.',
+      },
+    ],
+  };
+}
+
 function positiveRelatedLimit(limit: number): number {
   if (!Number.isInteger(limit) || limit <= 0 || limit > 12) {
     throw new RangeError(`Invalid related article limit: ${limit}`);
@@ -201,13 +313,22 @@ export async function loadPublishedArticle(
 
   if (!row) return { kind: 'missing' };
   try {
-    return { kind: 'found', article: parseArticleRow(row) };
+    return { kind: 'found', article: applyMiglioreEsimLegacyBridge(parseArticleRow(row)) };
   } catch (error) {
     return {
       kind: 'invalid',
       reason: error instanceof Error ? error.message : 'Invalid published article row.',
     };
   }
+}
+
+export async function loadMiglioreEsimPublishedGuides(
+  db: D1Database,
+  article: PublicArticle,
+): Promise<PublicArticle[]> {
+  if (article.slug !== M7_MIGLIORE_ESIM_SLUG) return [];
+  const results = await Promise.all(M7_MIGLIORE_ESIM_GUIDE_SLUGS.map((slug) => loadPublishedArticle(db, slug)));
+  return results.flatMap((result) => result.kind === 'found' ? [result.article] : []);
 }
 
 export async function loadRelatedPublishedArticles(

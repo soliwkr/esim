@@ -1,8 +1,8 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **27 luglio 2026**.
+Ultimo aggiornamento: **28 luglio 2026**.
 
-Questa lista contiene soltanto il lavoro immediatamente eseguibile.
+Questa lista contiene soltanto il lavoro immediatamente eseguibile e i gate operativi già definiti.
 
 ## M6 measurement foundation — chiusa live
 
@@ -72,43 +72,45 @@ La slice contiene title, description, H1, promessa, criteri e internal linking v
 
 Non contiene nuove route, pSEO, backend, D1, Workflow, Container, AI, publication capability, affiliazioni o nuovi eventi analytics.
 
-## Now — chiusura PR #97
-
-Ordine immediato:
+## Slice M7 `/migliore-esim` — verificata, non deployata
 
 ```text
-1. merge PR #97 con merge commit
-2. verificare CI sul merge in main
-3. non eseguire deploy pubblico
-4. aprire una nuova branch per /migliore-esim
+PR #98: implementazione verificata
+branch: feat/m7-migliore-esim-alignment
+base: 006472311ed8f727873257c94c4f53f271ad5368
+CI branch: success
+deploy: non autorizzato
 ```
 
-Il deploy e la verifica live della homepage e dei tre hub richiedono un'autorizzazione esplicita separata.
+Implementato:
 
-## Prossima slice M7 — `/migliore-esim`
+- ownership dell’intento commerciale `migliore esim`;
+- title, meta description e H1 target;
+- struttura decisionale con criteri, scenari, limiti e FAQ;
+- nessun ranking, prezzo specifico, provider vincitore o claim commerciale nuovo;
+- ponte legacy temporaneo limitato al solo seed `migliore-esim`;
+- loader e query published-only esistenti riusati;
+- link in uscita verso homepage, hub e guide pubblicate;
+- nessuna riscrittura delle altre pagine per aggiungere link in entrata;
+- preview e canonical namespace-safe;
+- smoke dedicato canonical, preview, published-only, desktop, mobile e overflow;
+- CMP, measurement e Control Room invariati.
 
-Obiettivo:
+Il ponte deve restare incapace di aggiungere fatti commerciali e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded.
+
+## Gate di chiusura PR #98
+
+La chiusura autorizzata della slice segue questa sequenza:
 
 ```text
-intent commerciale “migliore esim”
-→ struttura decisionale verificabile
-→ criteri e claim datati
-→ fonti e provenance
-→ internal linking
-→ CTA provider coerenti con AFFILIATE_MODE
-→ preview e smoke
+1. rendere ready la PR #98
+2. eseguire il merge con merge commit soltanto dopo CI verde sull’head documentale corrente
+3. verificare la CI del merge commit su main
+4. non eseguire deploy pubblico
+5. mantenere AFFILIATE_MODE=disabled
 ```
 
-Confini:
-
-- una sola pagina decisionale generale;
-- nessuna classifica automatica;
-- nessun vincitore universale senza scenario dichiarato;
-- nessun claim commerciale privo di fonte valida e freshness;
-- nessuna attivazione affiliazioni implicita;
-- nessuna nuova route;
-- nessuna mutation o pubblicazione automatica;
-- nessun deploy senza richiesta esplicita.
+Ready, merge e deploy restano decisioni distinte. Il merge deve usare l’head atteso; il deploy e la verifica live della homepage, dei tre hub e di `/migliore-esim` richiedono un'autorizzazione esplicita separata.
 
 ## Search Console
 

@@ -1,8 +1,9 @@
 ---
 import { env } from 'cloudflare:workers'
 import type { PageCard } from '../../../../src/types'
-import type { PublicArticleLoadResult } from '../../../../src/public-article'
+import type { PublicArticle, PublicArticleLoadResult } from '../../../../src/public-article'
 import {
+  loadMiglioreEsimPublishedGuides,
   loadPublishedArticle,
   loadRelatedPublishedArticles,
 } from '../../../../src/public-article'
@@ -18,9 +19,13 @@ const result: PublicArticleLoadResult = slug
   ? await loadPublishedArticle(env.DB, slug)
   : { kind: 'missing' }
 let related: PageCard[] = []
+let decisionGuides: PublicArticle[] = []
 
 if (result.kind === 'found') {
-  related = await loadRelatedPublishedArticles(env.DB, result.article.cluster, result.article.slug, 5)
+  [related, decisionGuides] = await Promise.all([
+    loadRelatedPublishedArticles(env.DB, result.article.cluster, result.article.slug, 5),
+    loadMiglioreEsimPublishedGuides(env.DB, result.article),
+  ])
 } else if (result.kind === 'missing') {
   Astro.response.status = 404
   setPublicResponseHeaders(Astro.response.headers, 'canonical', true)
@@ -36,6 +41,7 @@ if (result.kind === 'found') {
     mode="canonical"
     article={result.article}
     related={related}
+    decisionGuides={decisionGuides}
     siteName={env.SITE_NAME}
     affiliateEnabled={affiliateEnabled(env)}
   />
