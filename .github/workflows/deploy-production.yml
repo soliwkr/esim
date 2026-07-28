@@ -2,11 +2,6 @@ name: Deploy Senza Roaming
 
 on:
   workflow_dispatch:
-    inputs:
-      site_url:
-        description: Canonical site URL
-        required: true
-        default: https://senzaroaming.it
 
 concurrency:
   group: deploy-senza-roaming
@@ -17,7 +12,7 @@ permissions:
 
 env:
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
-  SENZA_ROAMING_SITE_URL: ${{ inputs.site_url }}
+  SENZA_ROAMING_SITE_URL: https://senzaroaming.it
 
 jobs:
   deploy:

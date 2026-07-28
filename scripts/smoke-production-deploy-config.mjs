@@ -17,6 +17,9 @@ import {
 import {
   PRODUCTION_CANONICAL_PATHS,
   PRODUCTION_PREVIEW_PATHS,
+  PRODUCTION_SITE_ORIGIN,
+  normalizeProductionSiteOrigin,
+  resolveProductionSiteOrigin,
   verifyProductionLive,
 } from './smoke-production-live.mjs';
 
@@ -165,6 +168,13 @@ const workflowTriggers = workflow.match(/^on:\n((?:(?:[ \t].*)?\n)*)/m)?.[1] ?? 
 assert.match(workflow, /^\s{2}workflow_dispatch:/m);
 assert.notEqual(workflowTriggers, '');
 assert.doesNotMatch(workflowTriggers, /^  (?!workflow_dispatch:)[a-zA-Z_]+:/m);
+assert.doesNotMatch(workflowTriggers, /^\s{4}inputs:/m);
+assert.doesNotMatch(workflowTriggers, /\bsite_url\b/);
+assert.doesNotMatch(workflow, /\binputs\.site_url\b/);
+assert.deepEqual(
+  workflow.match(/^  SENZA_ROAMING_SITE_URL:.*$/gm),
+  [`  SENZA_ROAMING_SITE_URL: ${PRODUCTION_SITE_ORIGIN}`],
+);
 assert.match(workflow, /\brun: npm ci\b/);
 assert.doesNotMatch(workflow, /\bnpm install\b/);
 assert.match(workflow, /playwright install --with-deps chromium/);
@@ -197,6 +207,14 @@ assert.match(deployScript, /prepare-production-measurement-config\.mjs/);
 assert.match(deployScript, /prepare-production-d1-binding\.mjs/);
 assert.match(deployScript, /wrangler deploy --config apps\/web\/dist\/server\/wrangler\.json$/);
 assert.doesNotMatch(deployScript, /\bd1 create\b|\bmigrations apply\b|\bdb:migrate:remote\b/);
+
+assert.equal(normalizeProductionSiteOrigin('https://example.test/'), 'https://example.test');
+assert.equal(resolveProductionSiteOrigin(PRODUCTION_SITE_ORIGIN), PRODUCTION_SITE_ORIGIN);
+assert.throws(
+  () => resolveProductionSiteOrigin('https://example.test'),
+  /must be exactly https:\/\/senzaroaming\.it/,
+);
+assert.throws(() => resolveProductionSiteOrigin(undefined), /must be set/);
 
 const siteOrigin = 'https://example.test';
 const verification = { consent: productionConsent, measurement: productionMeasurement };

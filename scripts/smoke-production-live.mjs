@@ -20,6 +20,8 @@ export const PRODUCTION_PREVIEW_PATHS = Object.freeze([
   '/astro-foundation/articoli/migliore-esim',
 ]);
 
+export const PRODUCTION_SITE_ORIGIN = 'https://senzaroaming.it';
+
 const REVIEW_ONLY_PATHS = Object.freeze([
   '/esim-cina-senza-vpn',
   '/astro-foundation/articoli/esim-cina-senza-vpn',
@@ -54,6 +56,19 @@ export function normalizeProductionSiteOrigin(value) {
   contract(!url.search && !url.hash, 'Production site URL must not contain a query or fragment.');
   contract(url.pathname === '/' || url.pathname === '', 'Production site URL must not contain a path.');
   return url.origin;
+}
+
+export function resolveProductionSiteOrigin(value) {
+  contract(
+    typeof value === 'string' && value.trim().length > 0,
+    'SENZA_ROAMING_SITE_URL must be set for the production smoke.',
+  );
+  const siteOrigin = normalizeProductionSiteOrigin(value);
+  contract(
+    siteOrigin === PRODUCTION_SITE_ORIGIN,
+    `Production smoke origin must be exactly ${PRODUCTION_SITE_ORIGIN}.`,
+  );
+  return siteOrigin;
 }
 
 export function assertCanonicalSnapshot(snapshot, pathname, siteOrigin, verification) {
@@ -368,9 +383,7 @@ export async function verifyProductionConsentGating({
 }
 
 async function main() {
-  const siteOrigin = normalizeProductionSiteOrigin(
-    process.env.SENZA_ROAMING_SITE_URL ?? 'https://senzaroaming.it',
-  );
+  const siteOrigin = resolveProductionSiteOrigin(process.env.SENZA_ROAMING_SITE_URL);
   const verification = productionLiveVerificationConfig();
   const attempts = 36;
 

@@ -344,10 +344,14 @@ database_id=REPLACE_WITH_D1_DATABASE_ID
 
 `scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente `apps/web/dist/server/wrangler.json`. Nessuna migration o mutation è implicita nel deploy.
 
-La branch `fix/production-deploy-safety` riallinea il workflow GitHub a questo
-contratto: avvio soltanto manuale, `npm ci`, `npm run deploy`, risoluzione D1
-read-only, nessuna creazione o migration remota e smoke live pubblici/M6/Control
-Room. La branch non autorizza né esegue un deploy.
+La draft PR #99 sulla branch `fix/production-deploy-safety` riallinea il workflow
+GitHub a questo contratto. L'implementazione è verificata in CI: la nuova
+pipeline disabilita il deploy automatico, accetta soltanto il dispatch manuale
+di produzione verso `https://senzaroaming.it`, usa `npm ci` e `npm run deploy`,
+risolve D1 in read-only e non crea database né applica migration remote.
+
+La PR #99 non ha eseguito alcun deploy. Merge e deploy manuale restano gate
+distinti; CMP e measurement live non sono ancora stati ripristinati.
 
 ## Performance measurement foundation
 
@@ -373,7 +377,7 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- revisione e merge separatamente autorizzati della draft PR di sicurezza del deploy;
+- revisione e merge separatamente autorizzati della draft PR #99 di sicurezza del deploy;
 - eventuale ripristino live di CMP e measurement soltanto con nuova autorizzazione esplicita;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;

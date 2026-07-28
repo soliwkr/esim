@@ -107,13 +107,18 @@ Il ponte deve restare incapace di aggiungere fatti commerciali e deve essere rim
 
 ## Correzione immediata — sicurezza deploy produzione
 
-Branch autorizzata:
+Stato verificato:
 
 ```text
-fix/production-deploy-safety
+PR #99: draft
+branch: fix/production-deploy-safety
+implementazione: verificata in CI
+deploy automatico: disabilitato dalla nuova pipeline
+deploy eseguiti dalla PR #99: 0
+CMP e measurement live: ancora da ripristinare
 ```
 
-Obiettivo immediato:
+Pipeline implementata:
 
 ```text
 workflow_dispatch soltanto
@@ -125,9 +130,10 @@ workflow_dispatch soltanto
 → smoke live pubblici, preview, SEO, published-only, CMP, measurement e Control Room
 ```
 
-Stop obbligatorio: draft PR aperta, CI verde e diff verificato. Non eseguire
-alcun deploy. Il ripristino live di CMP e measurement è una seconda decisione
-esplicita dopo la review.
+Stop obbligatorio: mantenere la PR draft dopo CI verde e diff verificato. Merge
+e deploy manuale sono gate distinti. Non eseguire alcun deploy: il ripristino
+live di CMP e measurement richiede una seconda decisione esplicita dopo la
+review e il merge.
 
 ## Search Console
 
