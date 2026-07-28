@@ -1,6 +1,9 @@
 ---
 import type { PageCard } from '../../../../../src/types'
-import type { PublicArticle } from '../../../../../src/public-article'
+import {
+  M7_MIGLIORE_ESIM_SLUG,
+  type PublicArticle,
+} from '../../../../../src/public-article'
 import type { PublicRenderMode } from '../../../../../src/public-render-mode'
 import {
   publicArticlePath,
@@ -20,12 +23,20 @@ interface Props {
   mode: PublicRenderMode
   article: PublicArticle
   related: PageCard[]
+  decisionGuides: PublicArticle[]
   siteName: string
   affiliateEnabled: boolean
 }
 
-const { mode, article, related, siteName, affiliateEnabled } = Astro.props
+type DecisionLink = {
+  href: string
+  label: string
+  description: string
+}
+
+const { mode, article, related, decisionGuides, siteName, affiliateEnabled } = Astro.props
 const preview = publicIsPreview(mode)
+const isMiglioreEsim = article.slug === M7_MIGLIORE_ESIM_SLUG
 const sectionType = article.page_type === 'destination'
   ? 'destination'
   : article.page_type === 'comparison'
@@ -41,6 +52,47 @@ const seo = publicArticleSeo(article, new URL(canonicalPath, base).toString(), s
 const disclosure = affiliateEnabled
   ? 'Alcuni link possono essere affiliati. Potremmo ricevere una commissione senza costi aggiuntivi per te; la commissione non determina automaticamente la classifica.'
   : 'I link ai provider non sono attualmente remunerati.'
+
+const decisionLinks: DecisionLink[] = []
+if (isMiglioreEsim) {
+  decisionLinks.push(
+    {
+      href: publicHomePath(mode),
+      label: 'Orientati tra le eSIM da viaggio',
+      description: 'Torna alla panoramica generale e scegli il percorso più adatto alla fase del viaggio.',
+    },
+    {
+      href: publicListingPath(mode, 'destination'),
+      label: 'Scegli la destinazione',
+      description: 'Parti dal Paese e raggiungi soltanto guide già pubblicate.',
+    },
+    {
+      href: publicListingPath(mode, 'guide'),
+      label: 'Consulta le guide eSIM',
+      description: 'Approfondisci compatibilità, installazione, attivazione e uso pratico.',
+    },
+    {
+      href: publicListingPath(mode, 'comparison'),
+      label: 'Vedi tutti i confronti eSIM',
+      description: 'Passa ai confronti specifici senza trasformare l’hub in una classifica generale.',
+    },
+  )
+
+  const guideLabels = new Map<string, string>([
+    ['esim-estero', 'Scegli il tipo di piano per l’estero'],
+    ['esim-come-funziona', 'Capisci come funziona una eSIM'],
+    ['esim-telefoni-compatibili', 'Verifica se il telefono supporta eSIM'],
+  ])
+  for (const guide of decisionGuides) {
+    const label = guideLabels.get(guide.slug)
+    if (!label) continue
+    decisionLinks.push({
+      href: publicArticlePath(mode, guide.slug),
+      label,
+      description: guide.meta_description,
+    })
+  }
+}
 ---
 
 <PublicLayout
@@ -95,17 +147,50 @@ const disclosure = affiliateEnabled
         </aside>
 
         <PublicArticleBlocks blocks={article.content} />
+
+        {decisionLinks.length > 0 && (
+          <section
+            class="article-related"
+            aria-labelledby="m7-migliore-esim-links-title"
+            data-m7-migliore-esim-links
+          >
+            <p class="eyebrow">Continua la verifica</p>
+            <h2 id="m7-migliore-esim-links-title">Apri il percorso giusto prima di scegliere</h2>
+            <div class="article-related-grid">
+              {decisionLinks.map((link) => (
+                <article>
+                  <p>Percorso pubblicato</p>
+                  <h3><a href={link.href}>{link.label}</a></h3>
+                  <span>{link.description}</span>
+                  <a class="article-related-link" href={link.href}>Apri il percorso →</a>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         <PublicArticleFaq items={article.faq} />
       </div>
 
       <aside class="article-side-note" aria-labelledby="article-side-note-title">
         <p class="article-side-label">{preview ? 'Contratto della preview' : 'Criteri della pagina'}</p>
-        <h2 id="article-side-note-title">Solo contenuto già pubblicato.</h2>
+        <h2 id="article-side-note-title">{isMiglioreEsim ? 'Nessun vincitore universale.' : 'Solo contenuto già pubblicato.'}</h2>
         <ul>
-          <li>Nessun draft o riga in review.</li>
-          <li>Nessun HTML generato viene eseguito.</li>
-          <li>Le fonti non diventano test indipendenti.</li>
-          <li>{preview ? 'La route canonica resta sul renderer corrente.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
+          {isMiglioreEsim ? (
+            <>
+              <li>Nessuna classifica automatica o raccomandazione provider-specifica.</li>
+              <li>Prezzi, copertura e fair use richiedono fonte e data.</li>
+              <li>I link editoriali compaiono soltanto verso guide pubblicate.</li>
+              <li>{preview ? 'Preview, canonical e link restano confinati nel rispettivo namespace.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
+            </>
+          ) : (
+            <>
+              <li>Nessun draft o riga in review.</li>
+              <li>Nessun HTML generato viene eseguito.</li>
+              <li>Le fonti non diventano test indipendenti.</li>
+              <li>{preview ? 'La route canonica resta sul renderer corrente.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
+            </>
+          )}
         </ul>
       </aside>
     </div>
