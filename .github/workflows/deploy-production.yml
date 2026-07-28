@@ -1,21 +1,6 @@
 name: Deploy Senza Roaming
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "apps/web/**"
-      - "migrations/**"
-      - "containers/**"
-      - "scripts/**"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.json"
-      - "wrangler.jsonc"
-      - "wrangler.production.jsonc"
-      - "Dockerfile"
-      - ".github/workflows/deploy-production.yml"
   workflow_dispatch:
     inputs:
       site_url:
@@ -31,8 +16,8 @@ permissions:
   contents: read
 
 env:
-  CLOUDFLARE_ACCOUNT_ID: 60496826f56a093a72602bfae074fdcf
-  SENZA_ROAMING_SITE_URL: ${{ inputs.site_url || 'https://senzaroaming.it' }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+  SENZA_ROAMING_SITE_URL: ${{ inputs.site_url }}
 
 jobs:
   deploy:
@@ -49,9 +34,12 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Check deploy token
+      - name: Install browser for live consent smoke
+        run: npx playwright install --with-deps chromium
+
+      - name: Check deploy credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -59,6 +47,11 @@ jobs:
             echo "Missing GitHub secret CLOUDFLARE_API_TOKEN"
             exit 1
           }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "Missing GitHub secret or variable CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          }
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
 
       - name: Check Docker
         run: docker info
@@ -69,37 +62,20 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Find or create D1 database
+      - name: Verify production deploy inputs
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CMP_PROVIDER: ${{ secrets.CMP_PROVIDER || vars.CMP_PROVIDER }}
+          CMP_EMBED_ID: ${{ secrets.CMP_EMBED_ID || vars.CMP_EMBED_ID }}
+          GTM_ID: ${{ secrets.GTM_ID || vars.GTM_ID }}
+          GA4_MEASUREMENT_ID: ${{ secrets.GA4_MEASUREMENT_ID || vars.GA4_MEASUREMENT_ID }}
+        shell: bash
         run: |
           set -euo pipefail
-          npx wrangler d1 list --json > /tmp/d1-list.json
-
-          if ! node - <<'NODE'
-          const fs = require('node:fs');
-          const payload = JSON.parse(fs.readFileSync('/tmp/d1-list.json', 'utf8'));
-          const rows = Array.isArray(payload) ? payload : payload.result || payload.databases || [];
-          process.exit(rows.some((item) => item && item.name === 'senza-roaming') ? 0 : 1);
-          NODE
-          then
-            npx wrangler d1 create senza-roaming --jurisdiction eu
-            npx wrangler d1 list --json > /tmp/d1-list.json
-          fi
-
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const payload = JSON.parse(fs.readFileSync('/tmp/d1-list.json', 'utf8'));
-          const rows = Array.isArray(payload) ? payload : payload.result || payload.databases || [];
-          const db = rows.find((item) => item && item.name === 'senza-roaming');
-          const id = db && (db.uuid || db.id || db.database_id);
-          if (!id) throw new Error('Could not resolve the senza-roaming D1 database ID.');
-          fs.appendFileSync(process.env.GITHUB_ENV, `D1_DATABASE_ID=${id}\n`);
-          console.log(`Using D1 database ${db.name} (${id}).`);
-          NODE
-
-      - name: Generate production config
-        run: node scripts/build-production-config.mjs
+          npm run preflight:production-deploy
+          for name in CMP_PROVIDER CMP_EMBED_ID GTM_ID GA4_MEASUREMENT_ID; do
+            value="${!name}"
+            echo "::add-mask::$value"
+          done
 
       - name: Verify Control Room Access prerequisites
         env:
@@ -110,7 +86,7 @@ jobs:
           set -euo pipefail
           test -n "$CF_ACCESS_CLIENT_ID" || { echo "Missing GitHub secret CF_ACCESS_CLIENT_ID"; exit 1; }
           test -n "$CF_ACCESS_CLIENT_SECRET" || { echo "Missing GitHub secret CF_ACCESS_CLIENT_SECRET"; exit 1; }
-          npx wrangler secret list --config wrangler.production.jsonc --format json > /tmp/worker-secrets.json
+          npx wrangler secret list --name senza-roaming --format json > /tmp/worker-secrets.json
           node - <<'NODE'
           const fs = require('node:fs');
           const payload = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json', 'utf8'));
@@ -121,28 +97,22 @@ jobs:
           if (missing.length) throw new Error(`Missing Worker secrets: ${missing.join(', ')}`);
           NODE
 
-      - name: Apply D1 migrations
+      - name: Run canonical production deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler d1 migrations apply DB --remote --config wrangler.production.jsonc
+          CMP_PROVIDER: ${{ secrets.CMP_PROVIDER || vars.CMP_PROVIDER }}
+          CMP_EMBED_ID: ${{ secrets.CMP_EMBED_ID || vars.CMP_EMBED_ID }}
+          GTM_ID: ${{ secrets.GTM_ID || vars.GTM_ID }}
+          GA4_MEASUREMENT_ID: ${{ secrets.GA4_MEASUREMENT_ID || vars.GA4_MEASUREMENT_ID }}
+        run: npm run deploy
 
-      - name: Build Astro and custom Worker entrypoint
+      - name: Verify live public production contracts
         env:
-          ASTRO_WRANGLER_CONFIG: ../../wrangler.production.jsonc
-        run: npm run build
-
-      - name: Deploy Worker, Container and Workflow
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler deploy --config apps/web/dist/server/wrangler.json
-
-      - name: Verify Cloudflare resources
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          npx wrangler containers list
-          npx wrangler containers images list
-          npx wrangler workflows list
+          CMP_PROVIDER: ${{ secrets.CMP_PROVIDER || vars.CMP_PROVIDER }}
+          CMP_EMBED_ID: ${{ secrets.CMP_EMBED_ID || vars.CMP_EMBED_ID }}
+          GTM_ID: ${{ secrets.GTM_ID || vars.GTM_ID }}
+          GA4_MEASUREMENT_ID: ${{ secrets.GA4_MEASUREMENT_ID || vars.GA4_MEASUREMENT_ID }}
+        run: npm run smoke:production-live
 
       - name: Verify live Control Room v3
         shell: bash
@@ -168,12 +138,6 @@ jobs:
           done
 
           echo "Control Room v3 did not become healthy."
-          echo "--- health ---"
-          cat /tmp/health.json 2>/dev/null || true
-          echo "--- page head ---"
-          head -c 1000 /tmp/control-room.html 2>/dev/null || true
-          echo "--- script head ---"
-          head -c 1000 /tmp/control-room.js 2>/dev/null || true
           exit 1
 
       - name: Verify live Access-protected Control Room foundation
@@ -191,7 +155,6 @@ jobs:
             302|401|403) ;;
             *)
               echo "Control Room foundation is not protected; anonymous status: $anonymous_status"
-              head -c 1000 /tmp/control-room-anonymous.html 2>/dev/null || true
               exit 1
               ;;
           esac
@@ -201,7 +164,6 @@ jobs:
             302|401|403) ;;
             *)
               echo "Control Room snapshot proxy is not protected; anonymous status: $anonymous_snapshot_status"
-              head -c 1000 /tmp/control-room-snapshot-anonymous.html 2>/dev/null || true
               exit 1
               ;;
           esac
@@ -234,14 +196,6 @@ jobs:
           done
 
           echo "Access-protected Control Room foundation did not become healthy."
-          echo "--- page headers ---"
-          cat /tmp/control-room-foundation.headers 2>/dev/null || true
-          echo "--- page head ---"
-          head -c 1000 /tmp/control-room-foundation.html 2>/dev/null || true
-          echo "--- snapshot headers ---"
-          cat /tmp/control-room-snapshot.headers 2>/dev/null || true
-          echo "--- snapshot head ---"
-          head -c 1000 /tmp/control-room-snapshot.json 2>/dev/null || true
           exit 1
 
       - name: Deployment summary
@@ -257,6 +211,7 @@ jobs:
             echo "- Workflow: senza-roaming-recent-demand"
             echo "- Schedule: Monday and Thursday at 05:00 UTC"
             echo "- Canonical URL: $SENZA_ROAMING_SITE_URL"
+            echo "- Public routes: M7, preview, SEO, published-only, CMP and measurement verified"
             echo "- Legacy Control Room: v3 live-smoke verified"
             echo "- Astro Control Room: Access, origin JWT and server-side snapshot proxy verified"
             echo "- AI Gateway: senza-roaming-ai"

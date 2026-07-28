@@ -1,6 +1,6 @@
 # Piano frontend
 
-Data di riferimento: **24 luglio 2026**.
+Data di riferimento: **28 luglio 2026**.
 
 ## Decisione
 
@@ -58,7 +58,7 @@ Il Worker reale resta:
 createPublicWorker(activePublicRouteDecision)
 ```
 
-### Configurazione Assets sulla branch PR #81
+### Configurazione Assets attiva da PR #81
 
 ```json
 {
@@ -115,7 +115,9 @@ Backend:
 export const activePublicRouteDecision = targetPublicRouteDecision;
 ```
 
-La CI applicativa #397 verifica questa matrice nel Worker compilato di produzione. Merge, deploy e verifica live restano checkpoint distinti.
+La CI applicativa #397 ha verificato questa matrice nel Worker compilato; PR #81
+e #82 hanno poi completato cutover e verifica live. Merge e deploy restano
+comunque checkpoint distinti per ogni slice successiva.
 
 Rollback:
 
@@ -257,12 +259,13 @@ docs/PUBLIC-CATALOG-REMOTE-AUDIT-RESULT-2026-07-24.md
 
 ### F4.6 — Cutover apex M5.7
 
-Branch e PR:
+Branch e PR storiche:
 
 ```text
 feat/public-apex-cutover
-PR #81
+PR #81 — merged
 CI applicativa #397 verde
+PR #82 — closeout live
 ```
 
 Implementato:
@@ -280,16 +283,34 @@ Implementato:
 - desktop e mobile;
 - tutte le suite Control Room.
 
-Restano:
+Il closeout ha completato:
 
 ```text
 canonici finali
 → CI finale code + documentazione
-→ ready e merge PR #81
-→ deploy
-→ verifica live
-→ closeout M5.7
+→ merge PR #81
+→ deploy e verifica live
+→ closeout M5.7 con PR #82
 ```
+
+## Stato M7 e sicurezza deploy
+
+Le PR #97 e #98 hanno riallineato homepage, i tre hub e `/migliore-esim`. Il
+merge della PR #98 ha attivato il vecchio trigger automatico e pubblicato M7 con
+configurazione CMP/measurement vuota.
+
+La correzione autorizzata preserva integralmente l'architettura frontend e
+interviene soltanto sul contratto production:
+
+```text
+manual workflow_dispatch
+→ npm run deploy
+→ nessuna mutation D1
+→ smoke route M7, preview, SEO, consent, measurement e Control Room
+```
+
+La draft PR non esegue il ripristino live; quel deploy richiede autorizzazione
+separata.
 
 ## Acceptance live M5.7
 

@@ -7,20 +7,23 @@ Frontend Astro di Senza Roaming e nuova Control Room privata.
 `apps/web/src/worker.ts` è il custom entrypoint del singolo Worker Cloudflare.
 
 ```text
-/astro-foundation*        → Astro pubblico preview
+/ e route canoniche       → Astro pubblico
+/astro-foundation*        → Astro preview isolata
 /control-room-foundation* → Astro + Access + React island
-altre route               → router backend legacy
+/api/* e /go/*            → backend
+/control-room* legacy     → backend privato transitorio
 ```
 
 Lo stesso modulo conserva gli export `RecentDemandWorkflow` e `Last30DaysContainer`.
 
 La Control Room è `noindex,nofollow` e `no-store`. Tutto il path `/control-room-foundation*` è fail-closed: il Worker richiede e valida l’identità Cloudflare Access prima di servire shell, letture o mutation autorizzate.
 
-## Frontend pubblico preview
+## Frontend pubblico e preview
 
 ### Shell
 
-`/astro-foundation` è la preview non canonica del futuro frontend pubblico.
+`/astro-foundation` è la preview non canonica e noindex dello stesso frontend
+Astro che possiede oggi l'apice.
 
 La route:
 
@@ -30,7 +33,7 @@ La route:
 - riceve metadata, canonical e header preview da `PublicLayout.astro`;
 - resta `noindex,nofollow` e `no-store`;
 - non è inclusa nella sitemap pubblica;
-- non cambia `/`, ancora servita dal renderer legacy.
+- non cambia ownership o contenuti delle route canoniche.
 
 Componenti principali:
 
@@ -56,10 +59,10 @@ Le tre route:
 - usano `src/components/public/TrustPage.astro`;
 - hanno contenuto primario nel raw HTML;
 - restano noindex, no-store e fuori sitemap;
-- mantengono `/metodo`, `/trasparenza` e `/privacy` sul renderer legacy;
+- mantengono `/metodo`, `/trasparenza` e `/privacy` come route canoniche Astro separate;
 - non introducono CMP, analytics o affiliazioni.
 
-### Homepage candidata
+### Homepage candidata — fase storica M5
 
 La terza slice M5 rende il catalogo pubblicato dentro `/astro-foundation`.
 
@@ -109,13 +112,13 @@ Regole:
 
 - soltanto righe `published`;
 - draft e review non renderizzati;
-- link delle card ancora verso le route canoniche legacy;
+- link delle card coerenti con il render mode canonical o preview;
 - empty state deterministico, senza contenuto inventato;
 - nessuna island, API, mutation o pubblicazione;
 - nessun provider ranking, prezzo o affiliazione;
 - nessun CMP, GTM, GA4, Search Console o service account.
 
-Il cutover dell’apice richiede una PR separata dopo listing, renderer articolo e parità SEO.
+Il cutover dell'apice è stato completato e verificato live con PR #81 e #82.
 
 ## Public listing previews
 
@@ -136,8 +139,8 @@ Contratti:
 - ordine `featured DESC, updated_at DESC`, limite 100;
 - D1 letto soltanto server-side;
 - navigazione tra listing sempre dentro `/astro-foundation`;
-- link delle card verso gli articoli canonici legacy;
-- route canoniche listing ancora servite dal renderer legacy;
+- link delle card coerenti con il namespace preview;
+- route canoniche listing servite da Astro;
 - route preview non dichiarate in matrice → vera 404;
 - empty state specifico per ogni listing;
 - raw HTML senza island o JavaScript necessario;
@@ -223,6 +226,14 @@ npm run smoke:public-shell
 npm run smoke:public-homepage-candidate
 npm run smoke:public-trust-pages
 npm run smoke:public-listing-previews
+npm run smoke:m7-public-hubs
+npm run smoke:m7-migliore-esim
+npm run smoke:public-article-renderer
+npm run smoke:public-seo-contracts
+npm run smoke:public-seo-endpoints
+npm run smoke:public-consent
+npm run smoke:public-measurement
+npm run smoke:production-deploy-config
 npm run smoke:ui
 npm run smoke:brief-decisions
 npm run smoke:claims
@@ -234,6 +245,12 @@ npm run smoke:legacy-parity
 ```
 
 Gli smoke generano credenziali Access effimere; nessuna chiave viene versionata.
+
+Il workflow production è manual-only e usa `npm run deploy` come unica sequenza.
+Prima di qualunque pubblicazione valida la configurazione M6, richiede
+`AFFILIATE_MODE=disabled`, risolve D1 in read-only e non applica migration
+remote. `npm run smoke:production-live` appartiene esclusivamente al checkpoint
+post-deploy manuale e non viene eseguito dalla CI locale.
 
 `smoke:public-homepage-candidate` usa due stati D1 temporanei isolati:
 
@@ -254,4 +271,3 @@ Verifica:
 - empty state.
 
 PR #54 e migrazione remota `0020` restano il checkpoint produttivo della prima mutation. La homepage candidata non modifica D1, stati editoriali o capacità di pubblicazione.
-

@@ -37,6 +37,9 @@ jobs:
           set -o pipefail
           npm run typecheck 2>&1 | tee typecheck.log
 
+      - name: Verify production deploy safety contract
+        run: npm run smoke:production-deploy-config
+
       - name: Build Astro and custom Worker entrypoint
         run: npm run build
 

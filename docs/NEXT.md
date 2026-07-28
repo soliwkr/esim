@@ -44,7 +44,7 @@ data: incomplete dal 2026-07-26
 
 L'assenza iniziale di query e pagine non modifica la keyword map e non autorizza nuove submission.
 
-## Prima slice on-page M7 — verificata, non deployata
+## Prima slice on-page M7 — live
 
 PR #97 applica la baseline a:
 
@@ -68,11 +68,15 @@ Control Room smoke: success
 deploy: non autorizzato
 ```
 
+Il merge su `main` ha attivato automaticamente il deploy #62. La slice è quindi
+live e verificata; la riga storica `deploy: non autorizzato` descrive il gate
+richiesto prima del merge, non lo stato corrente.
+
 La slice contiene title, description, H1, promessa, criteri e internal linking verso sole URL esistenti. Preview e canonical usano URL coerenti con il rispettivo namespace.
 
 Non contiene nuove route, pSEO, backend, D1, Workflow, Container, AI, publication capability, affiliazioni o nuovi eventi analytics.
 
-## Slice M7 `/migliore-esim` — verificata, non deployata
+## Slice M7 `/migliore-esim` — live
 
 ```text
 PR #98: implementazione verificata
@@ -81,6 +85,9 @@ base: 006472311ed8f727873257c94c4f53f271ad5368
 CI branch: success
 deploy: non autorizzato
 ```
+
+Anche questa slice è stata pubblicata dal deploy automatico #62 ed è stata
+verificata live senza ranking, provider vincitore, prezzi specifici o affiliazioni.
 
 Implementato:
 
@@ -98,19 +105,29 @@ Implementato:
 
 Il ponte deve restare incapace di aggiungere fatti commerciali e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded.
 
-## Gate di chiusura PR #98
+## Correzione immediata — sicurezza deploy produzione
 
-La chiusura autorizzata della slice segue questa sequenza:
+Branch autorizzata:
 
 ```text
-1. rendere ready la PR #98
-2. eseguire il merge con merge commit soltanto dopo CI verde sull’head documentale corrente
-3. verificare la CI del merge commit su main
-4. non eseguire deploy pubblico
-5. mantenere AFFILIATE_MODE=disabled
+fix/production-deploy-safety
 ```
 
-Ready, merge e deploy restano decisioni distinte. Il merge deve usare l’head atteso; il deploy e la verifica live della homepage, dei tre hub e di `/migliore-esim` richiedono un'autorizzazione esplicita separata.
+Obiettivo immediato:
+
+```text
+workflow_dispatch soltanto
+→ npm ci
+→ preflight M6 e AFFILIATE_MODE=disabled
+→ npm run deploy come unica sequenza canonica
+→ binding D1 read-only
+→ nessuna creazione o migration D1
+→ smoke live pubblici, preview, SEO, published-only, CMP, measurement e Control Room
+```
+
+Stop obbligatorio: draft PR aperta, CI verde e diff verificato. Non eseguire
+alcun deploy. Il ripristino live di CMP e measurement è una seconda decisione
+esplicita dopo la review.
 
 ## Search Console
 

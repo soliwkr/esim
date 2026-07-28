@@ -17,15 +17,15 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | Control Room nuova | Operativa | read-only completo; prima mutation live |
 | Control Room legacy | Transitoria | fallback delle mutation residue |
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
-| M7 on-page foundation | Verificata in CI, non deployata | homepage e tre hub riallineati alla keyword ownership |
-| M7 `/migliore-esim` | Verificata in CI, non deployata | ponte legacy slug-bound e guida decisionale senza ranking |
+| M7 on-page foundation | Live | homepage e tre hub riallineati alla keyword ownership |
+| M7 `/migliore-esim` | Live | ponte legacy slug-bound e guida decisionale senza ranking |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| iubenda CMP | Live | consenso, persistenza e revoca verificati |
+| iubenda CMP | Regressa dal deploy automatico M7 | configurazione vuota pubblicata; ripristino non ancora autorizzato |
 | Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
 | Search Console | Primo export live verificato | 26–27 luglio: 0 click, 0 impression, dati freschi incompleti |
 | GTM container M6 | Pubblicato | versione 2, 7 variabili, 1 trigger, 1 tag |
-| GTM e GA4 produzione | Attivi post-consenso | zero richieste Google prima del consenso Misurazione |
+| GTM e GA4 produzione | Temporaneamente disattivati | foundation verificata, ma valori vuoti pubblicati dal deploy automatico M7 |
 | Google Ads e remarketing | Disabilitati | fuori scope M6 |
 | Affiliazioni | Disabilitate | nessun tracking o link remunerato attivo |
 
@@ -67,7 +67,9 @@ Verificato live:
 - redirect `/go/airalo`;
 - navigazione e rendering operativi.
 
-La homepage e i listing live sono ancora la versione precedente al riallineamento M7. La nuova slice on-page è verificata in CI ma non è stata deployata.
+Homepage, listing e `/migliore-esim` includono il riallineamento M7 pubblicato
+automaticamente dal run di deploy #62 sul merge commit
+`abfe7e331435ed05660bcece005f7105232644c8`.
 
 ## Catalog pilot
 
@@ -88,7 +90,7 @@ ready for publication: false
 
 Il manifest pubblico resta vuoto.
 
-## M6 — Consent e measurement live
+## M6 — Consent e measurement
 
 Contratti:
 
@@ -213,6 +215,13 @@ revoca + reload:
   Google requests=0
 ```
 
+Questi risultati descrivono il checkpoint M6 verificato il 27 luglio 2026.
+Il successivo deploy automatico M7 #62 ha pubblicato vuoti `CMP_PROVIDER`,
+`CMP_EMBED_ID`, `GTM_ID` e `GA4_MEASUREMENT_ID`. Di conseguenza il codice
+consent-gated resta invariato, ma CMP e measurement non sono attualmente caricati
+in produzione. Il fallimento è privacy-safe; il ripristino live richiede una
+decisione esplicita separata dopo la correzione del workflow.
+
 Contesto homepage verificato:
 
 ```text
@@ -259,7 +268,7 @@ Non è stata usata la Indexing API. Non ripetere la submission. Le richieste man
 
 ## M7 — prima slice on-page
 
-Implementazione verificata sulla PR #97:
+Implementazione verificata sulla PR #97 e pubblicata dal deploy automatico #62:
 
 ```text
 homepage: owner dell’intento umbrella “esim viaggio”
@@ -267,7 +276,8 @@ homepage: owner dell’intento umbrella “esim viaggio”
 /guide: hub dei problemi pratici
 /confronti: hub comparativo, non classifica generale
 CI branch: success
-deploy: non autorizzato
+CI merge commit #520: success
+deploy automatico #62: success
 ```
 
 La slice introduce:
@@ -280,25 +290,24 @@ La slice introduce:
 - verifica desktop e mobile senza overflow;
 - contratti CMP e measurement invariati.
 
-Non introduce:
+La slice non introduce:
 
 - nuove route o pSEO;
 - modifiche a Worker backend, D1, Workflow, Container, AI o Control Room;
 - mutation o publication capability;
 - affiliazioni, Ads o nuovi eventi analytics;
 - submission Search Console o Indexing API;
-- deploy pubblico.
 
 ## M7 — riallineamento `/migliore-esim`
 
-Implementazione verificata sulla PR #98:
+Implementazione verificata sulla PR #98 e pubblicata dal deploy automatico #62:
 
 ```text
 branch: feat/m7-migliore-esim-alignment
 base: 006472311ed8f727873257c94c4f53f271ad5368
-CI branch: success
-implementazione verificata sulla PR #98
-deploy: non autorizzato
+CI branch #519: success
+CI merge commit #520: success
+deploy automatico #62: success
 ```
 
 La slice introduce:
@@ -316,7 +325,7 @@ La slice introduce:
 
 Il ponte non è una seconda pipeline editoriale: resta limitato al seed legacy pubblicato e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded. Nessuna altra pagina è stata riscritta per aggiungere link in entrata.
 
-La PR non introduce:
+La slice non introduce:
 
 - nuove route, backend o API;
 - migrazioni o mutation D1;
@@ -324,7 +333,6 @@ La PR non introduce:
 - publication capability;
 - affiliazioni, Ads o nuovi eventi analytics;
 - submission Search Console o Indexing API;
-- deploy pubblico.
 
 ## Contratto di deploy D1
 
@@ -335,6 +343,11 @@ database_id=REPLACE_WITH_D1_DATABASE_ID
 ```
 
 `scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente `apps/web/dist/server/wrangler.json`. Nessuna migration o mutation è implicita nel deploy.
+
+La branch `fix/production-deploy-safety` riallinea il workflow GitHub a questo
+contratto: avvio soltanto manuale, `npm ci`, `npm run deploy`, risoluzione D1
+read-only, nessuna creazione o migration remota e smoke live pubblici/M6/Control
+Room. La branch non autorizza né esegue un deploy.
 
 ## Performance measurement foundation
 
@@ -360,7 +373,8 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- deploy e verifica live delle slice M7, soltanto con autorizzazione esplicita separata;
+- revisione e merge separatamente autorizzati della draft PR di sicurezza del deploy;
+- eventuale ripristino live di CMP e measurement soltanto con nuova autorizzazione esplicita;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;

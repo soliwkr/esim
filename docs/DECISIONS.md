@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **26 luglio 2026**.
+Ultimo aggiornamento: **28 luglio 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -314,7 +314,9 @@ Guardrail:
 
 ## ADR-036 — GTM inerte e contesto analytics bounded dopo il consenso
 
-**Stato:** accettata come foundation sulla PR draft #91; non ancora live.
+**Stato:** accettata, mergiata e verificata live il 27 luglio 2026. Il deploy
+automatico M7 #62 ha successivamente pubblicato configurazione M6 vuota; il
+contratto resta valido e fallisce chiuso.
 
 **Decisione:** il layout pubblico può emettere il bootstrap GTM soltanto quando CMP, GTM ID, GA4 Measurement ID e contesto pagina sono tutti validi. Prima del consenso lo script resta inerte come `type="text/plain"`, classe `_iub_cs_activate` e purpose iubenda `4` — Misurazione.
 
@@ -333,4 +335,28 @@ Regole:
 
 **Razionale:** Basic Consent Mode richiede assenza completa di richieste Google prima del consenso. Il contesto viene prodotto server-side con enum e slug validati per evitare cardinalità libera, PII e dati operativi interni.
 
-**Conseguenza:** codice, workspace GTM, pubblicazione container, merge e deploy restano gate distinti. La PR #91 non viene portata ready né deployata prima di Tag Assistant, Network, DebugView, rifiuto, consenso, reload, revoca, anti-duplicazione e controllo performance.
+**Conseguenza:** codice, workspace GTM, pubblicazione container, merge e deploy
+restano gate distinti. Tag Assistant, Network, DebugView, rifiuto, consenso,
+reload, revoca, anti-duplicazione e performance sono stati verificati prima del
+checkpoint live M6.
+
+## ADR-037 — Deploy production manual-only senza mutation D1
+
+**Stato:** accettata; implementata sulla draft PR di
+`fix/production-deploy-safety`, non ancora deployata.
+
+**Decisione:** `.github/workflows/deploy-production.yml` è avviabile soltanto
+tramite `workflow_dispatch` e invoca l'unico comando canonico `npm run deploy`.
+La configurazione CMP/GTM/GA4 arriva esclusivamente da Actions secrets o
+variables, viene validata fail-closed e non viene stampata. Il preflight richiede
+`AFFILIATE_MODE=disabled`.
+
+Il workflow può elencare read-only il database D1 per risolvere il binding
+compilato, ma non può creare database, applicare migration remote o eseguire
+altre mutation D1. Le migration production restano un'operazione separata,
+esplicita e fuori dal deploy frontend.
+
+**Conseguenza:** merge e deploy tornano gate distinti. Un deploy manuale fallisce
+prima della pubblicazione se la configurazione M6 è assente o invalida, e dopo la
+pubblicazione verifica route M7, preview e header, sitemap/robots,
+published-only, CMP, measurement consent-gated e Control Room protetta.
