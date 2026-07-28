@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **26 luglio 2026**.
+Ultimo aggiornamento: **28 luglio 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`.
 
@@ -39,7 +39,8 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] custom Cloudflare Worker;
 - [x] D1 e migrazioni versionate;
 - [x] dominio principale;
-- [x] deploy automatico;
+- [x] deploy Cloudflare versionato;
+- [ ] workflow production manual-only e privo di mutation D1, in correzione;
 - [x] Workflow, Container e AI Gateway;
 - [x] API manutenzione protette;
 - [x] vere 404 e noindex;
@@ -172,7 +173,9 @@ CI #406
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: CMP live; accessi Google e sitemap verificati; foundation GTM/GA4 in PR draft #91, non deployata.**
+**Stato: foundation CMP/GTM/GA4 completata e verificata live; temporaneamente
+disattivata dal deploy automatico M7 #62. Ripristino non autorizzato finché il
+workflow production non è corretto.**
 
 Contratti versionati:
 
@@ -219,8 +222,9 @@ CI #448
 - [x] deploy CMP-only riuscito;
 - [x] verifica HTTP live riuscita;
 - [x] banner reale confermato nel browser dall’utente;
-- [ ] persistenza, revoca, rete vendor e performance da certificare integralmente;
-- [ ] decisione vendor finale.
+- [x] persistenza e revoca certificate;
+- [x] rete vendor e performance misurate;
+- [x] iubenda accettata per la foundation M6.
 
 ### Infrastruttura Google verificata
 
@@ -242,11 +246,11 @@ Search Console: sc-domain:senzaroaming.it
 
 ### GTM e GA4 foundation
 
-Branch e PR:
+Branch e PR storiche:
 
 ```text
 feat/public-gtm-ga4-foundation
-PR #91 — draft
+PR #91 — merged
 ```
 
 - [x] contratto fail-closed `GTM_ID` + `GA4_MEASUREMENT_ID`;
@@ -259,13 +263,17 @@ PR #91 — draft
 - [x] route escluse preservate;
 - [x] preparazione deterministica del config compilato;
 - [x] smoke pure, workerd e Chromium aggiunti;
-- [ ] CI PR #91;
-- [ ] workspace GTM configurato ma non pubblicato;
-- [ ] Tag Assistant, Network e DebugView;
-- [ ] rifiuto, consenso, reload e revoca;
-- [ ] un solo `page_view` reale;
-- [ ] controllo performance;
-- [ ] deploy pubblico separatamente autorizzato.
+- [x] CI PR #91;
+- [x] workspace e container GTM pubblicati;
+- [x] Tag Assistant, Network e DebugView;
+- [x] rifiuto, consenso, reload e revoca;
+- [x] un solo `page_view` reale;
+- [x] controllo performance;
+- [x] deploy pubblico M6 e verifica live completati il 27 luglio 2026.
+
+Il deploy automatico M7 del 28 luglio ha poi pubblicato configurazione M6 vuota.
+Il codice resta fail-closed e non invia richieste Google; il ripristino live è
+un checkpoint separato dopo la draft PR di sicurezza.
 
 ### Eventi iniziali
 
@@ -275,29 +283,34 @@ provider_redirect_intent
 consent_update (locale/debug, non GA4)
 ```
 
-`provider_redirect_intent` resta differito finché il checkpoint base `page_view` non è verificato. `article_view` e `listing_view` non sono eventi separati.
+`provider_redirect_intent` resta differito anche dopo il checkpoint base
+`page_view`: richiede una branch e una decisione separate. `article_view` e
+`listing_view` non sono eventi separati.
 
 ### Indicizzazione e contenuti
 
-La sitemap è inviata, ma homepage e listing non vengono forzati manualmente in indicizzazione prima della keyword map e del riallineamento SEO dei testi. Le richieste manuali restano riservate alle sole URL prioritarie quando saranno realmente pronte.
+La sitemap è inviata e la prima keyword map è applicata alle cinque route M7.
+Non vengono ripetute submission né usata la Indexing API. Eventuali richieste
+manuali restano riservate alle sole URL prioritarie dopo il ripristino e la
+verifica live completa di CMP/measurement.
 
 ### Ordine operativo corrente
 
 ```text
-CI e review PR #91
-→ workspace GTM non pubblicato
-→ Tag Assistant / Network / DebugView
-→ checkpoint consenso e revoca
-→ container publish + deploy esplicitamente autorizzati
-→ verifica dati reali
-→ keyword map e copy SEO
-→ richieste manuali soltanto per URL forti
+draft PR fix/production-deploy-safety
+→ CI verde e diff verificato
+→ review e merge separatamente autorizzati
+→ deploy di ripristino separatamente autorizzato
+→ verifica live CMP, measurement e cinque route M7
+→ osservazione dati reali senza nuove capacità
 ```
 
 ## M7 — Intelligence SEO
 
-- [ ] query e pagine GSC;
-- [ ] keyword map per homepage e listing;
+- [x] primo export query e pagine GSC read-only;
+- [x] keyword map per homepage, listing e `/migliore-esim`;
+- [x] riallineamento on-page delle cinque route prioritarie;
+- [x] deploy M7 live accidentale ma verificato;
 - [ ] rank tracking e competitor;
 - [ ] Trends e opportunity score v2;
 - [ ] audit tecnico, editoriale e GEO.
@@ -329,14 +342,14 @@ conversione brief
 → rimozione legacy privata
 ```
 
-### Track B — Measurement M6
+### Track B — sicurezza deploy e ripristino M6
 
 ```text
-PR #91 foundation
-→ workspace GTM e debug
-→ publish/deploy autorizzati
-→ verifica dati
-→ SEO content readiness
+draft PR fix/production-deploy-safety
+→ CI verde e review
+→ merge separatamente autorizzato
+→ nuovo deploy manuale separatamente autorizzato
+→ ripristino e verifica live CMP/measurement
 ```
 
 Publication capability resta una branch separata e non è autorizzata da M6.

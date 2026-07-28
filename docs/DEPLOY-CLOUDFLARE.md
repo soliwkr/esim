@@ -1,6 +1,6 @@
 # Deploy Cloudflare
 
-Ultimo aggiornamento: **26 luglio 2026**.
+Ultimo aggiornamento: **28 luglio 2026**.
 
 ## Principio
 
@@ -33,11 +33,9 @@ scripts/prepare-production-d1-binding.mjs
 - non stampa e non versiona l’UUID;
 - fallisce su database mancanti, duplicati, binding ambigue o ID discordanti.
 
-Creazione iniziale, soltanto per un account nuovo:
-
-```bash
-npx wrangler d1 create senza-roaming
-```
+La creazione iniziale di un database, per un account nuovo, è provisioning
+separato e non appartiene al workflow di deploy. Il workflow production non
+esegue mai `d1 create`.
 
 ## Migrazioni
 
@@ -53,7 +51,9 @@ Produzione:
 npm run db:migrate:remote
 ```
 
-Le migrazioni remote restano un’operazione distinta dal deploy del frontend e non vengono eseguite implicitamente da `npm run deploy`.
+Le migrazioni remote restano un’operazione distinta dal deploy del frontend e
+non vengono eseguite implicitamente da `npm run deploy` né dal workflow
+production.
 
 ## Configurazione pubblica
 
@@ -70,19 +70,23 @@ AFFILIATE_MODE=disabled
 
 Sviluppo e CI restano quindi CMP-off e analytics-off per default.
 
-Il deploy CMP-only prepara nel solo config compilato:
+Il deploy M6 prepara nel solo config compilato:
 
 ```text
 CMP_PROVIDER=iubenda
-CMP_EMBED_ID=<UUID pubblico versionato>
-GTM_ID=
+CMP_EMBED_ID=<Actions secret o variable>
+GTM_ID=<Actions secret o variable>
+GA4_MEASUREMENT_ID=<Actions secret o variable>
+AFFILIATE_MODE=disabled
 ```
 
-`scripts/prepare-production-consent-config.mjs` rifiuta:
+`scripts/preflight-production-deploy.mjs` e i preparatori rifiutano:
 
-- `GTM_ID` valorizzato;
+- configurazione CMP, GTM o GA4 assente o invalida;
+- valori M6 già scritti nel config sorgente;
+- `AFFILIATE_MODE` diverso da `disabled`;
 - `CMP_SITE_ID` o `CMP_COOKIE_POLICY_ID` legacy;
-- configurazioni incomplete o non previste.
+- configurazioni Ads o DoubleClick.
 
 ## Secret GitHub Actions
 
@@ -93,7 +97,18 @@ CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ACCOUNT_ID
 ```
 
-Altri secret applicativi restano configurati in Cloudflare e non devono essere stampati, copiati nelle PR o inseriti nel repository.
+La configurazione M6 usa i nomi Actions già previsti:
+
+```text
+CMP_PROVIDER
+CMP_EMBED_ID
+GTM_ID
+GA4_MEASUREMENT_ID
+```
+
+Il workflow accetta ciascun valore da secret o variable, applica il masking e
+non lo stampa. Altri secret applicativi restano configurati in Cloudflare e non
+devono essere stampati, copiati nelle PR o inseriti nel repository.
 
 ## Comando canonico
 
@@ -104,8 +119,11 @@ npm run deploy
 Sequenza:
 
 ```text
+preflight M6 + AFFILIATE_MODE
+→
 Astro build
-→ preparazione consent CMP-only
+→ preparazione consent
+→ preparazione measurement consent-gated
 → risoluzione binding D1 remota
 → wrangler deploy sul config compilato
 ```
@@ -115,7 +133,8 @@ Il comando non esegue migrazioni D1 e non introduce pubblicazione editoriale.
 ## Checkpoint prima del deploy
 
 - CI completamente verde;
-- `GTM_ID` vuoto;
+- configurazione M6 presente e valida nel contesto Actions;
+- `AFFILIATE_MODE=disabled`;
 - nessun Ads, remarketing o affiliate tracking;
 - nessuna mutation D1 o modifica dei gate editoriali;
 - scope e rollback dichiarati.
@@ -126,8 +145,27 @@ Il comando non esegue migrazioni D1 e non introduce pubblicazione editoriale.
 - binding D1 valida;
 - CMP soltanto sulle route pubbliche canonical indexable;
 - preview, Control Room, API, `/go/*`, sitemap, robots e 404 escluse;
-- nessun GTM o GA4 prima del relativo scope separato;
+- bootstrap GTM/GA4 inerte prima del consenso Misurazione;
+- preview e Control Room senza CMP o measurement;
 - risultato registrato nei documenti canonici.
+
+## Workflow GitHub
+
+`.github/workflows/deploy-production.yml` è avviabile soltanto con
+`workflow_dispatch`. Non esiste trigger `push` su `main`.
+
+Il workflow:
+
+- installa con `npm ci`;
+- esegue typecheck e preflight fail-closed;
+- verifica in read-only la presenza dei Worker secrets richiesti;
+- invoca esclusivamente `npm run deploy`;
+- non crea D1 e non applica migration remote;
+- verifica route M7, preview e header, sitemap/robots, published-only, CMP,
+  measurement consent-gated e Control Room protetta.
+
+Merge e deploy restano decisioni distinte. La draft PR di sicurezza non
+autorizza né esegue un deploy.
 
 ## Dominio
 
@@ -147,4 +185,6 @@ Gli eventi canonici M6 sono definiti in:
 docs/MEASUREMENT-EVENT-DICTIONARY.md
 ```
 
-La CMP non autorizza automaticamente GTM o GA4. La loro attivazione richiede una branch separata dopo la verifica completa del banner reale.
+La CMP non autorizza automaticamente l'esecuzione di GTM o GA4. Il bootstrap
+resta `text/plain` e viene attivato soltanto dal consenso alla finalità
+Misurazione.

@@ -10,13 +10,11 @@ import ts from 'typescript';
 import { createAccessTestCredentials } from './access-test-token.mjs';
 import {
   applyProductionConsentConfig,
-  PRODUCTION_CONSENT_EMBED_ID,
-  PRODUCTION_CONSENT_PROVIDER,
+  resolveProductionConsentConfig,
 } from './prepare-production-consent-config.mjs';
 import {
   applyProductionMeasurementConfig,
-  PRODUCTION_GA4_MEASUREMENT_ID,
-  PRODUCTION_GTM_ID,
+  resolveProductionMeasurementConfig,
 } from './prepare-production-measurement-config.mjs';
 
 const port = Number(process.env.PUBLIC_MEASUREMENT_SMOKE_PORT || 8843);
@@ -158,23 +156,51 @@ async function verifyPureContract() {
         AFFILIATE_MODE: 'disabled',
       },
     };
-    const consentConfig = applyProductionConsentConfig(sourceConfig);
-    const productionConfig = applyProductionMeasurementConfig(consentConfig);
+    const productionConsent = resolveProductionConsentConfig({
+      CMP_PROVIDER: 'iubenda',
+      CMP_EMBED_ID: embedId,
+    });
+    const productionMeasurement = resolveProductionMeasurementConfig({
+      GTM_ID: gtmId,
+      GA4_MEASUREMENT_ID: ga4MeasurementId,
+    });
+    const consentConfig = applyProductionConsentConfig(sourceConfig, productionConsent);
+    const productionConfig = applyProductionMeasurementConfig(
+      consentConfig,
+      productionMeasurement,
+      productionConsent,
+    );
     assert.equal(sourceConfig.vars.CMP_PROVIDER, '');
-    assert.equal(consentConfig.vars.CMP_PROVIDER, PRODUCTION_CONSENT_PROVIDER);
-    assert.equal(consentConfig.vars.CMP_EMBED_ID, PRODUCTION_CONSENT_EMBED_ID);
-    assert.equal(productionConfig.vars.GTM_ID, PRODUCTION_GTM_ID);
-    assert.equal(productionConfig.vars.GA4_MEASUREMENT_ID, PRODUCTION_GA4_MEASUREMENT_ID);
+    assert.equal(consentConfig.vars.CMP_PROVIDER, 'iubenda');
+    assert.equal(consentConfig.vars.CMP_EMBED_ID, embedId);
+    assert.equal(productionConfig.vars.GTM_ID, gtmId);
+    assert.equal(productionConfig.vars.GA4_MEASUREMENT_ID, ga4MeasurementId);
+    assert.throws(() => resolveProductionMeasurementConfig({}), /incomplete/);
     assert.throws(
-      () => applyProductionMeasurementConfig({ vars: { ...consentConfig.vars, GTM_ID: 'GTM-OTHER' } }),
+      () =>
+        applyProductionMeasurementConfig(
+          { vars: { ...consentConfig.vars, GTM_ID: 'GTM-OTHER' } },
+          productionMeasurement,
+          productionConsent,
+        ),
       /Source GTM_ID must remain empty/,
     );
     assert.throws(
-      () => applyProductionMeasurementConfig({ vars: { ...consentConfig.vars, AFFILIATE_MODE: 'enabled' } }),
+      () =>
+        applyProductionMeasurementConfig(
+          { vars: { ...consentConfig.vars, AFFILIATE_MODE: 'enabled' } },
+          productionMeasurement,
+          productionConsent,
+        ),
       /AFFILIATE_MODE=disabled/,
     );
     assert.throws(
-      () => applyProductionMeasurementConfig({ vars: { ...consentConfig.vars, GOOGLE_ADS_ID: 'AW-1' } }),
+      () =>
+        applyProductionMeasurementConfig(
+          { vars: { ...consentConfig.vars, GOOGLE_ADS_ID: 'AW-1' } },
+          productionMeasurement,
+          productionConsent,
+        ),
       /Advertising variable GOOGLE_ADS_ID/,
     );
   } finally {

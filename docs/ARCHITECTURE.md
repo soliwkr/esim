@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **24 luglio 2026**.
+Data di riferimento: **28 luglio 2026**.
 
 ## Scopo
 
@@ -148,13 +148,14 @@ Funzione:
 targetPublicRouteDecision(pathname)
 ```
 
-### Stato della branch PR #81
+### Cutover M5.7 storico — PR #81
 
 ```ts
 export const activePublicRouteDecision = targetPublicRouteDecision;
 ```
 
-Questo stato è verificato dalla CI applicativa #397, ma non viene descritto come live finché non sono completati merge, deploy e controllo reale dell’apice.
+Lo stato è stato verificato dalla CI applicativa #397, poi mergiato e certificato
+live con PR #82. La matrice target è l'owner corrente dell'apice.
 
 ### Rollback
 
@@ -373,16 +374,41 @@ La CI applicativa #397 prova il Worker compilato di produzione con matrice targe
 - desktop, mobile, tastiera e overflow;
 - tutte le suite private.
 
+## Boundary del deploy production
+
+Il contratto canonico è:
+
+```text
+workflow_dispatch
+→ npm ci
+→ preflight M6 + AFFILIATE_MODE=disabled
+→ npm run deploy
+→ build Astro
+→ preparazione CMP e measurement dal contesto Actions
+→ risoluzione read-only del binding D1 compilato
+→ wrangler deploy
+→ smoke live
+```
+
+Il workflow production non crea D1 e non applica migration remote. La
+risoluzione del binding usa soltanto `d1 list`; l'UUID non viene stampato né
+versionato. Le migration remote, quando esplicitamente autorizzate, restano una
+procedura separata dal deploy.
+
+Il post-deploy verifica le cinque route M7, preview con `noindex`/`no-store`,
+sitemap, robots, published-only, CMP, bootstrap measurement inerte fino al
+consenso e Control Room protetta. La correzione è preparata in draft e non
+autorizza un deploy.
+
 ## Stato verificato
 
 ```text
 M5.5 SEO/routing parity:  completata
 M5.6 remote audit:        verificato live
 manifest entries:         0
-PR #81 application CI:    #397 verde
-active source on branch:  target
-PR merge:                 aperto
-production deploy:        non verificato
-live apex owner:           non ancora certificato
+M5.7 apex cutover:         verificato live
+M7 five-route slice:       live sul commit abfe7e…
+production workflow:      correzione manual-only in draft
+CMP/measurement live:     temporaneamente disattivati dal deploy #62
 publication mutation:     non autorizzata
 ```

@@ -10,8 +10,7 @@ import ts from 'typescript';
 import { createAccessTestCredentials } from './access-test-token.mjs';
 import {
   applyProductionConsentConfig,
-  PRODUCTION_CONSENT_EMBED_ID,
-  PRODUCTION_CONSENT_PROVIDER,
+  resolveProductionConsentConfig,
 } from './prepare-production-consent-config.mjs';
 
 const port = Number(process.env.PUBLIC_CONSENT_SMOKE_PORT || 8842);
@@ -94,19 +93,45 @@ async function verifyPureContract() {
         GTM_ID: '',
       },
     };
-    const productionDeploymentConfig = applyProductionConsentConfig(baseDeploymentConfig);
+    const productionConsent = resolveProductionConsentConfig({
+      CMP_PROVIDER: 'iubenda',
+      CMP_EMBED_ID: embedId,
+    });
+    const productionDeploymentConfig = applyProductionConsentConfig(
+      baseDeploymentConfig,
+      productionConsent,
+    );
     assert.equal(baseDeploymentConfig.vars.CMP_PROVIDER, '');
     assert.equal(baseDeploymentConfig.vars.CMP_EMBED_ID, '');
-    assert.equal(productionDeploymentConfig.vars.CMP_PROVIDER, PRODUCTION_CONSENT_PROVIDER);
-    assert.equal(productionDeploymentConfig.vars.CMP_EMBED_ID, PRODUCTION_CONSENT_EMBED_ID);
+    assert.equal(productionDeploymentConfig.vars.CMP_PROVIDER, 'iubenda');
+    assert.equal(productionDeploymentConfig.vars.CMP_EMBED_ID, embedId);
     assert.equal(productionDeploymentConfig.vars.GTM_ID, '');
-    assert.match(PRODUCTION_CONSENT_EMBED_ID, /^[0-9a-f-]{36}$/);
+    assert.throws(() => resolveProductionConsentConfig({}), /incomplete/);
     assert.throws(
-      () => applyProductionConsentConfig({ vars: { GTM_ID: 'G-TEST' } }),
+      () => resolveProductionConsentConfig({ CMP_PROVIDER: 'custom', CMP_EMBED_ID: embedId }),
+      /not supported/,
+    );
+    assert.throws(
+      () =>
+        applyProductionConsentConfig(
+          { vars: { CMP_PROVIDER: '', CMP_EMBED_ID: '', GTM_ID: 'G-TEST' } },
+          productionConsent,
+        ),
       /GTM_ID to remain empty/,
     );
     assert.throws(
-      () => applyProductionConsentConfig({ vars: { GTM_ID: '', CMP_SITE_ID: '1234567' } }),
+      () =>
+        applyProductionConsentConfig(
+          {
+            vars: {
+              CMP_PROVIDER: '',
+              CMP_EMBED_ID: '',
+              GTM_ID: '',
+              CMP_SITE_ID: '1234567',
+            },
+          },
+          productionConsent,
+        ),
       /Legacy consent variable CMP_SITE_ID/,
     );
   } finally {
