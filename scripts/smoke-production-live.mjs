@@ -27,6 +27,10 @@ const REVIEW_ONLY_PATHS = Object.freeze([
   '/astro-foundation/articoli/esim-cina-senza-vpn',
 ]);
 
+export const ACCESS_PROTECTED_CONTROL_ROOM_PATHS = Object.freeze([
+  '/control-room-foundation',
+]);
+
 function contract(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -256,7 +260,7 @@ export async function verifyProductionLive({
     siteOrigin,
   );
 
-  for (const pathname of ['/control-room', '/control-room-foundation']) {
+  for (const pathname of ACCESS_PROTECTED_CONTROL_ROOM_PATHS) {
     const controlRoom = await responseSnapshot(
       fetchImpl,
       canonicalUrl(siteOrigin, pathname),
@@ -363,8 +367,7 @@ export async function verifyProductionConsentGating({
       'Measurement page_location must exclude query strings and fragments.',
     );
     contract(
-      measurementState.dataLayer?.filter((entry) => entry.event === 'sr_page_view_ready').length ===
-        1,
+      measurementState.dataLayer?.filter((entry) => entry.event === 'sr_page_view_ready').length === 1,
       'Consent must emit exactly one bounded page-view readiness event.',
     );
 
