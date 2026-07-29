@@ -311,6 +311,7 @@ export async function verifyProductionConsentGating({
             var dialog = document.createElement('div');
             dialog.setAttribute('role', 'dialog');
             dialog.setAttribute('aria-label', 'Preferenze cookie smoke');
+            dialog.textContent = 'Preferenze cookie smoke';
             document.body.appendChild(dialog);
           });
         `,
