@@ -11,5 +11,6 @@ src/worker-configuration.d.ts
 wrangler.production.jsonc
 research/seo/gsc/*/
 research/evidence/snapshots/
+research/evidence/packs/
 .DS_Store
 *.log
