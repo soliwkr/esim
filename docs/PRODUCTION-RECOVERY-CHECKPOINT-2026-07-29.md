@@ -2,9 +2,7 @@
 
 ## Scopo
 
-Questo documento registra il ripristino tecnico della configurazione M6 dopo la regressione introdotta dal deploy automatico M7 #62.
-
-Non è ancora il closeout browser definitivo del vendor CMP: il workflow production usa uno stub controllato per verificare il contratto consent-gated e non sostituisce una ricertificazione manuale del widget iubenda reale.
+Questo documento registra il ripristino tecnico della configurazione M6 dopo la regressione introdotta dal deploy automatico M7 #62 e il successivo closeout browser reale del consenso.
 
 ## Stato GitHub
 
@@ -75,6 +73,68 @@ Il contratto verificato include:
 - contesto GA4 bounded;
 - `sr_page_view_ready` non duplicato.
 
+Lo smoke Chromium intercetta intenzionalmente lo script iubenda e usa uno stub controllato per provare il contratto applicativo. Per questo il widget reale è stato ricertificato separatamente nel browser.
+
+## Browser reale — closeout CMP e measurement
+
+Ricertificazione eseguita in una sessione Chrome Incognito con DevTools Network. Durante la verifica finale il blocco DNS locale è stato disattivato, così l'assenza di richieste Google potesse essere attribuita al consenso e non al filtro di rete.
+
+### Stato iniziale
+
+- banner iubenda reale visibile;
+- controllo preferenze disponibile;
+- prima di qualsiasi scelta il filtro Network `google` mostrava zero richieste Google;
+- nessun GTM o GA4 pre-consenso.
+
+### Rifiuto e persistenza
+
+Dopo `Rifiuta` e reload:
+
+```text
+Google requests: 0
+GTM: assente
+GA4 collect: assente
+```
+
+Il banner non è stato riproposto impropriamente e la preferenza di rifiuto è risultata persistita.
+
+### Consenso e persistenza
+
+Dopo consenso alla finalità `Misurazione`:
+
+- il sito ha attivato GTM soltanto dopo il consenso;
+- il container richiesto è `GTM-W3LSK9RZ`;
+- dopo reload con consenso persistito il Google tag ha risposto HTTP 200;
+- GA4 ha inviato una richiesta `collect` HTTP 204 alla stream `G-GWJ9YPPVJW`;
+- il payload mostrava `en=page_view`;
+- `dl=https://senzaroaming.it/destinazioni`;
+- il contesto bounded osservato includeva `ep.route_class=listing` e `ep.page_type=destination_listing`;
+- nel page load osservato era presente una sola richiesta `collect` filtrata come evento GA4.
+
+### Revoca e reload
+
+La preferenza `Misurazione` è stata disattivata e salvata nel pannello iubenda. Dopo reload, con il filtro Network `google` e senza blocco DNS locale:
+
+```text
+Google requests: 0 / 7
+GTM: assente
+Google tag: assente
+GA4 collect: assente
+```
+
+Questo chiude la ricertificazione reale del ciclo:
+
+```text
+pre-consenso → zero Google
+rifiuto → zero Google
+reload dopo rifiuto → zero Google
+consenso → GTM attivo
+reload con consenso → GA4 collect HTTP 204
+page_view reale → verificato
+revoca salvata → Misurazione off
+reload dopo revoca → zero Google
+```
+
 ## Control Room
 
 Legacy:
@@ -97,21 +157,19 @@ Il deploy ha eseguito soltanto la risoluzione del binding tramite il contratto `
 
 Non risultano comandi di creazione database, migration remote o mutation D1 nel workflow production di recovery.
 
-## Checkpoint ancora aperto
+## Esito
 
-Il browser smoke production intercetta intenzionalmente lo script iubenda e usa uno stub controllato per verificare il contratto di attivazione.
+Il ripristino M6 è chiuso live:
 
-Restano quindi da ricertificare sul widget iubenda reale, in una sessione browser pulita:
-
-1. banner reale visibile;
-2. rifiuto con `purpose 4=false` e zero richieste Google;
-3. consenso con `purpose 4=true`;
-4. un solo GTM e un solo `page_view` per load;
-5. persistenza dopo reload;
-6. revoca della finalità 4;
-7. zero nuove richieste Google dopo revoca e reload.
-
-Fino a quella verifica non dichiarare che reject/grant/reload/revoke reali sono stati ricertificati il 29 luglio 2026.
+- iubenda CMP reale nuovamente attiva;
+- Consent Mode Basic preservato;
+- GTM e GA4 nuovamente attivi soltanto dopo consenso;
+- rifiuto e revoca impediscono il caricamento Google;
+- persistenza verificata in entrambe le direzioni;
+- `page_view` reale verificato;
+- M7 resta invariata;
+- affiliazioni restano disabilitate;
+- nessuna migration o mutation D1.
 
 ## Guardrail invariati
 
