@@ -75,12 +75,10 @@ destination_coverage
 price + source currency
 fixed data OR unlimited + FUP
 validity
-a ctivation policy
+activation policy
 hotspot + share limit
 network operators + attributed radio technology
 ```
-
-Nota: correggere il typo logico sopra in implementazione come `activation policy`; nessun field viene rinominato in D1 da questo documento.
 
 Scenario raccomandato per lo spike:
 
