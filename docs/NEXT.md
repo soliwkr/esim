@@ -4,6 +4,83 @@ Ultimo aggiornamento: **3 agosto 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile e i gate operativi già definiti.
 
+## Evidence supply chain — Source Universe e snapshot spike chiusi
+
+Stato verificato:
+
+```text
+PR #103 — Source Universe Audit: merged
+source registry audit: 30 candidate sources
+external tool fit matrix: completed
+PR #104 — deterministic evidence snapshot spike: closeout in corso
+CI implementation #540: success
+live source: 1 public Ubigi product page
+fields: data_gb, validity_days, price
+first live capture: passed
+second live capture: raw drift, semantic changes=0
+Trafilatura 2.2.0 bake-off: 3/3 raw values retained
+D1 writes: none
+provider credentials: none
+deploy: none
+```
+
+Contratto verificato:
+
+```text
+SOURCE
+→ immutable EVIDENCE SNAPSHOT
+→ deterministic field extraction
+→ NORMALIZED DATUM
+→ PENDING CLAIM CANDIDATE
+```
+
+Il primo artifact reale ha mantenuto separati `destination=italy`, `locale=en-GB` e `currency=USD`; `US$29` non viene promosso a `price_eur`. Una seconda cattura con bytes diversi ha mantenuto lo stesso semantic fingerprint e prodotto `Semantic changes: 0`.
+
+Trafilatura resta helper/benchmark offline opzionale: non è dependency canonica, non decide scope o verità commerciale e non crea claim.
+
+### Prossimo gate: Claims Coverage Audit
+
+Prima di generalizzare capture, monitoraggio o ingest, misurare la copertura reale dei claim richiesti dalle prime pagine commerciali:
+
+```text
+page intent / decision criteria
+→ required factual fields
+→ authoritative source coverage
+→ freshness / scope / conflict status
+→ supported / unsupported / conflicting
+```
+
+Output atteso read-only:
+
+- matrice claim × source × scope;
+- gap di evidence per provider/destinazione;
+- field che richiedono fonti complementari;
+- conflitti e freshness requirement;
+- priorità dei prossimi extractor/snapshot soltanto dopo il coverage audit.
+
+Non introdurre ancora:
+
+- crawler multi-source;
+- changedetection.io/ArchiveBox/RSSHub runtime;
+- Partner API credentials;
+- D1 schema o writes;
+- maintenance queue integration;
+- scheduler/Workflow;
+- claim verification automatica;
+- ranking/provider winner;
+- pubblicazione o affiliazioni.
+
+Documenti:
+
+```text
+docs/research/source-universe-audit.md
+docs/research/evidence-tool-fit-matrix.md
+docs/research/evidence-contract.md
+docs/research/claim-candidate-contract.md
+docs/research/EVIDENCE-SNAPSHOT-SPIKE.md
+docs/research/EVIDENCE-SNAPSHOT-SPIKE-RESULT-2026-08-03.md
+```
+
 ## M6 measurement foundation — chiusa live
 
 Stato verificato:
