@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **28 luglio 2026**.
+Data di riferimento: **3 agosto 2026**.
 
 ## Scopo
 
@@ -36,7 +36,7 @@ Il deploy usa un solo Worker. La migrazione del frontend non duplica D1, Workflo
 - metadata, Open Graph e JSON-LD;
 - sitemap, robots e 404 pubblica nel target;
 - shell della Control Room;
-- JavaScript pubblico nullo salvo JSON-LD inerte;
+- nessun JavaScript applicativo pubblico generale; eccezioni deliberate sono JSON-LD inerte, embed CMP e bootstrap measurement consent-gated;
 - React soltanto nell’isola privata realmente interattiva.
 
 ### React island
@@ -154,8 +154,7 @@ targetPublicRouteDecision(pathname)
 export const activePublicRouteDecision = targetPublicRouteDecision;
 ```
 
-Lo stato è stato verificato dalla CI applicativa #397, poi mergiato e certificato
-live con PR #82. La matrice target è l'owner corrente dell'apice.
+Lo stato è stato verificato dalla CI applicativa #397, poi mergiato e certificato live con PR #82. La matrice target è l'owner corrente dell'apice.
 
 ### Rollback
 
@@ -376,7 +375,7 @@ La CI applicativa #397 prova il Worker compilato di produzione con matrice targe
 
 ## Boundary del deploy production
 
-Il contratto canonico è:
+Il contratto canonico attivo è:
 
 ```text
 workflow_dispatch
@@ -390,15 +389,21 @@ workflow_dispatch
 → smoke live
 ```
 
-Il workflow production non crea D1 e non applica migration remote. La
-risoluzione del binding usa soltanto `d1 list`; l'UUID non viene stampato né
-versionato. Le migration remote, quando esplicitamente autorizzate, restano una
-procedura separata dal deploy.
+Il workflow production non crea D1 e non applica migration remote. La risoluzione del binding usa soltanto `d1 list`; l'UUID non viene stampato né versionato. Le migration remote, quando esplicitamente autorizzate, restano una procedura separata dal deploy.
 
-Il post-deploy verifica le cinque route M7, preview con `noindex`/`no-store`,
-sitemap, robots, published-only, CMP, bootstrap measurement inerte fino al
-consenso e Control Room protetta. La correzione è preparata in draft e non
-autorizza un deploy.
+Il post-deploy verifica le cinque route M7, preview con `noindex`/`no-store`, sitemap, robots, published-only, CMP, bootstrap measurement inerte fino al consenso e Control Room foundation protetta. La legacy `/control-room` resta verificata separatamente come fallback operativo v3.
+
+La pipeline è stata resa manual-only con PR #99, il contratto Control Room dello smoke è stato corretto con PR #100 e lo stub consent browser con PR #101. Il recovery run `30439227471` sul commit `f2df5cd6ef4bf4784205911e80786f55c28f3dd0` è terminato `success` e non ha eseguito creazione, migration o mutation D1 remote.
+
+La verifica browser reale successiva ha ricertificato:
+
+```text
+pre-consenso: Google requests=0
+rifiuto + reload: Google requests=0
+consenso: GTM-W3LSK9RZ attivato
+reload con consenso: GA4 collect HTTP 204, en=page_view
+revoca + reload: Google requests=0
+```
 
 ## Stato verificato
 
@@ -407,8 +412,10 @@ M5.5 SEO/routing parity:  completata
 M5.6 remote audit:        verificato live
 manifest entries:         0
 M5.7 apex cutover:         verificato live
-M7 five-route slice:       live sul commit abfe7e…
-production workflow:      correzione manual-only in draft
-CMP/measurement live:     temporaneamente disattivati dal deploy #62
+M7 five-route slice:       live
+production workflow:      manual-only e verificato end-to-end
+CMP/measurement live:     ripristinati e ricertificati
+AFFILIATE_MODE:            disabled
+D1 deploy mutations:       nessuna
 publication mutation:     non autorizzata
 ```
