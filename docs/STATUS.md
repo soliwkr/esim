@@ -21,7 +21,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | M7 `/migliore-esim` | Live | ponte legacy slug-bound e guida decisionale senza ranking |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| Evidence supply chain | Snapshot spike verificato live | 1 source Ubigi, 3 pending candidates, raw drift con semantic delta 0 |
+| Evidence supply chain | Coverage audit in closeout | source universe chiuso; snapshot live Ubigi verificato; 54 provider×field rows; nessun provider ancora comparison-ready |
 | iubenda CMP | Live e ricertificata | ripristinata dopo la regressione M7 #62; reject/grant/reload/revoke verificati nel browser reale |
 | Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
 | Search Console | Primo export live verificato | 26–27 luglio: 0 click, 0 impression, dati freschi incompleti |
@@ -89,11 +89,11 @@ ready for publication: false
 
 Il manifest pubblico resta vuoto.
 
-## Evidence supply chain — Source Universe e snapshot spike
+## Evidence supply chain — Source Universe, snapshot e Claims Coverage
 
 La PR #103 ha chiuso il Source Universe Audit e ha ricondotto le fonti/provider e i tool già studiati al contratto upstream senza introdurre un secondo source system.
 
-La PR #104 implementa e verifica il primo spike tecnico su una sola pagina pubblica Ubigi:
+La PR #104 ha implementato e verificato il primo spike tecnico su una sola pagina pubblica Ubigi:
 
 ```text
 SOURCE
@@ -147,7 +147,48 @@ Documento risultato:
 docs/research/EVIDENCE-SNAPSHOT-SPIKE-RESULT-2026-08-03.md
 ```
 
-Il prossimo gate è il Claims Coverage Audit prima di qualsiasi generalizzazione multi-source o ingest D1.
+### Claims Coverage Audit
+
+La PR #105 è il closeout read-only della copertura necessaria alle prime pagine commerciali.
+
+Output:
+
+```text
+docs/research/claims-field-catalog.md
+docs/research/claims-source-candidates.csv
+docs/research/claims-coverage-matrix.csv
+docs/research/CLAIMS-COVERAGE-AUDIT.md
+```
+
+Stato audit:
+
+```text
+providers: Airalo, Holafly, Ubigi
+coverage rows: 54 provider×field
+runtime changes: none
+D1 writes/migrations: none
+provider credentials: none
+ranking: none
+publication: none
+deploy: none
+```
+
+Conclusioni:
+
+- fonti ufficiali adatte esistono già per gran parte del core commerciale;
+- solo Ubigi possiede al momento tre core field verificati tramite snapshot canonico;
+- Airalo e Holafly hanno superfici ufficiali identificate ma non ancora snapshot-canonicalizzate;
+- nessun provider è ancora comparison-ready come row completa e simmetrica;
+- prezzo/valuta richiedono capture context comune o futura derivazione FX esplicita; `price_eur` non viene inferito;
+- hotspot allowed e share limit/period devono restare separati;
+- unlimited e FUP devono restare distinti ma collegati;
+- Airalo activation resta exact-package;
+- network/operator e radio technology non dimostrano performance reale;
+- refund richiede scenario/effective-date e può avere conflict fra fonti ufficiali;
+- compatibility richiede exact model + hardware region; carrier lock resta user-state;
+- performance e routing/VPN restano unsupported come claim propri automatici senza protocollo osservativo.
+
+Il prossimo gate è un **Italy comparison evidence pack** read-only: stessa destinazione, tre provider, uno scenario decisionale bounded e stessa capture window, con unknown/conflict preservati e nessun provider winner.
 
 ## M6 — Consent e measurement
 
@@ -497,7 +538,7 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- Claims Coverage Audit prima di generalizzare evidence capture o monitoring;
+- Italy comparison evidence pack prima di generalizzare evidence capture, monitoring o ingest;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;

@@ -4,21 +4,22 @@ Ultimo aggiornamento: **3 agosto 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile e i gate operativi già definiti.
 
-## Evidence supply chain — Source Universe e snapshot spike chiusi
+## Evidence supply chain — coverage audit chiuso
 
 Stato verificato:
 
 ```text
 PR #103 — Source Universe Audit: merged
-source registry audit: 30 candidate sources
-external tool fit matrix: completed
-PR #104 — deterministic evidence snapshot spike: closeout in corso
-CI implementation #540: success
-live source: 1 public Ubigi product page
-fields: data_gb, validity_days, price
+PR #104 — deterministic evidence snapshot spike: merged
+merge #104: be9707a004b596b4c11b602ed33d1437803cbba4
+CI #544: success
+live source verified: 1 public Ubigi product page
 first live capture: passed
 second live capture: raw drift, semantic changes=0
 Trafilatura 2.2.0 bake-off: 3/3 raw values retained
+PR #105 — Claims Coverage Audit: closeout in corso
+coverage matrix: 54 provider×field rows
+current providers: Airalo, Holafly, Ubigi
 D1 writes: none
 provider credentials: none
 deploy: none
@@ -32,31 +33,69 @@ SOURCE
 → deterministic field extraction
 → NORMALIZED DATUM
 → PENDING CLAIM CANDIDATE
+→ verification/conflict/freshness gates esistenti
 ```
 
-Il primo artifact reale ha mantenuto separati `destination=italy`, `locale=en-GB` e `currency=USD`; `US$29` non viene promosso a `price_eur`. Una seconda cattura con bytes diversi ha mantenuto lo stesso semantic fingerprint e prodotto `Semantic changes: 0`.
+Il Claims Coverage Audit ha verificato che le fonti ufficiali per gran parte del core commerciale esistono già, ma nessun provider è ancora comparison-ready nel sistema canonico: le catture sono asimmetriche, il contesto valuta non è uniforme, FUP/hotspot/activation hanno scope diversi e alcuni criteri richiedono field più strutturati.
 
-Trafilatura resta helper/benchmark offline opzionale: non è dependency canonica, non decide scope o verità commerciale e non crea claim.
-
-### Prossimo gate: Claims Coverage Audit
-
-Prima di generalizzare capture, monitoraggio o ingest, misurare la copertura reale dei claim richiesti dalle prime pagine commerciali:
+Gap principali:
 
 ```text
-page intent / decision criteria
-→ required factual fields
-→ authoritative source coverage
-→ freshness / scope / conflict status
-→ supported / unsupported / conflicting
+destination_coverage: schema gap
+plan_type locale/regionale/globale: schema gap
+price: amount+currency upstream; price_eur non derivabile implicitamente
+hotspot_share_limit + period: schema gap
+network operators vs radio technology: da separare
+refund: scenario/effective-date based
+carrier_lock_state: user state, non provider truth
+observed performance: protocollo di prova assente
+routing/VPN: claim proprio non automatizzabile senza test osservativo
 ```
 
-Output atteso read-only:
+### Prossimo gate: Italy comparison evidence pack
 
-- matrice claim × source × scope;
-- gap di evidence per provider/destinazione;
-- field che richiedono fonti complementari;
-- conflitti e freshness requirement;
-- priorità dei prossimi extractor/snapshot soltanto dopo il coverage audit.
+Prima di D1 ingest o monitoring su scala, costruire uno spike read-only e bounded:
+
+```text
+one destination: Italy
+three providers: Airalo / Holafly / Ubigi
+one explicit decision scenario
+same capture window
+→ exact product/destination artifacts
+→ complementary policy artifacts only where required
+→ normalized core candidates
+→ unknown/conflict preserved
+→ zero provider winner
+```
+
+Core field target:
+
+```text
+destination_coverage
+price + source currency
+fixed data OR unlimited + FUP
+validity
+activation policy
+hotspot + share limit
+network operators + attributed radio technology
+```
+
+Scenario raccomandato per lo spike:
+
+```text
+10-day Italy trip
+high data use
+hotspot required
+unlocked eSIM-capable device
+```
+
+Lo scenario serve a confrontare evidence disponibile, non a forzare SKU isomorfi o scegliere un vincitore.
+
+Priorità source capture:
+
+- Airalo: exact Italy package state + applicable FUP + exact activation/Validity Policy + expanded networks;
+- Holafly: Italy page con explicit duration state + price/currency + unlimited/FUP + hotspot limit + activation + networks/technology;
+- Ubigi: estendere l'exact plan già usato da PR #104 a activation, data sharing, networks e technologies senza perdere i locator esistenti.
 
 Non introdurre ancora:
 
@@ -66,6 +105,7 @@ Non introdurre ancora:
 - D1 schema o writes;
 - maintenance queue integration;
 - scheduler/Workflow;
+- FX conversion implicita;
 - claim verification automatica;
 - ranking/provider winner;
 - pubblicazione o affiliazioni.
@@ -79,6 +119,10 @@ docs/research/evidence-contract.md
 docs/research/claim-candidate-contract.md
 docs/research/EVIDENCE-SNAPSHOT-SPIKE.md
 docs/research/EVIDENCE-SNAPSHOT-SPIKE-RESULT-2026-08-03.md
+docs/research/claims-field-catalog.md
+docs/research/claims-source-candidates.csv
+docs/research/claims-coverage-matrix.csv
+docs/research/CLAIMS-COVERAGE-AUDIT.md
 ```
 
 ## M6 measurement foundation — chiusa live
@@ -110,7 +154,7 @@ Dopo la regressione del deploy automatico M7 #62, la configurazione M6 è stata 
 ## M7 baseline e Search Console — chiuse
 
 ```text
-PR #95: baseline SEO e keyword ownership
+PR #95: baseline SEO M7 e keyword ownership
 PR #96: exporter diretto Search Console
 primo export live: 27 luglio 2026
 range: 2026-07-26 → 2026-07-27
