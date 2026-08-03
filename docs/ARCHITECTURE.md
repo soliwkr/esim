@@ -36,7 +36,7 @@ Il deploy usa un solo Worker. La migrazione del frontend non duplica D1, Workflo
 - metadata, Open Graph e JSON-LD;
 - sitemap, robots e 404 pubblica nel target;
 - shell della Control Room;
-- JavaScript pubblico nullo salvo JSON-LD inerte e bootstrap measurement consent-gated;
+- nessun JavaScript applicativo pubblico generale; eccezioni deliberate sono JSON-LD inerte, embed CMP e bootstrap measurement consent-gated;
 - React soltanto nell’isola privata realmente interattiva.
 
 ### React island
