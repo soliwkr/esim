@@ -24,7 +24,6 @@ const LOCALE_PATTERN = /<html\b[^>]*\blang\s*=\s*["']([^"']+)["']/i;
 const ENTITY_PATTERN = /&(#\d+|#x[0-9a-f]+|amp|lt|gt|quot|apos|nbsp);/gi;
 const TRACKING_QUERY_KEYS = new Set(['gclid', 'fbclid', 'msclkid']);
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
-const VALID_OUTPUT_FILE = /^[A-Za-z0-9._/-]+$/;
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -50,15 +49,11 @@ function decodeEntity(match, entity) {
   if (lower === 'quot') return '"';
   if (lower === 'apos') return "'";
   if (lower === 'nbsp') return ' ';
-  if (lower.startsWith('#x')) {
-    const codePoint = Number.parseInt(lower.slice(2), 16);
-    return Number.isInteger(codePoint) ? String.fromCodePoint(codePoint) : match;
-  }
-  if (lower.startsWith('#')) {
-    const codePoint = Number.parseInt(lower.slice(1), 10);
-    return Number.isInteger(codePoint) ? String.fromCodePoint(codePoint) : match;
-  }
-  return match;
+  const radix = lower.startsWith('#x') ? 16 : 10;
+  const digits = lower.startsWith('#x') ? lower.slice(2) : lower.startsWith('#') ? lower.slice(1) : '';
+  if (!digits) return match;
+  const codePoint = Number.parseInt(digits, radix);
+  return Number.isInteger(codePoint) ? String.fromCodePoint(codePoint) : match;
 }
 
 export function normalizeVisibleText(value) {
@@ -95,15 +90,25 @@ export function canonicalizeEvidenceUrl(value) {
   return parsed.toString();
 }
 
+function requireRepoLocalPath(value, label) {
+  if (!value || path.isAbsolute(value)) throw new Error(`${label} must be repository-local.`);
+  const absolute = path.resolve(value);
+  const relative = path.relative(process.cwd(), absolute);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`${label} must stay inside the repository.`);
+  }
+  return absolute;
+}
+
 function parseNumber(value) {
-  const normalized = value.replace(',', '.');
-  const number = Number(normalized);
+  const number = Number(value.replace(',', '.'));
   if (!Number.isFinite(number) || number < 0) throw new Error(`Invalid numeric value: ${value}`);
   return number;
 }
 
 function uniqueMatch(pattern, text, label) {
-  const matches = [...text.matchAll(pattern)];
+  const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+  const matches = [...text.matchAll(new RegExp(pattern.source, flags))];
   if (matches.length !== 1) {
     throw new Error(`Expected exactly one ${label} in product heading; found ${matches.length}.`);
   }
@@ -119,9 +124,7 @@ function extractSingleH1(html) {
 }
 
 function extractLocale(html) {
-  const match = html.match(LOCALE_PATTERN);
-  if (!match) return null;
-  const locale = match[1].trim();
+  const locale = html.match(LOCALE_PATTERN)?.[1]?.trim();
   return locale || null;
 }
 
@@ -130,22 +133,14 @@ function priceFromHeading(heading) {
   const symbol = match[1] ?? match[3];
   const amountText = match[2] ?? match[4];
   const currency = new Map([
-    ['US$', 'USD'],
-    ['CA$', 'CAD'],
-    ['AU$', 'AUD'],
-    ['€', 'EUR'],
-    ['£', 'GBP'],
+    ['US$', 'USD'], ['CA$', 'CAD'], ['AU$', 'AUD'], ['€', 'EUR'], ['£', 'GBP'],
   ]).get(symbol);
   if (!currency) throw new Error(`Unsupported or ambiguous price symbol: ${symbol}`);
-  return {
-    rawValue: match[0],
-    normalizedValue: { amount: parseNumber(amountText), currency },
-    matchIndex: match.index,
-  };
+  return { rawValue: match[0], normalizedValue: { amount: parseNumber(amountText), currency }, matchIndex: match.index };
 }
 
 function dataFromHeading(heading) {
-  const match = uniqueMatch(new RegExp(DATA_PATTERN.source, DATA_PATTERN.flags), heading, 'data allowance');
+  const match = uniqueMatch(DATA_PATTERN, heading, 'data allowance');
   const amount = parseNumber(match[1]);
   const unit = match[2].toUpperCase();
   return {
@@ -158,7 +153,7 @@ function dataFromHeading(heading) {
 }
 
 function validityFromHeading(heading) {
-  const match = uniqueMatch(new RegExp(VALIDITY_PATTERN.source, VALIDITY_PATTERN.flags), heading, 'validity period');
+  const match = uniqueMatch(VALIDITY_PATTERN, heading, 'validity period');
   return {
     rawValue: match[0],
     normalizedValue: { duration: Number.parseInt(match[1], 10), unit: 'day' },
@@ -170,12 +165,8 @@ function locatorForHeading(heading, rawValue, matchIndex) {
   const start = Number.isInteger(matchIndex) ? matchIndex : heading.indexOf(rawValue);
   if (start < 0) throw new Error(`Unable to locate ${rawValue} inside product heading.`);
   return Object.freeze({
-    type: 'html',
-    selector: 'h1',
-    visibleTextSha256: sha256(heading),
-    start,
-    end: start + rawValue.length,
-    textAnchor: rawValue,
+    type: 'html', selector: 'h1', visibleTextSha256: sha256(heading),
+    start, end: start + rawValue.length, textAnchor: rawValue,
   });
 }
 
@@ -201,30 +192,14 @@ function candidateKey(candidate) {
 
 function buildCandidate({ snapshotId, observedAt, fieldName, rawValue, normalizedValue, locator, validDays, warnings = [] }) {
   const scope = Object.freeze({
-    provider: 'ubigi',
-    plan: 'italy-50gb-30-days',
-    destination: 'italy',
-    deviceModel: null,
-    deviceRegion: null,
+    provider: 'ubigi', plan: 'italy-50gb-30-days', destination: 'italy', deviceModel: null, deviceRegion: null,
   });
   const candidate = {
-    candidateKey: '',
-    snapshotId,
-    subjectType: 'plan',
-    subjectKey: 'ubigi:italy-50gb-30-days',
-    fieldName,
-    scope,
-    rawValue,
-    normalizedValue,
-    evidenceLocator: locator,
-    observedAt,
-    proposedValidUntil: isoPlusDays(observedAt, validDays),
-    extractorId: EXTRACTOR_ID,
-    extractorVersion: EXTRACTOR_VERSION,
-    normalizerVersion: NORMALIZER_VERSION,
-    sourceRole: 'product_page',
-    warnings: Object.freeze([...warnings]),
-    status: 'pending',
+    candidateKey: '', snapshotId, subjectType: 'plan', subjectKey: 'ubigi:italy-50gb-30-days',
+    fieldName, scope, rawValue, normalizedValue, evidenceLocator: locator, observedAt,
+    proposedValidUntil: isoPlusDays(observedAt, validDays), extractorId: EXTRACTOR_ID,
+    extractorVersion: EXTRACTOR_VERSION, normalizerVersion: NORMALIZER_VERSION,
+    sourceRole: 'product_page', warnings: Object.freeze([...warnings]), status: 'pending',
   };
   candidate.candidateKey = candidateKey(candidate);
   return Object.freeze(candidate);
@@ -233,63 +208,41 @@ function buildCandidate({ snapshotId, observedAt, fieldName, rawValue, normalize
 export function extractUbigiPlanCandidates({ html, snapshotId, observedAt }) {
   if (typeof html !== 'string' || !html.trim()) throw new Error('HTML input is required.');
   const heading = extractSingleH1(html);
-  if (!/^eSIM\s*[•·]\s*ITALY\b/i.test(heading)) {
-    throw new Error(`Unexpected product heading scope: ${heading}`);
-  }
+  if (!/^eSIM\s*[•·]\s*ITALY\b/i.test(heading)) throw new Error(`Unexpected product heading scope: ${heading}`);
 
   const data = dataFromHeading(heading);
   const validity = validityFromHeading(heading);
   const price = priceFromHeading(heading);
-
   const candidates = [
     buildCandidate({
-      snapshotId,
-      observedAt,
-      fieldName: 'data_gb',
-      rawValue: data.rawValue,
-      normalizedValue: data.normalizedValue,
-      locator: locatorForHeading(heading, data.rawValue, data.matchIndex),
-      validDays: 7,
+      snapshotId, observedAt, fieldName: 'data_gb', rawValue: data.rawValue,
+      normalizedValue: data.normalizedValue, locator: locatorForHeading(heading, data.rawValue, data.matchIndex), validDays: 7,
     }),
     buildCandidate({
-      snapshotId,
-      observedAt,
-      fieldName: 'validity_days',
-      rawValue: validity.rawValue,
-      normalizedValue: validity.normalizedValue,
-      locator: locatorForHeading(heading, validity.rawValue, validity.matchIndex),
-      validDays: 7,
-      warnings: ['activation_trigger_out_of_scope'],
+      snapshotId, observedAt, fieldName: 'validity_days', rawValue: validity.rawValue,
+      normalizedValue: validity.normalizedValue, locator: locatorForHeading(heading, validity.rawValue, validity.matchIndex),
+      validDays: 7, warnings: ['activation_trigger_out_of_scope'],
     }),
     buildCandidate({
-      snapshotId,
-      observedAt,
-      fieldName: 'price',
-      rawValue: price.rawValue,
-      normalizedValue: price.normalizedValue,
-      locator: locatorForHeading(heading, price.rawValue, price.matchIndex),
-      validDays: 3,
-      warnings: price.normalizedValue.currency === 'EUR'
-        ? []
-        : ['downstream_price_eur_mapping_required'],
+      snapshotId, observedAt, fieldName: 'price', rawValue: price.rawValue,
+      normalizedValue: price.normalizedValue, locator: locatorForHeading(heading, price.rawValue, price.matchIndex),
+      validDays: 3, warnings: price.normalizedValue.currency === 'EUR' ? [] : ['downstream_price_eur_mapping_required'],
     }),
   ];
-
-  const fieldNames = candidates.map((candidate) => candidate.fieldName);
-  if (new Set(fieldNames).size !== 3) throw new Error('Spike must emit exactly three unique fields.');
+  if (new Set(candidates.map((candidate) => candidate.fieldName)).size !== 3) {
+    throw new Error('Spike must emit exactly three unique fields.');
+  }
   return Object.freeze({ heading, candidates: Object.freeze(candidates) });
 }
 
 export function semanticProjection(candidates) {
-  return Object.freeze(candidates
-    .map((candidate) => ({
-      subjectType: candidate.subjectType,
-      subjectKey: candidate.subjectKey,
-      fieldName: candidate.fieldName,
-      scope: candidate.scope,
-      normalizedValue: candidate.normalizedValue,
-    }))
-    .sort((left, right) => left.fieldName.localeCompare(right.fieldName)));
+  return Object.freeze(candidates.map((candidate) => ({
+    subjectType: candidate.subjectType,
+    subjectKey: candidate.subjectKey,
+    fieldName: candidate.fieldName,
+    scope: candidate.scope,
+    normalizedValue: candidate.normalizedValue,
+  })).sort((left, right) => left.fieldName.localeCompare(right.fieldName)));
 }
 
 export function semanticFingerprint(candidates) {
@@ -299,9 +252,8 @@ export function semanticFingerprint(candidates) {
 export function semanticDiff(previousCandidates, currentCandidates) {
   const previous = new Map(semanticProjection(previousCandidates).map((entry) => [entry.fieldName, entry]));
   const current = new Map(semanticProjection(currentCandidates).map((entry) => [entry.fieldName, entry]));
-  const fieldNames = [...new Set([...previous.keys(), ...current.keys()])].sort();
   const changes = [];
-  for (const fieldName of fieldNames) {
+  for (const fieldName of [...new Set([...previous.keys(), ...current.keys()])].sort()) {
     const before = previous.get(fieldName) ?? null;
     const after = current.get(fieldName) ?? null;
     if (canonicalJson(before) !== canonicalJson(after)) changes.push({ fieldName, before, after });
@@ -330,11 +282,7 @@ export function buildEvidenceSnapshot({
   const canonicalFinalUrl = canonicalizeEvidenceUrl(finalUrl);
   const html = body.toString('utf8');
   const bodySha256 = sha256(body);
-  const snapshotId = `snapshot:sha256:${hashCanonical({
-    sourceAuditKey: 'provider-ubigi-commerce',
-    finalUrl: canonicalFinalUrl,
-    bodySha256,
-  })}`;
+  const snapshotId = `snapshot:sha256:${hashCanonical({ sourceAuditKey: 'provider-ubigi-commerce', finalUrl: canonicalFinalUrl, bodySha256 })}`;
   const extraction = extractUbigiPlanCandidates({ html, snapshotId, observedAt: fetchedAt });
   const currencyContext = extraction.candidates.find((candidate) => candidate.fieldName === 'price').normalizedValue.currency;
 
@@ -372,12 +320,8 @@ async function fetchWithRedirects(url, fetchImpl) {
   let current = requireAllowedUrl(url, 'Requested URL');
   for (let index = 0; index <= MAX_REDIRECTS; index += 1) {
     const response = await fetchImpl(current, {
-      method: 'GET',
-      redirect: 'manual',
-      headers: {
-        accept: 'text/html,application/xhtml+xml;q=0.9',
-        'user-agent': 'SenzaRoamingEvidenceSpike/1.0 (+https://senzaroaming.it/metodo)',
-      },
+      method: 'GET', redirect: 'manual',
+      headers: { accept: 'text/html,application/xhtml+xml;q=0.9', 'user-agent': 'SenzaRoamingEvidenceSpike/1.0 (+https://senzaroaming.it/metodo)' },
     });
     if (REDIRECT_STATUSES.has(response.status)) {
       if (index === MAX_REDIRECTS) throw new Error(`Evidence fetch exceeded ${MAX_REDIRECTS} redirects.`);
@@ -393,10 +337,7 @@ async function fetchWithRedirects(url, fetchImpl) {
   throw new Error('Unreachable redirect loop state.');
 }
 
-export async function captureUbigiEvidence({
-  fetchImpl = fetch,
-  now = () => new Date(),
-} = {}) {
+export async function captureUbigiEvidence({ fetchImpl = fetch, now = () => new Date() } = {}) {
   const fetchedAt = now().toISOString();
   const { response, finalUrl, redirectChain } = await fetchWithRedirects(UBIGI_ITALY_50GB_URL, fetchImpl);
   const contentType = response.headers.get('content-type') || '';
@@ -405,30 +346,16 @@ export async function captureUbigiEvidence({
     throw new Error(`Evidence response declares ${declaredLength} bytes, above the ${MAX_RESPONSE_BYTES} byte limit.`);
   }
   const body = Buffer.from(await response.arrayBuffer());
-  return buildEvidenceSnapshot({
-    requestedUrl: UBIGI_ITALY_50GB_URL,
-    finalUrl,
-    redirectChain,
-    fetchedAt,
-    httpStatus: response.status,
-    contentType,
-    etag: response.headers.get('etag'),
-    lastModified: response.headers.get('last-modified'),
-    body,
+  const snapshot = buildEvidenceSnapshot({
+    requestedUrl: UBIGI_ITALY_50GB_URL, finalUrl, redirectChain, fetchedAt,
+    httpStatus: response.status, contentType, etag: response.headers.get('etag'),
+    lastModified: response.headers.get('last-modified'), body,
   });
+  return Object.freeze({ snapshot, body });
 }
 
 function artifactDirectoryName(snapshot) {
-  const timestamp = snapshot.fetchedAt.replace(/[:.]/g, '-');
-  const shortHash = snapshot.bodySha256.replace('sha256:', '').slice(0, 12);
-  return `${timestamp}-${shortHash}`;
-}
-
-function outputPath(value) {
-  if (!value || !VALID_OUTPUT_FILE.test(value) || value.includes('..')) {
-    throw new Error('--out must be a relative repository-local path without .. segments.');
-  }
-  return path.resolve(value);
+  return `${snapshot.fetchedAt.replace(/[:.]/g, '-')}-${snapshot.bodySha256.replace('sha256:', '').slice(0, 12)}`;
 }
 
 export async function writeEvidenceArtifact({
@@ -439,17 +366,18 @@ export async function writeEvidenceArtifact({
   writeFileImpl = writeFile,
 }) {
   if (!Buffer.isBuffer(rawBody)) throw new Error('rawBody must be a Buffer.');
-  const root = outputPath(outputDirectory);
+  if (`sha256:${sha256(rawBody)}` !== snapshot.bodySha256) throw new Error('rawBody hash does not match snapshot metadata.');
+  const root = requireRepoLocalPath(outputDirectory, '--out');
   await mkdirImpl(root, { recursive: true });
   const artifactDirectory = path.join(root, artifactDirectoryName(snapshot));
   await mkdirImpl(artifactDirectory, { recursive: false });
   const rawPath = path.join(artifactDirectory, 'raw.html');
   const metadataPath = path.join(artifactDirectory, 'snapshot.json');
   const artifactLocation = path.relative(process.cwd(), artifactDirectory).split(path.sep).join('/');
-  const persistedSnapshot = { ...snapshot, artifactLocation };
+  const persistedSnapshot = Object.freeze({ ...snapshot, artifactLocation });
   await writeFileImpl(rawPath, rawBody, { flag: 'wx' });
   await writeFileImpl(metadataPath, `${JSON.stringify(persistedSnapshot, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
-  return Object.freeze({ artifactDirectory, rawPath, metadataPath, snapshot: Object.freeze(persistedSnapshot) });
+  return Object.freeze({ artifactDirectory, rawPath, metadataPath, snapshot: persistedSnapshot });
 }
 
 export function parseArgs(argv) {
@@ -470,16 +398,13 @@ export function parseArgs(argv) {
       throw new Error(`Unknown argument: ${flag}`);
     }
   }
-  outputPath(options.out);
-  if (options.compare && (!VALID_OUTPUT_FILE.test(options.compare) || options.compare.includes('..'))) {
-    throw new Error('--compare must be a relative repository-local path without .. segments.');
-  }
+  requireRepoLocalPath(options.out, '--out');
+  if (options.compare) requireRepoLocalPath(options.compare, '--compare');
   return Object.freeze(options);
 }
 
 async function loadSnapshot(filename) {
-  const absolute = path.resolve(filename);
-  const payload = JSON.parse(await readFile(absolute, 'utf8'));
+  const payload = JSON.parse(await readFile(requireRepoLocalPath(filename, '--compare'), 'utf8'));
   if (!Array.isArray(payload.candidates) || typeof payload.semanticFingerprint !== 'string') {
     throw new Error(`Invalid evidence snapshot metadata: ${filename}`);
   }
@@ -501,30 +426,14 @@ async function main() {
     process.stdout.write(usage());
     return;
   }
-
-  const fetchedAt = new Date();
-  let capturedBody = null;
-  const fetchImpl = async (...args) => {
-    const response = await fetch(...args);
-    const originalArrayBuffer = response.arrayBuffer.bind(response);
-    response.arrayBuffer = async () => {
-      const result = await originalArrayBuffer();
-      capturedBody = Buffer.from(result);
-      return result;
-    };
-    return response;
-  };
-  const snapshot = await captureUbigiEvidence({ fetchImpl, now: () => fetchedAt });
-  if (!capturedBody) throw new Error('Evidence body was not captured.');
-  const artifact = await writeEvidenceArtifact({ snapshot, rawBody: capturedBody, outputDirectory: options.out });
-
+  const { snapshot, body } = await captureUbigiEvidence();
+  const artifact = await writeEvidenceArtifact({ snapshot, rawBody: body, outputDirectory: options.out });
   console.log(`Evidence snapshot: ${artifact.snapshot.snapshotId}`);
   console.log(`Artifact: ${path.relative(process.cwd(), artifact.artifactDirectory)}`);
   console.log(`Semantic fingerprint: ${artifact.snapshot.semanticFingerprint}`);
   for (const candidate of artifact.snapshot.candidates) {
     console.log(`${candidate.fieldName}: ${JSON.stringify(candidate.normalizedValue)} [${candidate.status}]`);
   }
-
   if (options.compare) {
     const previous = await loadSnapshot(options.compare);
     const changes = semanticDiff(previous.candidates, artifact.snapshot.candidates);
@@ -534,6 +443,4 @@ async function main() {
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
-if (invokedPath === fileURLToPath(import.meta.url)) {
-  await main();
-}
+if (invokedPath === fileURLToPath(import.meta.url)) await main();
