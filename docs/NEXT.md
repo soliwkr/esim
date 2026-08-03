@@ -1,6 +1,6 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **28 luglio 2026**.
+Ultimo aggiornamento: **3 agosto 2026**.
 
 Questa lista contiene soltanto il lavoro immediatamente eseguibile e i gate operativi già definiti.
 
@@ -21,13 +21,14 @@ remarketing: disabled
 affiliate tracking: disabled
 ```
 
-Documento risultato:
+Documenti risultato:
 
 ```text
 docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
+docs/PRODUCTION-RECOVERY-CHECKPOINT-2026-07-29.md
 ```
 
-Non riaprire la foundation per aggiungere eventi, Ads o affiliazioni. Ogni nuova capacità measurement richiede dizionario eventi, scope e branch separati.
+Dopo la regressione del deploy automatico M7 #62, la configurazione M6 è stata ripristinata tramite la pipeline production corretta e ricertificata nel browser reale. Non riaprire la foundation per aggiungere eventi, Ads o affiliazioni. Ogni nuova capacità measurement richiede dizionario eventi, scope e branch separati.
 
 ## M7 baseline e Search Console — chiuse
 
@@ -65,12 +66,10 @@ hub comparativo: /confronti
 CI branch: success
 runtime smoke: success
 Control Room smoke: success
-deploy: non autorizzato
+deploy automatico storico #62: success
 ```
 
-Il merge su `main` ha attivato automaticamente il deploy #62. La slice è quindi
-live e verificata; la riga storica `deploy: non autorizzato` descrive il gate
-richiesto prima del merge, non lo stato corrente.
+Il merge su `main` ha attivato automaticamente il vecchio deploy #62. La slice è live e verificata; quel trigger automatico è stato poi rimosso dalla pipeline production.
 
 La slice contiene title, description, H1, promessa, criteri e internal linking verso sole URL esistenti. Preview e canonical usano URL coerenti con il rispettivo namespace.
 
@@ -82,12 +81,11 @@ Non contiene nuove route, pSEO, backend, D1, Workflow, Container, AI, publicatio
 PR #98: implementazione verificata
 branch: feat/m7-migliore-esim-alignment
 base: 006472311ed8f727873257c94c4f53f271ad5368
-CI branch: success
-deploy: non autorizzato
+CI branch #519: success
+deploy automatico storico #62: success
 ```
 
-Anche questa slice è stata pubblicata dal deploy automatico #62 ed è stata
-verificata live senza ranking, provider vincitore, prezzi specifici o affiliazioni.
+Anche questa slice è stata pubblicata dal deploy automatico #62 ed è stata verificata live senza ranking, provider vincitore, prezzi specifici o affiliazioni.
 
 Implementato:
 
@@ -105,20 +103,27 @@ Implementato:
 
 Il ponte deve restare incapace di aggiungere fatti commerciali e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded.
 
-## Correzione immediata — sicurezza deploy produzione
+## Recovery produzione M6 — chiuso live
 
 Stato verificato:
 
 ```text
-PR #99: draft
-branch: fix/production-deploy-safety
-implementazione: verificata in CI
-deploy automatico: disabilitato dalla nuova pipeline
-deploy eseguiti dalla PR #99: 0
-CMP e measurement live: ancora da ripristinare
+PR #99: merged
+merge: fd511a5ffd51b55bce7b4b28b1d01b4f43ded8e4
+PR #100: merged
+merge: f2579346ab9591015e31cf54f3a9e4efa4791ceb
+PR #101: merged
+merge: f2df5cd6ef4bf4784205911e80786f55c28f3dd0
+production run: 30439227471
+production conclusion: success
+Worker version: db76b202-2a62-4871-8abf-61c488316285
+CMP live: restored
+GTM/GA4 live: restored
+AFFILIATE_MODE: disabled
+D1 remote migration/mutation: none
 ```
 
-Pipeline implementata:
+Pipeline attiva:
 
 ```text
 workflow_dispatch soltanto
@@ -130,10 +135,20 @@ workflow_dispatch soltanto
 → smoke live pubblici, preview, SEO, published-only, CMP, measurement e Control Room
 ```
 
-Stop obbligatorio: mantenere la PR draft dopo CI verde e diff verificato. Merge
-e deploy manuale sono gate distinti. Non eseguire alcun deploy: il ripristino
-live di CMP e measurement richiede una seconda decisione esplicita dopo la
-review e il merge.
+Ricertificazione browser reale completata:
+
+```text
+pre-consenso: Google requests=0
+rifiuto + reload: Google requests=0
+consenso: GTM-W3LSK9RZ attivato
+reload con consenso: GA4 collect HTTP 204
+Measurement ID: G-GWJ9YPPVJW
+evento reale: page_view
+route verificata: /destinazioni
+revoca + reload: Google requests=0
+```
+
+Il checkpoint production non richiede altri deploy. Eventuali modifiche future alla pipeline, CMP o measurement devono ripartire da un nuovo scope separato.
 
 ## Search Console
 
