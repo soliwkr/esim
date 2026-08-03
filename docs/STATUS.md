@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **28 luglio 2026**.
+Data di riferimento: **3 agosto 2026**.
 
 Questo documento fotografa lo stato operativo reale di Senza Roaming.
 
@@ -21,11 +21,11 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | M7 `/migliore-esim` | Live | ponte legacy slug-bound e guida decisionale senza ranking |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| iubenda CMP | Regressa dal deploy automatico M7 | configurazione vuota pubblicata; ripristino non ancora autorizzato |
+| iubenda CMP | Live e ricertificata | ripristinata dopo la regressione M7 #62; reject/grant/reload/revoke verificati nel browser reale |
 | Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
 | Search Console | Primo export live verificato | 26–27 luglio: 0 click, 0 impression, dati freschi incompleti |
 | GTM container M6 | Pubblicato | versione 2, 7 variabili, 1 trigger, 1 tag |
-| GTM e GA4 produzione | Temporaneamente disattivati | foundation verificata, ma valori vuoti pubblicati dal deploy automatico M7 |
+| GTM e GA4 produzione | Live e consent-gated | ripristinati; `page_view` reale e zero Google dopo revoca verificati |
 | Google Ads e remarketing | Disabilitati | fuori scope M6 |
 | Affiliazioni | Disabilitate | nessun tracking o link remunerato attivo |
 
@@ -67,9 +67,7 @@ Verificato live:
 - redirect `/go/airalo`;
 - navigazione e rendering operativi.
 
-Homepage, listing e `/migliore-esim` includono il riallineamento M7 pubblicato
-automaticamente dal run di deploy #62 sul merge commit
-`abfe7e331435ed05660bcece005f7105232644c8`.
+Homepage, listing e `/migliore-esim` includono il riallineamento M7 pubblicato automaticamente dal run di deploy #62 sul merge commit `abfe7e331435ed05660bcece005f7105232644c8`.
 
 ## Catalog pilot
 
@@ -123,7 +121,7 @@ Verificato live:
 - banner reale;
 - rifiuto, consenso, persistenza e revoca;
 - finalità `4` — Misurazione;
-- nessuna richiesta Google quando `purpose 4=false`.
+- nessuna richiesta Google quando la Misurazione è rifiutata o revocata.
 
 ### Google access
 
@@ -183,13 +181,11 @@ render_mode
 site_language
 ```
 
-### Deploy e verifica live
+### Deploy e verifica live originari
 
-Il job di produzione ha completato con successo deploy e verifica server-side. Il run #470 è rosso soltanto perché i due step opzionali di commento PR hanno ricevuto `HTTP 403 — Resource not accessible by integration` dopo il successo del deploy.
+Il job di produzione M6 originario ha completato con successo deploy e verifica server-side. Il run #470 è rosso soltanto perché i due step opzionali di commento PR hanno ricevuto `HTTP 403 — Resource not accessible by integration` dopo il successo del deploy.
 
-Non è stato eseguito alcun retry.
-
-Browser live verificato:
+Browser live verificato il 27 luglio 2026:
 
 ```text
 rifiuto:
@@ -215,14 +211,70 @@ revoca + reload:
   Google requests=0
 ```
 
-Questi risultati descrivono il checkpoint M6 verificato il 27 luglio 2026.
-Il successivo deploy automatico M7 #62 ha pubblicato vuoti `CMP_PROVIDER`,
-`CMP_EMBED_ID`, `GTM_ID` e `GA4_MEASUREMENT_ID`. Di conseguenza il codice
-consent-gated resta invariato, ma CMP e measurement non sono attualmente caricati
-in produzione. Il fallimento è privacy-safe; il ripristino live richiede una
-decisione esplicita separata dopo la correzione del workflow.
+### Regressione M7 e recovery production
 
-Contesto homepage verificato:
+Il deploy automatico M7 #62 del 28 luglio ha pubblicato vuoti `CMP_PROVIDER`, `CMP_EMBED_ID`, `GTM_ID` e `GA4_MEASUREMENT_ID`. La regressione è rimasta privacy-safe perché il codice fail-closed non ha avviato tracking Google.
+
+La pipeline production è stata quindi corretta e resa manual-only:
+
+```text
+PR #99 — Harden production deploy safety
+merge fd511a5ffd51b55bce7b4b28b1d01b4f43ded8e4
+
+PR #100 — Fix production live Control Room smoke contract
+merge f2579346ab9591015e31cf54f3a9e4efa4791ceb
+
+PR #101 — Fix production consent smoke dialog visibility
+merge f2df5cd6ef4bf4784205911e80786f55c28f3dd0
+```
+
+Recovery riuscita:
+
+```text
+GitHub Actions run: 30439227471
+commit: f2df5cd6ef4bf4784205911e80786f55c28f3dd0
+conclusion: success
+Worker version: db76b202-2a62-4871-8abf-61c488316285
+AFFILIATE_MODE: disabled
+D1 remote migration/mutation: none
+```
+
+Il run ha completato deploy, route M7, preview, SEO, published-only, smoke CMP/measurement, legacy Control Room e Control Room foundation protetta da Access.
+
+### Ricertificazione browser reale post-recovery
+
+Il browser smoke automatizzato usa uno stub iubenda controllato, quindi il widget reale è stato ricertificato separatamente in Chrome Incognito. Durante il test finale il blocco DNS locale è stato disattivato.
+
+Risultati osservati:
+
+```text
+pre-consenso:
+  Google requests=0
+
+rifiuto + reload:
+  Google requests=0
+
+consenso:
+  GTM-W3LSK9RZ attivato
+
+reload con consenso persistito:
+  Google tag HTTP 200
+  GA4 collect HTTP 204
+  tid=G-GWJ9YPPVJW
+  en=page_view
+  dl=https://senzaroaming.it/destinazioni
+  ep.route_class=listing
+  ep.page_type=destination_listing
+
+revoca salvata + reload:
+  Google requests=0
+  GTM assente
+  GA4 collect assente
+```
+
+Il ciclo reale reject → grant → persistence → revoke è quindi nuovamente chiuso live dopo il recovery.
+
+Contesto homepage verificato nello storico M6:
 
 ```text
 route_class: home
@@ -239,6 +291,7 @@ Documenti:
 docs/GTM-GA4-FOUNDATION.md
 docs/GTM-GA4-CONTAINER-CHECKLIST.md
 docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
+docs/PRODUCTION-RECOVERY-CHECKPOINT-2026-07-29.md
 ```
 
 ## Search Console e sitemap
@@ -344,14 +397,20 @@ database_id=REPLACE_WITH_D1_DATABASE_ID
 
 `scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente `apps/web/dist/server/wrangler.json`. Nessuna migration o mutation è implicita nel deploy.
 
-La draft PR #99 sulla branch `fix/production-deploy-safety` riallinea il workflow
-GitHub a questo contratto. L'implementazione è verificata in CI: la nuova
-pipeline disabilita il deploy automatico, accetta soltanto il dispatch manuale
-di produzione verso `https://senzaroaming.it`, usa `npm ci` e `npm run deploy`,
-risolve D1 in read-only e non crea database né applica migration remote.
+Il workflow GitHub production è ora allineato a questo contratto:
 
-La PR #99 non ha eseguito alcun deploy. Merge e deploy manuale restano gate
-distinti; CMP e measurement live non sono ancora stati ripristinati.
+```text
+workflow_dispatch soltanto
+→ npm ci
+→ preflight M6 e AFFILIATE_MODE=disabled
+→ npm run deploy
+→ binding D1 read-only
+→ nessuna creazione D1
+→ nessuna migration o mutation D1 remote
+→ smoke live pubblico e Control Room
+```
+
+Il recovery run `30439227471` ha verificato questo percorso end-to-end.
 
 ## Performance measurement foundation
 
@@ -377,8 +436,6 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
-- revisione e merge separatamente autorizzati della draft PR #99 di sicurezza del deploy;
-- eventuale ripristino live di CMP e measurement soltanto con nuova autorizzazione esplicita;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
