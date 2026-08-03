@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **28 luglio 2026**.
+Ultimo aggiornamento: **3 agosto 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`.
 
@@ -40,7 +40,7 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - [x] D1 e migrazioni versionate;
 - [x] dominio principale;
 - [x] deploy Cloudflare versionato;
-- [ ] workflow production manual-only e privo di mutation D1, in correzione;
+- [x] workflow production manual-only e privo di mutation D1;
 - [x] Workflow, Container e AI Gateway;
 - [x] API manutenzione protette;
 - [x] vere 404 e noindex;
@@ -173,9 +173,7 @@ CI #406
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: foundation CMP/GTM/GA4 completata e verificata live; temporaneamente
-disattivata dal deploy automatico M7 #62. Ripristino non autorizzato finché il
-workflow production non è corretto.**
+**Stato: foundation CMP/GTM/GA4 completata, ripristinata dopo la regressione M7 #62 e ricertificata live end-to-end.**
 
 Contratti versionati:
 
@@ -187,6 +185,7 @@ docs/IUBENDA-CONSENT-SPIKE-RESULT.md
 docs/PUBLIC-CONSENT-DEPLOY-RESULT-2026-07-26.md
 docs/GOOGLE-MEASUREMENT-ACCESS-RESULT-2026-07-26.md
 docs/GTM-GA4-FOUNDATION.md
+docs/PRODUCTION-RECOVERY-CHECKPOINT-2026-07-29.md
 ```
 
 ### Discovery e scope
@@ -269,11 +268,13 @@ PR #91 — merged
 - [x] rifiuto, consenso, reload e revoca;
 - [x] un solo `page_view` reale;
 - [x] controllo performance;
-- [x] deploy pubblico M6 e verifica live completati il 27 luglio 2026.
+- [x] deploy pubblico M6 e verifica live completati il 27 luglio 2026;
+- [x] recovery dopo M7 #62 completata con run `30439227471`;
+- [x] widget iubenda reale ricertificato post-recovery;
+- [x] `page_view` reale ricertificato su `/destinazioni`;
+- [x] zero richieste Google dopo revoca + reload ricertificato.
 
-Il deploy automatico M7 del 28 luglio ha poi pubblicato configurazione M6 vuota.
-Il codice resta fail-closed e non invia richieste Google; il ripristino live è
-un checkpoint separato dopo la draft PR di sicurezza.
+Il deploy automatico M7 del 28 luglio ha pubblicato configurazione M6 vuota. Il codice è rimasto fail-closed e privacy-safe. La pipeline è stata resa manual-only con PR #99, corretta negli smoke con PR #100 e #101 e il recovery è stato completato sul commit `f2df5cd6ef4bf4784205911e80786f55c28f3dd0`.
 
 ### Eventi iniziali
 
@@ -283,26 +284,19 @@ provider_redirect_intent
 consent_update (locale/debug, non GA4)
 ```
 
-`provider_redirect_intent` resta differito anche dopo il checkpoint base
-`page_view`: richiede una branch e una decisione separate. `article_view` e
-`listing_view` non sono eventi separati.
+`provider_redirect_intent` resta differito anche dopo il checkpoint base `page_view`: richiede una branch e una decisione separate. `article_view` e `listing_view` non sono eventi separati.
 
 ### Indicizzazione e contenuti
 
-La sitemap è inviata e la prima keyword map è applicata alle cinque route M7.
-Non vengono ripetute submission né usata la Indexing API. Eventuali richieste
-manuali restano riservate alle sole URL prioritarie dopo il ripristino e la
-verifica live completa di CMP/measurement.
+La sitemap è inviata e la prima keyword map è applicata alle cinque route M7. Non vengono ripetute submission né usata la Indexing API. Eventuali richieste manuali restano riservate alle sole URL prioritarie e devono partire da dati sostanziali, non dal primo snapshot incompleto.
 
 ### Ordine operativo corrente
 
 ```text
-draft PR fix/production-deploy-safety
-→ CI verde e diff verificato
-→ review e merge separatamente autorizzati
-→ deploy di ripristino separatamente autorizzato
-→ verifica live CMP, measurement e cinque route M7
+recovery CMP/measurement: chiusa
 → osservazione dati reali senza nuove capacità
+→ nessuna submission ripetuta
+→ eventuali nuove capacità measurement solo con scope separato
 ```
 
 ## M7 — Intelligence SEO
@@ -342,14 +336,13 @@ conversione brief
 → rimozione legacy privata
 ```
 
-### Track B — sicurezza deploy e ripristino M6
+### Track B — produzione e M6
 
 ```text
-draft PR fix/production-deploy-safety
-→ CI verde e review
-→ merge separatamente autorizzato
-→ nuovo deploy manuale separatamente autorizzato
-→ ripristino e verifica live CMP/measurement
+workflow production manual-only: chiuso
+→ recovery CMP/GTM/GA4: chiusa
+→ browser reject/grant/reload/revoke: ricertificato
+→ osservazione dati reali
 ```
 
 Publication capability resta una branch separata e non è autorizzata da M6.
