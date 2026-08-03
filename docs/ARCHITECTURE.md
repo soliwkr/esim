@@ -59,6 +59,50 @@ Il deploy usa un solo Worker. La migrazione del frontend non duplica D1, Workflo
 
 Il browser non accede direttamente a D1.
 
+## Evidence supply chain
+
+Il layer upstream della verità commerciale è separato dai gate editoriali già esistenti:
+
+```text
+SOURCE
+→ immutable EVIDENCE SNAPSHOT
+→ deterministic field extraction
+→ NORMALIZED DATUM
+→ PENDING CLAIM CANDIDATE
+→ claim verification / conflict / freshness
+→ evidence bundle
+→ Page Readiness
+→ draft grounded
+→ eventuale publication gate umano
+```
+
+Confini:
+
+- `source_registry` resta il registro canonico downstream; il source audit non crea un secondo database delle fonti;
+- lo snapshot conserva raw artifact, requested/final URL, capture context, hash e provenance;
+- raw drift e semantic claim drift sono identità separate;
+- una candidate nasce sempre `pending` e non è un `claim_verification`;
+- extraction confidence non equivale a verità commerciale;
+- field-specific extractor repository-owned è il percorso canonico iniziale; generic extractor può essere helper/benchmark;
+- locale, destination e currency context non vengono inferiti l'uno dall'altro;
+- price upstream conserva amount + source currency; `price_eur` non viene valorizzato implicitamente da un importo in altra valuta;
+- hotspot allowed e share limit/period non vengono compressi nello stesso boolean quando la fonte espone limiti;
+- network/operator statement e radio technology non dimostrano performance osservata;
+- conflict ufficiali restano separati per product type, scenario, canale ed effective date;
+- performance e routing/VPN richiedono un protocollo osservativo appropriato prima di diventare claim propri;
+- demand source, monitor e partner API non vengono promossi automaticamente a factual source indipendente.
+
+Lo spike PR #104 ha verificato il contratto su una product page Ubigi reale: due raw snapshot differenti hanno mantenuto lo stesso semantic fingerprint e prodotto zero semantic changes. Il Claims Coverage Audit successivo mappa quali field richiesti dalle prime pagine hanno fonte primaria adatta e quali restano partial, conflicting o unsupported.
+
+Questo layer non autorizza ancora:
+
+- D1 schema/write/migration;
+- crawler multi-source;
+- scheduler o monitoring runtime;
+- claim verification automatica;
+- ranking;
+- publication capability.
+
 ## Entrypoint e routing
 
 Entrypoint reale:
@@ -413,6 +457,8 @@ M5.6 remote audit:        verificato live
 manifest entries:         0
 M5.7 apex cutover:         verificato live
 M7 five-route slice:       live
+Evidence snapshot:         verificato live su Ubigi
+Claims coverage:           audit read-only in closeout
 production workflow:      manual-only e verificato end-to-end
 CMP/measurement live:     ripristinati e ricertificati
 AFFILIATE_MODE:            disabled
