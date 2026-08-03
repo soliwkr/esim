@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **28 luglio 2026**.
+Ultimo aggiornamento: **3 agosto 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -314,9 +314,7 @@ Guardrail:
 
 ## ADR-036 — GTM inerte e contesto analytics bounded dopo il consenso
 
-**Stato:** accettata, mergiata e verificata live il 27 luglio 2026. Il deploy
-automatico M7 #62 ha successivamente pubblicato configurazione M6 vuota; il
-contratto resta valido e fallisce chiuso.
+**Stato:** accettata, mergiata e verificata live il 27 luglio 2026. Il deploy automatico M7 #62 ha successivamente pubblicato configurazione M6 vuota; il contratto resta valido e fallisce chiuso.
 
 **Decisione:** il layout pubblico può emettere il bootstrap GTM soltanto quando CMP, GTM ID, GA4 Measurement ID e contesto pagina sono tutti validi. Prima del consenso lo script resta inerte come `type="text/plain"`, classe `_iub_cs_activate` e purpose iubenda `4` — Misurazione.
 
@@ -335,28 +333,47 @@ Regole:
 
 **Razionale:** Basic Consent Mode richiede assenza completa di richieste Google prima del consenso. Il contesto viene prodotto server-side con enum e slug validati per evitare cardinalità libera, PII e dati operativi interni.
 
-**Conseguenza:** codice, workspace GTM, pubblicazione container, merge e deploy
-restano gate distinti. Tag Assistant, Network, DebugView, rifiuto, consenso,
-reload, revoca, anti-duplicazione e performance sono stati verificati prima del
-checkpoint live M6.
+**Conseguenza:** codice, workspace GTM, pubblicazione container, merge e deploy restano gate distinti. Tag Assistant, Network, DebugView, rifiuto, consenso, reload, revoca, anti-duplicazione e performance sono stati verificati prima del checkpoint live M6.
 
 ## ADR-037 — Deploy production manual-only senza mutation D1
 
-**Stato:** accettata; implementata sulla draft PR di
-`fix/production-deploy-safety`, non ancora deployata.
+**Stato:** accettata, mergiata con PR #99 e verificata end-to-end dal recovery run `30439227471`.
 
-**Decisione:** `.github/workflows/deploy-production.yml` è avviabile soltanto
-tramite `workflow_dispatch` e invoca l'unico comando canonico `npm run deploy`.
-La configurazione CMP/GTM/GA4 arriva esclusivamente da Actions secrets o
-variables, viene validata fail-closed e non viene stampata. Il preflight richiede
-`AFFILIATE_MODE=disabled`.
+**Decisione:** `.github/workflows/deploy-production.yml` è avviabile soltanto tramite `workflow_dispatch` e invoca l'unico comando canonico `npm run deploy`. La configurazione CMP/GTM/GA4 arriva esclusivamente da Actions secrets o variables, viene validata fail-closed e non viene stampata. Il preflight richiede `AFFILIATE_MODE=disabled`.
 
-Il workflow può elencare read-only il database D1 per risolvere il binding
-compilato, ma non può creare database, applicare migration remote o eseguire
-altre mutation D1. Le migration production restano un'operazione separata,
-esplicita e fuori dal deploy frontend.
+Il workflow può elencare read-only il database D1 per risolvere il binding compilato, ma non può creare database, applicare migration remote o eseguire altre mutation D1. Le migration production restano un'operazione separata, esplicita e fuori dal deploy frontend.
 
-**Conseguenza:** merge e deploy tornano gate distinti. Un deploy manuale fallisce
-prima della pubblicazione se la configurazione M6 è assente o invalida, e dopo la
-pubblicazione verifica route M7, preview e header, sitemap/robots,
-published-only, CMP, measurement consent-gated e Control Room protetta.
+**Conseguenza:** merge e deploy sono gate distinti. Un deploy manuale fallisce prima della pubblicazione se la configurazione M6 è assente o invalida, e dopo la pubblicazione verifica route M7, preview e header, sitemap/robots, published-only, CMP, measurement consent-gated e Control Room protetta. Il recovery ha confermato assenza di migration/mutation D1 e `AFFILIATE_MODE=disabled`.
+
+## ADR-038 — Snapshot evidence immutabile e claim candidate separata dalla verifica
+
+**Stato:** accettata per il perimetro dello spike e verificata su una fonte Ubigi reale.
+
+**Decisione:** il layer upstream della verità commerciale viene separato esplicitamente in:
+
+```text
+SOURCE
+→ immutable EVIDENCE SNAPSHOT
+→ deterministic field extraction
+→ NORMALIZED DATUM
+→ PENDING CLAIM CANDIDATE
+→ VERIFIED CLAIM
+```
+
+Lo snapshot conserva requested/final URL, redirect chain, timestamp, content type, locale/country/currency context, hash del raw body e locator field-level. L'identità raw e il semantic fingerprint restano distinti: un cambio dei byte non equivale a un cambio del fatto commerciale.
+
+Regole iniziali:
+
+- una candidate nasce sempre `pending`;
+- il raw artifact non viene sovrascritto;
+- l'extractor field-specific repository-owned resta il percorso canonico dello spike;
+- un generic extractor può essere helper/benchmark, non source-of-truth;
+- `locale`, `destination` e `currency` restano contesti separati;
+- un prezzo USD non viene mappato implicitamente a `price_eur`;
+- un field non deduce proprietà adiacenti non provate dal locator, per esempio la validità non deduce l'activation trigger;
+- change detection futura può segnalare raw drift ma non verificare automaticamente il nuovo claim;
+- nessun D1 write, scheduler, crawler multi-source o publication gate viene introdotto da questo contratto.
+
+**Verifica:** due catture reali consecutive della stessa pagina Ubigi hanno prodotto snapshot raw diversi ma lo stesso semantic fingerprint e `Semantic changes: 0`. Il bake-off Trafilatura 2.2.0 ha mantenuto verbatim `50GB`, `30 days` e `US$29`, confermandone l'utilità come helper senza giustificare una nuova dependency canonica.
+
+**Conseguenza:** prima di generalizzare capture o monitoring, il prossimo gate è il Claims Coverage Audit: identificare i factual field necessari alle prime pagine commerciali e misurare per ciascuno copertura, authority, scope, freshness e conflitti delle fonti.
