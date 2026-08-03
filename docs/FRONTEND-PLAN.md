@@ -1,6 +1,6 @@
 # Piano frontend
 
-Data di riferimento: **28 luglio 2026**.
+Data di riferimento: **3 agosto 2026**.
 
 ## Decisione
 
@@ -42,13 +42,14 @@ Custom Cloudflare Worker
 
 - il browser non accede direttamente a D1;
 - il browser non riceve maintenance token o secret;
-- Cloudflare Access protegge la Control Room;
+- Cloudflare Access protegge la Control Room foundation;
 - ogni mutation è una capacità separata;
 - nessun componente introduce pubblicazione automatica;
 - preview, canonical compilato, owner sulla branch e owner live sono distinti;
 - candidate, release candidate e published sono distinti;
 - la legacy privata resta finché è fallback operativo;
-- la legacy pubblica non viene rimossa nello stesso momento del cutover.
+- la legacy pubblica non viene rimossa nello stesso momento del cutover;
+- il tracking non essenziale resta consent-gated e assente da preview e Control Room.
 
 ## Route ownership M5.7
 
@@ -90,7 +91,7 @@ Backend:
 currentPublicRouteDecision(pathname)
 ```
 
-### Matrice target attiva sulla branch
+### Matrice target attiva
 
 ```text
 Astro:
@@ -115,9 +116,7 @@ Backend:
 export const activePublicRouteDecision = targetPublicRouteDecision;
 ```
 
-La CI applicativa #397 ha verificato questa matrice nel Worker compilato; PR #81
-e #82 hanno poi completato cutover e verifica live. Merge e deploy restano
-comunque checkpoint distinti per ogni slice successiva.
+La CI applicativa #397 ha verificato questa matrice nel Worker compilato; PR #81 e #82 hanno poi completato cutover e verifica live. Merge e deploy restano comunque checkpoint distinti per ogni slice successiva.
 
 Rollback:
 
@@ -140,7 +139,8 @@ preview | canonical
 - no-store;
 - canonical namespaced;
 - banner di isolamento;
-- link namespaced.
+- link namespaced;
+- nessuna CMP, GTM o GA4.
 
 ### Canonical
 
@@ -149,15 +149,19 @@ preview | canonical
 - cache pubblica breve;
 - canonical apex;
 - link apex;
-- nessun banner preview.
+- nessun banner preview;
+- CMP reale sulle route indicizzabili;
+- bootstrap measurement inerte fino al consenso Misurazione.
 
 Entrambe le modalità leggono soltanto righe `published`. `review`, `draft`, archived, slug mancanti e file probe restano 404.
 
-## Contratti SEO
+## Contratti SEO e script pubblici
 
 - `src/public-seo.ts` produce metadata, Open Graph e JSON-LD;
 - `src/public-seo-endpoints.ts` produce sitemap e robots;
-- JSON-LD è l’unico script pubblico;
+- l'applicazione pubblica non usa una SPA o JavaScript applicativo generale;
+- JSON-LD resta inerte;
+- l'embed CMP e il bootstrap measurement consent-gated sono eccezioni deliberate e governate da M6;
 - sitemap include route statiche e articoli published-only;
 - canonical, robots e cache dipendono dalla route response;
 - gli endpoint falliscono chiusi su dati invalidi.
@@ -174,7 +178,7 @@ conversione brief
 → rimozione legacy privata
 ```
 
-### Track B — frontend pubblico M5
+### Track B — frontend pubblico M5/M7
 
 ```text
 preview noindex
@@ -186,7 +190,8 @@ preview noindex
 → remote audit live
 → apex cutover
 → verifica live
-→ eventuale rimozione legacy pubblica
+→ riallineamento M7
+→ osservazione dati reali
 ```
 
 Publication capability resta un percorso separato.
@@ -270,7 +275,7 @@ PR #82 — closeout live
 
 Implementato:
 
-- target matrix attiva sulla branch;
+- target matrix attiva;
 - Worker-first wildcard valida;
 - asset Astro esclusi dal Worker;
 - canonical homepage, listing, trust, articoli, sitemap, robots e 404;
@@ -293,28 +298,44 @@ canonici finali
 → closeout M5.7 con PR #82
 ```
 
-## Stato M7 e sicurezza deploy
+## M7 e sicurezza deploy — stato corrente
 
-Le PR #97 e #98 hanno riallineato homepage, i tre hub e `/migliore-esim`. Il
-merge della PR #98 ha attivato il vecchio trigger automatico e pubblicato M7 con
-configurazione CMP/measurement vuota.
+Le PR #97 e #98 hanno riallineato homepage, i tre hub e `/migliore-esim`. Il merge della PR #98 ha attivato il vecchio trigger automatico e pubblicato M7 con configurazione CMP/measurement vuota.
 
-La correzione autorizzata preserva integralmente l'architettura frontend e
-interviene soltanto sul contratto production:
+La pipeline production è stata quindi corretta senza cambiare l'architettura frontend:
 
 ```text
-manual workflow_dispatch
-→ npm run deploy
-→ nessuna mutation D1
-→ smoke route M7, preview, SEO, consent, measurement e Control Room
+PR #99 → workflow_dispatch manual-only, npm run deploy, D1 read-only
+PR #100 → contratto smoke Control Room corretto
+PR #101 → stub consent browser corretto
 ```
 
-La draft PR non esegue il ripristino live; quel deploy richiede autorizzazione
-separata.
+Recovery riuscita:
+
+```text
+run: 30439227471
+commit: f2df5cd6ef4bf4784205911e80786f55c28f3dd0
+conclusion: success
+Worker version: db76b202-2a62-4871-8abf-61c488316285
+```
+
+Il run ha verificato route M7, preview, SEO, published-only, CMP/measurement, legacy Control Room e foundation protetta da Access. Nessuna creazione, migration o mutation D1 remote è parte del percorso production.
+
+La successiva verifica browser reale ha ricertificato il widget iubenda e il gate measurement:
+
+```text
+pre-consenso: Google requests=0
+rifiuto + reload: Google requests=0
+consenso: GTM-W3LSK9RZ attivato
+reload con consenso: GA4 collect HTTP 204, en=page_view
+revoca + reload: Google requests=0
+```
+
+Il frontend M7 non è stato modificato durante il recovery.
 
 ## Acceptance live M5.7
 
-Verificare dopo deploy:
+Verificato storicamente e preservato nei successivi smoke production:
 
 - homepage e navigazione canonica;
 - listing e trust pages;
@@ -324,7 +345,7 @@ Verificare dopo deploy:
 - 404, file probe, review e draft;
 - `/api/health`;
 - redirect `/go/*`;
-- Control Room anonima/autenticata;
+- Control Room legacy e foundation protetta;
 - preview namespaced;
 - CSS asset;
 - desktop, mobile e tastiera;
@@ -332,7 +353,7 @@ Verificare dopo deploy:
 
 ## Publication decision
 
-M5.7 non introduce `review → published`.
+M5.7 e M7 non introducono `review → published`.
 
 La prima pubblicazione richiede:
 
@@ -351,9 +372,8 @@ La prima pubblicazione richiede:
 - riscrivere l’intero backend;
 - pubblicare automaticamente la pagina Cina;
 - generazione massiva o pSEO a template;
-- endpoint publish in M5.7;
-- Search Console submission;
-- analytics prima di CMP e Consent Mode;
+- endpoint publish senza scope separato;
+- submission Search Console ripetuta;
+- Advanced Consent Mode o cookieless pings;
 - affiliazioni anticipate;
-- rimozione legacy pubblica prima del checkpoint live;
 - rimozione legacy privata mentre resta fallback operativo.
