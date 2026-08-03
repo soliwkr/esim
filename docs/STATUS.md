@@ -21,6 +21,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming.
 | M7 `/migliore-esim` | Live | ponte legacy slug-bound e guida decisionale senza ranking |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
+| Evidence supply chain | Snapshot spike verificato live | 1 source Ubigi, 3 pending candidates, raw drift con semantic delta 0 |
 | iubenda CMP | Live e ricertificata | ripristinata dopo la regressione M7 #62; reject/grant/reload/revoke verificati nel browser reale |
 | Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
 | Search Console | Primo export live verificato | 26–27 luglio: 0 click, 0 impression, dati freschi incompleti |
@@ -87,6 +88,66 @@ ready for publication: false
 ```
 
 Il manifest pubblico resta vuoto.
+
+## Evidence supply chain — Source Universe e snapshot spike
+
+La PR #103 ha chiuso il Source Universe Audit e ha ricondotto le fonti/provider e i tool già studiati al contratto upstream senza introdurre un secondo source system.
+
+La PR #104 implementa e verifica il primo spike tecnico su una sola pagina pubblica Ubigi:
+
+```text
+SOURCE
+→ immutable EVIDENCE SNAPSHOT
+→ deterministic field extraction
+→ NORMALIZED DATUM
+→ PENDING CLAIM CANDIDATE
+```
+
+Prima cattura reale:
+
+```text
+source: Ubigi Italy 50GB / 30 days
+HTTP: 200
+locale: en-GB
+country context: IT
+currency context: USD
+fields: data_gb, validity_days, price
+all candidates: pending
+D1 writes: none
+```
+
+Il prezzo `US$29` resta `price { amount: 29, currency: USD }` con warning `downstream_price_eur_mapping_required`; non viene promosso a `price_eur`. `validity_days=30` conserva `activation_trigger_out_of_scope` perché l'H1 non prova il trigger di attivazione.
+
+I tre locator verso l'H1 sono stati riprodotti contro lo snapshot reale.
+
+Seconda cattura reale:
+
+```text
+raw snapshot: changed
+semantic fingerprint: unchanged
+Semantic changes: 0
+```
+
+Questo verifica sul provider reale il confine `page/raw drift ≠ commercial fact drift`.
+
+Bake-off opzionale:
+
+```text
+Trafilatura: 2.2.0
+50GB retained verbatim: true
+30 days retained verbatim: true
+US$29 retained verbatim: true
+```
+
+Trafilatura resta helper/benchmark offline, non dependency canonica e non source-of-truth. Nessun crawler, scheduler, change monitor, Partner API credential, maintenance queue integration o deploy è stato introdotto.
+
+Documento risultato:
+
+```text
+docs/research/EVIDENCE-SNAPSHOT-SPIKE-RESULT-2026-08-03.md
+```
+
+Il prossimo gate è il Claims Coverage Audit prima di qualsiasi generalizzazione multi-source o ingest D1.
 
 ## M6 — Consent e measurement
 
@@ -436,6 +497,7 @@ Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimi
 
 ## Gap aperti
 
+- Claims Coverage Audit prima di generalizzare evidence capture o monitoring;
 - dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
 - redirect `www → apex` definitivo;
 - topic-mismatch sul prossimo run autorizzato;
