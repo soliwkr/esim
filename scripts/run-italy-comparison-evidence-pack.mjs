@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,6 +27,49 @@ export const LIVE_SOURCE_CONFIG = Object.freeze(
   ),
 );
 
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function hashCanonical(value) {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex');
+}
+
+function applyLiveSourceProvenance(source, snapshot) {
+  const bodyHash = snapshot.bodySha256.replace(/^sha256:/, '');
+  const snapshotId = `snapshot:sha256:${hashCanonical({
+    sourceAuditKey: source.sourceAuditKey,
+    finalUrl: snapshot.canonicalFinalUrl,
+    bodySha256: bodyHash,
+  })}`;
+
+  return Object.freeze({
+    ...snapshot,
+    provider: source.provider,
+    role: source.role,
+    sourceAuditKey: source.sourceAuditKey,
+    snapshotId,
+  });
+}
+
+export async function captureLiveSource(
+  source,
+  { fetchImpl = fetch, now = () => new Date() } = {},
+) {
+  const captured = await captureSource(source, { fetchImpl, now });
+  return Object.freeze({
+    snapshot: applyLiveSourceProvenance(source, captured.snapshot),
+    body: captured.body,
+  });
+}
+
 export async function captureLiveComparisonPack({
   fetchImpl = fetch,
   now = () => new Date(),
@@ -35,7 +79,7 @@ export async function captureLiveComparisonPack({
   const bodies = new Map();
 
   for (const source of LIVE_SOURCE_CONFIG) {
-    const captured = await captureSource(source, { fetchImpl, now });
+    const captured = await captureLiveSource(source, { fetchImpl, now });
     snapshots.set(source.key, captured.snapshot);
     bodies.set(source.key, captured.body);
   }
