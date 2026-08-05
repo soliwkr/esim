@@ -146,6 +146,36 @@ ranking: not_computed
 
 Questo smoke protegge il confine fra core plan evidence e optional secondary evidence invece di rendere la fixture più ricca della response live osservata.
 
+## Terzo capture reale — Ubigi SmartStart help
+
+Dopo la CI #565 verde, il capture manuale successivo ha superato Airalo e il nuovo locator Ubigi destination, fermandosi soltanto su:
+
+```text
+Error: Ubigi SmartStart help: expected a match.
+```
+
+La help page ufficiale continua a esporre entrambe le proposizioni necessarie, ma non come un blocco testuale con distanza stabile:
+
+```text
+activates automatically upon arrival in a covered area
+already in a covered area when you purchase the data plan, activation starts immediately
+```
+
+Fra le due frasi possono comparire copy e istruzioni aggiuntive della pagina. Il parser `1.0.2` le collegava con una singola regex bounded dalla distanza (`{0,320}` / `{0,140}`), rendendo il locator dipendente dalla quantità di testo intermedio invece che dalle due proposizioni fattuali.
+
+Correzione bounded:
+
+- `PACK_EXTRACTOR_VERSION` passa a `1.0.3`;
+- il trigger SmartStart `covered_area_connection` usa un locator indipendente sulla proposizione di arrivo in area coperta;
+- `purchaseWhileCovered = immediate` usa un secondo locator indipendente sulla proposizione di acquisto mentre si è già in area coperta;
+- la candidate `activation_policy` conserva anche il locator product-page SmartStart del piano esatto;
+- l'evidence set della candidate contiene quindi tre riferimenti: product page + due proposizioni help;
+- nessun significato viene derivato dalla distanza fra paragrafi o dalla posizione relativa del copy intermedio;
+- lo smoke inserisce deliberatamente copy intermedio lungo fra le due proposizioni, così la vecchia regex distance-bound non può passare accidentalmente;
+- normalized value, source set, ranking, D1 e publication restano invariati.
+
+La modifica non rende optional l'activation policy: entrambe le proposizioni ufficiali restano richieste per emettere il normalized datum completo `{ trigger: "covered_area_connection", purchaseWhileCovered: "immediate" }`. Se una delle due manca davvero, il pack continua a fallire chiuso invece di sintetizzarla.
+
 ## Perché non usare browser automation
 
 La pagina esatta del pacchetto è sufficiente perché:
@@ -155,6 +185,7 @@ La pagina esatta del pacchetto è sufficiente perché:
 - il raw HTML Airalo contiene anche l'identificatore esatto del package;
 - Ubigi prova destination, data, validity e price nel product heading statico già verificato da #104;
 - le informazioni secondarie Ubigi non catturate possono essere rappresentate correttamente come `unknown`;
+- la help page Ubigi espone direttamente le due proposizioni SmartStart senza necessità di rendering client;
 - produce provenance più precisa;
 - mantiene il comando read-only e dependency-free;
 - non richiede Playwright, sessioni, cookie o credenziali.
