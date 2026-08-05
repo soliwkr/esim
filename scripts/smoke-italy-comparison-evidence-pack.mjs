@@ -18,8 +18,9 @@ const COMPLETED_AT = '2026-08-03T18:00:30.000Z';
 
 const FIXTURES = Object.freeze({
   'airalo-italy-plan': `<!doctype html><html lang="it"><body>
-    <h1>Italia</h1><p>Wind Tre</p><p>+altri 2</p>
-    <section>Scegli il tuo pacchetto 7 giorni Illimitato GB $25.00 USD 10 giorni Illimitato GB $33.00 USD 15 giorni Illimitato GB $45.00 USD</section>
+    <title>eSIM Italia, da 4.00 €</title>
+    <h1>eSIM per Italia</h1><p>Italia Wind Tre</p><p>+altri 2</p>
+    <section>Scegli il tuo pacchetto 3 giorni Illimitato GB 10.00 € 5 giorni Illimitato GB 15.50 € 7 giorni Illimitato GB 21.00 € 10 giorni Illimitato GB 29.00 € Velocità ridotta a 1 Mbps dopo il consumo giornaliero di 3 GB. 15 giorni Illimitato GB 40.00 €</section>
   </body></html>`,
   'airalo-unlimited-fup': `<!doctype html><html lang="en"><body>
     <h1>Unlimited Data Plans - Fair Use Policy</h1>
@@ -88,7 +89,8 @@ assert.equal(first.sources.every((source) => !('html' in source) && !('visibleTe
 const byProvider = new Map(first.offers.map((offer) => [offer.provider, offer]));
 const candidate = (provider, fieldName) => byProvider.get(provider).candidates.find((entry) => entry.fieldName === fieldName);
 
-assert.deepEqual(candidate('airalo', 'price').normalizedValue, { amount: 33, currency: 'USD' });
+assert.deepEqual(candidate('airalo', 'price').normalizedValue, { amount: 29, currency: 'EUR' });
+assert.equal(candidate('airalo', 'price').rawValue, '29.00 €');
 assert.deepEqual(candidate('airalo', 'validity_days').normalizedValue, { duration: 10, unit: 'day' });
 assert.deepEqual(candidate('airalo', 'unlimited_policy').normalizedValue, { unlimitedLabel: true });
 assert.deepEqual(candidate('airalo', 'fair_use_policy').normalizedValue, {
