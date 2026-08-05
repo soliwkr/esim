@@ -48,7 +48,8 @@ const FIXTURES = Object.freeze({
   </body></html>`,
   'ubigi-activation': `<!doctype html><html lang="en-US"><body>
     <h1>When does my Ubigi data plan activate?</h1>
-    <p>Your data plan activates automatically upon arrival in a covered area, starting its validity period. Upon arrival, switch on your Ubigi line.</p>
+    <p>Your data plan activates automatically upon arrival in a covered area, starting its validity period. This ensures you can fully use it without losing any days before your travel.</p>
+    <p>Once purchased, your data plan appears in the My Account tab on your Ubigi account, where you can track data plan usage and renewal details. Getting started with SmartStart is easy. Upon arrival, simply switch on your Ubigi line in your mobile settings; your data plan will activate automatically and its validity will begin. This intentionally long intermediate copy proves that activation evidence is located as independent statements rather than by relying on a brittle maximum-distance regex across unrelated help-page copy.</p>
     <p>Note: If you are already in a covered area when you purchase the data plan, activation starts immediately.</p>
   </body></html>`,
 });
@@ -120,6 +121,7 @@ assert.deepEqual(candidate('ubigi', 'data_gb').normalizedValue, { quantity: 50, 
 assert.deepEqual(candidate('ubigi', 'validity_days').normalizedValue, { duration: 30, unit: 'day' });
 assert.deepEqual(candidate('ubigi', 'destination_coverage').normalizedValue, { countries: ['IT'], scope: 'local' });
 assert.deepEqual(candidate('ubigi', 'activation_policy').normalizedValue, { trigger: 'covered_area_connection', purchaseWhileCovered: 'immediate' });
+assert.equal(candidate('ubigi', 'activation_policy').evidence.length, 3);
 assert.deepEqual(candidate('ubigi', 'network').normalizedValue, { operators: ['Iliad', 'WindTre'], completeness: 'declared' });
 assert.deepEqual(candidate('ubigi', 'radio_technology').normalizedValue, { technologies: ['3G', '4G', '5G'], qualifier: 'declared_for_destination' });
 assert.equal(byProvider.get('ubigi').coverage.hotspot_share_limit.state, 'unknown');
