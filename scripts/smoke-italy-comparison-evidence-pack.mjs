@@ -53,12 +53,17 @@ const FIXTURES = Object.freeze({
   </body></html>`,
 });
 
-function buildSnapshots({ holaflyPrice = '30,50 €EUR', noise = '' } = {}) {
+function buildSnapshots({ holaflyPrice = '30,50 €EUR', noise = '', ubigiNetworkDetails = true } = {}) {
   const snapshots = new Map();
   for (const [index, source] of SOURCE_CONFIG.entries()) {
     let html = FIXTURES[source.key];
     if (source.key === 'holafly-italy-plan') html = html.replace('30,50 €EUR', holaflyPrice);
     if (source.key === 'airalo-italy-plan' && noise) html = html.replace('</body>', `<footer>${noise}</footer></body>`);
+    if (source.key === 'ubigi-italy-plan' && !ubigiNetworkDetails) {
+      html = html
+        .replace('    <section>Destination Network(s) Italy Network(s): Iliad Network(s): WindTre</section>\n', '')
+        .replace('    <img alt="Icon ecommerce 3G"><img alt="Icon ecommerce 4G"><img alt="Icon ecommerce 5G">\n', '');
+    }
     snapshots.set(source.key, buildSourceSnapshot({
       sourceKey: source.key,
       requestedUrl: source.url,
@@ -113,10 +118,21 @@ assert.equal(byProvider.get('holafly').coverage.fair_use_policy.state, 'partial'
 assert.deepEqual(candidate('ubigi', 'price').normalizedValue, { amount: 29, currency: 'USD' });
 assert.deepEqual(candidate('ubigi', 'data_gb').normalizedValue, { quantity: 50, unit: 'GB' });
 assert.deepEqual(candidate('ubigi', 'validity_days').normalizedValue, { duration: 30, unit: 'day' });
+assert.deepEqual(candidate('ubigi', 'destination_coverage').normalizedValue, { countries: ['IT'], scope: 'local' });
 assert.deepEqual(candidate('ubigi', 'activation_policy').normalizedValue, { trigger: 'covered_area_connection', purchaseWhileCovered: 'immediate' });
 assert.deepEqual(candidate('ubigi', 'network').normalizedValue, { operators: ['Iliad', 'WindTre'], completeness: 'declared' });
 assert.deepEqual(candidate('ubigi', 'radio_technology').normalizedValue, { technologies: ['3G', '4G', '5G'], qualifier: 'declared_for_destination' });
 assert.equal(byProvider.get('ubigi').coverage.hotspot_share_limit.state, 'unknown');
+
+const sparseUbigi = buildComparisonPack({ snapshots: buildSnapshots({ ubigiNetworkDetails: false }), startedAt: STARTED_AT, completedAt: COMPLETED_AT });
+const sparseUbigiOffer = sparseUbigi.offers.find((offer) => offer.provider === 'ubigi');
+assert.deepEqual(sparseUbigiOffer.candidates.find((entry) => entry.fieldName === 'destination_coverage').normalizedValue, { countries: ['IT'], scope: 'local' });
+assert.equal(sparseUbigiOffer.coverage.destination_coverage.state, 'observed');
+assert.equal(sparseUbigiOffer.coverage.network.state, 'unknown');
+assert.equal(sparseUbigiOffer.coverage.radio_technology.state, 'unknown');
+assert.equal(sparseUbigiOffer.candidates.some((entry) => entry.fieldName === 'network'), false);
+assert.equal(sparseUbigiOffer.candidates.some((entry) => entry.fieldName === 'radio_technology'), false);
+assert.equal(sparseUbigi.ranking.status, 'not_computed');
 
 for (const offer of first.offers) {
   assert.equal(offer.candidates.every((entry) => entry.status === 'pending'), true);
