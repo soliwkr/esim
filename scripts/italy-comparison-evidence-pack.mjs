@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { extractUbigiPlanCandidates } from './evidence-snapshot-spike.mjs';
 
 export const PACK_SCHEMA_VERSION = 1;
-export const PACK_EXTRACTOR_VERSION = '1.0.0';
+export const PACK_EXTRACTOR_VERSION = '1.0.1';
 export const MAX_RESPONSE_BYTES = 2_500_000;
 export const MAX_REDIRECTS = 5;
 export const MAX_CAPTURE_WINDOW_MS = 10 * 60 * 1000;
@@ -177,14 +177,8 @@ function parseDecimal(value) {
   return number;
 }
 
-function parseUsd(value) {
-  const match = value.match(/\$\s*(\d+(?:[.,]\d{1,2})?)\s*USD/i);
-  if (!match) throw new Error(`Unable to parse USD price: ${value}`);
-  return { amount: parseDecimal(match[1]), currency: 'USD' };
-}
-
 function parseEur(value) {
-  const match = value.match(/(\d+(?:[.,]\d{1,2})?)\s*€\s*EUR/i);
+  const match = value.match(/(\d+(?:[.,]\d{1,2})?)\s*€(?:\s*EUR)?/i);
   if (!match) throw new Error(`Unable to parse EUR price: ${value}`);
   return { amount: parseDecimal(match[1]), currency: 'EUR' };
 }
@@ -325,7 +319,7 @@ function snapshotPublicMetadata(snapshot) {
   return metadata;
 }
 
-function extractAiralo(snapshots) {
+export function extractAiralo(snapshots) {
   const plan = snapshots.get('airalo-italy-plan');
   const fup = snapshots.get('airalo-unlimited-fup');
   const offerKey = 'airalo:italy:unlimited-10d';
@@ -338,12 +332,12 @@ function extractAiralo(snapshots) {
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'destination_coverage', rawValue: scopeRaw, normalizedValue: { countries: ['IT'], scope: 'local' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, scopeMatch, scopeRaw))], observedAt }));
   coverage.destination_coverage = observedField();
 
-  const row = findMatch(plan.visibleText, /(10\s+(?:giorni|days))\s+(?:Illimitato|Unlimited)\s+GB\s+(\$\s*\d+(?:[.,]\d{1,2})?\s*USD)/i, 'Airalo 10-day unlimited row');
+  const row = findMatch(plan.visibleText, /(10\s+(?:giorni|days))\s+(?:Illimitato|Unlimited)\s+GB\s+(\d+(?:[.,]\d{1,2})\s*€(?:\s*EUR)?)/i, 'Airalo 10-day unlimited row');
   const validityRaw = row[1];
   const priceRaw = row[2];
   const unlimitedRaw = row[0].match(/(?:Illimitato|Unlimited)\s+GB/i)[0];
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'validity_days', rawValue: validityRaw, normalizedValue: { duration: 10, unit: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, validityRaw))], observedAt }));
-  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'price', rawValue: priceRaw, normalizedValue: parseUsd(priceRaw), evidence: [evidenceRef(plan, locatorFromMatch(plan, row, priceRaw))], observedAt, warnings: ['source_currency_preserved', 'no_implicit_price_eur'] }));
+  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'price', rawValue: priceRaw, normalizedValue: parseEur(priceRaw), evidence: [evidenceRef(plan, locatorFromMatch(plan, row, priceRaw))], observedAt, warnings: ['source_currency_preserved'] }));
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'unlimited_policy', rawValue: unlimitedRaw, normalizedValue: { unlimitedLabel: true }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, unlimitedRaw))], observedAt }));
   coverage.validity_days = observedField();
   coverage.price = observedField();
