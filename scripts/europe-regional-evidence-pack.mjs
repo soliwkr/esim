@@ -14,7 +14,7 @@ import {
 } from './italy-comparison-evidence-pack.mjs';
 
 export const PACK_SCHEMA_VERSION = 1;
-export const PACK_EXTRACTOR_VERSION = '1.0.0';
+export const PACK_EXTRACTOR_VERSION = '1.0.1';
 
 export const SCENARIO = Object.freeze({
   id: 'europe-14d-multicountry-high-data-hotspot',
@@ -31,9 +31,9 @@ export const SOURCE_CONFIG = Object.freeze([
   Object.freeze({
     key: 'airalo-europe-plan',
     provider: 'airalo',
-    role: 'regional_product_page',
-    sourceAuditKey: 'candidate-airalo-europe-unlimited-15d',
-    url: 'https://www.airalo.com/europe-esim/eurolink-15days-unlimited',
+    role: 'regional_store_page',
+    sourceAuditKey: 'candidate-airalo-europe-store-unlimited-15d',
+    url: 'https://www.airalo.com/europe-esim',
     allowedHosts: Object.freeze(['www.airalo.com', 'airalo.com']),
     allowedPathPrefixes: Object.freeze(['/europe-esim']),
   }),
@@ -327,35 +327,46 @@ function extractAiralo(snapshots) {
   const observedAt = plan.fetchedAt > fup.fetchedAt ? plan.fetchedAt : fup.fetchedAt;
   const candidates = [];
   const coverage = {};
-  addRegionalIdentity({ plan, provider: 'airalo', offerKey, candidates, coverage, observedAt, headingPattern: /\bEurope\b/i, countPattern: /(42)\s+Countries and Networks/i });
-  const validity = findFirstMatch(plan.visibleText, /\b15\s+days\b/i, 'Airalo 15-day validity');
-  const price = findFirstMatch(plan.visibleText, /\$\s*\d+(?:[.,]\d{1,2})?\s*USD/i, 'Airalo exact package price');
-  const unlimited = findFirstMatch(plan.visibleText, /Unlimited\s+GB/i, 'Airalo unlimited label');
-  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'validity_days', rawValue: validity[0], normalizedValue: { duration: 15, unit: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, validity, validity[0]))], observedAt, warnings: ['selected_validity_covers_14_day_scenario'] }));
-  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'price', rawValue: price[0], normalizedValue: parsePrice(price[0]), evidence: [evidenceRef(plan, locatorFromMatch(plan, price, price[0]))], observedAt, warnings: ['source_currency_preserved'] }));
-  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'unlimited_policy', rawValue: unlimited[0], normalizedValue: { unlimitedLabel: true }, evidence: [evidenceRef(plan, locatorFromMatch(plan, unlimited, unlimited[0]))], observedAt }));
+
+  addRegionalIdentity({
+    plan,
+    provider: 'airalo',
+    offerKey,
+    candidates,
+    coverage,
+    observedAt,
+    headingPattern: /\bEurope\b/i,
+    countPattern: /(\d{1,3})\s+Countries and Networks/i,
+  });
+
+  const row = findFirstMatch(
+    plan.visibleText,
+    /(15\s+days)\s+(Unlimited\s+GB)\s+(\d+(?:[.,]\d{1,2})?\s*€(?:\s*EUR)?)/i,
+    'Airalo 15-day unlimited price row',
+  );
+  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'validity_days', rawValue: row[1], normalizedValue: { duration: 15, unit: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, row[1]))], observedAt, warnings: ['selected_observed_store_row_covers_14_day_scenario'] }));
+  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'unlimited_policy', rawValue: row[2], normalizedValue: { unlimitedLabel: true }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, row[2]))], observedAt }));
+  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'price', rawValue: row[3], normalizedValue: parsePrice(row[3]), evidence: [evidenceRef(plan, locatorFromMatch(plan, row, row[3]))], observedAt, warnings: ['source_currency_preserved', 'selected_from_canonical_regional_store_row'] }));
   coverage.validity_days = observedField();
-  coverage.price = observedField();
   coverage.unlimited_policy = observedField();
+  coverage.price = observedField();
   coverage.data_gb = notApplicableField('Selected scenario offer is explicitly unlimited; no numeric total data cap is synthesized.');
+
   const threshold = findFirstMatch(fup.visibleText, /more than\s+3\s*GB\s+in a day[\s\S]{0,220}?1\s*Mbps/i, 'Airalo FUP threshold');
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'fair_use_policy', rawValue: threshold[0], normalizedValue: { highSpeedThreshold: { quantity: 3, unit: 'GB', period: '24h' }, postThresholdSpeedMbps: 1, resetsEvery: '24h_from_activation' }, evidence: [evidenceRef(fup, locatorFromMatch(fup, threshold, threshold[0]))], observedAt }));
   coverage.fair_use_policy = observedField();
+
   const hotspot = findFirstMatch(fup.visibleText, /personal hotspot[\s\S]{0,180}?no limit on tethering or the number of devices/i, 'Airalo hotspot policy');
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'hotspot_policy', rawValue: hotspot[0], normalizedValue: { allowed: true }, evidence: [evidenceRef(fup, locatorFromMatch(fup, hotspot, hotspot[0]))], observedAt }));
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'hotspot_share_limit', rawValue: hotspot[0], normalizedValue: { separateTetheringCapDeclared: false, overallFupApplies: true }, evidence: [evidenceRef(fup, locatorFromMatch(fup, hotspot, hotspot[0]))], observedAt, warnings: ['not_equivalent_to_unlimited_high_speed_hotspot'] }));
   coverage.hotspot_policy = observedField();
   coverage.hotspot_share_limit = observedField();
-  const activation = findOptionalMatch(plan.visibleText, /package starts when you connect to a supported network/i);
-  if (activation) {
-    candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'activation_policy', rawValue: activation[0], normalizedValue: { trigger: 'supported_network_connection' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, activation, activation[0]))], observedAt }));
-    coverage.activation_policy = observedField();
-  } else {
-    coverage.activation_policy = unknownField('Exact regional product capture did not expose an activation trigger; no provider default is inferred.');
-  }
-  coverage.network = unknownField('The regional surface declares 42 countries and networks but this bounded static extractor does not flatten or infer a regional operator list.');
+
+  coverage.activation_policy = unknownField('The canonical regional store capture does not expose an exact activation trigger for the selected 15-day unlimited row; no provider default is inferred.');
+  coverage.network = unknownField('The regional store surface declares a country/network count but this bounded extractor does not flatten or infer a Europe-wide operator list.');
   coverage.radio_technology = unknownField('No exact regional radio-technology statement is captured in the bounded Airalo source set.');
-  coverage.voice_sms_included = unknownField('The exact regional source set does not prove native voice/SMS inclusion for the selected offer.');
+  coverage.voice_sms_included = unknownField('The regional source set does not prove native voice/SMS inclusion for the selected offer.');
+
   return Object.freeze({ provider: 'airalo', offerKey, label: 'Europe unlimited — 15 days', candidates: Object.freeze(candidates), coverage: Object.freeze(coverage) });
 }
 
@@ -366,31 +377,38 @@ function extractHolafly(snapshots) {
   const observedAt = plan.fetchedAt > fup.fetchedAt ? plan.fetchedAt : fup.fetchedAt;
   const candidates = [];
   const coverage = {};
-  addRegionalIdentity({ plan, provider: 'holafly', offerKey, candidates, coverage, observedAt, headingPattern: /eSIM per l['’]Europa/i, countPattern: /(33)\s+paesi inclusi/i });
-  const row = findFirstMatch(plan.visibleText, /(15\s+giorni)\s+(\d+(?:[.,]\d{1,2})\s*€\s*EUR)/i, 'Holafly 15-day price row');
+
+  addRegionalIdentity({ plan, provider: 'holafly', offerKey, candidates, coverage, observedAt, headingPattern: /eSIM per l['’]Europa/i, countPattern: /(\d{1,3})\s+paesi inclusi/i });
+  const row = findFirstMatch(plan.visibleText, /(15\s+giorni)\s+(\d+(?:[.,]\d{1,2})?\s*€(?:\s*EUR)?)/i, 'Holafly 15-day price row');
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'validity_days', rawValue: row[1], normalizedValue: { duration: 15, unit: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, row[1]))], observedAt, warnings: ['selected_observed_price_table_row_covers_14_day_scenario'] }));
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'price', rawValue: row[2], normalizedValue: parsePrice(row[2]), evidence: [evidenceRef(plan, locatorFromMatch(plan, row, row[2]))], observedAt, warnings: ['source_currency_preserved'] }));
   coverage.validity_days = observedField();
   coverage.price = observedField();
+
   const unlimited = findFirstMatch(plan.visibleText, /Dati illimitati/i, 'Holafly unlimited label');
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'unlimited_policy', rawValue: unlimited[0], normalizedValue: { unlimitedLabel: true }, evidence: [evidenceRef(plan, locatorFromMatch(plan, unlimited, unlimited[0]))], observedAt }));
   coverage.unlimited_policy = observedField();
   coverage.data_gb = notApplicableField('Selected scenario offer is explicitly unlimited; no numeric total data cap is synthesized.');
+
   const fupMatch = findFirstMatch(fup.visibleText, /Politica di Uso Corretto \(FUP\)[\s\S]{0,260}?giorno successivo/i, 'Holafly FUP statement');
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'fair_use_policy', rawValue: fupMatch[0], normalizedValue: { operatorFupMayReduceSpeed: true, exactHighSpeedThreshold: null, recovery: 'next_day' }, evidence: [evidenceRef(fup, locatorFromMatch(fup, fupMatch, fupMatch[0]))], observedAt, warnings: ['exact_threshold_unknown', 'regional_technical_specs_required_for_threshold'] }));
   coverage.fair_use_policy = partialField('Official help confirms FUP-based speed reduction but does not provide an exact Europe high-speed threshold in the captured source set.');
+
   const activation = findFirstMatch(plan.visibleText, /piano si attiverà una volta arrivato a destinazione e acceso la tua eSIM/i, 'Holafly activation');
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'activation_policy', rawValue: activation[0], normalizedValue: { trigger: 'arrival_and_esim_enabled' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, activation, activation[0]))], observedAt }));
   coverage.activation_policy = observedField();
+
   const hotspot = findFirstMatch(plan.visibleText, /Condividi\s+1\s*GB\s+di dati al giorno/i, 'Holafly hotspot allowance');
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'hotspot_policy', rawValue: hotspot[0], normalizedValue: { allowed: true }, evidence: [evidenceRef(plan, locatorFromMatch(plan, hotspot, hotspot[0]))], observedAt }));
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'hotspot_share_limit', rawValue: hotspot[0], normalizedValue: { quantity: 1, unit: 'GB', period: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, hotspot, hotspot[0]))], observedAt }));
   coverage.hotspot_policy = observedField();
   coverage.hotspot_share_limit = observedField();
+
   const technology = findFirstMatch(plan.visibleText, /4G LTE e 5G \(ove disponibile\)/i, 'Holafly radio technology');
   candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'radio_technology', rawValue: technology[0], normalizedValue: { technologies: ['4G LTE', '5G'], qualifier: 'where_available' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, technology, technology[0]))], observedAt, warnings: ['technology_statement_not_performance_measurement'] }));
   coverage.radio_technology = observedField();
   coverage.network = unknownField('The captured Europe product page does not expose a provider-attributed operator list for the regional plan.');
+
   const dataOnly = findOptionalMatch(plan.visibleText, /includono solo dati mobili/i);
   if (dataOnly) {
     candidates.push(buildCandidate({ provider: 'holafly', offerKey, fieldName: 'voice_sms_included', rawValue: dataOnly[0], normalizedValue: { dataOnly: true, nativeVoice: false, nativeSms: false }, evidence: [evidenceRef(plan, locatorFromMatch(plan, dataOnly, dataOnly[0]))], observedAt, warnings: ['voip_apps_use_mobile_data'] }));
@@ -398,12 +416,8 @@ function extractHolafly(snapshots) {
   } else {
     coverage.voice_sms_included = unknownField('No exact native voice/SMS inclusion statement was captured.');
   }
-  return Object.freeze({ provider: 'holafly', offerKey, label: 'Europe unlimited — 15 days', candidates: Object.freeze(candidates), coverage: Object.freeze(coverage) });
-}
 
-function countryLocator(plan, country) {
-  const match = findOptionalMatch(plan.visibleText, new RegExp(`\\b${country}\\b`, 'i'));
-  return match ? evidenceRef(plan, locatorFromMatch(plan, match, match[0])) : null;
+  return Object.freeze({ provider: 'holafly', offerKey, label: 'Europe unlimited — 15 days', candidates: Object.freeze(candidates), coverage: Object.freeze(coverage) });
 }
 
 function networkBlock(plan, country, nextCountryPattern) {
@@ -422,6 +436,7 @@ function extractUbigi(snapshots) {
   const observedAt = plan.fetchedAt > activationSource.fetchedAt ? plan.fetchedAt : activationSource.fetchedAt;
   const candidates = [];
   const coverage = {};
+
   const heading = addRegionalIdentity({ plan, provider: 'ubigi', offerKey, candidates, coverage, observedAt, headingPattern: /eSIM\s*[•·]\s*EUROPE\b/i });
   const data = findFirstMatch(plan.visibleText, /\b25\s*GB\b/i, 'Ubigi Europe data');
   const validity = findFirstMatch(plan.visibleText, /\b30\s+days\b/i, 'Ubigi Europe validity');
@@ -435,22 +450,25 @@ function extractUbigi(snapshots) {
   coverage.unlimited_policy = notApplicableField('Selected Ubigi offer is a finite 25GB plan.');
   coverage.fair_use_policy = notApplicableField('No unlimited/FUP comparison is required for the finite allowance in this bounded pack.');
 
-  const scenarioEvidence = [countryLocator(plan, 'Italy'), countryLocator(plan, 'France'), countryLocator(plan, 'Spain')];
-  const confirmedCodes = ['IT', 'FR', 'ES'].filter((_, index) => scenarioEvidence[index]);
+  const franceBlock = networkBlock(plan, 'France', 'Germany');
+  const italyBlock = networkBlock(plan, 'Italy', 'Jersey');
+  const spainBlock = networkBlock(plan, 'Spain', 'Sweden');
+  const countryBlocks = [franceBlock, italyBlock, spainBlock];
+  const confirmedCodes = ['FR', 'IT', 'ES'].filter((_, index) => countryBlocks[index]);
   if (confirmedCodes.length) {
     candidates.push(buildCandidate({
       provider: 'ubigi',
       offerKey,
       fieldName: 'destination_coverage',
       rawValue: heading[0],
-      normalizedValue: { scope: 'regional', region: 'EUROPE', scenarioCountriesConfirmed: confirmedCodes },
-      evidence: [evidenceRef(plan, locatorFromMatch(plan, heading, heading[0])), ...scenarioEvidence.filter(Boolean)],
+      normalizedValue: { scope: 'regional', region: 'EUROPE', scenarioCountriesConfirmed: confirmedCodes.sort((a, b) => ['IT', 'FR', 'ES'].indexOf(a) - ['IT', 'FR', 'ES'].indexOf(b)) },
+      evidence: [evidenceRef(plan, locatorFromMatch(plan, heading, heading[0])), ...countryBlocks.filter(Boolean).map((block) => evidenceRef(plan, locatorFromMatch(plan, block, block[0])))],
       observedAt,
-      warnings: confirmedCodes.length === 3 ? ['scenario_country_evidence_multi_locator'] : ['scenario_country_membership_partial'],
+      warnings: confirmedCodes.length === 3 ? ['scenario_country_evidence_from_coverage_blocks'] : ['scenario_country_membership_partial'],
     }));
-    coverage.destination_coverage = confirmedCodes.length === 3 ? observedField() : partialField(`Only ${confirmedCodes.length} of 3 scenario countries were individually located in the captured coverage table.`);
+    coverage.destination_coverage = confirmedCodes.length === 3 ? observedField() : partialField(`Only ${confirmedCodes.length} of 3 scenario-country coverage blocks were located.`);
   } else {
-    coverage.destination_coverage = unknownField('The Europe heading is present but none of the scenario countries were individually located in the captured coverage table.');
+    coverage.destination_coverage = unknownField('The Europe heading is present but none of the scenario-country coverage blocks were located in the static capture.');
   }
 
   const sharing = findFirstMatch(plan.visibleText, /Data sharing allowed/i, 'Ubigi data sharing');
@@ -476,24 +494,20 @@ function extractUbigi(snapshots) {
   }));
   coverage.activation_policy = observedField();
 
-  const franceBlock = networkBlock(plan, 'France', 'Germany');
-  const italyBlock = networkBlock(plan, 'Italy', 'Jersey');
-  const spainBlock = networkBlock(plan, 'Spain', 'Sweden');
   if (franceBlock && italyBlock && spainBlock) {
-    const normalizedValue = {
-      byCountry: {
-        FR: operatorsFromBlock(franceBlock),
-        IT: operatorsFromBlock(italyBlock),
-        ES: operatorsFromBlock(spainBlock),
-      },
-      completeness: 'scenario_countries_only',
-    };
     candidates.push(buildCandidate({
       provider: 'ubigi',
       offerKey,
       fieldName: 'network',
       rawValue: `${franceBlock[0]} | ${italyBlock[0]} | ${spainBlock[0]}`,
-      normalizedValue,
+      normalizedValue: {
+        byCountry: {
+          FR: operatorsFromBlock(franceBlock),
+          IT: operatorsFromBlock(italyBlock),
+          ES: operatorsFromBlock(spainBlock),
+        },
+        completeness: 'scenario_countries_only',
+      },
       evidence: [
         evidenceRef(plan, locatorFromMatch(plan, franceBlock, franceBlock[0])),
         evidenceRef(plan, locatorFromMatch(plan, italyBlock, italyBlock[0])),
