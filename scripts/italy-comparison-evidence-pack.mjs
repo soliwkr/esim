@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { extractUbigiPlanCandidates } from './evidence-snapshot-spike.mjs';
 
 export const PACK_SCHEMA_VERSION = 1;
-export const PACK_EXTRACTOR_VERSION = '1.0.2';
+export const PACK_EXTRACTOR_VERSION = '1.0.3';
 export const MAX_RESPONSE_BYTES = 2_500_000;
 export const MAX_REDIRECTS = 5;
 export const MAX_CAPTURE_WINDOW_MS = 10 * 60 * 1000;
@@ -447,8 +447,22 @@ function extractUbigi(snapshots) {
   coverage.hotspot_share_limit = unknownField('Data sharing is explicitly allowed, but no exact share cap or explicit absence of a cap is proven by the captured source set.');
 
   const smartStartPlan = findFirstMatch(plan.visibleText, /Smartstart[\s\S]{0,140}?activation starts upon arrival at destination/i, 'Ubigi product SmartStart');
-  const smartStartHelp = findFirstMatch(activationSource.visibleText, /activates automatically upon arrival in a covered area[\s\S]{0,320}?already in a covered area[\s\S]{0,140}?activation starts immediately/i, 'Ubigi SmartStart help');
-  candidates.push(buildCandidate({ provider: 'ubigi', offerKey, fieldName: 'activation_policy', rawValue: smartStartHelp[0], normalizedValue: { trigger: 'covered_area_connection', purchaseWhileCovered: 'immediate' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, smartStartPlan, smartStartPlan[0])), evidenceRef(activationSource, locatorFromMatch(activationSource, smartStartHelp, smartStartHelp[0]))], observedAt }));
+  const smartStartArrivalHelp = findFirstMatch(activationSource.visibleText, /activates automatically upon arrival in a covered area/i, 'Ubigi SmartStart covered-area arrival');
+  const smartStartCoveredPurchase = findFirstMatch(activationSource.visibleText, /already in a covered area when you purchase the data plan,\s+activation starts immediately/i, 'Ubigi SmartStart purchase while covered');
+  const activationRaw = `${smartStartArrivalHelp[0]} ${smartStartCoveredPurchase[0]}`;
+  candidates.push(buildCandidate({
+    provider: 'ubigi',
+    offerKey,
+    fieldName: 'activation_policy',
+    rawValue: activationRaw,
+    normalizedValue: { trigger: 'covered_area_connection', purchaseWhileCovered: 'immediate' },
+    evidence: [
+      evidenceRef(plan, locatorFromMatch(plan, smartStartPlan, smartStartPlan[0])),
+      evidenceRef(activationSource, locatorFromMatch(activationSource, smartStartArrivalHelp, smartStartArrivalHelp[0])),
+      evidenceRef(activationSource, locatorFromMatch(activationSource, smartStartCoveredPurchase, smartStartCoveredPurchase[0])),
+    ],
+    observedAt,
+  }));
   coverage.activation_policy = observedField();
 
   const networkBlock = plan.visibleText.match(/Destination\s+Network\(s\)[\s\S]{0,260}?Italy[\s\S]{0,160}?Network\(s\):?\s*(Iliad)[\s\S]{0,120}?Network\(s\):?\s*(WindTre)/i);
