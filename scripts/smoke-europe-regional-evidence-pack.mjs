@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  PACK_EXTRACTOR_VERSION,
   SCENARIO,
   SOURCE_CONFIG,
   buildComparisonPack,
@@ -16,8 +17,8 @@ const COMPLETED_AT = '2026-08-05T16:00:30.000Z';
 
 const FIXTURES = Object.freeze({
   'airalo-europe-plan': `<!doctype html><html lang="en"><body>
-    <h1>Europe</h1><p>42 Countries and Networks</p><p>Unlimited GB</p><p>15 days</p><p>$49.00 USD</p>
-    <p>The package starts when you connect to a supported network</p>
+    <h1>Europe</h1><p>41 Countries and Networks</p>
+    <p>3 days Unlimited GB 10.50 €</p><p>15 days Unlimited GB 44.50 €</p><p>30 days Unlimited GB 64.00 €</p>
   </body></html>`,
   'airalo-unlimited-fup': `<!doctype html><html lang="en"><body>
     <p>You can also use your device as a personal hotspot to share your connection with other devices. There is no limit on tethering or the number of devices you connect.</p>
@@ -52,7 +53,9 @@ function buildSnapshots({ holaflyPrice = '46,90 €EUR', noise = '', sparseUbigi
     let html = FIXTURES[source.key];
     if (source.key === 'holafly-europe-plan') html = html.replace('46,90 €EUR', holaflyPrice);
     if (source.key === 'airalo-europe-plan' && noise) html = html.replace('</body>', `<footer>${noise}</footer></body>`);
-    if (source.key === 'ubigi-europe-plan' && sparseUbigiNetworks) html = html.replace(/<section>[\s\S]*?<\/section>/, '<section>Europe coverage table unavailable in this static fixture.</section>');
+    if (source.key === 'ubigi-europe-plan' && sparseUbigiNetworks) {
+      html = html.replace(/<section>[\s\S]*?<\/section>/, '<section>Europe coverage table unavailable in this static fixture.</section>');
+    }
     snapshots.set(source.key, buildSourceSnapshot({
       sourceKey: source.key,
       requestedUrl: source.url,
@@ -68,6 +71,7 @@ function buildSnapshots({ holaflyPrice = '46,90 €EUR', noise = '', sparseUbigi
 
 const firstSnapshots = buildSnapshots();
 const first = buildComparisonPack({ snapshots: firstSnapshots, startedAt: STARTED_AT, completedAt: COMPLETED_AT });
+assert.equal(PACK_EXTRACTOR_VERSION, '1.0.1');
 assert.equal(first.scenario.id, SCENARIO.id);
 assert.equal(first.scenario.tripDays, 14);
 assert.deepEqual(first.scenario.countries, ['IT', 'FR', 'ES']);
@@ -82,10 +86,15 @@ for (const provider of ['airalo', 'holafly', 'ubigi']) {
   assert.deepEqual(candidate(provider, 'plan_type').normalizedValue, { type: 'regional', region: 'EUROPE' });
 }
 
-assert.deepEqual(candidate('airalo', 'price').normalizedValue, { amount: 49, currency: 'USD' });
+assert.equal(SOURCE_CONFIG.find((source) => source.key === 'airalo-europe-plan').url, 'https://www.airalo.com/europe-esim');
+assert.deepEqual(candidate('airalo', 'destination_coverage').normalizedValue, { scope: 'regional', region: 'EUROPE', declaredCountryCount: 41 });
+assert.deepEqual(candidate('airalo', 'price').normalizedValue, { amount: 44.5, currency: 'EUR' });
 assert.deepEqual(candidate('airalo', 'validity_days').normalizedValue, { duration: 15, unit: 'day' });
+assert.deepEqual(candidate('airalo', 'unlimited_policy').normalizedValue, { unlimitedLabel: true });
 assert.equal(byProvider.get('airalo').coverage.destination_coverage.state, 'partial');
-assert.deepEqual(candidate('airalo', 'activation_policy').normalizedValue, { trigger: 'supported_network_connection' });
+assert.equal(byProvider.get('airalo').coverage.activation_policy.state, 'unknown');
+assert.equal(candidate('airalo', 'activation_policy'), undefined);
+assert.equal(candidate('airalo', 'price').extractorVersion, '1.0.1');
 
 assert.deepEqual(candidate('holafly', 'price').normalizedValue, { amount: 46.9, currency: 'EUR' });
 assert.deepEqual(candidate('holafly', 'validity_days').normalizedValue, { duration: 15, unit: 'day' });
@@ -148,6 +157,26 @@ await assert.rejects(
   }),
   /escaped the allowlisted hosts/,
 );
+
+const legacyAiraloUrl = 'https://www.airalo.com/europe-esim/eurolink-15days-unlimited';
+let legacyCall = 0;
+const legacyCaptured = await captureSource({ ...airaloSource, url: legacyAiraloUrl }, {
+  fetchImpl: async (url) => {
+    legacyCall += 1;
+    if (legacyCall === 1) {
+      assert.equal(String(url), legacyAiraloUrl);
+      return new Response('', { status: 302, headers: { location: 'https://www.airalo.com/europe-esim' } });
+    }
+    assert.equal(String(url), 'https://www.airalo.com/europe-esim');
+    return new Response(FIXTURES['airalo-europe-plan'], { status: 200, headers: { 'content-type': 'text/html;charset=utf-8' } });
+  },
+  now: () => new Date(STARTED_AT),
+});
+assert.equal(legacyCaptured.snapshot.requestedUrl, legacyAiraloUrl);
+assert.equal(legacyCaptured.snapshot.finalUrl, 'https://www.airalo.com/europe-esim');
+assert.equal(legacyCaptured.snapshot.canonicalFinalUrl, 'https://www.airalo.com/europe-esim');
+assert.equal(legacyCaptured.snapshot.redirectChain.length, 1);
+assert.equal(legacyCaptured.snapshot.redirectChain[0].status, 302);
 
 const artifactRoot = path.join('research', 'evidence', `europe-pack-smoke-${process.pid}-${Date.now()}`);
 const bodies = new Map(SOURCE_CONFIG.map((source) => [source.key, Buffer.from(FIXTURES[source.key])]));
