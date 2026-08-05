@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { extractUbigiPlanCandidates } from './evidence-snapshot-spike.mjs';
 
 export const PACK_SCHEMA_VERSION = 1;
-export const PACK_EXTRACTOR_VERSION = '1.0.1';
+export const PACK_EXTRACTOR_VERSION = '1.0.2';
 export const MAX_RESPONSE_BYTES = 2_500_000;
 export const MAX_REDIRECTS = 5;
 export const MAX_CAPTURE_WINDOW_MS = 10 * 60 * 1000;
@@ -436,8 +436,8 @@ function extractUbigi(snapshots) {
   coverage.unlimited_policy = notApplicableField('Selected Ubigi offer is a finite 50GB plan.');
   coverage.fair_use_policy = notApplicableField('No unlimited/FUP comparison is required for the finite allowance in this bounded pack.');
 
-  const destination = findFirstMatch(plan.visibleText, /Destination\s+Network\(s\)[\s\S]{0,220}?Italy/i, 'Ubigi Italy destination');
-  const italy = destination[0].match(/Italy/i)[0];
+  const destination = findFirstMatch(plan.visibleText, /eSIM\s*[•·]\s*(ITALY)\b/i, 'Ubigi Italy product heading');
+  const italy = destination[1];
   candidates.push(buildCandidate({ provider: 'ubigi', offerKey, fieldName: 'destination_coverage', rawValue: italy, normalizedValue: { countries: ['IT'], scope: 'local' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, destination, italy))], observedAt }));
   coverage.destination_coverage = observedField();
 
@@ -451,17 +451,34 @@ function extractUbigi(snapshots) {
   candidates.push(buildCandidate({ provider: 'ubigi', offerKey, fieldName: 'activation_policy', rawValue: smartStartHelp[0], normalizedValue: { trigger: 'covered_area_connection', purchaseWhileCovered: 'immediate' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, smartStartPlan, smartStartPlan[0])), evidenceRef(activationSource, locatorFromMatch(activationSource, smartStartHelp, smartStartHelp[0]))], observedAt }));
   coverage.activation_policy = observedField();
 
-  const networkBlock = findFirstMatch(plan.visibleText, /Destination\s+Network\(s\)[\s\S]{0,260}?Italy[\s\S]{0,160}?Network\(s\):?\s*(Iliad)[\s\S]{0,120}?Network\(s\):?\s*(WindTre)/i, 'Ubigi network block');
-  candidates.push(buildCandidate({
-    provider: 'ubigi', offerKey, fieldName: 'network', rawValue: `${networkBlock[1]}; ${networkBlock[2]}`,
-    normalizedValue: { operators: [networkBlock[1], networkBlock[2]], completeness: 'declared' },
-    evidence: [evidenceRef(plan, locatorFromMatch(plan, networkBlock, networkBlock[1])), evidenceRef(plan, locatorFromMatch(plan, networkBlock, networkBlock[2]))], observedAt,
-  }));
-  coverage.network = observedField();
+  const networkBlock = plan.visibleText.match(/Destination\s+Network\(s\)[\s\S]{0,260}?Italy[\s\S]{0,160}?Network\(s\):?\s*(Iliad)[\s\S]{0,120}?Network\(s\):?\s*(WindTre)/i);
+  if (networkBlock && networkBlock.index != null) {
+    candidates.push(buildCandidate({
+      provider: 'ubigi', offerKey, fieldName: 'network', rawValue: `${networkBlock[1]}; ${networkBlock[2]}`,
+      normalizedValue: { operators: [networkBlock[1], networkBlock[2]], completeness: 'declared' },
+      evidence: [evidenceRef(plan, locatorFromMatch(plan, networkBlock, networkBlock[1])), evidenceRef(plan, locatorFromMatch(plan, networkBlock, networkBlock[2]))], observedAt,
+    }));
+    coverage.network = observedField();
+  } else {
+    coverage.network = unknownField('The exact product page proves Italy in the product heading, but the secondary network table was not present in this static capture.');
+  }
 
-  const technologies = ['3G', '4G', '5G'].map((technologyName) => rawHtmlLocator(plan, new RegExp(`Icon ecommerce[^<>"']{0,30}${technologyName}`, 'i'), `Ubigi ${technologyName}`));
-  candidates.push(buildCandidate({ provider: 'ubigi', offerKey, fieldName: 'radio_technology', rawValue: '3G / 4G / 5G', normalizedValue: { technologies: ['3G', '4G', '5G'], qualifier: 'declared_for_destination' }, evidence: technologies.map((locator) => evidenceRef(plan, locator)), observedAt, warnings: ['raw_html_icon_evidence', 'technology_statement_not_performance_measurement'] }));
-  coverage.radio_technology = observedField();
+  const technologyLocators = [];
+  for (const technologyName of ['3G', '4G', '5G']) {
+    const pattern = new RegExp(`Icon ecommerce[^<>"']{0,30}${technologyName}`, 'i');
+    const rawMatch = plan.html.match(pattern);
+    if (!rawMatch || rawMatch.index == null) {
+      technologyLocators.length = 0;
+      break;
+    }
+    technologyLocators.push(rawHtmlLocator(plan, pattern, `Ubigi ${technologyName}`));
+  }
+  if (technologyLocators.length === 3) {
+    candidates.push(buildCandidate({ provider: 'ubigi', offerKey, fieldName: 'radio_technology', rawValue: '3G / 4G / 5G', normalizedValue: { technologies: ['3G', '4G', '5G'], qualifier: 'declared_for_destination' }, evidence: technologyLocators.map((locator) => evidenceRef(plan, locator)), observedAt, warnings: ['raw_html_icon_evidence', 'technology_statement_not_performance_measurement'] }));
+    coverage.radio_technology = observedField();
+  } else {
+    coverage.radio_technology = unknownField('The bounded static capture did not retain all three destination technology icons, so no radio technology candidate is synthesized.');
+  }
 
   return Object.freeze({ provider: 'ubigi', offerKey, label: 'Italy 50GB — 30 days', candidates: Object.freeze(candidates), coverage: Object.freeze(coverage) });
 }
