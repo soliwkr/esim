@@ -1,6 +1,6 @@
 # Italy Comparison Evidence Pack
 
-Data: **3 agosto 2026**.
+Data: **5 agosto 2026**.
 
 ## Obiettivo
 
@@ -55,9 +55,9 @@ Il fatto che un provider copra più field non significa che sia migliore.
 
 I cataloghi non sono isomorfi.
 
-Per il caso Italia osservato il 3 agosto 2026:
+Per il caso Italia verificato live il 5 agosto 2026:
 
-- Airalo espone un piano unlimited da 10 giorni;
+- Airalo espone un piano unlimited da 10 giorni sulla exact package page;
 - Holafly permette un piano unlimited da 10 giorni;
 - Ubigi espone il piano esatto già verificato da 50GB / 30 giorni.
 
@@ -71,10 +71,10 @@ Il comando non accetta URL arbitrari.
 
 ### Airalo
 
-Product/catalog surface:
+Exact product surface usata dal live runner:
 
 ```text
-https://www.airalo.com/it/italy-esim/
+https://www.airalo.com/it/italy-esim/mamma-mia-in-10days-unlimited
 ```
 
 Policy complementare:
@@ -201,21 +201,29 @@ not_applicable
 
 Quindi un dato mancante non diventa `false`.
 
-Esempio:
+Esempio verificato live:
 
 ```text
 Ubigi hotspot_policy = observed: data sharing allowed
 Ubigi hotspot_share_limit = unknown
+Ubigi network = unknown quando la secondary network table non è presente nella static capture
 ```
 
-Questo impedisce l'inferenza:
+Questo impedisce inferenze come:
 
 ```text
 sharing allowed
 → unlimited hotspot
 ```
 
-## Airalo — target dello spike
+oppure:
+
+```text
+Italy product heading
+→ operator list inventata
+```
+
+## Airalo — target e risultato dello spike
 
 Offer key:
 
@@ -223,13 +231,13 @@ Offer key:
 airalo:italy:unlimited-10d
 ```
 
-Target osservabili:
+Osservato nel live capture finale:
 
 - destination Italy;
 - 10 days;
-- source price in USD;
+- source price `29.00 €` → `{ amount: 29, currency: EUR }`;
 - unlimited label;
-- FUP 3GB high-speed per 24h + 1 Mbps after threshold, quando confermato dalla policy catturata;
+- FUP 3GB high-speed per 24h + 1 Mbps after threshold dalla policy catturata;
 - personal hotspot allowed;
 - nessun separate tethering cap dichiarato dalla policy, senza confonderlo con high-speed unlimited;
 - primary network Wind Tre.
@@ -249,7 +257,7 @@ exact package activation policy
 
 L'activation non viene derivata dal semplice fatto che l'eSIM possa essere installata in anticipo.
 
-## Holafly — target dello spike
+## Holafly — target e risultato dello spike
 
 Offer key:
 
@@ -257,13 +265,13 @@ Offer key:
 holafly:italy:unlimited-10d
 ```
 
-Target:
+Osservato nel live capture finale:
 
 - destination Italy;
 - 10-day row;
-- source price in EUR;
+- source price `30.5 EUR`;
 - unlimited label;
-- FUP possible / threshold unknown nella source complementare;
+- FUP possible / exact threshold unknown nella source complementare;
 - activation on arrival + eSIM enabled;
 - hotspot allowed;
 - 1GB/day hotspot share limit;
@@ -282,7 +290,7 @@ non:
 observed performance
 ```
 
-## Ubigi — target dello spike
+## Ubigi — target e risultato dello spike
 
 Offer key:
 
@@ -295,32 +303,34 @@ I tre field già verificati da PR #104 vengono riusati tramite lo stesso extract
 ```text
 data_gb = 50GB
 validity_days = 30
-price = source USD
+price = 29 USD
 ```
 
-Il pack aggiunge evidence per:
+Il pack verifica inoltre:
 
-- destination Italy;
+- destination Italy dall'H1 canonico;
 - SmartStart activation;
 - immediate activation se acquistato già in covered area;
 - data sharing allowed;
-- Iliad / WindTre;
-- 3G / 4G / 5G indicatori dichiarati.
+- 3G / 4G / 5G indicatori dichiarati quando trattenuti dalla static capture.
 
-Resta unknown:
+Restano validamente unknown quando non provati dalla cattura bounded:
 
 ```text
 hotspot_share_limit
+network
 ```
+
+La lista operatori non viene sintetizzata dall'H1 o dalla sola destination. Se la secondary `Destination / Network(s)` table non è presente nella static response, `coverage.network` resta `unknown`.
 
 ## Currency boundary
 
-Il pack conserva la valuta sorgente.
+Il pack conserva la valuta sorgente realmente osservata nello stesso capture context.
 
-Atteso dalla surface corrente:
+Live finale del 5 agosto 2026:
 
 ```text
-Airalo → USD
+Airalo → EUR
 Holafly → EUR
 Ubigi → USD
 ```
@@ -361,7 +371,9 @@ observed performance
 
 sono tre concetti distinti.
 
-Airalo può restare partial se la surface statica mostra soltanto `Wind Tre + 2 others`.
+Airalo resta partial se la surface statica mostra soltanto `Wind Tre + 2 others`.
+
+Ubigi può restare `network=unknown` se la secondary network table non è presente, anche quando destination e radio technology hanno evidence indipendente.
 
 Unknown e partial sono risultati validi dello spike.
 
@@ -383,7 +395,7 @@ Non include gli snapshot ID raw.
 Quindi:
 
 ```text
-HTML noise → source snapshot changes
+HTML/source drift → source snapshot identity changes
 but same facts → same pack semantic fingerprint
 ```
 
@@ -397,18 +409,20 @@ npm run smoke:italy-comparison-evidence-pack
 
 È completamente network-free.
 
-Fixture sintetiche dimostrano:
+Le fixture e gli smoke hardened dimostrano:
 
 - 3 provider presenti;
 - scenario immutato;
 - source currency preservata;
-- Airalo unlimited/FUP/hotspot con activation unknown;
+- Airalo exact package EUR + unlimited/FUP/hotspot con activation unknown;
 - Holafly 10-day EUR price, 1GB/day hotspot e FUP partial;
-- Ubigi riuso 50GB/30d/USD + activation/network/technology;
+- Ubigi riuso 50GB/30d/USD + destination + activation + data sharing;
+- Ubigi network/technology secondari non bloccano il pack se evidence assente e degradano a `unknown`;
+- SmartStart help usa locator indipendenti per arrival e purchase-while-covered;
 - tutte le candidate `pending`;
 - raw value obbligatorio;
 - evidence locator obbligatorio;
-- nessun `price_eur`;
+- nessun `price_eur` derivato;
 - nessun winner;
 - raw drift non semantico → zero provider semantic changes;
 - cambio prezzo Holafly → semantic change soltanto Holafly;
@@ -427,7 +441,11 @@ npm run evidence:italy-pack
 
 Il live capture non è parte della CI.
 
-Lo spike non è accettato finché i sei source artifact reali non sono stati ispezionati e i field/unknown risultano coerenti con le source osservate.
+Il gate live è stato completato il 5 agosto 2026 con due catture reali complete. Risultato canonico:
+
+```text
+docs/research/ITALY-COMPARISON-EVIDENCE-PACK-RESULT-2026-08-05.md
+```
 
 ## Stop condition
 
@@ -465,4 +483,16 @@ Lo spike può chiudersi soltanto quando:
 9. `ranking.status` resta `not_computed`;
 10. una seconda capture può distinguere raw drift da semantic drift.
 
-Solo dopo questo gate si decide il passo successivo: schema mapping/D1 design oppure un ulteriore evidence pack, ma non entrambi nello stesso scope.
+**Gate soddisfatto il 5 agosto 2026.**
+
+```text
+first pack:  pack:sha256:9256b180cc820ce22dfc0351fca7c7bf2406fe5903a4909c5c43d0d53e0c1433
+first window: 3260 ms
+second pack: pack:sha256:add5664ab7e2f03ab84560ffb20e5141a1bf096c8d0fcf77ba8807634f9be0a9
+second window: 3126 ms
+semantic fingerprint both: sha256:ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8
+Provider semantic changes: 0
+Ranking: not_computed
+```
+
+Solo dopo questo gate si decide il passo successivo: **schema mapping/D1 design oppure un ulteriore evidence pack, ma non entrambi nello stesso scope**.
