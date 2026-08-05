@@ -38,14 +38,12 @@ Gli Stati dello scenario servono a stressare coverage e network regionali. Non v
 
 I cataloghi non sono isomorfi e non viene forzato uno SKU identico.
 
-Regola:
-
 ```text
 shortest observed validity covering the 14-day scenario
 without forcing isomorphic SKUs
 ```
 
-Superfici ufficiali osservate per la prima implementazione:
+Target bounded:
 
 ```text
 Airalo  → Europe unlimited / 15 days
@@ -53,7 +51,7 @@ Holafly → Europe unlimited / 15 days
 Ubigi   → Europe 25GB / 30 days
 ```
 
-Queste selezioni sono target del capture, non verità persistita. Restano da verificare nel live artifact della branch.
+La selezione resta evidence-driven. Per Airalo il pacchetto viene individuato nella riga commerciale della store surface canonica, non tramite un deep link presunto stabile.
 
 ## Source allowlist
 
@@ -61,10 +59,10 @@ Il runner non accetta URL arbitrari.
 
 ### Airalo
 
-Exact regional product page:
+Europe regional store surface:
 
 ```text
-https://www.airalo.com/europe-esim/eurolink-15days-unlimited
+https://www.airalo.com/europe-esim
 ```
 
 Unlimited Fair Use Policy:
@@ -72,6 +70,8 @@ Unlimited Fair Use Policy:
 ```text
 https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy
 ```
+
+Il deep link storico `.../eurolink-15days-unlimited` è stato osservato redirigere alla store surface canonica e non è più usato come source primaria.
 
 ### Holafly
 
@@ -111,15 +111,13 @@ Nessun discovery crawler.
 
 ## Perché questo pack è diverso da Italy
 
-PR #106 ha provato una destinazione locale.
-
-Questo pack introduce deliberatamente la dimensione:
+PR #106 ha provato una destinazione locale. Questo pack introduce:
 
 ```text
 plan_type = regional
 ```
 
-e deve verificare che il truth layer possa rappresentare senza perdita:
+e deve rappresentare senza perdita:
 
 ```text
 regional label
@@ -129,9 +127,9 @@ per-country operator attribution
 country-specific technology caveats
 ```
 
-La domanda tecnica principale è:
+La domanda principale è:
 
-> il modello di evidence che funziona per `destination=IT` resta corretto quando un singolo piano copre molti Paesi con operatori diversi?
+> il modello che funziona per `destination=IT` resta corretto quando un singolo piano copre molti Paesi con operatori diversi?
 
 ## Core field target
 
@@ -170,37 +168,60 @@ Se una source espone soltanto:
 
 ```text
 Europe
-42 countries
+<N> Countries and Networks
 ```
 
 o:
 
 ```text
 Europe
-33 countries included
+<N> paesi inclusi
 ```
 
-il normalized datum può conservare:
+il normalized datum può conservare il conteggio realmente osservato:
 
 ```json
 {
   "scope": "regional",
   "region": "EUROPE",
-  "declaredCountryCount": 42
+  "declaredCountryCount": 41
 }
 ```
 
-ma la coverage dello scenario resta `partial` finché i Paesi richiesti non sono individuati nella source catturata.
+ma la coverage dello scenario resta `partial` finché i Paesi richiesti non sono individuati in evidence specifica.
 
-Quando la source espone i singoli Paesi, il pack può provare soltanto quelli effettivamente localizzati.
+Il conteggio non è hardcoded: è un fatto commerciale soggetto a drift. Missing evidence non diventa `false`.
 
-Missing evidence non diventa `false`.
+## Airalo store-row boundary
+
+La store surface può esporre più durate e più offerte. Il pack seleziona come unità una sola riga osservata:
+
+```text
+15 days + Unlimited GB + source price
+```
+
+Questo evita di associare la durata di un'offerta al prezzo di un'altra.
+
+Il live hardening iniziale ha osservato:
+
+```text
+41 Countries and Networks
+15 days Unlimited GB 44.50 €
+```
+
+La valuta resta EUR perché è quella servita dalla source catturata. La store surface non prova il trigger esatto di attivazione della riga selezionata, quindi `activation_policy` Airalo resta `unknown`.
+
+Dettagli:
+
+```text
+docs/research/EUROPE-REGIONAL-EVIDENCE-PACK-LIVE-HARDENING.md
+```
 
 ## Network boundary
 
-Un operatore regionale piatto sarebbe un modello scorretto quando gli operatori cambiano per Paese.
+Un operatore regionale piatto sarebbe scorretto quando gli operatori cambiano per Paese.
 
-Per una source che espone la tabella per-country, il target è una struttura del tipo:
+Per una source che espone la tabella per-country, il target è:
 
 ```json
 {
@@ -213,7 +234,7 @@ Per una source che espone la tabella per-country, il target è una struttura del
 }
 ```
 
-Questo non dichiara completa la rete europea del provider. La coverage resta `partial` se vengono normalizzati soltanto i tre Paesi dello scenario.
+I locator di membership Ubigi devono derivare dai blocchi di coverage/network attribuiti ai singoli Paesi, non da occorrenze generiche dei nomi nei menu o nello state globale della pagina.
 
 ```text
 network operator statement
@@ -227,12 +248,10 @@ Nessuno dei tre alimenta un performance score.
 
 ## Currency boundary
 
-La valuta resta quella della source.
-
-La prima implementazione si aspetta di poter osservare contesti non uniformi, per esempio:
+La valuta resta quella della source osservata. Il live può produrre contesti non uniformi, per esempio:
 
 ```text
-Airalo  → USD
+Airalo  → EUR
 Holafly → EUR
 Ubigi   → USD
 ```
@@ -250,11 +269,9 @@ Un futuro FX layer resta una decisione separata con source, timestamp, rate e pr
 
 ## Unlimited / finite data boundary
 
-Airalo e Holafly possono esporre un'etichetta unlimited con FUP applicabile.
+Airalo e Holafly possono esporre un'etichetta unlimited con FUP applicabile. Ubigi può soddisfare lo scenario tramite un piano finite-data con validità più lunga.
 
-Ubigi può soddisfare lo scenario tramite un piano finite-data con validità più lunga.
-
-Il pack conserva quindi separatamente:
+Il pack conserva separatamente:
 
 ```text
 data_gb
@@ -285,11 +302,9 @@ hotspot_share_limit = unknown
 
 `voice_sms_included` viene emesso soltanto se la source ufficiale catturata prova il carattere data-only o una specifica inclusione.
 
-L'uso di WhatsApp, FaceTime o altre app via dati non equivale a voice/SMS nativi inclusi.
+L'uso di app via dati non equivale a voice/SMS nativi inclusi.
 
 ## Artifact contract
-
-Come PR #106:
 
 ```text
 research/evidence/packs/<timestamp>-<hash>/
@@ -334,42 +349,39 @@ commercial semantic drift
 
 `--compare` confronta provider-level semantic evidence, non i raw snapshot ID.
 
-`ranking.status` resta sempre:
-
 ```text
-not_computed
+ranking.status = not_computed
 ```
 
 ## Smoke CI
-
-Comando:
 
 ```text
 npm run smoke:europe-regional-evidence-pack
 ```
 
-È network-free e prova almeno:
+Lo smoke network-free prova almeno:
 
 - scenario Europe / IT+FR+ES / 14 giorni;
 - tre provider e sei source;
 - `plan_type=regional`;
+- Airalo canonical store URL e riga 15-day ancorata;
+- redirect storico Airalo verso la source canonica;
 - source currency preservata;
 - regional country count non promosso a scenario membership;
-- Ubigi network country-scoped per IT/FR/ES;
+- Ubigi membership/network derivati da blocchi country-scoped;
 - finite vs unlimited preservato;
 - hotspot allowed separato dal share limit;
 - voice/SMS data-only soltanto quando provato;
 - candidate sempre `pending`;
-- nessun `price_eur`;
-- nessun winner;
+- nessun `price_eur` o winner;
 - raw drift non semantico → zero provider changes;
-- cambio prezzo → semantic delta del solo provider interessato;
-- coverage table assente → `unknown`, non falso;
+- cambio prezzo → delta del solo provider interessato;
+- coverage table assente → `unknown`;
 - capture window > 10 minuti → fail closed;
 - redirect off-host → fail closed;
 - artifact create-only.
 
-## Comando live
+## Live gate
 
 Solo dopo CI verde:
 
@@ -377,9 +389,9 @@ Solo dopo CI verde:
 npm run evidence:europe-regional-pack
 ```
 
-Il live capture non è parte della CI.
+Il capture live non è parte della CI.
 
-Come per #106, eventuali mismatch fra fixture e source reale vengono trattati come hardening evidence-driven:
+Ogni mismatch segue:
 
 ```text
 observe real response
@@ -397,17 +409,14 @@ Non vengono allargate regex o riempiti field alla cieca.
 Questa branch non introduce:
 
 - D1 schema, migration o write;
-- source_registry mutation;
-- claim_verifications mutation;
-- maintenance queue integration;
-- Workflow o scheduler;
+- source_registry o claim_verifications mutation;
+- Worker, Workflow o scheduler;
 - crawler o discovery loop;
 - browser automation production;
 - partner credentials;
 - FX conversion;
 - performance measurement;
-- score;
-- provider winner;
+- score o provider winner;
 - affiliate activation;
 - public page generation;
 - publication capability;
@@ -419,12 +428,12 @@ La branch può chiudersi soltanto quando:
 
 1. CI completa verde;
 2. i sei URL ufficiali producono un pack reale entro la capture window;
-3. i raw artifact e i locator sono coerenti;
+3. raw artifact e locator sono coerenti;
 4. tutte le factual candidate restano `pending`;
-5. `plan_type=regional` deriva dalla source e non dal nome della branch;
-6. regional country count non viene trasformato in membership non provata;
-7. network regionali restano country-scoped quando la source lo richiede;
-8. `unknown`, `partial` e `not_applicable` vengono preservati;
+5. `plan_type=regional` deriva dalla source;
+6. regional country count non diventa membership non provata;
+7. network regionali restano country-scoped;
+8. `unknown`, `partial` e `not_applicable` sono preservati;
 9. la valuta resta source-native;
 10. `ranking.status=not_computed`;
 11. una seconda cattura con `--compare` distingue raw drift da semantic drift.
@@ -439,9 +448,7 @@ Il passo successivo diventa una branch separata di:
 schema mapping / D1 design
 ```
 
-Non un terzo pack per accumulare coverage marginale.
-
-Il design successivo deve partire dalle forme osservate nei due pack reali:
+Il design deve partire dalle forme osservate nei due pack reali:
 
 ```text
 Italy local evidence pack
