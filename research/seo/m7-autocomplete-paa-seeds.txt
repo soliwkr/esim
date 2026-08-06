@@ -1,0 +1,20 @@
+# M7.1 demand expansion seeds — Italy / Italian
+# One seed per line. Do not interpret presence as page authorization.
+
+migliore esim
+esim europa
+esim usa
+esim giappone
+esim egitto
+esim turchia
+esim albania
+esim svizzera
+esim thailandia
+airalo
+airalo recensioni
+airalo vs holafly
+holafly
+codice sconto holafly
+esim illimitata
+esim hotspot
+esim iphone
