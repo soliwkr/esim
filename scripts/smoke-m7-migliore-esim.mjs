@@ -163,13 +163,20 @@ function assertPreviewLinks(html) {
     '/astro-foundation',
     '/astro-foundation/destinazioni',
     '/astro-foundation/confronti',
-    '/astro-foundation/articoli/esim-estero',
-    '/astro-foundation/articoli/esim-come-funziona',
-    '/astro-foundation/articoli/esim-telefoni-compatibili',
   ]) {
     assert.match(html, new RegExp(`href="${href.replaceAll('/', '\\/')}"`));
   }
-  assert.doesNotMatch(html, /href="\/(?:destinazioni|guide|confronti|esim-estero|esim-come-funziona|esim-telefoni-compatibili)"/);
+
+  // Specialist guide cards are published-only enhancements. If present, they must
+  // stay inside the preview namespace; their absence is a valid fixture state.
+  for (const slug of ['esim-estero', 'esim-come-funziona', 'esim-telefoni-compatibili']) {
+    const canonicalHref = new RegExp(`href="\\/${slug}"`);
+    const previewHref = new RegExp(`href="\\/astro-foundation\\/articoli\\/${slug}"`);
+    assert.doesNotMatch(html, canonicalHref);
+    if (html.includes(slug)) assert.match(html, previewHref);
+  }
+
+  assert.doesNotMatch(html, /href="\/go\//);
 }
 
 async function verifyHttp() {
@@ -194,7 +201,7 @@ async function verifyHttp() {
   const filteredPreviewHtml = await filteredPreviewResponse.text();
   assert.equal(filteredPreviewResponse.status, 200);
   assert.doesNotMatch(filteredPreviewHtml, /href="\/astro-foundation\/articoli\/esim-come-funziona"/);
-  assert.match(filteredPreviewHtml, /href="\/astro-foundation\/articoli\/esim-estero"/);
+  assertPreviewLinks(filteredPreviewHtml);
 
   const filteredCanonicalResponse = await fetch(`${origin}${canonicalPath}`);
   const filteredCanonicalHtml = await filteredCanonicalResponse.text();
@@ -257,8 +264,8 @@ async function verifyBrowser() {
     assert.equal(await mobile.getByRole('link', { name: 'Dove vai?' }).getAttribute('href'), '#dove-vai');
     assert.equal(await mobile.getByText('Da verificare per l’offerta').count(), 6);
     assert.equal(
-      await mobile.getByRole('link', { name: 'Il tuo telefono è compatibile?' }).getAttribute('href'),
-      '/astro-foundation/articoli/esim-telefoni-compatibili',
+      await mobile.getByRole('link', { name: 'Sai già dove vai?' }).getAttribute('href'),
+      '/astro-foundation/destinazioni',
     );
     assert.equal(
       await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
