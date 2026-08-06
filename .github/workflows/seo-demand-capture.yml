@@ -1,0 +1,79 @@
+name: SEO Demand Capture
+
+on:
+  push:
+    branches: [research/m7-autocomplete-paa-expansion]
+    paths:
+      - .github/workflows/seo-demand-capture.yml
+      - research/seo/m7-autocomplete-paa-trigger.txt
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Serper secret is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SERPER_API_KEY:-}" ]; then
+            echo "SERPER_API_KEY is not configured for this repository."
+            exit 1
+          fi
+
+      - name: Run collector self-test
+        run: python3 scripts/seo-demand-expand.py --self-test
+
+      - name: Capture A-Z autocomplete, PAA, related and SERP shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="research/local/m7-autocomplete-paa/run-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          python3 scripts/seo-demand-expand.py --output-dir "$out"
+          echo "CAPTURE_DIR=$out" >> "$GITHUB_ENV"
+
+      - name: Summarize capture without raw query bodies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          manifest = pathlib.Path(os.environ['CAPTURE_DIR']) / 'manifest.json'
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          print('seed_count:', data['seed_count'])
+          print('api_requests:', data['api_requests'])
+          for key, value in data['row_counts'].items():
+              print(f'{key}: {value}')
+          PY
+
+      - name: Upload normalized capture
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-demand-capture-normalized
+          path: |
+            ${{ env.CAPTURE_DIR }}/autocomplete.csv
+            ${{ env.CAPTURE_DIR }}/people-also-ask.csv
+            ${{ env.CAPTURE_DIR }}/related-searches.csv
+            ${{ env.CAPTURE_DIR }}/organic-serp.csv
+            ${{ env.CAPTURE_DIR }}/expanded-query-universe.csv
+            ${{ env.CAPTURE_DIR }}/errors.csv
+            ${{ env.CAPTURE_DIR }}/manifest.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload raw provenance capture
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-demand-capture-raw
+          path: ${{ env.CAPTURE_DIR }}/raw
+          if-no-files-found: error
+          retention-days: 7
