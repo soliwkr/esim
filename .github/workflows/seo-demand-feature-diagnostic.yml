@@ -1,0 +1,76 @@
+name: SEO Demand Feature Diagnostic
+
+on:
+  push:
+    branches: [research/m7-autocomplete-paa-expansion]
+    paths:
+      - .github/workflows/seo-demand-feature-diagnostic.yml
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Serper secret is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SERPER_API_KEY:-}"
+
+      - name: Probe rich SERP modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/local/serper-feature-diagnostic
+          python3 - <<'PY'
+          import json, os, pathlib, urllib.request
+
+          cases = [
+              ("control-us", {"q":"google","gl":"us","hl":"en","num":10}),
+              ("best-esim-it", {"q":"migliore esim","gl":"it","hl":"it","num":10}),
+              ("best-esim-it-location", {"q":"migliore esim","gl":"it","hl":"it","location":"Italy","num":10}),
+              ("europe-esim-it", {"q":"esim europa","gl":"it","hl":"it","num":10}),
+              ("how-esim-it", {"q":"come funziona esim","gl":"it","hl":"it","num":10}),
+          ]
+          root = pathlib.Path("research/local/serper-feature-diagnostic")
+          key = os.environ["SERPER_API_KEY"]
+          summary = []
+          for name, body in cases:
+              req = urllib.request.Request(
+                  "https://google.serper.dev/search",
+                  data=json.dumps(body).encode(),
+                  method="POST",
+                  headers={"X-API-KEY":key,"Content-Type":"application/json","Accept":"application/json"},
+              )
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  raw = response.read()
+              data = json.loads(raw)
+              (root / f"{name}.json").write_bytes(raw)
+              summary.append({
+                  "case": name,
+                  "keys": sorted(data.keys()),
+                  "organic": len(data.get("organic") or []),
+                  "peopleAlsoAsk": len(data.get("peopleAlsoAsk") or []),
+                  "relatedSearches": len(data.get("relatedSearches") or []),
+              })
+          (root / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False)+"\n")
+          for row in summary:
+              print(row)
+          PY
+
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-demand-feature-diagnostic
+          path: research/local/serper-feature-diagnostic
+          if-no-files-found: error
+          retention-days: 7
