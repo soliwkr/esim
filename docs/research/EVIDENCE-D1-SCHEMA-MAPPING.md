@@ -2,56 +2,88 @@
 
 Data: **6 agosto 2026**.
 
-## Scopo
+## Obiettivo
 
-Questo documento definisce il mapping canonico fra il layer evidence verificato dalle PR #104, #106 e #107 e il D1 esistente di Senza Roaming.
+Definire il mapping canonico fra il layer evidence verificato live e il D1 esistente di Senza Roaming, prima di qualsiasi migration o ingest.
 
-Questa fase è **solo design**.
+Input reali:
+
+```text
+PR #104 — single-source immutable snapshot spike
+PR #106 — Italy local comparison evidence pack
+PR #107 — Europe regional comparison evidence pack
+```
+
+I pack #106 e #107 sono stati catturati due volte ciascuno. In entrambi i casi raw identity differenti hanno prodotto semantic fingerprint invariato e `Provider semantic changes: 0`.
+
+Questa PR è **design-only**.
 
 Non introduce:
 
 ```text
-migration D1
-write D1
-ingest
-Worker/API change
+migrations/0021*
+D1 write locale o remoto
+pack import
+source_registry mutation
+claim_verifications mutation
+Worker/API
 Workflow/scheduler
-claim verification automatica
 ranking
 publication capability
 deploy
 ```
 
-Input reali del design:
+## 1. Principio architetturale
+
+La catena target è:
 
 ```text
-PR #106 — Italy local comparison evidence pack
-PR #107 — Europe regional comparison evidence pack
+source_registry
+      ↓
+evidence_capture_runs
+      ↓
+evidence_snapshots
+      ↓
+evidence_field_observations
+      ↓
+evidence_claim_candidates
+      ↓
+verification gate separato
+      ↓
+claim_verifications
+      ↓
+editorial claim resolution / evidence bundle / readiness / draft
+      ↓
+human publication gate separato
 ```
 
-Entrambi hanno prodotto due catture consecutive con raw identity distinta e semantic fingerprint invariato. Il caso regionale ha inoltre verificato `plan_type=regional`, aggregate country count, coverage `partial/unknown`, network country-scoped, source currency non uniforme e finite-data vs unlimited.
+I primi quattro oggetti dopo `source_registry` sono upstream commercial evidence. Non sono editorial draft state e non sono fatti verificati.
 
-## 1. D1 esistente: cosa riusare e cosa non forzare
+## 2. D1 esistente: cosa riusare
 
 ### `source_registry`
 
-`source_registry` resta il registro canonico delle fonti.
-
-Ruolo:
+Resta il registro canonico delle fonti:
 
 ```text
 source_registry = dove guardare
 ```
 
-Non è uno snapshot e non deve duplicare raw artifact, locator o osservazioni storiche.
+Non dimostra cosa mostrava una pagina in un dato momento e non sostituisce gli snapshot immutabili.
 
-Il nuovo layer evidence deve referenziare `source_registry.id`.
+Ogni futuro snapshot D1 deve referenziare una `source_registry.id` già riconciliata e approvata. Nessun importer può auto-registrare URL arbitrari.
+
+Dettagli:
+
+```text
+docs/research/EVIDENCE-SOURCE-RECONCILIATION.md
+```
 
 ### `claim_verifications`
 
-`claim_verifications` resta il **current verified state** downstream.
+Resta il **current verified factual state** downstream.
 
-La tabella è già sufficientemente generica per ospitare field strutturati perché usa:
+Il contratto esistente è adatto a valori strutturati grazie a:
 
 ```text
 entity_type
@@ -65,15 +97,31 @@ checked_at
 valid_until
 ```
 
-Il design non richiede di rinominare i field esistenti né di convertire i nuovi field in colonne dedicate.
+Una candidate evidence non diventa automaticamente `claim_verifications`.
 
-Una evidence candidate non diventa però una riga `claim_verifications` automaticamente.
+`verification_status='verified'` significa che il valore specifico è stato verificato; non significa che un field composito sia completo. Eventuali qualifier di completezza (`partial`, `declared`, `scenario_countries_only`, ecc.) devono restare nel valore strutturato quando semanticamente rilevanti.
+
+### `page_evidence_bundles` e gate editoriali
+
+Restano downstream e invariati.
+
+Il nuovo layer non modifica:
+
+```text
+brief acceptance
+editorial claim verification
+page readiness
+draft approval
+publication gate
+```
+
+## 3. D1 esistente: cosa non forzare
 
 ### `editorial_claim_candidates`
 
-Non è il target del nuovo evidence layer.
+Non è un evidence ingest target.
 
-Motivo: è intenzionalmente brief-scoped e richiede:
+È intenzionalmente brief-scoped e richiede:
 
 ```text
 brief_id
@@ -82,177 +130,203 @@ verification_question
 workflow/editorial state
 ```
 
-Serve a trasformare un brief accettato in requisiti fattuali atomici. Una osservazione commerciale può esistere prima e indipendentemente da qualsiasi brief.
+Serve a trasformare un brief accettato in requisiti fattuali atomici.
 
-Quindi:
+Una osservazione commerciale può esistere prima e indipendentemente da qualsiasi brief.
 
 ```text
-evidence claim candidate
+evidence_claim_candidate
 !=
-editorial_claim_candidates
+editorial_claim_candidate
 ```
 
-Un futuro verifier potrà usare evidence candidates per risolvere un editorial claim, ma i due oggetti restano distinti.
+Un futuro verifier può usare evidence candidates per risolvere editorial claims, ma i due oggetti non vengono fusi.
 
-### `plans`
+### `plans` v1
 
-La tabella `plans` v1 **non è un target di ingest evidence**.
+Non è un evidence ingest target.
 
-Il suo contratto attuale richiede:
+Il contratto attuale richiede:
 
 ```text
 destination_id NOT NULL
 price_eur NOT NULL
 unlimited boolean
-single destination identity
+single-destination identity
 UNIQUE(provider_id, destination_id, provider_plan_key)
 ```
 
-Questo non rappresenta senza perdita i casi osservati:
+Non rappresenta senza perdita i casi live osservati:
 
-- piano regionale con più Paesi;
+- piano regionale multi-country;
 - aggregate country count senza membership completa;
 - prezzo source-native USD;
-- `unknown` / `partial` / `not_applicable`;
-- hotspot allowed separato dal share limit;
-- network per-country;
-- radio technology separata da network;
-- unlimited + FUP strutturato.
+- coverage `partial`, `unknown`, `not_applicable`;
+- hotspot allowed separato da share limit;
+- network country-scoped;
+- radio technology separata da operatori;
+- unlimited + FUP strutturato;
+- data-only / native voice-SMS.
 
-È quindi vietato usare scorciatoie come:
+Sono vietati workaround come:
 
 ```text
 regional plan → duplicare una row per ogni Paese
-Europe → creare una pseudo-destination country
+Europe → pseudo-destination country
 USD 29 → price_eur=29
 unknown hotspot cap → 0
-unknown network → lista vuota interpretata come nessuna rete
+unknown membership → false
+unknown network → [] interpretato come nessun operatore
 ```
 
-`plans` resta legacy/catalog v1 finché una fase separata di materializzazione commerciale non ne ridisegna il contratto.
+`plans` resta catalog v1 finché una fase separata di commercial materialization non ne ridisegna il contratto.
 
-## 2. Layer canonico proposto
+## 4. `evidence_capture_runs`
 
-La catena diventa:
+### Perché serve
+
+I pack #106/#107 non sono semplicemente sei fetch indipendenti. Conservano:
 
 ```text
-source_registry
-      ↓
-evidence_snapshots
-      ↓
-evidence_field_observations
-      ↓
-evidence_claim_candidates
-      ↓
-verification gate separato
-      ↓
-claim_verifications
-      ↓
-editorial evidence bundle / readiness / draft
+scenario bounded
+same capture window
+pack identity
+semantic fingerprint
+optional compare baseline
 ```
 
-Il layer proposto aggiunge tre oggetti concettuali. In questa PR non vengono creati in D1.
+Se D1 conservasse soltanto snapshot isolati perderebbe il contesto che rende riproducibile la selezione delle offerte e la comparazione temporale del pack.
 
-## 3. `evidence_snapshots`
+### DDL progettuale
 
-### Responsabilità
+```sql
+CREATE TABLE evidence_capture_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_key TEXT NOT NULL UNIQUE,
+  pack_schema_version INTEGER NOT NULL,
+  scenario_key TEXT NOT NULL,
+  scenario_json TEXT NOT NULL CHECK(json_valid(scenario_json)),
+  started_at TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  capture_window_ms INTEGER NOT NULL CHECK(capture_window_ms >= 0),
+  source_count INTEGER NOT NULL CHECK(source_count > 0),
+  pack_sha256 TEXT NOT NULL,
+  semantic_fingerprint TEXT NOT NULL,
+  baseline_run_key TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-Una riga rappresenta una singola osservazione immutabile di una fonte registrata.
+`run_key` è repository-owned e può coincidere con una forma content-addressed del pack.
 
-DDL progettuale:
+`ranking.status=not_computed` non viene materializzato come fatto commerciale: il ranking resta fuori dal layer evidence.
+
+### Immutabilità
+
+Il run importato è un envelope storico. Non viene riscritto per rappresentare una cattura successiva.
+
+Una nuova cattura crea un nuovo run.
+
+## 5. `evidence_snapshots`
+
+Una row rappresenta una singola osservazione immutabile di una fonte registrata all'interno di un capture run.
+
+### DDL progettuale
 
 ```sql
 CREATE TABLE evidence_snapshots (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   snapshot_key TEXT NOT NULL UNIQUE,
+  capture_run_id INTEGER NOT NULL,
   source_id INTEGER NOT NULL,
+  source_audit_key TEXT NOT NULL,
   requested_url TEXT NOT NULL,
   final_url TEXT NOT NULL,
-  redirect_chain_json TEXT NOT NULL DEFAULT '[]',
+  redirect_chain_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(redirect_chain_json)),
   fetched_at TEXT NOT NULL,
   http_status INTEGER NOT NULL,
   content_type TEXT NOT NULL,
-  capture_method TEXT NOT NULL,
+  capture_method TEXT NOT NULL CHECK(capture_method IN (
+    'http_html','http_json','pdf','browser_rendered','manual_first_party_test'
+  )),
   locale TEXT,
   currency_context TEXT,
   country_context TEXT,
+  capture_context_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(capture_context_json)),
   http_etag TEXT,
   http_last_modified TEXT,
   body_sha256 TEXT NOT NULL,
   visible_text_sha256 TEXT,
-  byte_length INTEGER NOT NULL,
-  artifact_location TEXT NOT NULL,
+  byte_length INTEGER NOT NULL CHECK(byte_length >= 0),
+  artifact_ref TEXT NOT NULL,
   parser_input_version TEXT NOT NULL,
-  capture_warnings_json TEXT NOT NULL DEFAULT '[]',
+  capture_warnings_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(capture_warnings_json)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(capture_run_id) REFERENCES evidence_capture_runs(id),
   FOREIGN KEY(source_id) REFERENCES source_registry(id)
 );
 ```
 
-`capture_method` iniziale:
+### `artifact_ref`
 
-```text
-http_html
-http_json
-pdf
-browser_rendered
-manual_first_party_test
-```
+È un riferimento opaco a storage immutabile, non una decisione di storage.
 
-### Identità
+Il design non sceglie ancora fra R2, altro object storage o un meccanismo equivalente.
 
-Lo `snapshot_key` deve dipendere da almeno:
+Il body completo non deve essere duplicato come TEXT in D1 per forza.
+
+Il riferimento deve essere risolvibile insieme al `body_sha256` prima che l'evidence venga usata per una verification decision.
+
+### Snapshot identity
+
+`snapshot_key` deve dipendere almeno da:
 
 ```text
 source identity
 canonical final URL
 raw body hash
-capture context rilevante
+relevant capture context
 ```
 
 Il timestamp non sostituisce il content hash.
 
-Due snapshot possono avere raw hash diversi e semantic evidence identica: è un caso valido e già verificato live.
+Due snapshot possono avere raw hash diversi e semantic evidence identica: #104, #106 e #107 hanno già verificato questa possibilità.
 
-### Immutabilità
-
-Una volta inserita, una row non viene aggiornata per rappresentare una nuova cattura.
-
-Una nuova cattura crea un nuovo snapshot.
-
-`source_registry.content_hash`, `last_checked_at` e metadata correnti possono continuare a rappresentare lo stato operativo più recente della source, ma non sostituiscono lo storico evidence.
-
-## 4. `evidence_field_observations`
-
-### Responsabilità
+## 6. `evidence_field_observations`
 
 Una row rappresenta l'esito deterministico dell'estrazione di **un field** da uno snapshot.
 
-Serve anche a conservare correttamente field `unknown` e `not_applicable`, che non devono diventare candidate fattuali inventate.
+Conserva anche `unknown` e `not_applicable`, che sono stato dell'evidence e non false assertion.
 
-DDL progettuale:
+### DDL progettuale
 
 ```sql
 CREATE TABLE evidence_field_observations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   observation_key TEXT NOT NULL UNIQUE,
   snapshot_id INTEGER NOT NULL,
-  subject_type TEXT NOT NULL,
-  subject_key TEXT NOT NULL,
+  subject_type TEXT NOT NULL CHECK(subject_type IN (
+    'provider','destination','plan','device','page','policy'
+  )),
+  subject_key TEXT NOT NULL CHECK(length(trim(subject_key)) > 0),
   provider_plan_key TEXT,
-  field_name TEXT NOT NULL,
-  scope_json TEXT NOT NULL DEFAULT '{}',
-  coverage_state TEXT NOT NULL,
-  raw_value_json TEXT NOT NULL DEFAULT 'null',
-  normalized_value_json TEXT NOT NULL DEFAULT 'null',
-  evidence_locator_json TEXT NOT NULL DEFAULT '{}',
+  field_name TEXT NOT NULL CHECK(length(trim(field_name)) > 0),
+  scope_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(scope_json)),
+  coverage_state TEXT NOT NULL CHECK(coverage_state IN (
+    'observed','partial','unknown','not_applicable'
+  )),
+  raw_value_json TEXT NOT NULL DEFAULT 'null' CHECK(json_valid(raw_value_json)),
+  normalized_value_json TEXT NOT NULL DEFAULT 'null' CHECK(json_valid(normalized_value_json)),
+  evidence_locator_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(evidence_locator_json)),
   extractor_id TEXT NOT NULL,
   extractor_version TEXT NOT NULL,
   normalizer_version TEXT,
-  schema_version INTEGER NOT NULL DEFAULT 1,
+  schema_version INTEGER NOT NULL DEFAULT 1 CHECK(schema_version >= 1),
   source_role TEXT NOT NULL,
-  extraction_confidence REAL,
-  warnings_json TEXT NOT NULL DEFAULT '[]',
+  extraction_confidence REAL CHECK(
+    extraction_confidence IS NULL OR (extraction_confidence >= 0 AND extraction_confidence <= 1)
+  ),
+  warnings_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(warnings_json)),
   observed_at TEXT NOT NULL,
   proposed_valid_until TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -260,67 +334,80 @@ CREATE TABLE evidence_field_observations (
 );
 ```
 
-`subject_type` riusa il dominio già accettato:
+### Observation identity
+
+`observation_key` dipende da almeno:
 
 ```text
-provider
-destination
-plan
-device
-page
-policy
+snapshot identity
+subject type + subject key
+field name
+canonical scope
+raw value
+normalized value
+extractor version
 ```
 
-`coverage_state`:
+Lo stesso snapshot e lo stesso extractor non devono produrre duplicati semanticamente identici.
+
+### Coverage state
 
 ```text
 observed
-partial
-unknown
-not_applicable
 ```
 
-### Regola di valore
+Il field è supportato nella forma emessa.
 
 ```text
-observed → normalized value normalmente presente
-partial → può avere un valore parziale realmente provato
-unknown → nessun fatto mancante viene sintetizzato
-not_applicable → assenza intenzionale per la forma del piano
+partial
 ```
 
-Esempio regionale Airalo:
+Esiste un sotto-fatto realmente provato, ma non è consentito promuoverlo a completezza più ampia.
+
+Esempio Airalo Europa:
 
 ```json
 {
-  "field_name": "destination_coverage",
-  "coverage_state": "partial",
-  "normalized_value": {
-    "scope": "regional",
-    "region": "EUROPE",
-    "declaredCountryCount": 41
+  "fieldName":"destination_coverage",
+  "coverageState":"partial",
+  "normalizedValue":{
+    "scope":"regional",
+    "region":"EUROPE",
+    "declaredCountryCount":41
   }
 }
 ```
 
-Il valore `41` è osservato; la membership di Italia, Francia e Spagna non lo è.
+Il fatto osservato è il conteggio dichiarato. La membership IT/FR/ES non viene inferita.
 
-## 5. `evidence_claim_candidates`
+```text
+unknown
+```
 
-### Responsabilità
+La cattura non prova il field. Nessun valore `false`, `0` o lista vuota viene sintetizzato.
 
-Una candidate è la proposta fattuale inviata a un gate di verifica successivo.
+```text
+not_applicable
+```
 
-Non duplica raw value, locator e provenance: li referenzia tramite `observation_id`.
+Il field non si applica alla forma dell'offerta, per esempio `data_gb` su un'offerta esplicitamente unlimited.
 
-DDL progettuale:
+## 7. `evidence_claim_candidates`
+
+Una candidate è una proposta fattuale destinata a un gate di verifica successivo.
+
+Non duplica raw value, locator e provenance: referenzia una observation.
+
+### DDL progettuale
 
 ```sql
 CREATE TABLE evidence_claim_candidates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   candidate_key TEXT NOT NULL UNIQUE,
   observation_id INTEGER NOT NULL UNIQUE,
-  status TEXT NOT NULL DEFAULT 'pending',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN (
+    'pending','accepted_for_verification','rejected_extraction','superseded'
+  )),
   decision_actor TEXT,
   decision_notes TEXT NOT NULL DEFAULT '',
   decided_at TEXT,
@@ -328,15 +415,6 @@ CREATE TABLE evidence_claim_candidates (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(observation_id) REFERENCES evidence_field_observations(id)
 );
-```
-
-Status del layer candidate:
-
-```text
-pending
-accepted_for_verification
-rejected_extraction
-superseded
 ```
 
 Sono intenzionalmente assenti:
@@ -347,40 +425,65 @@ published
 winner
 ```
 
-### Candidate eligibility
-
-Una observation può generare candidate soltanto quando contiene un fatto supportato.
-
-Regola iniziale:
+### Eligibility
 
 ```text
-coverage_state=observed → candidate ammessa
-coverage_state=partial  → candidate ammessa solo per il sotto-fatto realmente provato
-coverage_state=unknown  → nessuna factual candidate
-coverage_state=not_applicable → nessuna factual candidate
+coverage_state=observed
+→ candidate ammessa
+
+coverage_state=partial
+→ candidate ammessa soltanto per il sotto-fatto espresso nel normalized value
+
+coverage_state=unknown
+→ nessuna factual candidate
+
+coverage_state=not_applicable
+→ nessuna factual candidate
 ```
 
-Il pack live segue già questa semantica: per esempio `destination_coverage.declaredCountryCount=41` può essere candidate `partial`, mentre la membership dei Paesi dello scenario non viene creata.
+Il candidate layer non risolve conflitti e non decide freshness finale.
 
-## 6. Identità del piano
+### Audit delle candidate decisions
+
+La prima migration upstream non deve inventare mutation operative. Se in una fase successiva si abiliteranno `accepted_for_verification`, `rejected_extraction` o `superseded`, la mutation dovrà avere audit append-only o una decision table/event table dedicata.
+
+## 8. Source reconciliation prima dell'import
+
+`evidence_snapshots.source_id` resta `NOT NULL`.
+
+Precondizione:
+
+```text
+sourceAuditKey + canonical URL + provider/source role
+→ exactly one approved source_registry.id
+```
+
+Fail closed:
+
+```text
+0 match  → source_not_registered
+>1 match → source_registry_ambiguous
+```
+
+L'importer non auto-crea una source e non usa la root provider come fallback.
+
+I source candidates del Claims Coverage Audit mostrano esplicitamente che molte product/help surface sono `candidate_new`; il source onboarding resta quindi un gate separato.
+
+## 9. Identità del piano / offerta
 
 La URL non è identità del piano.
 
-Il caso Airalo Europa ha dimostrato:
+Il live Airalo Europa ha dimostrato:
 
 ```text
-deep link storico
-→ redirect
-→ canonical store surface
+historical deep link
+→ HTTP 302
+→ canonical regional store surface
 ```
 
-Il subject canonico usa quindi una chiave repository-owned stabile:
+Il subject usa una chiave repository-owned stabile (`offerKey` / `subject_key`).
 
-```text
-offerKey / subject_key
-```
-
-Esempi già verificati dagli extractor:
+Esempi regionali già usati dagli extractor:
 
 ```text
 airalo:europe:unlimited-15d
@@ -390,51 +493,64 @@ ubigi:europe:25gb-30d
 
 Regole:
 
-- il prezzo non entra nell'identità;
-- raw body hash non entra nell'identità del piano;
-- source URL non è la chiave primaria del piano;
-- `provider_plan_key` resta separato e nullable quando il provider espone un identificatore proprio affidabile;
-- un cambio di prezzo o country count produce nuove observations sullo stesso subject, non un nuovo piano per default.
+- prezzo non entra nell'identità;
+- raw hash non entra nell'identità dell'offerta;
+- source URL non è la chiave primaria dell'offerta;
+- `provider_plan_key` resta separato e nullable se esiste un identificatore provider affidabile;
+- duration/data allowance possono far parte della chiave repository-owned quando definiscono la SKU osservata;
+- cambio di prezzo, country count o markup produce nuove observations sullo stesso subject, non una nuova offerta per default;
+- una modifica sostanziale della SKU richiede una nuova subject key, non un alias silenzioso.
 
-Una futura fase di catalog materialization potrà promuovere questi subject in un nuovo modello plan/offer; non è parte di questa PR.
+Una futura commercial materialization può promuovere questi subject in un nuovo catalog model; non è parte di questa PR.
 
-## 7. Mapping dei field osservati
+## 10. Field mapping osservato
+
+La matrice completa è:
+
+```text
+docs/research/evidence-d1-field-mapping.csv
+```
 
 ### `plan_type`
 
-Value:
-
-```json
-{"type":"local","destination":"IT"}
-```
-
-o:
+Il pack Europa #107 emette esplicitamente:
 
 ```json
 {"type":"regional","region":"EUROPE"}
 ```
 
-Non deriva dalla valuta o dalla locale.
+Il pack Italia #106 **non emette un `plan_type` separato**. Emette `destination_coverage.scope=local`.
+
+Non è autorizzato trasformare automaticamente:
+
+```text
+destination_coverage.scope=local
+→ plan_type=local
+```
+
+Se un futuro extractor vuole produrre `plan_type=local`, deve avere un locator/source rule esplicita o una normalizzazione formalmente approvata e versionata.
 
 ### `destination_coverage`
 
-Locale osservato:
+Locale osservato in #106:
 
 ```json
-{"scope":"local","destination":"IT"}
+{"countries":["IT"],"scope":"local"}
 ```
 
-Regionale aggregato:
+Regionale aggregato in #107:
 
 ```json
 {"scope":"regional","region":"EUROPE","declaredCountryCount":41}
 ```
 
-Quando una source prova membership country-specific, il valore può aggiungere:
+Quando una source prova membership country-specific, il valore può usare una forma come:
 
 ```json
 {
-  "countries": {
+  "scope":"regional",
+  "region":"EUROPE",
+  "countries":{
     "IT":"observed",
     "FR":"observed",
     "ES":"unknown"
@@ -442,7 +558,7 @@ Quando una source prova membership country-specific, il valore può aggiungere:
 }
 ```
 
-`unknown` non equivale a `false`.
+`unknown != false`.
 
 ### `price`
 
@@ -450,11 +566,11 @@ Quando una source prova membership country-specific, il valore può aggiungere:
 {"amount":29,"currency":"USD"}
 ```
 
-La source currency viene preservata.
+La source currency è parte del valore.
 
 `price_eur` non viene popolato dall'evidence ingest.
 
-Un futuro FX-derived datum deve avere fonte FX, timestamp, rate e provenance propri.
+Un futuro FX-derived datum richiede fonte FX, timestamp, rate e provenance propri.
 
 ### `data_gb`
 
@@ -462,11 +578,13 @@ Un futuro FX-derived datum deve avere fonte FX, timestamp, rate e provenance pro
 {"quantity":25,"unit":"GB"}
 ```
 
-Per un piano unlimited:
+Per unlimited:
 
 ```text
-data_gb = not_applicable
+coverage_state=not_applicable
 ```
+
+Nessun cap numerico viene sintetizzato.
 
 ### `unlimited_policy`
 
@@ -474,7 +592,7 @@ data_gb = not_applicable
 {"unlimitedLabel":true}
 ```
 
-Non implica high-speed unlimited.
+Non implica unlimited high-speed traffic.
 
 ### `fair_use_policy`
 
@@ -498,7 +616,7 @@ Holafly partial:
 }
 ```
 
-La null strutturale non viene trasformata in zero.
+La null strutturale non diventa zero.
 
 ### `validity_days`
 
@@ -506,7 +624,7 @@ La null strutturale non viene trasformata in zero.
 {"duration":15,"unit":"day"}
 ```
 
-Activation resta un field separato.
+Activation resta separata.
 
 ### `activation_policy`
 
@@ -520,11 +638,7 @@ o:
 {"trigger":"covered_area_connection","purchaseWhileCovered":"immediate"}
 ```
 
-Se non provata:
-
-```text
-coverage_state=unknown
-```
+Se non provata, observation `unknown` e nessuna factual candidate.
 
 ### `hotspot_policy`
 
@@ -534,16 +648,22 @@ coverage_state=unknown
 
 ### `hotspot_share_limit`
 
-Limite esplicito:
+Holafly:
 
 ```json
 {"quantity":1,"unit":"GB","period":"day"}
 ```
 
-Oppure policy Airalo osservata:
+Airalo:
 
 ```json
 {"separateTetheringCapDeclared":false,"overallFupApplies":true}
+```
+
+Ubigi live:
+
+```text
+unknown
 ```
 
 `allowed=true` non sostituisce questo field.
@@ -553,14 +673,20 @@ Oppure policy Airalo osservata:
 Locale:
 
 ```json
-{"operators":["Vodafone Italy","WINDTRE"]}
+{"operators":["Vodafone Italy","WINDTRE"],"completeness":"declared"}
 ```
 
-Regionale country-scoped:
+Parziale:
+
+```json
+{"operators":["Wind Tre"],"completeness":"partial","additionalOperatorsUnresolved":2}
+```
+
+Regionale country-scoped, quando provato:
 
 ```json
 {
-  "byCountry": {
+  "byCountry":{
     "IT":["..."],
     "FR":["..."],
     "ES":["..."]
@@ -569,7 +695,7 @@ Regionale country-scoped:
 }
 ```
 
-Non creare una lista piatta Europa quando l'attribuzione è per-country.
+Non appiattire operatori regionali senza attribuzione country-specific.
 
 ### `radio_technology`
 
@@ -577,7 +703,7 @@ Non creare una lista piatta Europa quando l'attribuzione è per-country.
 {"technologies":["4G LTE","5G"],"qualifier":"where_available"}
 ```
 
-Resta separato da network e da performance osservata.
+Non equivale a observed performance.
 
 ### `voice_sms_included`
 
@@ -585,85 +711,92 @@ Resta separato da network e da performance osservata.
 {"dataOnly":true,"nativeVoice":false,"nativeSms":false}
 ```
 
-Viene emesso soltanto quando la source lo prova.
+Viene emesso soltanto se source-grounded.
 
-## 8. Mapping verso `claim_verifications`
+## 11. Mapping verso `claim_verifications`
 
-Il verifier futuro riceve una o più `evidence_claim_candidates` e decide separatamente.
+Il verifier futuro riceve una o più candidate e decide in un gate separato.
 
 Mapping base:
 
 ```text
-observation.subject_type → claim_verifications.entity_type
-observation.subject_key  → claim_verifications.entity_key
-observation.field_name   → claim_verifications.field_name
-observation.normalized_value_json → claim_verifications.value_json
-snapshot.source_id       → claim_verifications.source_id
-verification decision    → verification_status/confidence/checked_at/valid_until
+observation.subject_type
+→ claim_verifications.entity_type
+
+observation.subject_key
+→ claim_verifications.entity_key
+
+observation.field_name
+→ claim_verifications.field_name
+
+observation.normalized_value_json
+→ claim_verifications.value_json
+
+snapshot.source_id
+→ claim_verifications.source_id
 ```
 
-La candidate non decide:
+Il verifier decide:
 
 ```text
 verification_status
-confidence commerciale
-publication eligibility
+confidence
+checked_at
+valid_until
 ```
+
+### Partial non equivale a un verified-complete field
+
+Se una observation `partial` viene accettata per un sotto-fatto, il `value_json` verificato deve conservare il qualifier di completezza oppure il verifier deve produrre un field atomico più stretto.
+
+Esempio valido:
+
+```json
+{
+  "scope":"regional",
+  "region":"EUROPE",
+  "declaredCountryCount":41,
+  "membershipCompleteness":"unknown"
+}
+```
+
+Non è valido interpretare `verification_status=verified` come “tutti i Paesi dello scenario sono verificati”.
 
 ### Provenance del verification decision
 
 Il D1 attuale non conserva ancora una relazione immutabile field-level fra una decisione `claim_verifications` e le evidence candidates che l'hanno sostenuta o contraddetta.
 
-Prima di automatizzare il bridge va quindi progettato/implementato un audit append-only, preferibilmente con una relazione del tipo:
+Prima di automatizzare il bridge serve una relazione append-only/revisioned del tipo:
 
 ```text
-claim verification decision/revision
-↔ one or more evidence candidate ids
-↔ relationship: supports | contradicts
+verification decision/revision
+↔ evidence candidate id(s)
+↔ supports | contradicts
 ```
 
-Questa relazione è **fuori dalla prima migration upstream**. Non deve essere improvvisata aggiornando `evidence` con JSON opaco senza identità delle candidate.
+Questa relazione resta fuori dalla prima migration upstream. Non va simulata infilando ID opachi nel campo `evidence` senza un contratto versionato.
 
-## 9. `partial`, `unknown`, `not_applicable`: boundary D1
-
-Questi stati appartengono all'osservazione evidence, non al boolean del fatto.
-
-Esempi vietati:
-
-```text
-network unknown → operators=[] interpretato come "nessun operatore"
-hotspot cap unknown → quantity=0
-voice/SMS unknown → dataOnly=true
-country membership unknown → false
-```
-
-Il verifier può ricevere soltanto il sotto-fatto realmente provato.
-
-Per questo `coverage_state` deve essere first-class nel layer observation.
-
-## 10. Freshness
+## 12. Freshness
 
 `observed_at` deriva dallo snapshot.
 
-`proposed_valid_until` è deterministico e non è una verifica.
+`proposed_valid_until` è una proposta deterministica, non una verifica.
 
-Finestra iniziale coerente con i documenti esistenti:
+Baseline coerente con l'audit:
 
 ```text
-price: 3 giorni
-plan data/validity/network: 7 giorni
+price: 1–3 giorni
+plan data/validity/network: 3–7 giorni
 hotspot/FUP: 7 giorni
 help generica: 14 giorni
 terms/refund: 14–30 giorni
 ```
 
-Il verifier può accorciare la validità; non la estende automaticamente senza policy esplicita.
+Il verifier può accorciare la validity. Non la estende automaticamente oltre policy senza motivazione.
 
-## 11. Raw drift vs semantic drift
+## 13. Raw drift vs semantic drift
 
-Il database non deve usare `body_sha256` come proxy per claim changed.
-
-Separazione:
+D1 non usa `body_sha256` come proxy per commercial fact change.
 
 ```text
 evidence_snapshots.body_sha256
@@ -671,84 +804,107 @@ evidence_snapshots.body_sha256
 evidence_field_observations.normalized_value_json
 ```
 
-Le due coppie di live capture #106 e #107 hanno già verificato che raw identity può cambiare con semantic fingerprint invariato.
-
-Un monitor futuro può quindi:
-
-1. creare un nuovo snapshot;
-2. rieseguire extractor deterministico;
-3. confrontare observations;
-4. creare candidate nuove solo per semantic delta o nuova evidence rilevante;
-5. non verificare automaticamente il claim.
-
-## 12. Compatibilità con i gate editoriali
-
-Il nuovo layer non cambia:
+Un monitor futuro può:
 
 ```text
-brief acceptance
-editorial_claim_candidates
-claim verification gate
-page_evidence_bundles
-Page Readiness
-draft approval
-publication gate
+new capture run
+→ new immutable snapshots
+→ deterministic extraction
+→ compare observations
+→ new candidates solo per evidence semanticamente rilevante
+→ verification ancora separata
 ```
 
-Il flusso completo resta:
+Un raw diff da solo non verifica, contraddice o pubblica nulla.
+
+## 14. Immutability enforcement
+
+La migration implementation dovrà valutare trigger D1 che impediscano UPDATE/DELETE su:
 
 ```text
-commercial evidence pipeline
-→ verified current claims
-→ editorial claim resolution
-→ evidence bundle
-→ readiness
-→ grounded draft
-→ human publication gate
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
 ```
 
-Un draft approvato non diventa published per effetto del nuovo schema.
+salvo una procedura di repair esplicita e separata, se mai necessaria.
 
-## 13. Prima implementation slice raccomandata dopo questo design
+L'obiettivo è rendere l'immutabilità una proprietà del database e non soltanto una convenzione applicativa.
 
-Branch separata futura, scope esclusivo:
+Le candidate possono avere current status mutabile soltanto con audit append-only quando le mutation verranno abilitate.
+
+## 15. Indexing proposto
+
+La futura migration dovrebbe almeno valutare:
 
 ```text
-migration locale/versionata delle sole tabelle upstream:
+evidence_snapshots(capture_run_id, source_id, fetched_at)
+evidence_field_observations(subject_type, subject_key, field_name, observed_at)
+evidence_field_observations(snapshot_id, field_name)
+evidence_claim_candidates(status, created_at)
+```
+
+Nessun index viene creato in questa PR.
+
+## 16. Prima implementation slice dopo l'approvazione del design
+
+Branch separata e scope esclusivo:
+
+```text
+additive local/versioned D1 schema:
+  evidence_capture_runs
   evidence_snapshots
   evidence_field_observations
   evidence_claim_candidates
 
-+ constraint/index
-+ fixture D1 locale
-+ zero runtime ingest
-+ zero remote migration
++ CHECK / FK / indexes
++ immutability trigger smoke
++ migrated-local D1 fixture validation
 ```
 
-Non includere nella stessa PR:
+Ancora **zero runtime ingest** e **zero remote migration**.
+
+Non combinare nella stessa PR:
 
 - fetch live;
+- source onboarding;
 - import dei pack;
-- mutation di `claim_verifications`;
+- `claim_verifications` mutation;
+- verification provenance bridge;
 - maintenance queue;
 - scheduler;
-- redesign di `plans`;
+- `plans` redesign;
 - ranking;
 - publication.
 
-Dopo che lo schema upstream è provato localmente, una seconda branch può progettare/implementare un import idempotente pack → evidence tables.
+## 17. Sequenza successiva
 
-## 14. Stop condition
+Dopo la schema-only migration locale:
 
-Questo design è sufficiente quando:
+```text
+A. source reconciliation / onboarding scope
+B. idempotent pack → evidence tables importer
+C. verification provenance bridge
+D. eventuale commercial materialization / plans-v2 design
+```
 
-1. ogni forma osservata nei pack Italia ed Europa ha una rappresentazione lossless;
-2. nessun field richiede inferenza da locale/currency/destination adiacenti;
-3. local e regional plan condividono lo stesso modello;
-4. source-native price non richiede `price_eur`;
-5. coverage `partial/unknown/not_applicable` è first-class;
-6. network country-scoped non viene appiattito;
-7. evidence candidate resta separata da editorial claim candidate;
-8. `plans` v1 non viene usato come ingest target;
-9. `claim_verifications` resta il current verified state downstream;
-10. nessuna migration o runtime mutation è inclusa nella branch di design.
+Ogni lettera resta un gate separato salvo decisione esplicita successiva.
+
+## 18. Acceptance del design
+
+Il design è accettabile soltanto se:
+
+1. ogni forma osservata nei pack Italia ed Europa è rappresentabile senza perdita;
+2. il pack/capture-window context non viene perso;
+3. source identity viene riconciliata prima dell'import;
+4. local/regional coverage non richiede pseudo-destinations;
+5. local `plan_type` non viene inferito dal solo `destination_coverage.scope`;
+6. source-native price non richiede `price_eur`;
+7. `partial`, `unknown`, `not_applicable` sono first-class;
+8. regional network non viene appiattito;
+9. URL e prezzo non diventano plan identity;
+10. evidence candidate resta separata da editorial claim candidate;
+11. `plans` v1 resta fuori dall'ingest;
+12. `claim_verifications` resta current verified state downstream;
+13. verification provenance bridge resta separato e auditabile;
+14. nessuna migration/runtime mutation/deploy è inclusa nella PR di design.
