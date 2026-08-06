@@ -1,0 +1,233 @@
+---
+import type { PublicArticle } from '../../../../../src/public-article'
+import type { PublicRenderMode } from '../../../../../src/public-render-mode'
+import {
+  publicArticlePath,
+  publicHomePath,
+  publicListingPath,
+} from '../../../../../src/public-render-mode'
+import './migliore-esim-first-money-preview.css'
+
+interface Props {
+  article: PublicArticle
+  mode: PublicRenderMode
+  decisionGuides: PublicArticle[]
+}
+
+const { article, mode, decisionGuides } = Astro.props
+
+const guideLabels = new Map<string, { label: string; description: string }>([
+  [
+    'esim-estero',
+    {
+      label: 'Devi usare la eSIM all’estero?',
+      description: 'Capisci quando ha senso un piano locale, regionale o più ampio prima di scegliere un provider.',
+    },
+  ],
+  [
+    'esim-come-funziona',
+    {
+      label: 'È la tua prima eSIM?',
+      description: 'Chiarisci installazione, attivazione e cosa succede alla SIM principale.',
+    },
+  ],
+  [
+    'esim-telefoni-compatibili',
+    {
+      label: 'Il tuo telefono è compatibile?',
+      description: 'Verifica il dispositivo prima dell’acquisto: modello, mercato e blocco operatore possono contare.',
+    },
+  ],
+])
+
+const guideLinks = decisionGuides
+  .map((guide) => {
+    const copy = guideLabels.get(guide.slug)
+    if (!copy) return null
+    return {
+      ...copy,
+      href: publicArticlePath(mode, guide.slug),
+    }
+  })
+  .filter((value): value is NonNullable<typeof value> => Boolean(value))
+
+const scenarios = [
+  {
+    kicker: 'Viaggio breve',
+    title: 'Mappe, messaggi e prenotazioni',
+    description: 'Parti da destinazione, giorni e quantità di dati. Un piano a GB può avere più senso di una formula “illimitata” se il tuo uso è leggero.',
+    checks: ['Paesi inclusi', 'GB disponibili', 'Durata', 'Prezzo nella valuta originale'],
+  },
+  {
+    kicker: 'Uso intenso',
+    title: 'Video, social e navigazione continua',
+    description: 'Non fermarti alla parola “illimitata”. Il punto è capire fair use, eventuali soglie e cosa succede dopo.',
+    checks: ['Modello dati', 'Fair use', 'Durata', 'Condizioni dopo la soglia'],
+  },
+  {
+    kicker: 'Laptop e lavoro',
+    title: 'Hotspot prima di tutto',
+    description: 'Se devi collegare il computer, la quantità di dati non basta: conta se il tethering è consentito e quanto puoi condividere.',
+    checks: ['Hotspot consentito', 'Limite condivisibile', 'Fair use', 'Attivazione'],
+  },
+  {
+    kicker: 'Più Paesi',
+    title: 'Un itinerario non è un’etichetta “Europa”',
+    description: 'Controlla che ogni tappa sia davvero inclusa. Il numero totale di Paesi dichiarati non prova da solo che ci siano quelli del tuo viaggio.',
+    checks: ['Paesi specifici', 'Validità', 'Tipo di piano', 'Copertura per tappa'],
+  },
+]
+
+const decisionFields = [
+  ['Dati', 'GB oppure modello “illimitato”'],
+  ['Durata', 'Per quanti giorni resta valido il piano'],
+  ['Hotspot', 'Se puoi condividere la connessione e con quali limiti'],
+  ['Fair use', 'Eventuali soglie o condizioni dopo uso intenso'],
+  ['Attivazione', 'Quando parte davvero la validità'],
+  ['Voce e SMS', 'Se il piano è solo dati o include anche altro'],
+]
+
+const questions = [
+  {
+    id: 'illimitata',
+    title: '“Illimitata” significa davvero senza limiti?',
+    answer: 'Non sempre significa uso identico senza condizioni. Prima di scegliere va letta la policy di fair use e va separata dalla quantità eventualmente condivisibile in hotspot.',
+  },
+  {
+    id: 'hotspot',
+    title: 'Posso usare l’hotspot con una eSIM?',
+    answer: 'Dipende dal piano. “Hotspot consentito” e “quanti dati posso condividere” sono due domande diverse e vanno verificate separatamente.',
+  },
+  {
+    id: 'attivazione',
+    title: 'Posso installarla prima di partire?',
+    answer: 'Installazione e inizio della validità non sono la stessa cosa. Il trigger di attivazione è specifico del piano o del provider e va controllato prima del viaggio.',
+  },
+  {
+    id: 'whatsapp',
+    title: 'Perdo WhatsApp o il mio numero?',
+    answer: 'Cambiare la linea usata per i dati non cambia automaticamente il numero associato a WhatsApp. L’uso contemporaneo della SIM principale e della eSIM dipende però dal dispositivo.',
+  },
+]
+---
+
+<article class="first-money-preview" data-first-money-preview="migliore-esim">
+  <header class="first-money-hero">
+    <div class="public-container first-money-hero-inner">
+      <nav class="article-breadcrumbs" aria-label="Percorso articolo preview">
+        <a href={publicHomePath(mode)}>Home preview</a>
+        <span aria-hidden="true">/</span>
+        <a href={publicListingPath(mode, 'comparison')}>Confronti</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{article.h1}</span>
+      </nav>
+
+      <p class="eyebrow">Scegli in base al viaggio, non alla classifica</p>
+      <h1>{article.h1}</h1>
+      <p class="first-money-lead">
+        La migliore eSIM cambia con destinazione, giorni, quantità di dati e uso dell’hotspot. Parti dal tuo viaggio: il provider viene dopo.
+      </p>
+
+      <div class="first-money-quick-path" aria-label="Quattro domande prima di scegliere">
+        <a href="#dove-vai"><span>1</span><strong>Dove vai?</strong></a>
+        <a href="#quanto-resti"><span>2</span><strong>Quanti giorni?</strong></a>
+        <a href="#quanti-dati"><span>3</span><strong>Quanti dati?</strong></a>
+        <a href="#hotspot"><span>4</span><strong>Ti serve hotspot?</strong></a>
+      </div>
+    </div>
+  </header>
+
+  <div class="public-container first-money-body">
+    <section class="first-money-answer" aria-labelledby="first-money-answer-title">
+      <p class="article-answer-label">Risposta diretta</p>
+      <h2 id="first-money-answer-title">Non esiste una eSIM migliore per tutti. Esiste quella che regge meglio il tuo scenario.</h2>
+      <p>
+        Per un uso leggero contano soprattutto GB, durata e prezzo. Se consumi molto, guarda fair use e condizioni dell’“illimitato”. Se lavori dal laptop, controlla hotspot e limiti di condivisione. Se attraversi più Paesi, verifica ogni tappa invece di fidarti del solo nome della regione.
+      </p>
+    </section>
+
+    <aside class="first-money-preview-note" aria-label="Stato della preview">
+      <strong>Questa è una preview editoriale.</strong>
+      <span>Non contiene link affiliati, classifiche provider o claim commerciali nuovi. La pagina live non cambia finché questa versione non viene approvata e materializzata con dati verificati.</span>
+    </aside>
+
+    <section class="first-money-section" id="dove-vai" aria-labelledby="scenario-title">
+      <div class="first-money-section-heading">
+        <p class="eyebrow">Parti dal tuo uso reale</p>
+        <h2 id="scenario-title">Quale di questi viaggi assomiglia al tuo?</h2>
+        <p>La stessa offerta può essere sensata in uno scenario e mediocre in un altro. Per questo il confronto parte dal viaggio, non da un podio fisso.</p>
+      </div>
+
+      <div class="first-money-scenario-grid">
+        {scenarios.map((scenario, index) => (
+          <article id={index === 0 ? 'quanto-resti' : index === 1 ? 'quanti-dati' : undefined}>
+            <p>{scenario.kicker}</p>
+            <h3>{scenario.title}</h3>
+            <span>{scenario.description}</span>
+            <ul>
+              {scenario.checks.map((item) => <li>{item}</li>)}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="first-money-section" aria-labelledby="compare-title">
+      <div class="first-money-section-heading">
+        <p class="eyebrow">Sei righe che contano</p>
+        <h2 id="compare-title">Prima di comprare, confronta queste cose.</h2>
+        <p>La futura tabella provider userà questi campi. Se un dato non è dimostrato, resterà “da verificare” invece di trasformarsi in un No inventato.</p>
+      </div>
+
+      <div class="first-money-field-grid" data-first-money-evidence-slots>
+        {decisionFields.map(([label, description]) => (
+          <article>
+            <div>
+              <strong>{label}</strong>
+              <span>{description}</span>
+            </div>
+            <em>Da verificare per l’offerta</em>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="first-money-section" aria-labelledby="questions-title">
+      <div class="first-money-section-heading">
+        <p class="eyebrow">Domande che cambiano la scelta</p>
+        <h2 id="questions-title">Le quattro obiezioni da risolvere prima del checkout.</h2>
+      </div>
+
+      <div class="first-money-question-list">
+        {questions.map((question) => (
+          <article id={question.id}>
+            <h3>{question.title}</h3>
+            <p>{question.answer}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="first-money-section first-money-next" aria-labelledby="next-title">
+      <div class="first-money-section-heading">
+        <p class="eyebrow">Vai al dubbio giusto</p>
+        <h2 id="next-title">Prima di confrontare provider, elimina gli errori banali.</h2>
+      </div>
+
+      <div class="first-money-guide-grid">
+        {guideLinks.map((link) => (
+          <article>
+            <h3><a href={link.href}>{link.label}</a></h3>
+            <p>{link.description}</p>
+            <a href={link.href}>Apri la guida →</a>
+          </article>
+        ))}
+        <article>
+          <h3><a href={publicListingPath(mode, 'destination')}>Sai già dove vai?</a></h3>
+          <p>Parti dalla destinazione e raggiungi soltanto le pagine già pubblicate.</p>
+          <a href={publicListingPath(mode, 'destination')}>Scegli la destinazione →</a>
+        </article>
+      </div>
+    </section>
+  </div>
+</article>
