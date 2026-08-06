@@ -13,6 +13,7 @@ import {
 } from '../../../../../src/public-render-mode'
 import { publicArticleSeo } from '../../../../../src/public-seo'
 import PublicLayout from '../../layouts/PublicLayout.astro'
+import MiglioreEsimFirstMoneyPreview from './MiglioreEsimFirstMoneyPreview.astro'
 import PublicArticleBlocks from './PublicArticleBlocks.astro'
 import PublicArticleFaq from './PublicArticleFaq.astro'
 import PublicArticleSources from './PublicArticleSources.astro'
@@ -37,6 +38,7 @@ type DecisionLink = {
 const { mode, article, related, decisionGuides, siteName, affiliateEnabled } = Astro.props
 const preview = publicIsPreview(mode)
 const isMiglioreEsim = article.slug === M7_MIGLIORE_ESIM_SLUG
+const firstMoneyPreview = preview && isMiglioreEsim
 const sectionType = article.page_type === 'destination'
   ? 'destination'
   : article.page_type === 'comparison'
@@ -111,97 +113,111 @@ if (isMiglioreEsim) {
     </div>
   )}
 
-  <article class="public-article" data-public-article={article.slug} data-public-render-mode={mode}>
-    <header class="article-hero">
-      <div class="public-container article-hero-inner">
-        <nav class="article-breadcrumbs" aria-label={preview ? 'Percorso articolo preview' : 'Percorso articolo'}>
-          <a href={publicHomePath(mode)}>{preview ? 'Home preview' : 'Home'}</a>
-          <span aria-hidden="true">/</span>
-          <a href={section.href}>{section.label}</a>
-          <span aria-hidden="true">/</span>
-          <span aria-current="page">{article.h1}</span>
-        </nav>
+  {firstMoneyPreview ? (
+    <>
+      <MiglioreEsimFirstMoneyPreview article={article} mode={mode} decisionGuides={decisionGuides} />
+      <div class="public-container article-lower-sections" data-first-money-preview-sources>
+        <PublicArticleSources
+          sources={article.sources}
+          sourceCheckedAt={article.source_checked_at}
+          updatedAt={article.updated_at}
+        />
+        <PublicRelatedArticles mode={mode} items={related} />
+      </div>
+    </>
+  ) : (
+    <article class="public-article" data-public-article={article.slug} data-public-render-mode={mode}>
+      <header class="article-hero">
+        <div class="public-container article-hero-inner">
+          <nav class="article-breadcrumbs" aria-label={preview ? 'Percorso articolo preview' : 'Percorso articolo'}>
+            <a href={publicHomePath(mode)}>{preview ? 'Home preview' : 'Home'}</a>
+            <span aria-hidden="true">/</span>
+            <a href={section.href}>{section.label}</a>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">{article.h1}</span>
+          </nav>
 
-        <div class="article-meta" aria-label="Metadati articolo">
-          <span>{article.cluster}</span>
-          <span>Intento: {article.search_intent}</span>
-          <span>Stato: published</span>
+          <div class="article-meta" aria-label="Metadati articolo">
+            <span>{article.cluster}</span>
+            <span>Intento: {article.search_intent}</span>
+            <span>Stato: published</span>
+          </div>
+
+          <p class="eyebrow">{article.eyebrow}</p>
+          <h1>{article.h1}</h1>
+          <p class="article-intro">{article.intro}</p>
+        </div>
+      </header>
+
+      <div class="public-container article-layout">
+        <div class="article-main-column">
+          <section class="article-direct-answer" aria-labelledby="direct-answer-title">
+            <p class="article-answer-label" id="direct-answer-title">Risposta diretta</p>
+            <p>{article.direct_answer}</p>
+          </section>
+
+          <aside class="article-disclosure" aria-label="Trasparenza">
+            <strong>Trasparenza.</strong>
+            <span>{disclosure} Le condizioni possono cambiare: controlla sempre la fonte prima di scegliere.</span>
+          </aside>
+
+          <PublicArticleBlocks blocks={article.content} />
+
+          {decisionLinks.length > 0 && (
+            <section
+              class="article-related"
+              aria-labelledby="m7-migliore-esim-links-title"
+              data-m7-migliore-esim-links
+            >
+              <p class="eyebrow">Continua la verifica</p>
+              <h2 id="m7-migliore-esim-links-title">Apri il percorso giusto prima di scegliere</h2>
+              <div class="article-related-grid">
+                {decisionLinks.map((link) => (
+                  <article>
+                    <p>Percorso pubblicato</p>
+                    <h3><a href={link.href}>{link.label}</a></h3>
+                    <span>{link.description}</span>
+                    <a class="article-related-link" href={link.href}>Apri il percorso →</a>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <PublicArticleFaq items={article.faq} />
         </div>
 
-        <p class="eyebrow">{article.eyebrow}</p>
-        <h1>{article.h1}</h1>
-        <p class="article-intro">{article.intro}</p>
-      </div>
-    </header>
-
-    <div class="public-container article-layout">
-      <div class="article-main-column">
-        <section class="article-direct-answer" aria-labelledby="direct-answer-title">
-          <p class="article-answer-label" id="direct-answer-title">Risposta diretta</p>
-          <p>{article.direct_answer}</p>
-        </section>
-
-        <aside class="article-disclosure" aria-label="Trasparenza">
-          <strong>Trasparenza.</strong>
-          <span>{disclosure} Le condizioni possono cambiare: controlla sempre la fonte prima di scegliere.</span>
+        <aside class="article-side-note" aria-labelledby="article-side-note-title">
+          <p class="article-side-label">{preview ? 'Contratto della preview' : 'Criteri della pagina'}</p>
+          <h2 id="article-side-note-title">{isMiglioreEsim ? 'Nessun vincitore universale.' : 'Solo contenuto già pubblicato.'}</h2>
+          <ul>
+            {isMiglioreEsim ? (
+              <>
+                <li>Nessuna classifica automatica o raccomandazione provider-specifica.</li>
+                <li>Prezzi, copertura e fair use richiedono fonte e data.</li>
+                <li>I link editoriali compaiono soltanto verso guide pubblicate.</li>
+                <li>{preview ? 'Preview, canonical e link restano confinati nel rispettivo namespace.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
+              </>
+            ) : (
+              <>
+                <li>Nessun draft o riga in review.</li>
+                <li>Nessun HTML generato viene eseguito.</li>
+                <li>Le fonti non diventano test indipendenti.</li>
+                <li>{preview ? 'La route canonica resta sul renderer corrente.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
+              </>
+            )}
+          </ul>
         </aside>
-
-        <PublicArticleBlocks blocks={article.content} />
-
-        {decisionLinks.length > 0 && (
-          <section
-            class="article-related"
-            aria-labelledby="m7-migliore-esim-links-title"
-            data-m7-migliore-esim-links
-          >
-            <p class="eyebrow">Continua la verifica</p>
-            <h2 id="m7-migliore-esim-links-title">Apri il percorso giusto prima di scegliere</h2>
-            <div class="article-related-grid">
-              {decisionLinks.map((link) => (
-                <article>
-                  <p>Percorso pubblicato</p>
-                  <h3><a href={link.href}>{link.label}</a></h3>
-                  <span>{link.description}</span>
-                  <a class="article-related-link" href={link.href}>Apri il percorso →</a>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <PublicArticleFaq items={article.faq} />
       </div>
 
-      <aside class="article-side-note" aria-labelledby="article-side-note-title">
-        <p class="article-side-label">{preview ? 'Contratto della preview' : 'Criteri della pagina'}</p>
-        <h2 id="article-side-note-title">{isMiglioreEsim ? 'Nessun vincitore universale.' : 'Solo contenuto già pubblicato.'}</h2>
-        <ul>
-          {isMiglioreEsim ? (
-            <>
-              <li>Nessuna classifica automatica o raccomandazione provider-specifica.</li>
-              <li>Prezzi, copertura e fair use richiedono fonte e data.</li>
-              <li>I link editoriali compaiono soltanto verso guide pubblicate.</li>
-              <li>{preview ? 'Preview, canonical e link restano confinati nel rispettivo namespace.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
-            </>
-          ) : (
-            <>
-              <li>Nessun draft o riga in review.</li>
-              <li>Nessun HTML generato viene eseguito.</li>
-              <li>Le fonti non diventano test indipendenti.</li>
-              <li>{preview ? 'La route canonica resta sul renderer corrente.' : 'Claim e fonti restano soggetti a verifica e aggiornamento.'}</li>
-            </>
-          )}
-        </ul>
-      </aside>
-    </div>
-
-    <div class="public-container article-lower-sections">
-      <PublicArticleSources
-        sources={article.sources}
-        sourceCheckedAt={article.source_checked_at}
-        updatedAt={article.updated_at}
-      />
-      <PublicRelatedArticles mode={mode} items={related} />
-    </div>
-  </article>
+      <div class="public-container article-lower-sections">
+        <PublicArticleSources
+          sources={article.sources}
+          sourceCheckedAt={article.source_checked_at}
+          updatedAt={article.updated_at}
+        />
+        <PublicRelatedArticles mode={mode} items={related} />
+      </div>
+    </article>
+  )}
 </PublicLayout>
