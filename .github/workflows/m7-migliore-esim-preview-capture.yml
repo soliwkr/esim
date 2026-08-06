@@ -1,6 +1,13 @@
 name: M7 Migliore eSIM Preview Capture
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/m7-migliore-esim-preview-capture.yml
+      - apps/web/src/components/public/MiglioreEsimFirstMoneyPreview.astro
+      - apps/web/src/components/public/migliore-esim-first-money-preview.css
+      - apps/web/src/components/public/PublicArticlePage.astro
+      - scripts/smoke-m7-migliore-esim.mjs
   workflow_dispatch:
 
 jobs:
