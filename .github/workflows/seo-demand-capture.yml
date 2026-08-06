@@ -1,11 +1,6 @@
 name: SEO Demand Capture
 
 on:
-  push:
-    branches: [research/m7-autocomplete-paa-expansion]
-    paths:
-      - .github/workflows/seo-demand-capture.yml
-      - research/seo/m7-autocomplete-paa-trigger.txt
   workflow_dispatch:
 
 jobs:
