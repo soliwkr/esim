@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **3 agosto 2026**.
+Ultimo aggiornamento: **6 agosto 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -347,7 +347,7 @@ Il workflow può elencare read-only il database D1 per risolvere il binding comp
 
 ## ADR-038 — Snapshot evidence immutabile e claim candidate separata dalla verifica
 
-**Stato:** accettata per il perimetro dello spike e verificata su una fonte Ubigi reale.
+**Stato:** accettata per il perimetro dello spike e verificata su una fonte Ubigi reale, poi generalizzata live dai pack #106 e #107.
 
 **Decisione:** il layer upstream della verità commerciale viene separato esplicitamente in:
 
@@ -374,6 +374,43 @@ Regole iniziali:
 - change detection futura può segnalare raw drift ma non verificare automaticamente il nuovo claim;
 - nessun D1 write, scheduler, crawler multi-source o publication gate viene introdotto da questo contratto.
 
-**Verifica:** due catture reali consecutive della stessa pagina Ubigi hanno prodotto snapshot raw diversi ma lo stesso semantic fingerprint e `Semantic changes: 0`. Il bake-off Trafilatura 2.2.0 ha mantenuto verbatim `50GB`, `30 days` e `US$29`, confermandone l'utilità come helper senza giustificare una nuova dependency canonica.
+**Verifica:** lo spike Ubigi e i pack multi-provider Italia/Europa hanno dimostrato ripetutamente che snapshot raw differenti possono conservare lo stesso semantic fingerprint e zero semantic changes.
 
-**Conseguenza:** prima di generalizzare capture o monitoring, il prossimo gate è il Claims Coverage Audit: identificare i factual field necessari alle prime pagine commerciali e misurare per ciascuno copertura, authority, scope, freshness e conflitti delle fonti.
+**Conseguenza:** il Claims Coverage Audit e i due evidence pack hanno chiuso l'esplorazione delle forme core. Il passo successivo è il mapping D1, senza confondere evidence capture, verifica e pubblicazione.
+
+## ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
+
+**Stato:** proposta nella PR #108; non ancora implementata in D1.
+
+**Decisione proposta:** materializzare in futuro il layer evidence con oggetti upstream dedicati:
+
+```text
+source_registry
+→ evidence_capture_runs
+→ evidence_snapshots
+→ evidence_field_observations
+→ evidence_claim_candidates
+→ verification gate
+→ claim_verifications
+```
+
+Vincoli della proposta:
+
+- `source_registry` resta l'unico registro canonico delle fonti;
+- ogni snapshot richiede source reconciliation univoca prima dell'import;
+- l'importer non auto-registra URL e fallisce chiuso su source assente o ambigua;
+- `editorial_claim_candidates` resta brief-scoped e non viene usata come deposito evidence;
+- `plans` v1 non è un ingest target perché single-destination e `price_eur` obbligatorio causerebbero mapping lossy;
+- il capture run conserva scenario, capture window, pack identity e semantic fingerprint;
+- snapshot e field observations sono immutabili;
+- `coverage_state` è first-class: `observed`, `partial`, `unknown`, `not_applicable`;
+- `unknown` non viene convertito in `false`, `0` o lista vuota;
+- un valore partial conserva qualifier/completeness e non diventa un field verificato come se fosse completo;
+- source-native price resta `{amount,currency}` senza FX implicito;
+- network country-scoped non viene appiattito;
+- URL, raw hash e prezzo non definiscono l'identità del piano;
+- `plan_type=local` non viene dedotto automaticamente da `destination_coverage.scope=local` se il field non è stato emesso esplicitamente;
+- `claim_verifications` resta il current verified state downstream;
+- il bridge fra verification decision e evidence candidate deve avere provenance append-only/revisioned prima di essere automatizzato.
+
+**Conseguenza proposta:** dopo l'approvazione della PR #108, la prima implementation slice può essere soltanto una migration locale/versionata e additiva per le tabelle upstream, con constraint/index/immutability smoke e senza runtime ingest o migration remota. Source onboarding, importer, verification bridge e qualsiasi redesign `plans` restano gate separati.
