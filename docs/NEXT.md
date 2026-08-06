@@ -4,36 +4,63 @@ Ultimo aggiornamento: **6 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Gate corrente — chiudere M7.1 First Euro Demand Intelligence
+## Gate corrente — chiudere PR #113 Autocomplete A–Z + PAA / related
 
-PR corrente:
-
-```text
-#111 — M7.1: start first-euro demand intelligence
-branch: research/m7-first-euro-demand-intelligence
-```
-
-La branch è research/docs-only: nessun backend, D1 write, affiliate activation o deploy.
-
-Output già presenti:
+PR:
 
 ```text
-docs/M7-FIRST-EURO-DEMAND-INTELLIGENCE.md
-docs/research/M7-LONG-TAIL-CORPUS-SUMMARY.md
-docs/research/FIRST-MONEY-PAGE-BRIEF-MIGLIORE-ESIM.md
-docs/research/FIRST-MONEY-PAGE-BRIEF-ESIM-EUROPA.md
-research/seo/m7-first-euro-demand-seeds.csv
-research/seo/m7-long-tail-priority-universe.csv
-research/seo/m7-first-euro-money-pages.csv
-research/seo/m7-first-euro-execution-order.csv
-research/seo/m7-first-euro-serp-snapshot-2026-08-06.csv
-research/seo/m7-p0-question-expansion.csv
-research/seo/m7-first-euro-cannibalization-v2.csv
-research/seo/m7-internal-linking-v2.csv
-research/seo/m7-search-to-social-angle-bank.csv
+#113 — M7.1: add reproducible autocomplete and PAA expansion
+branch: research/m7-autocomplete-paa-expansion
 ```
 
-### Decisione first-money
+Scope:
+
+- collector Serper secret-safe;
+- base + `a…z` per 17 seed prioritari;
+- PAA / related quando esposti dalla risposta live;
+- organic SERP shape;
+- output locale con raw SHA provenance;
+- summary versionato;
+- nessun backend/D1/affiliate/deploy.
+
+Capture reale completata:
+
+```text
+run: 31121790996
+requests: 476
+autocomplete rows: 3659
+expanded unique queries: 2829
+organic rows: 153
+PAA: 0
+related: 0
+errors: 0
+```
+
+Diagnostic completato:
+
+```text
+run: 31122315355
+control-us relatedSearches: 8
+control-us PAA: 0
+Italian P0 related/PAA: 0
+```
+
+Quindi PAA=0 resta un **zero-state osservato**, non una lacuna da riempire artificialmente.
+
+Prima di ready/merge #113:
+
+1. result document presente;
+2. collector self-test verde in CI;
+3. capture workflow manual-only;
+4. diagnostic workflow temporaneo rimosso;
+5. `STATUS/NEXT/ROADMAP` allineati;
+6. main CI post-#111 ricertificata dopo il flake GitHub Actions;
+7. CI completa verde sul final head #113;
+8. diff senza backend, D1, affiliate activation o deploy.
+
+## Decisione First Euro — invariata
+
+PR #111 è mergiata.
 
 Ordine iniziale:
 
@@ -50,46 +77,60 @@ Ordine iniziale:
 10 /esim-albania
 ```
 
-L'ordine completo 1→20 è versionato in `m7-first-euro-execution-order.csv`.
+L'A–Z non autorizza un riordino meccanico.
 
-### Acceptance #111
+Nuovo candidate:
 
-Prima di ready/merge:
+```text
+/esim-hotspot
+```
 
-1. corpus Planner originale 1.623 keyword realmente letto;
-2. long-tail commercial/destination/provider subset versionato;
-3. P0 SERP competitor snapshot completato;
-4. query/question expansion da SERP, provider FAQ e community acquisita;
-5. cluster ownership/cannibalization v2 definita;
-6. top 20 execution order definito;
-7. brief `/migliore-esim` completo;
-8. brief `/esim-europa` completo;
-9. evidence requirements per le prime money page espliciti;
-10. internal linking v2 definito;
-11. search-to-social angle bank definito;
-12. STATUS/NEXT allineati;
-13. CI completa verde sul final head.
+Ruolo previsto: **traffic/problem feeder**. La SERP è principalmente setup/support/tethering, quindi non trasformarla in money page solo perché l'Autocomplete è ampio.
 
-Google raw Autocomplete non è un gate bloccante se l'endpoint diretto non è disponibile nell'ambiente: non inventare suggestions. Il corpus viene espanso con Planner completo + SERP/query surfaces reali e può ricevere un successivo autocomplete capture riproducibile senza cambiare ownership automaticamente.
-
-## Dopo #111 — due track parallele
+## Dopo #113 — due track parallele
 
 Non tornare a una roadmap puramente backend.
 
-### Track A — Truth Engine minimo
+### Track A — First Money UI
+
+Branch pubblica separata, preview-first:
+
+```text
+/migliore-esim consumer rewrite
+```
+
+Obiettivo:
+
+```text
+current foundation copy
+→ consumer-first buying decision
+```
+
+La preview può implementare:
+
+- hero orientato alla scelta;
+- scenario cards;
+- destinazione / giorni / dati / hotspot come percorso mentale;
+- A–Z-derived questions e anchor quando coerenti con l'owner;
+- evidence slots e `unknown/partial` states;
+- internal links v2;
+- disclosure placeholder non commerciale;
+- mobile/desktop/accessibility smoke.
+
+Non può ancora:
+
+- pubblicare provider claims non verificati;
+- attivare affiliate links;
+- introdurre winner universale;
+- cambiare `AFFILIATE_MODE`;
+- fare deploy.
+
+### Track B — Truth Engine minimo
 
 Prossima branch tecnica separata:
 
 ```text
 source reconciliation / onboarding
-```
-
-Base:
-
-```text
-PR #110 merged
-0021 versionata
-D1 remote ancora 0020
 ```
 
 Target:
@@ -108,7 +149,7 @@ Fail closed:
 
 Scope:
 
-- definire esattamente quali `candidate_new` dei pack Italy/Europe vengono registrate;
+- definire quali `candidate_new` dei pack Italy/Europe vengono registrate;
 - mutation source separata e auditabile se autorizzata;
 - nessun importer nella stessa branch;
 - nessuna remote migration implicita;
@@ -133,40 +174,55 @@ remote 0021 apply — gate esplicito separato
 → verification provenance bridge
 ```
 
-### Track B — First Money UI
+## Evidence requirements emersi dall'A–Z
 
-Dopo merge #111 può partire in parallelo una branch pubblica **preview-first** per `/migliore-esim`.
+### `/esim-europa`
 
-Obiettivo:
+Il brief deve considerare esplicitamente:
 
 ```text
-current dev/foundation copy
-→ consumer-first buying decision
+coverage
+validity/duration
+data amount / unlimited model
+FUP
+hotspot
+voice/number availability when supported
+source-native price
 ```
 
-La preview può implementare:
+### `/esim-usa`
 
-- hero orientato alla scelta;
-- scenario cards;
-- destinazione / giorni / dati / hotspot come percorso mentale;
-- evidence slots e states;
-- internal links v2;
-- disclosure placeholder non commerciale;
-- mobile/desktop/accessibility smoke.
+Prima della money page completa verificare anche:
 
-Non può ancora:
+```text
+data-only
+vs
+voice/SMS/local number
+```
 
-- pubblicare nuovi provider claims non verificati;
-- attivare affiliate links;
-- introdurre winner universale;
-- cambiare `AFFILIATE_MODE`;
-- fare deploy.
+Le query A–Z mostrano forte domanda per chiamate/numero, non soltanto GB.
 
-La final materialization commerciale si collega alla Track A quando i fatti bounded sono disponibili.
+### Provider pages
+
+Mantenere intent separation:
+
+```text
+Airalo:
+  /airalo-come-funziona
+  /airalo-recensioni
+  /airalo-vs-holafly
+
+Holafly:
+  /holafly-come-funziona
+  /holafly-recensioni
+  /codice-sconto-holafly
+```
+
+Non creare mega-guide provider che cannibalizzano setup, review e coupon.
 
 ## Affiliate applications — dipendenza esterna parallela
 
-L'utente sta aprendo:
+In corso:
 
 ```text
 Airalo
@@ -174,12 +230,11 @@ Holafly
 Ubigi
 ```
 
-Quando arrivano approval / account details:
+Regole:
 
-- non incollare secret o token in chat/repository;
-- registrare soltanto lo stato non sensibile necessario;
-- partner IDs / tracking config restano in secret/config appropriata;
-- non attivare link in produzione senza disclosure + measurement gate.
+- non incollare secret/token in chat o repository;
+- partner IDs/tracking config restano secret/config appropriata;
+- nessun link production senza disclosure + measurement gate.
 
 ## First affiliate activation gate
 
@@ -194,11 +249,9 @@ Prima di accendere monetizzazione:
 7. consent/privacy regression rechecked;
 8. `AFFILIATE_MODE` change esplicito;
 9. production deploy manuale autorizzato;
-10. live smoke del redirect + no secret leakage.
+10. live smoke redirect + disclosure + no secret leakage.
 
 ## M7.2 — Search-to-Social
-
-Non aspettare una grande content library.
 
 La prima money page deve produrre un test bounded:
 
@@ -221,13 +274,11 @@ query
 → CTA
 ```
 
-Tool AI/video sono execution tools, non fonti di verità.
-
-Nessun social claim commerciale può superare il freshness/evidence standard della pagina da cui deriva.
+Nessun social claim commerciale può superare il freshness/evidence standard della pagina.
 
 ## Homepage e hub consumer-first
 
-Dopo la prima money slice, riallineare:
+Dopo la prima money slice riallineare:
 
 ```text
 /
@@ -238,11 +289,9 @@ Dopo la prima money slice, riallineare:
 Obiettivo:
 
 - meno linguaggio su workflow/gate/ownership;
-- più destinazioni, domande, scenari e CTA verso pagine utili;
-- metodo e governance spostati verso `/metodo` e `/trasparenza`;
+- più destinazioni, domande, scenari e CTA;
+- metodo/governance su `/metodo` e `/trasparenza`;
 - nessuna cannibalizzazione delle specialist pages.
-
-Non fare un rewrite generale prima di avere almeno una destinazione commerciale reale verso cui inviare l'utente.
 
 ## Search Console feedback loop
 
@@ -259,7 +308,7 @@ Per ora:
 - non cambiare ownership su GSC quasi vuota;
 - non ripetere sitemap submission;
 - non usare Indexing API;
-- continuare a interrogare GSC quando il dataset diventa sostanziale.
+- interrogare GSC quando il dataset diventa sostanziale.
 
 Quando emergono query reali:
 
@@ -270,32 +319,20 @@ unexpected query-page matches
 new long tails
 ```
 
-→ alimentano M7.1/M7.2 e refresh priority.
-
-## M4 parallela
-
-Le mutation residue della Control Room possono continuare soltanto su branch ristrette e non devono bloccare il first-money path:
-
-```text
-brief conversion
-claim operations
-draft decisions
-retry queue
-```
-
-Legacy privata resta fallback finché necessario.
+→ alimentano refresh e priorità.
 
 ## Checkpoint aperti
 
-- final CI + ready/merge #111;
+- final CI + ready/merge #113;
 - source reconciliation;
+- preview-first `/migliore-esim`;
 - affiliate approvals;
-- preview-first `/migliore-esim` consumer rewrite;
 - first bounded evidence materialization;
 - affiliate/measurement gate;
 - first explicit production deploy money-ready;
-- `/esim-europa` come prima nuova money page;
-- ricontrollo definitivo `www → apex`.
+- `/esim-europa`;
+- consumer-first homepage/hub;
+- `www → apex` definitivo.
 
 ## Freeze
 
