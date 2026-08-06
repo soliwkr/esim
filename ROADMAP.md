@@ -1,8 +1,8 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **3 agosto 2026**.
+Ultimo aggiornamento: **6 agosto 2026**.
 
-Questa è la roadmap canonica di `soliwkr/esim`.
+Questa è la roadmap canonica di `soliwkr/esim`. Lo storico dettagliato delle singole fasi resta nel versionamento Git e nei documenti risultato.
 
 ## Documenti operativi
 
@@ -10,339 +10,435 @@ Questa è la roadmap canonica di `soliwkr/esim`.
 - `docs/STATUS.md` — stato verificato;
 - `docs/NEXT.md` — lavoro immediato;
 - `docs/ARCHITECTURE.md` — confini tecnici;
-- `docs/DECISIONS.md` — decisioni accettate;
+- `docs/DECISIONS.md` — decisioni architetturali accettate;
 - `docs/FRONTEND-PLAN.md` — piano frontend;
-- `docs/MEASUREMENT-CONSENT-SCOPE.md` — scope M6;
-- `docs/CMP-SPIKE.md` — confronto CMP;
-- `docs/MEASUREMENT-EVENT-DICTIONARY.md` — eventi e parametri canonici;
-- `docs/GTM-GA4-FOUNDATION.md` — contratto tecnico della foundation analytics.
+- `docs/M7-FIRST-EURO-DEMAND-INTELLIGENCE.md` — demand/first-money track;
+- `docs/MEASUREMENT-CONSENT-SCOPE.md` — scope privacy/measurement;
+- `docs/MEASUREMENT-EVENT-DICTIONARY.md` — eventi e parametri canonici.
 
 ## Principi non negoziabili
 
-1. L’AI non pubblica direttamente.
+1. L'AI non pubblica direttamente.
 2. Brief, claim, readiness, draft, materializzazione e pubblicazione sono gate distinti.
 3. I fatti commerciali richiedono fonti identificabili e data di verifica.
 4. Claim insufficienti, contraddetti o scaduti non alimentano testo fattuale.
-5. Il browser non accede direttamente a D1.
-6. Ogni mutation richiede identità verificata, conferma, state machine, audit e test.
-7. Astro è il frontend pubblico principale; React resta confinato alla Control Room.
-8. Preview, owner versionato e owner verificato live sono stati distinti.
-9. Candidate, release candidate e pagina `published` sono stati distinti.
-10. Eventi e KPI vengono definiti prima dell’attivazione analytics.
-11. Nessun tracking non essenziale parte prima del consenso.
-12. Il repository è la memoria canonica.
+5. `partial` e `unknown` restano stati reali; non vengono trasformati in completezza o `false`.
+6. Il browser non accede direttamente a D1.
+7. Ogni mutation richiede identità verificata, state machine, audit e test.
+8. Astro è il frontend pubblico principale; React resta confinato alle island realmente interattive della Control Room.
+9. Preview, release candidate e pagina `published` restano distinti.
+10. Eventi e KPI vengono definiti prima dell'attivazione analytics.
+11. Nessun tracking non essenziale parte prima del consenso previsto.
+12. Il repository è la memoria canonica del progetto.
+13. Domanda SEO e monetizzazione non autorizzano claim senza evidence; allo stesso tempo l'infrastruttura non deve diventare un fine separato dal traffico e dalla revenue.
+
+---
 
 ## M0 — Fondazioni tecniche
 
-**Stato: completato, salvo ricontrollo definitivo `www → apex`.**
+**Stato: completato, salvo checkpoint `www → apex`.**
 
-- [x] custom Cloudflare Worker;
-- [x] D1 e migrazioni versionate;
-- [x] dominio principale;
-- [x] deploy Cloudflare versionato;
-- [x] workflow production manual-only e privo di mutation D1;
-- [x] Workflow, Container e AI Gateway;
-- [x] API manutenzione protette;
-- [x] vere 404 e noindex;
-- [ ] ricontrollare redirect `www`.
+Completati:
+
+- custom Cloudflare Worker;
+- D1 e migration versionate;
+- dominio apex;
+- Workflows, Container e AI Gateway;
+- API protette;
+- deploy production manual-only;
+- nessuna migration/mutation D1 implicita nel deploy;
+- vere 404 / noindex dove richiesto.
+
+Aperto:
+
+- ricontrollo definitivo `www → apex`.
 
 ## M1 — Qualità e osservabilità
 
-**Stato: quality gate operativo; osservabilità avanzata aperta.**
+**Stato: quality gate operativo.**
 
-- [x] documentazione canonica;
-- [x] audit e storico run;
-- [x] freshness;
-- [x] relevance zero deterministica;
-- [x] golden evaluation;
-- [x] topic-mismatch gate;
-- [ ] verifica live topic-mismatch sul prossimo run autorizzato;
-- [ ] health aggregato e log errori unificati.
+Completati:
+
+- documentazione canonica;
+- audit e run history;
+- freshness;
+- relevance zero deterministica;
+- golden evaluation;
+- topic-mismatch gate.
+
+Aperti:
+
+- osservabilità aggregata;
+- eventuale verifica live aggiuntiva topic-mismatch quando necessaria.
 
 ## M2 — Motore AI editoriale
 
 **Stato: nucleo v1 operativo.**
 
-- [x] recent demand e segnali;
-- [x] brief strutturati;
-- [x] claim atomici, fonti e verifiche;
-- [x] AI Gateway e Vertex AI;
-- [x] nessuna pubblicazione automatica;
-- [ ] deduplicazione semantica storica;
-- [ ] Trust Score evoluto.
+Completati:
+
+- recent demand e segnali;
+- brief strutturati;
+- claim atomici / fonti / verifiche;
+- AI Gateway + Vertex AI;
+- nessuna pubblicazione automatica.
+
+Aperti:
+
+- deduplicazione semantica storica;
+- trust/evaluation evoluti solo se dimostrano valore.
 
 ## M3 — Readiness e draft grounded
 
 **Stato: completato e verificato.**
 
-- [x] Page Readiness;
-- [x] evidence bundle versionato;
-- [x] publication eligibility separata dalla review eligibility;
-- [x] draft grounded con provenance field-level;
-- [x] materializzazione soltanto in `review`;
-- [x] primo draft approvato senza pubblicazione.
+- Page Readiness;
+- evidence bundle versionato;
+- review eligibility separata da publication eligibility;
+- draft grounded con provenance field-level;
+- primo draft approvato senza pubblicazione automatica.
 
 ## M4 — Control Room definitiva
 
-**Stato: letture complete; prima mutation live; mutation residue aperte.**
+**Stato: read-only completo; mutation residue aperte.**
 
-- [x] Astro shell, React island e shadcn/ui;
-- [x] Cloudflare Access e sessione mediata dal Worker;
-- [x] browser senza maintenance token;
-- [x] parità read-only con la legacy;
-- [x] decisione brief `proposed → accepted | dismissed`;
-- [x] audit catalog pilot privato e read-only;
-- [ ] conversione brief;
-- [ ] operazioni claim;
-- [ ] decisione draft;
-- [ ] eventuale retry queue;
-- [ ] rimozione legacy privata dopo parità mutabile.
+Completati:
 
-M4 non blocca il prodotto pubblico, ma la legacy privata resta finché serve come fallback operativo.
+- Astro shell + React island + shadcn/ui;
+- Cloudflare Access / JWT origin validation;
+- browser senza maintenance token;
+- parità read-only;
+- prime mutation con audit;
+- catalog pilot audit privato.
 
-## M5 — Frontend pubblico Astro e catalogo
+Aperti su branch separate:
+
+```text
+brief conversion
+→ claim operations
+→ draft decisions
+→ eventuale retry queue
+→ rimozione legacy privata dopo parità necessaria
+```
+
+M4 non blocca il first-money path pubblico.
+
+## M5 — Frontend pubblico Astro
 
 **Stato: completato e verificato live.**
 
-### M5.0–M5.4 — Preview e renderer pubblico
+Completati:
 
-- [x] shell pubblica Astro;
-- [x] homepage, listing e trust pages;
-- [x] renderer articolo grounded;
-- [x] preview `/astro-foundation*` noindex/no-store;
-- [x] desktop, mobile, tastiera e assenza overflow.
+- homepage, listing, trust pages e renderer articolo;
+- preview `/astro-foundation*` noindex/no-store;
+- metadata / Open Graph / JSON-LD;
+- route policy e cutover apex;
+- sitemap e robots;
+- published-only routing;
+- API, `/go/*`, Control Room ed execution plane preservati;
+- responsive, keyboard e overflow smoke.
 
-### M5.5 — SEO e routing parity
-
-```text
-PR #69  SEO contract
-PR #71  route policy — CI #329
-PR #73  canonical Astro parity — CI #350
-PR #75  sitemap/robots parity — CI #365
-```
-
-- [x] metadata, Open Graph e JSON-LD condivisi;
-- [x] current e target route matrix versionate;
-- [x] sitemap e robots condivisi e fail-closed;
-- [x] vere 404;
-- [x] API e redirect provider preservati.
-
-### M5.6 — Catalog pilot e audit remoto
-
-```text
-PR #77  catalog pilot foundation — CI #379
-PR #78  remote audit scope — CI #381
-PR #79  private audit route — CI #386
-```
-
-Risultato live:
-
-```text
-candidateCount: 1
-eligibleCount: 0
-selectedCount: 0
-excludedCount: 1
-```
-
-- [x] loader D1 read-only;
-- [x] gate deterministici e approvazioni umane;
-- [x] claim, fonti, provenance e freshness;
-- [x] cap massimo quattro;
-- [x] manifest versionato e vuoto;
-- [x] audit remoto protetto da Cloudflare Access;
-- [x] `esim-cina-senza-vpn` resta `review` e non pubblicabile.
-
-### M5.7 — Apex design cutover
-
-```text
-PR #81 — Cut over canonical public routes to Astro
-merge e62b570248bf97afaa3f283cfbb847ceea01f529
-CI finale #404
-PR #82 — closeout live
-merge 6735a05515c2155eb990a9315d6168d111b9261c
-CI #406
-```
-
-- [x] nuovo design Astro sull’apice;
-- [x] homepage e articolo canonico verificati;
-- [x] sitemap, robots e redirect provider verificati;
-- [x] API, Control Room ed execution plane backend-owned;
-- [x] pagine `review` e `draft` non esposte;
-- [x] preview namespaced preservata;
-- [x] nessuna publication capability o rimozione legacy nel cutover.
+Il frontend pubblico resta content-first e non diventa una SPA generale.
 
 ## M6 — Misurazione e indicizzazione
 
-**Stato: foundation CMP/GTM/GA4 completata, ripristinata dopo la regressione M7 #62 e ricertificata live end-to-end.**
+**Stato: foundation live e ricertificata.**
 
-Contratti versionati:
+Completati:
 
-```text
-docs/MEASUREMENT-CONSENT-SCOPE.md
-docs/CMP-SPIKE.md
-docs/MEASUREMENT-EVENT-DICTIONARY.md
-docs/IUBENDA-CONSENT-SPIKE-RESULT.md
-docs/PUBLIC-CONSENT-DEPLOY-RESULT-2026-07-26.md
-docs/GOOGLE-MEASUREMENT-ACCESS-RESULT-2026-07-26.md
-docs/GTM-GA4-FOUNDATION.md
-docs/PRODUCTION-RECOVERY-CHECKPOINT-2026-07-29.md
-```
+- iubenda CMP;
+- Consent Mode Basic;
+- GTM e GA4 consent-gated;
+- zero Google requests senza consenso alla Misurazione;
+- Search Console collegata;
+- sitemap canonica inviata una volta;
+- exporter GSC read-only;
+- production recovery e safety contract;
+- deploy production `workflow_dispatch` only.
 
-### Discovery e scope
-
-- [x] Consent Mode Basic scelto;
-- [x] Advanced Mode e cookieless pings esclusi;
-- [x] analytics-only, senza Ads o affiliate;
-- [x] dati vietati, URL sanitizzati ed eventi bounded definiti;
-- [x] redirect provider server-side D1 preservato;
-- [x] preview e Control Room escluse;
-- [x] PR documentale #83 mergiata — CI #408.
-
-### CMP foundation
+Stato corrente:
 
 ```text
-PR #84 — spike tecnico legacy
-merge 6e3b0047af67219af7429749003d86f36af61237
-CI finale #415
-
-PR #85 — remote embed reale e activation foundation
-merge f421d247e5a2ce250ba432e445f2aedf74af6f50
-CI finale #426
-
-PR #90 — deploy osservabile e contratto D1 production
-merge c29bf0cf31a66bf830cb74a7cf46d57a7f060c76
-CI #448
+GA4: live
+GTM: live
+Ads: disabled
+affiliate tracking: disabled
 ```
 
-- [x] boundary CMP server-only fail-closed;
-- [x] formato account reale come embed remoto UUID;
-- [x] un solo script iubenda sulle route canoniche indexable;
-- [x] preview, private e route tecniche escluse;
-- [x] deploy CMP-only riuscito;
-- [x] verifica HTTP live riuscita;
-- [x] banner reale confermato nel browser dall’utente;
-- [x] persistenza e revoca certificate;
-- [x] rete vendor e performance misurate;
-- [x] iubenda accettata per la foundation M6.
-
-### Infrastruttura Google verificata
+GSC iniziale:
 
 ```text
-GA4 property: 546858987
-GA4 stream: 15310040016
-Measurement ID: G-GWJ9YPPVJW
-GTM container: GTM-W3LSK9RZ
-Search Console: sc-domain:senzaroaming.it
+2026-07-24: 1 impression
+clicks: 0
 ```
 
-- [x] service account accessibile tramite impersonazione e ADC, senza key JSON;
-- [x] Analytics Admin API read-only;
-- [x] Tag Manager API read-only;
-- [x] Search Console API read-only;
-- [x] sitemap canonica inviata il 26 luglio 2026;
-- [x] nessuna Indexing API usata;
-- [ ] primi dati di scansione e indicizzazione da attendere senza submission ripetute.
+Nessuna Indexing API e nessuna submission ripetuta senza motivo.
 
-### GTM e GA4 foundation
+---
 
-Branch e PR storiche:
+## M7 — Intelligence SEO, Demand e First Euro
+
+**Stato: foundation live; M7.1 in corso.**
+
+### M7.0 — SEO foundation
+
+**Completata.**
+
+- Keyword Planner originale: 1.623 keyword uniche;
+- keyword ownership iniziale;
+- cannibalization baseline;
+- title/H1/promise baseline;
+- internal-linking baseline;
+- homepage, hub e `/migliore-esim` riallineati;
+- Search Console read-only disponibile.
+
+La foundation **non equivale a SEO completata**.
+
+### M7.1 — First Euro Demand Intelligence
+
+**Gate corrente — draft PR #111.**
+
+Obiettivo:
 
 ```text
-feat/public-gtm-ga4-foundation
-PR #91 — merged
+search demand
+→ cluster ownership
+→ money-page priority
+→ SERP differentiation
+→ evidence requirements
+→ first commercial slice
 ```
 
-- [x] contratto fail-closed `GTM_ID` + `GA4_MEASUREMENT_ID`;
-- [x] bootstrap GTM inerte `type=text/plain` prima del consenso;
-- [x] classificazione iubenda `purpose 4` — Misurazione;
-- [x] nessun fallback `noscript` pre-consenso;
-- [x] contesto pagina bounded;
-- [x] `page_location = origin + pathname`;
-- [x] guard anti-duplicazione;
-- [x] route escluse preservate;
-- [x] preparazione deterministica del config compilato;
-- [x] smoke pure, workerd e Chromium aggiunti;
-- [x] CI PR #91;
-- [x] workspace e container GTM pubblicati;
-- [x] Tag Assistant, Network e DebugView;
-- [x] rifiuto, consenso, reload e revoca;
-- [x] un solo `page_view` reale;
-- [x] controllo performance;
-- [x] deploy pubblico M6 e verifica live completati il 27 luglio 2026;
-- [x] recovery dopo M7 #62 completata con run `30439227471`;
-- [x] widget iubenda reale ricertificato post-recovery;
-- [x] `page_view` reale ricertificato su `/destinazioni`;
-- [x] zero richieste Google dopo revoca + reload ricertificato.
+Output richiesti/attuali:
 
-Il deploy automatico M7 del 28 luglio ha pubblicato configurazione M6 vuota. Il codice è rimasto fail-closed e privacy-safe. La pipeline è stata resa manual-only con PR #99, corretta negli smoke con PR #100 e #101 e il recovery è stato completato sul commit `f2df5cd6ef4bf4784205911e80786f55c28f3dd0`.
+- lettura reale del corpus Planner completo;
+- long-tail priority universe;
+- SERP competitor snapshot;
+- question/PAA/FAQ/community expansion;
+- top 10–20 execution order;
+- cannibalization v2;
+- internal linking v2;
+- first-money brief `/migliore-esim`;
+- first-new-page brief `/esim-europa`;
+- search-to-social angle bank;
+- GSC feedback loop quando il dataset diventa sostanziale.
 
-### Eventi iniziali
+Decisione iniziale:
 
 ```text
-page_view
-provider_redirect_intent
-consent_update (locale/debug, non GA4)
+#1 /migliore-esim   → first existing-URL money slice
+#2 /esim-europa     → first new evidence-native money page
 ```
 
-`provider_redirect_intent` resta differito anche dopo il checkpoint base `page_view`: richiede una branch e una decisione separate. `article_view` e `listing_view` non sono eventi separati.
+Il corpus completo mostra inoltre forte domanda device/compatibility: `/esim-iphone` viene trattata come traffic feeder, non come money page primaria.
 
-### Indicizzazione e contenuti
+### M7.2 — Search-to-Social Content Engine
 
-La sitemap è inviata e la prima keyword map è applicata alle cinque route M7. Non vengono ripetute submission né usata la Indexing API. Eventuali richieste manuali restano riservate alle sole URL prioritarie e devono partire da dati sostanziali, non dal primo snapshot incompleto.
+**Successivo alla prima money page, con test bounded.**
 
-### Ordine operativo corrente
+Target:
 
 ```text
-recovery CMP/measurement: chiusa
-→ osservazione dati reali senza nuove capacità
-→ nessuna submission ripetuta
-→ eventuali nuove capacità measurement solo con scope separato
+query / SERP question
+→ money page
+→ verified fact
+→ hook / tension / twist
+→ short / video / carousel
+→ human review
+→ publish
+→ click / comment / branded search
+→ new demand candidates
 ```
 
-## M7 — Intelligence SEO
+Principi:
 
-- [x] primo export query e pagine GSC read-only;
-- [x] keyword map per homepage, listing e `/migliore-esim`;
-- [x] riallineamento on-page delle cinque route prioritarie;
-- [x] deploy M7 live accidentale ma verificato;
-- [ ] rank tracking e competitor;
-- [ ] Trends e opportunity score v2;
-- [ ] audit tecnico, editoriale e GEO.
+- contenuto social deriva dalla stessa evidence della pagina;
+- community/aneddoti alimentano domanda e sentiment attribution, non performance truth;
+- tool come HeyGen/Hyperframes sono mezzi di produzione, non fonti;
+- nessuna pubblicazione social automatica nella prima slice.
+
+### M7.3 — Consumer-first public surfaces
+
+Dopo la prima money slice:
+
+```text
+/
+/destinazioni
+/confronti
+```
+
+vengono riallineate da foundation/dev-facing copy a superfici orientate a:
+
+```text
+destinazione
+→ giorni
+→ dati
+→ hotspot
+→ decision page / money page
+```
+
+Metodo, governance e provenance restano trust assets su `/metodo` e `/trasparenza`.
+
+---
+
+## Evidence Truth Engine — track parallela a M7
+
+**Stato: design + schema local-only completati.**
+
+Completati:
+
+```text
+#103 source universe
+#104 immutable snapshot spike
+#105 claims coverage
+#106 Italy evidence pack
+#107 Europe evidence pack
+#108 D1 mapping design
+#109 canonical closeout
+#110 upstream evidence D1 schema foundation
+```
+
+Schema versionato:
+
+```text
+0021_evidence_upstream_storage.sql
+```
+
+Tabelle:
+
+```text
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
+evidence_claim_candidates
+```
+
+**D1 remoto resta a `0020`.**
+
+Prossimi gate, separati:
+
+```text
+source reconciliation / onboarding
+→ idempotent importer
+→ explicit remote 0021 apply
+→ controlled ingest
+→ verification provenance bridge
+```
+
+Non costruire un terzo exploratory evidence pack salvo nuovo blocker strutturale.
+
+---
 
 ## M8 — Monetizzazione controllata
 
-- [ ] programmi affiliate ufficiali;
-- [ ] disclosure e configurazione riservata;
-- [ ] tracking privacy-first;
-- [ ] revenue score dopo dati sufficienti.
+**Stato: non ancora attiva; preparazione partner in corso.**
+
+Obiettivo iniziale:
+
+```text
+first verified money page
+→ first affiliate redirect
+→ first attributed sale
+→ first euro
+```
+
+Percorsi affiliate ufficiali identificati per:
+
+```text
+Airalo
+Holafly
+Ubigi
+```
+
+Le application possono procedere in parallelo a M7.1/Truth Engine.
+
+Prima di `AFFILIATE_MODE=enabled` devono esistere:
+
+1. almeno una money page consumer-ready;
+2. claim commerciali bounded e fresh;
+3. programma affiliate approvato;
+4. partner redirect/config validata;
+5. disclosure chiara;
+6. `provider_redirect_intent` measurement design;
+7. privacy/consent recheck;
+8. secret/config fuori dal repository;
+9. deploy production manuale autorizzato;
+10. live smoke di redirect e disclosure.
+
+Revenue scoring e ottimizzazione vengono dopo dati sufficienti, non prima del primo euro.
 
 ## M9 — Crescita e manutenzione
 
-- [ ] ciclo domanda settimanale;
-- [ ] refresh fonti scadute;
-- [ ] discovery cluster;
-- [ ] aggiornamento pagine in perdita;
-- [ ] espansione internazionale dopo stabilità italiana.
+**Stato: successivo alla prima vertical slice misurata.**
+
+- weekly demand loop;
+- GSC opportunities e query 8–20;
+- refresh fonti scadute;
+- commercial drift monitoring;
+- content refresh;
+- expansion dei cluster che dimostrano impressions/click/revenue;
+- pSEO soltanto dopo prova di qualità e differenziazione;
+- espansione internazionale dopo stabilità italiana.
+
+---
 
 ## Ordine operativo corrente
 
-### Track A — Control Room M4
+### Track A — Traffic & Money
 
 ```text
-conversione brief
-→ operazioni claim
-→ decisione draft
-→ eventuale retry queue
-→ rimozione legacy privata
+close #111 M7.1
+→ preview-first /migliore-esim consumer rewrite
+→ bounded commercial materialization
+→ affiliate/measurement gate
+→ explicit production deploy
+→ /esim-europa
+→ M7.2 search-to-social test
 ```
 
-### Track B — produzione e M6
+### Track B — Truth Engine
 
 ```text
-workflow production manual-only: chiuso
-→ recovery CMP/GTM/GA4: chiusa
-→ browser reject/grant/reload/revoke: ricertificato
-→ osservazione dati reali
+source reconciliation
+→ importer
+→ explicit remote 0021
+→ controlled ingest
+→ verification provenance
 ```
 
-Publication capability resta una branch separata e non è autorizzata da M6.
+### Track C — Operations
+
+```text
+M4 mutation residue
++ GSC/GA4 observation
++ www redirect checkpoint
+```
+
+I track A e B procedono in parallelo e si incontrano sui fatti pubblicabili della money page.
+
+## Stop conditions
+
+Non fare adesso:
+
+- mass pSEO;
+- crawler fleet senza necessità;
+- un terzo evidence pack esplorativo senza blocker;
+- ranking/provider winner universale;
+- affiliate activation senza disclosure/evidence/measurement;
+- remote migration implicita;
+- deploy automatico;
+- social publishing autonomo;
+- conversione FX implicita;
+- claim performance da community anecdotes.
+
+Il prossimo valore deve essere misurabile in termini di:
+
+```text
+impression
+→ click
+→ affiliate redirect
+→ sale
+→ revenue
+```
+
+senza abbassare il livello di verità commerciale.

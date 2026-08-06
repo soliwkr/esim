@@ -4,135 +4,99 @@ Ultimo aggiornamento: **6 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Closeout design evidence D1 — chiuso
+## Gate corrente — chiudere M7.1 First Euro Demand Intelligence
 
-Stato verificato:
+PR corrente:
 
 ```text
-PR #108 — Evidence → D1 schema mapping: merged
-merge/main: 9689dd20e1a5b477a16a7cd938788a4200fe0baf
-CI PR #586: success
-CI main #587: success
-ADR-039: accepted
-D1 remote: ancora fino a 0020
-runtime ingest: none
-deploy: none
+#111 — M7.1: start first-euro demand intelligence
+branch: research/m7-first-euro-demand-intelligence
 ```
 
-Il design accettato è:
+La branch è research/docs-only: nessun backend, D1 write, affiliate activation o deploy.
+
+Output già presenti:
 
 ```text
-source_registry
-→ evidence_capture_runs
-→ evidence_snapshots
-→ evidence_field_observations
-→ evidence_claim_candidates
-→ separate verification gate
-→ claim_verifications
+docs/M7-FIRST-EURO-DEMAND-INTELLIGENCE.md
+docs/research/M7-LONG-TAIL-CORPUS-SUMMARY.md
+docs/research/FIRST-MONEY-PAGE-BRIEF-MIGLIORE-ESIM.md
+docs/research/FIRST-MONEY-PAGE-BRIEF-ESIM-EUROPA.md
+research/seo/m7-first-euro-demand-seeds.csv
+research/seo/m7-long-tail-priority-universe.csv
+research/seo/m7-first-euro-money-pages.csv
+research/seo/m7-first-euro-execution-order.csv
+research/seo/m7-first-euro-serp-snapshot-2026-08-06.csv
+research/seo/m7-p0-question-expansion.csv
+research/seo/m7-first-euro-cannibalization-v2.csv
+research/seo/m7-internal-linking-v2.csv
+research/seo/m7-search-to-social-angle-bank.csv
 ```
 
-Boundary accettati:
+### Decisione first-money
 
-1. mapping lossless delle forme osservate nei pack Italia/Europa;
-2. preservation del capture-run context e della same capture window;
-3. source reconciliation fail-closed prima di ogni snapshot import;
-4. `source_registry` invariato come registry canonico;
-5. `editorial_claim_candidates` separata dall'evidence candidate;
-6. `plans` v1 escluso dall'ingest;
-7. source-native price senza `price_eur` implicito;
-8. `partial`, `unknown`, `not_applicable` first-class;
-9. network regionali non appiattiti;
-10. plan identity separata da URL, raw hash e prezzo;
-11. local `plan_type` non inferito dal solo `destination_coverage.scope=local`;
-12. `claim_verifications` mantenuta come current verified state downstream;
-13. verification provenance bridge separato.
-
-Documenti:
+Ordine iniziale:
 
 ```text
-docs/research/EVIDENCE-D1-SCHEMA-MAPPING.md
-docs/research/EVIDENCE-SOURCE-RECONCILIATION.md
-docs/research/evidence-d1-field-mapping.csv
+1  /migliore-esim        ← first existing-URL money slice
+2  /esim-europa          ← first new evidence-native money page
+3  /codice-sconto-holafly
+4  /airalo-recensioni
+5  /airalo-vs-holafly
+6  /esim-usa
+7  /esim-egitto
+8  /esim-giappone
+9  /esim-turchia
+10 /esim-albania
 ```
 
-## Gate corrente — schema upstream local-only
+L'ordine completo 1→20 è versionato in `m7-first-euro-execution-order.csv`.
 
-Aprire una **nuova branch** dal `main` aggiornato dopo PR #108.
+### Acceptance #111
 
-Scope esclusivo:
+Prima di ready/merge:
+
+1. corpus Planner originale 1.623 keyword realmente letto;
+2. long-tail commercial/destination/provider subset versionato;
+3. P0 SERP competitor snapshot completato;
+4. query/question expansion da SERP, provider FAQ e community acquisita;
+5. cluster ownership/cannibalization v2 definita;
+6. top 20 execution order definito;
+7. brief `/migliore-esim` completo;
+8. brief `/esim-europa` completo;
+9. evidence requirements per le prime money page espliciti;
+10. internal linking v2 definito;
+11. search-to-social angle bank definito;
+12. STATUS/NEXT allineati;
+13. CI completa verde sul final head.
+
+Google raw Autocomplete non è un gate bloccante se l'endpoint diretto non è disponibile nell'ambiente: non inventare suggestions. Il corpus viene espanso con Planner completo + SERP/query surfaces reali e può ricevere un successivo autocomplete capture riproducibile senza cambiare ownership automaticamente.
+
+## Dopo #111 — due track parallele
+
+Non tornare a una roadmap puramente backend.
+
+### Track A — Truth Engine minimo
+
+Prossima branch tecnica separata:
 
 ```text
-additive versioned migration
-→ evidence_capture_runs
-→ evidence_snapshots
-→ evidence_field_observations
-→ evidence_claim_candidates
-
-+ CHECK constraints
-+ foreign keys
-+ indexes
-+ JSON validity constraints
-+ immutability trigger smoke
-+ local migrated-fixture validation
+source reconciliation / onboarding
 ```
 
-Regola critica:
+Base:
 
 ```text
-schema-only
-local-only validation
+PR #110 merged
+0021 versionata
+D1 remote ancora 0020
 ```
 
-È ammesso versionare la migration successiva nel repository, ma **non applicarla al D1 remoto** in questo gate.
-
-Non includere:
-
-- importer;
-- HTTP fetch;
-- pack live;
-- source onboarding;
-- `source_registry` mutation;
-- `claim_verifications` mutation;
-- maintenance queue;
-- scheduler;
-- Worker/API;
-- remote migration;
-- deploy.
-
-### Acceptance del gate schema
-
-Prima del merge devono essere provati almeno:
-
-1. tutte e quattro le tabelle create su D1 locale migrato;
-2. FK coerenti con il design accettato;
-3. `coverage_state` vincolato a `observed | partial | unknown | not_applicable`;
-4. status candidate vincolati al dominio accettato;
-5. JSON columns rifiutano JSON invalido dove previsto;
-6. snapshot e field observations non possono essere mutate come scorciatoia per una nuova cattura;
-7. unique identity e indici permettono idempotency futura senza introdurre importer;
-8. fixture locale copre almeno local + regional, source-native EUR/USD e `partial/unknown/not_applicable`;
-9. nessuna tabella `plans` modificata;
-10. nessun `claim_verifications` write;
-11. nessun accesso remoto D1 necessario ai test;
-12. CI completa verde sul final head.
-
-### Remote D1
-
-Il D1 remoto resta a `0020` per tutta questa slice.
-
-Il deploy production non applica migration remote.
-
-Qualsiasi eventuale applicazione remota della nuova migration richiederà un gate separato ed esplicito dopo merge e verifica locale.
-
-## Gate seguente — source reconciliation / onboarding
-
-Solo dopo che lo schema upstream è stato provato localmente.
-
-Obiettivo:
+Target:
 
 ```text
-pack sourceAuditKey + canonical URL + role/provider
-→ exactly one source_registry row
+pack sourceAuditKey + canonical URL + provider/source role
+→ exactly one approved source_registry row
 ```
 
 Fail closed:
@@ -142,132 +106,208 @@ Fail closed:
 >1 match → source_registry_ambiguous
 ```
 
-L'importer non deve auto-creare source.
+Scope:
 
-La decisione su quali `candidate_new` del Claims Coverage Audit registrare in D1 richiede uno scope esplicito e revisionabile.
+- definire esattamente quali `candidate_new` dei pack Italy/Europe vengono registrate;
+- mutation source separata e auditabile se autorizzata;
+- nessun importer nella stessa branch;
+- nessuna remote migration implicita;
+- nessun `claim_verifications` write;
+- nessun deploy.
 
-## Gate seguente — idempotent pack importer
-
-Soltanto dopo source reconciliation.
-
-Target:
+Gate seguente:
 
 ```text
-pack.json + immutable artifacts
+idempotent fixture/artifact importer
 → capture run
 → snapshots
-→ field observations
+→ observations
 → pending evidence candidates
 ```
 
-Requisiti:
-
-- idempotency sulle content-addressed identities;
-- artifact verificabile contro hash;
-- candidate soltanto per evidence `observed` o per sotto-fatto `partial` realmente supportato;
-- `unknown` e `not_applicable` non diventano factual candidate;
-- nessun `claim_verifications` write;
-- nessun ranking;
-- nessun publication side effect.
-
-Il primo importer deve essere provato su artifact/fixture controllati prima di qualsiasi ingest live o remoto.
-
-## Gate seguente — verification provenance bridge
-
-Non automatizzare il passaggio a `claim_verifications` finché non esiste una relazione auditabile fra decisione e candidate evidence.
-
-Il target concettuale è:
+Soltanto dopo:
 
 ```text
-verification decision/revision
-↔ evidence candidate(s)
-↔ supports | contradicts
+remote 0021 apply — gate esplicito separato
+→ controlled ingest
+→ verification provenance bridge
 ```
 
-Il bridge deve preservare:
+### Track B — First Money UI
 
-- decision history;
-- source provenance;
-- scope;
-- freshness;
-- conflict handling;
-- completeness qualifiers.
+Dopo merge #111 può partire in parallelo una branch pubblica **preview-first** per `/migliore-esim`.
 
-`verification_status=verified` non può trasformare un sotto-fatto partial in completezza non provata.
-
-## Commercial materialization / `plans`
-
-Fuori dai primi tre gate.
-
-Non riusare `plans` v1 come scorciatoia per evidence ingest.
-
-Qualsiasi `plans-v2` o materialized commercial view richiede un design separato dopo che evidence storage + verification bridge sono provati.
-
-## Evidence exploration — chiusa
-
-Non aprire un terzo evidence pack esplorativo salvo un nuovo blocker strutturale emerso durante implementation.
-
-Verificato:
+Obiettivo:
 
 ```text
-PR #106 Italy local: merged, two live captures, semantic changes=0
-PR #107 Europe regional: merged, two live captures, semantic changes=0
+current dev/foundation copy
+→ consumer-first buying decision
 ```
 
-Il prossimo valore viene dalla materializzazione corretta del modello, non dall'aggiungere breadth prima dello schema.
+La preview può implementare:
 
-## M6 / measurement — osservazione, non nuova implementazione
+- hero orientato alla scelta;
+- scenario cards;
+- destinazione / giorni / dati / hotspot come percorso mentale;
+- evidence slots e states;
+- internal links v2;
+- disclosure placeholder non commerciale;
+- mobile/desktop/accessibility smoke.
 
-Continuare a osservare senza cambiare il container sulla base di pochi dati:
+Non può ancora:
 
-- `page_view` in GA4;
-- assenza eventi inattesi;
-- nessun traffico preview/Control Room;
-- Search Console quando il dataset diventa sostanziale.
+- pubblicare nuovi provider claims non verificati;
+- attivare affiliate links;
+- introdurre winner universale;
+- cambiare `AFFILIATE_MODE`;
+- fare deploy.
 
-Non aggiungere Ads, remarketing, affiliate tracking o nuovi eventi senza scope separato.
+La final materialization commerciale si collega alla Track A quando i fatti bounded sono disponibili.
 
-## Search Console
+## Affiliate applications — dipendenza esterna parallela
 
-Regole invarianti:
+L'utente sta aprendo:
 
-- non ripetere sitemap submission senza motivo;
+```text
+Airalo
+Holafly
+Ubigi
+```
+
+Quando arrivano approval / account details:
+
+- non incollare secret o token in chat/repository;
+- registrare soltanto lo stato non sensibile necessario;
+- partner IDs / tracking config restano in secret/config appropriata;
+- non attivare link in produzione senza disclosure + measurement gate.
+
+## First affiliate activation gate
+
+Prima di accendere monetizzazione:
+
+1. almeno una money page consumer-ready;
+2. facts commerciali bounded e fresh;
+3. affiliate account approvato;
+4. `/go/*` destination/redirect validato;
+5. disclosure pubblica chiara;
+6. `provider_redirect_intent` event design accettato;
+7. consent/privacy regression rechecked;
+8. `AFFILIATE_MODE` change esplicito;
+9. production deploy manuale autorizzato;
+10. live smoke del redirect + no secret leakage.
+
+## M7.2 — Search-to-Social
+
+Non aspettare una grande content library.
+
+La prima money page deve produrre un test bounded:
+
+```text
+1 money page
+→ 5–10 evidence-backed angles
+→ short/video/carousel drafts
+→ human review
+→ publication manuale
+→ click/comment/branded-search feedback
+```
+
+Principio:
+
+```text
+query
+→ tension
+→ fact
+→ twist
+→ CTA
+```
+
+Tool AI/video sono execution tools, non fonti di verità.
+
+Nessun social claim commerciale può superare il freshness/evidence standard della pagina da cui deriva.
+
+## Homepage e hub consumer-first
+
+Dopo la prima money slice, riallineare:
+
+```text
+/
+/destinazioni
+/confronti
+```
+
+Obiettivo:
+
+- meno linguaggio su workflow/gate/ownership;
+- più destinazioni, domande, scenari e CTA verso pagine utili;
+- metodo e governance spostati verso `/metodo` e `/trasparenza`;
+- nessuna cannibalizzazione delle specialist pages.
+
+Non fare un rewrite generale prima di avere almeno una destinazione commerciale reale verso cui inviare l'utente.
+
+## Search Console feedback loop
+
+Stato osservato:
+
+```text
+2026-07-24: 1 impression
+clicks: 0
+query/page rows: insufficienti
+```
+
+Per ora:
+
+- non cambiare ownership su GSC quasi vuota;
+- non ripetere sitemap submission;
 - non usare Indexing API;
-- non cambiare keyword ownership su snapshot iniziali poveri;
-- nuove decisioni SEO richiedono dati maturi e verifica live.
+- continuare a interrogare GSC quando il dataset diventa sostanziale.
 
-## Track M4 parallela
+Quando emergono query reali:
 
-Restano possibili branch ristrette per mutation residue:
+```text
+impressions without clicks
+positions 8–20
+unexpected query-page matches
+new long tails
+```
+
+→ alimentano M7.1/M7.2 e refresh priority.
+
+## M4 parallela
+
+Le mutation residue della Control Room possono continuare soltanto su branch ristrette e non devono bloccare il first-money path:
 
 ```text
 brief conversion
-→ claim operations
-→ draft decisions
-→ retry queue
+claim operations
+draft decisions
+retry queue
 ```
 
-La legacy privata resta fallback finché la parità operativa necessaria non è chiusa.
+Legacy privata resta fallback finché necessario.
 
-Non mischiare M4 con evidence schema work.
+## Checkpoint aperti
 
-## Checkpoint infrastrutturali aperti
+- final CI + ready/merge #111;
+- source reconciliation;
+- affiliate approvals;
+- preview-first `/migliore-esim` consumer rewrite;
+- first bounded evidence materialization;
+- affiliate/measurement gate;
+- first explicit production deploy money-ready;
+- `/esim-europa` come prima nuova money page;
+- ricontrollo definitivo `www → apex`.
 
-- ricontrollo definitivo redirect `www`;
-- osservazione post-lancio measurement/Search Console;
-- nessun deploy pubblico richiesto dal lavoro evidence corrente.
+## Freeze
 
-## Freeze immediato
-
-- niente applicazione remota della migration schema nella slice corrente;
-- niente runtime ingest;
-- niente auto-registration di source;
+- niente terzo evidence pack esplorativo salvo blocker strutturale;
+- niente remote `0021` apply senza gate esplicito;
+- niente importer prima di source reconciliation;
+- niente source auto-registration;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
-- niente regional network flattening;
-- niente ranking/provider winner;
-- niente pubblicazione automatica;
-- niente provider affiliate activation;
-- niente secret o UUID D1 nel repository;
-- niente token operativo negli URL;
-- niente rimozione legacy fuori da una fase dedicata.
+- niente ranking/provider winner universale;
+- niente mass pSEO;
+- niente affiliate secret versionato;
+- niente tracking non consentito;
+- niente deploy automatico;
+- niente pubblicazione autonoma dell'AI.

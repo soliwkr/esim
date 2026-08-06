@@ -1,0 +1,51 @@
+keyword,avg_monthly_searches,competition,competition_index,top_bid_low_eur,top_bid_high_eur,theme_heuristic,entity_heuristic,intent_heuristic,travel_relevance_0_3,monetization_potential_0_3,owner_suggestion,classification_note
+e sim svizzera,5000,Alta,0,0.98,4.64,destination,Svizzera,commercial,3,3,/esim-svizzera,Heuristic classification for prioritization; not a page-creation decision.
+esim usa,5000,Alta,0,1.08,4.57,destination,USA,commercial,3,3,/esim-usa,Heuristic classification for prioritization; not a page-creation decision.
+esim turchia,5000,Alta,0,0.96,4.19,destination,Turchia,commercial,3,3,/esim-turchia,Heuristic classification for prioritization; not a page-creation decision.
+esim stati uniti,5000,Alta,0,0.93,4.02,destination,USA,commercial,3,3,/esim-usa,Heuristic classification for prioritization; not a page-creation decision.
+esim giappone,5000,Alta,0,0.7,3.96,destination,Giappone,commercial,3,3,/esim-giappone,Heuristic classification for prioritization; not a page-creation decision.
+esim airalo,5000,Alta,0,0.75,3.78,provider,Airalo,commercial,3,3,,Heuristic classification for prioritization; not a page-creation decision.
+esim albania,5000,Alta,0,1.12,3.77,destination,Albania,commercial,3,3,/esim-albania,Heuristic classification for prioritization; not a page-creation decision.
+esim thailandia,5000,Alta,0,0.73,3.61,destination,Thailandia,commercial,3,3,/esim-thailandia,Heuristic classification for prioritization; not a page-creation decision.
+migliore esim,5000,Alta,0,0.85,3.36,comparison,,commercial,2,3,/migliore-esim,Heuristic classification for prioritization; not a page-creation decision.
+migliori esim,5000,Alta,0,0.85,3.36,comparison,,commercial,2,3,/migliore-esim,Heuristic classification for prioritization; not a page-creation decision.
+holafly codice sconto,5000,Alta,0,1.0,3.22,provider,Holafly,transactional,3,3,/codice-sconto-holafly,Heuristic classification for prioritization; not a page-creation decision.
+codice sconto holafly,5000,Alta,0,1.05,3.2,provider,Holafly,transactional,3,3,/codice-sconto-holafly,Heuristic classification for prioritization; not a page-creation decision.
+e sim egitto,5000,Alta,0,0.78,3.11,destination,Egitto,commercial,3,3,/esim-egitto,Heuristic classification for prioritization; not a page-creation decision.
+esim egitto,5000,Alta,0,0.78,3.11,destination,Egitto,commercial,3,3,/esim-egitto,Heuristic classification for prioritization; not a page-creation decision.
+sim virtuale estero,5000,Alta,0,0.6,2.89,travel_general,,mixed,3,2,/esim-estero,Heuristic classification for prioritization; not a page-creation decision.
+sim virtuali estero,5000,Alta,0,0.6,2.89,travel_general,,mixed,3,2,,Heuristic classification for prioritization; not a page-creation decision.
+esim estero,5000,Alta,0,0.61,2.86,travel_general,,mixed,3,2,/esim-estero,Heuristic classification for prioritization; not a page-creation decision.
+airalo recensioni,5000,Alta,0,0.62,2.75,provider,Airalo,commercial,3,3,/airalo-recensioni,Heuristic classification for prioritization; not a page-creation decision.
+esim holafly,5000,Alta,0,0.8,2.66,provider,Holafly,commercial,3,3,,Heuristic classification for prioritization; not a page-creation decision.
+esim internazionale,5000,Alta,0,0.66,2.59,travel_general,,mixed,3,2,/esim-estero,Heuristic classification for prioritization; not a page-creation decision.
+airalo come funziona,5000,Alta,0,0.47,2.27,provider,Airalo,commercial,3,3,/airalo-come-funziona,Heuristic classification for prioritization; not a page-creation decision.
+holafly come funziona,5000,Alta,0,0.72,2.22,provider,Holafly,commercial,3,3,/holafly-come-funziona,Heuristic classification for prioritization; not a page-creation decision.
+travelesim,500,Alta,0,1.15,5.9,provider,Travel eSIM,commercial,3,3,,Heuristic classification for prioritization; not a page-creation decision.
+e sim online,500,Alta,0,1.68,5.53,plan_feature,,mixed,2,2,/esim-online,Heuristic classification for prioritization; not a page-creation decision.
+e sim thailandia,500,Alta,0,0.94,4.99,destination,Thailandia,commercial,3,3,/esim-thailandia,Heuristic classification for prioritization; not a page-creation decision.
+e sim america,500,Alta,0,1.01,4.96,destination,USA,commercial,3,3,/esim-usa,Heuristic classification for prioritization; not a page-creation decision.
+airalo telefoni compatibili,500,Media,0,0.9,4.94,provider,Airalo,commercial,3,3,/esim-telefoni-compatibili,Heuristic classification for prioritization; not a page-creation decision.
+e sim albania,500,Alta,0,1.49,4.83,destination,Albania,commercial,3,3,/esim-albania,Heuristic classification for prioritization; not a page-creation decision.
+esim zanzibar,500,Alta,0,0.89,4.79,destination,Zanzibar,commercial,3,3,/esim-zanzibar,Heuristic classification for prioritization; not a page-creation decision.
+esim dubai,500,Alta,0,1.12,4.76,destination,Emirati Arabi Uniti,commercial,3,3,/esim-dubai-emirati,Heuristic classification for prioritization; not a page-creation decision.
+esim online,500,Alta,0,1.47,4.46,plan_feature,,transactional,2,3,/esim-online,Heuristic classification for prioritization; not a page-creation decision.
+esim per usa,500,Alta,0,0.95,4.11,destination,USA,commercial,3,3,/esim-usa,Heuristic classification for prioritization; not a page-creation decision.
+esim repubblica dominicana,500,Alta,0,0.82,4.04,destination,Repubblica Dominicana,commercial,3,3,/esim-repubblica-dominicana,Heuristic classification for prioritization; not a page-creation decision.
+esim per stati uniti,500,Alta,0,0.94,4.02,destination,USA,commercial,3,3,/esim-usa,Heuristic classification for prioritization; not a page-creation decision.
+e sim estero,500,Alta,0,0.88,3.98,travel_general,,mixed,3,2,,Heuristic classification for prioritization; not a page-creation decision.
+esim oman,500,Alta,0,1.03,3.88,destination,Oman,commercial,3,3,/esim-oman,Heuristic classification for prioritization; not a page-creation decision.
+esim viaggio,500,Alta,0,0.74,3.87,travel_general,,mixed,3,2,,Heuristic classification for prioritization; not a page-creation decision.
+esim 5g,500,Alta,0,0.91,3.83,plan_feature,,informational,2,2,,Heuristic classification for prioritization; not a page-creation decision.
+e sim airalo,500,Alta,0,0.88,3.6,provider,Airalo,commercial,3,3,,Heuristic classification for prioritization; not a page-creation decision.
+sim usa e getta,500,Alta,0,0.13,3.48,destination,USA,commercial,3,3,/esim-usa,Heuristic classification for prioritization; not a page-creation decision.
+esim per egitto,500,Alta,0,0.75,3.28,destination,Egitto,commercial,3,3,/esim-egitto,Heuristic classification for prioritization; not a page-creation decision.
+airalo albania,500,Alta,0,0.68,3.27,provider,Airalo,commercial,3,3,/esim-albania,Heuristic classification for prioritization; not a page-creation decision.
+migliori esim estero,500,Alta,0,0.77,3.26,comparison,,commercial,3,3,/esim-estero,Heuristic classification for prioritization; not a page-creation decision.
+holafly trustpilot,500,Media,0,1.76,3.24,provider,Holafly,commercial,3,3,,Heuristic classification for prioritization; not a page-creation decision.
+esim per l estero,500,Alta,0,0.7,3.06,travel_general,,mixed,3,2,,Heuristic classification for prioritization; not a page-creation decision.
+recensioni holafly,500,Alta,0,1.0,3.04,provider,Holafly,commercial,3,3,/holafly-recensioni,Heuristic classification for prioritization; not a page-creation decision.
+esim per estero,500,Alta,0,0.67,3.02,travel_general,,mixed,3,2,/esim-estero,Heuristic classification for prioritization; not a page-creation decision.
+airalo esim recensioni,500,Alta,0,0.69,2.99,provider,Airalo,commercial,3,3,/airalo-recensioni,Heuristic classification for prioritization; not a page-creation decision.
+ubigi recensioni,500,Alta,0,0.49,2.94,provider,Ubigi,commercial,3,3,/ubigi-recensioni,Heuristic classification for prioritization; not a page-creation decision.
+esim emirati arabi,500,Alta,0,0.71,2.76,destination,Emirati Arabi Uniti,commercial,3,3,/esim-dubai-emirati,Heuristic classification for prioritization; not a page-creation decision.
