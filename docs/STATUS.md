@@ -2,7 +2,7 @@
 
 Data di riferimento: **6 agosto 2026**.
 
-Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato delle singole milestone.
+Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato.
 
 ## Stato sintetico
 
@@ -11,86 +11,44 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 | Dominio principale | Operativo | `https://senzaroaming.it` serve Astro |
 | Dominio `www` | Da ricontrollare | redirect implementato; checkpoint definitivo ancora aperto |
 | Worker | Operativo | un solo custom Worker; deploy production manual-only |
-| D1 remoto | Operativo fino a `0020` | `0021` è versionata nel repository ma **non applicata al remoto** |
+| D1 remoto | Operativo fino a `0020` | `0021` è versionata ma **non applicata al remoto** |
 | Workflow / Container / AI | Operativi | recent-demand, Container e AI Gateway già verificati |
 | Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione autonoma dell'AI |
-| Control Room nuova | Operativa | read-only completo + prime mutation; legacy ancora fallback |
+| Control Room | Operativa | read-only completo + prime mutation; legacy ancora fallback |
 | Frontend pubblico Astro | Live | homepage, hub, trust pages, articoli published-only, sitemap/robots |
-| M7 SEO foundation | Live | ownership e on-page baseline applicate |
-| M7.1 First Euro | Draft research #111 | demand intelligence, money-page priority e search-to-social in corso |
+| M7.0 SEO foundation | Live | ownership e on-page baseline applicate |
+| M7.1 First Euro | Mappa principale mergiata | PR #111 merged; A–Z/PAA enrichment in draft PR #113 |
 | Evidence packs | Verificati live | Italy #106 + Europe #107, due capture ciascuno |
 | Upstream evidence D1 | Schema locale versionato | #108 design + #110 `0021` schema local-only |
 | Search Console | Collegata | 1 impression osservata il 24 luglio; dataset ancora troppo piccolo |
 | CMP / GTM / GA4 | Live e consent-gated | Basic Consent Mode ricertificato |
-| Affiliazioni | Disabilitate nel sito | application Airalo/Holafly/Ubigi in preparazione; `AFFILIATE_MODE=disabled` |
+| Affiliazioni | Disabilitate nel sito | application Airalo/Holafly/Ubigi in parallelo; `AFFILIATE_MODE=disabled` |
 | Google Ads / remarketing | Disabilitati | fuori scope |
 
 ## Main corrente
 
-Ultimo merge verificato:
+Ultimo merge:
 
 ```text
-PR #110 — upstream evidence D1 schema foundation
-merge/main: df938858cdfe1f34a7560bf7d49c363222ece8c4
-CI main #592: success
+PR #111 — M7.1 First Euro Demand Intelligence
+merge/main: cf6c440981fecfbae5bd77b6ee675015218d0074
 ```
 
-PR #110 ha introdotto nel repository la migration versionata:
+La prima CI post-merge #610 non ha eseguito il codice perché GitHub Actions ha fallito durante `Set up job` con `Service Unavailable`; il rerun successivo è stato cancellato dal runner. Un nuovo rerun infrastrutturale è stato richiesto durante la PR #113. Questo non viene trattato come regressione applicativa.
 
-```text
-migrations/0021_evidence_upstream_storage.sql
-```
+## Frontend pubblico — stato commerciale
 
-con tabelle:
-
-```text
-evidence_capture_runs
-evidence_snapshots
-evidence_field_observations
-evidence_claim_candidates
-```
-
-Verificato localmente:
-
-- CHECK/FK/JSON constraints;
-- coverage state `observed | partial | unknown | not_applicable`;
-- immutabilità di run/snapshot/observation;
-- candidate eligibility soltanto da evidence supportata;
-- local + regional fixture;
-- source-native EUR/USD;
-- nessuna mutation di `source_registry`, `claim_verifications` o `plans` v1.
-
-**Il D1 remoto resta a `0020`.** Nessuna remote migration o ingest è stato eseguito.
-
-## Architettura live
-
-```text
-Cloudflare Assets
-  ├── /_astro/* → static assets
-  └── /*         → custom Worker
-                       ├── Astro pubblico
-                       ├── Astro + React island Control Room
-                       ├── backend/API/provider redirects
-                       ├── D1
-                       ├── Workflows / Container
-                       └── AI Gateway → Vertex AI
-```
-
-Il browser non accede direttamente a D1. API, `/go/*`, legacy Control Room ed execution plane restano backend-owned.
-
-## Frontend pubblico — problema commerciale attuale
-
-Il sito è tecnicamente live e indicizzabile, ma il prodotto pubblico non è ancora money-ready.
+Il sito è tecnicamente live e indicizzabile, ma **non è ancora money-ready**.
 
 Stato reale:
 
 - homepage e hub hanno struttura UX/SEO valida;
-- parte del copy racconta ancora workflow, ownership e gate interni più del problema del viaggiatore;
+- parte del copy racconta ancora workflow/gate interni più del problema del viaggiatore;
 - `/migliore-esim` è live ma provider-neutral e senza CTA affiliate;
 - affiliazioni e provider redirect measurement commerciale restano disabilitati;
 - le prime money page specialistiche non sono ancora pubblicate.
 
-La prossima trasformazione pubblica è quindi:
+Trasformazione richiesta:
 
 ```text
 foundation/dev-facing copy
@@ -101,44 +59,24 @@ foundation/dev-facing copy
 
 ## M7.1 — First Euro Demand Intelligence
 
-Draft PR corrente:
+PR #111 è mergiata e ha versionato:
 
-```text
-PR #111 — M7.1: start first-euro demand intelligence
-branch: research/m7-first-euro-demand-intelligence
-```
-
-La ricerca ha già acquisito:
-
-- il workbook Keyword Planner originale con **1.623 keyword uniche**;
-- baseline #95 e page ownership esistente;
-- Search Console live via GSC Wizard;
-- SERP competitor italiane e internazionali recenti;
-- provider/affiliate official surfaces;
-- question expansion da SERP, FAQ e community;
+- workbook Keyword Planner originale con **1.623 keyword uniche** realmente analizzato;
+- long-tail priority universe;
+- SERP competitor snapshot;
+- question expansion da SERP, FAQ provider e community;
 - cannibalization v2;
 - internal linking v2;
 - search-to-social angle bank;
-- page brief `/migliore-esim`;
-- page brief `/esim-europa`;
+- brief `/migliore-esim`;
+- brief `/esim-europa`;
 - execution order 1→20.
 
-Checkpoint GSC osservato:
+Decisione first-money:
 
 ```text
-2026-07-24: impressions=1, clicks=0
-query+page rows utili: 0
-```
-
-Il dataset GSC è troppo piccolo per governare la roadmap. Resta feedback loop futuro, non fonte primaria della priorità attuale.
-
-### Ordine first-money attuale
-
-Le prime decisioni della #111 sono:
-
-```text
-1  /migliore-esim
-2  /esim-europa
+1  /migliore-esim        ← first existing-URL money slice
+2  /esim-europa          ← first new evidence-native money page
 3  /codice-sconto-holafly
 4  /airalo-recensioni
 5  /airalo-vs-holafly
@@ -155,30 +93,99 @@ L'ordine completo 1→20 vive in:
 research/seo/m7-first-euro-execution-order.csv
 ```
 
-`/esim-iphone` entra come forte traffic feeder, non come money page primaria.
+`/esim-iphone` resta un forte traffic feeder, non una money page primaria.
 
-### Primo URL monetizzabile
+## PR #113 — Autocomplete A–Z + PAA / related enrichment
 
-`/migliore-esim` è il percorso più rapido perché:
+Branch:
 
-- esiste già ed è published;
-- Planner primary `migliore esim` è nel bucket 5.000;
-- il cluster baseline è commerciale;
-- può ricevere scenario cards e CTA senza creare una nuova route;
-- Italy/Europe evidence permette bounded use cases, ma non un winner universale.
+```text
+research/m7-autocomplete-paa-expansion
+```
 
-### Prima nuova money page
+Collector:
 
-`/esim-europa` è la prima nuova pagina evidence-native perché:
+```text
+scripts/seo-demand-expand.py
+```
 
-- la SERP è commercialmente attiva;
-- il pack Europa #107 esiste già per Airalo/Holafly/Ubigi;
-- coverage, validity, data model, FUP, hotspot, activation e source-native currency sono già state modellate;
-- il vantaggio previsto non è catalogue breadth, ma scenario + provenance + freshness + `partial/unknown` espliciti.
+Capture reale:
+
+```text
+workflow run: 31121790996
+seed: 17
+request: 476
+autocomplete rows: 3659
+expanded unique queries: 2829
+organic rows: 153
+peopleAlsoAsk rows: 0
+relatedSearches rows: 0
+errors: 0
+```
+
+Il collector ha eseguito per ogni seed:
+
+```text
+seed
+seed + a
+...
+seed + z
+```
+
+con `gl=it`, `hl=it`, `location=Italy`.
+
+Artifact:
+
+```text
+normalized id: 8974174736
+normalized sha256: 67387293e0b29d1cde0499d9daf5d3ddd16b9c8adb62ff256c7421067fa94e24
+raw id: 8974174775
+raw sha256: de78b47f43415d0b3fd04e368e2957f8d1c267e516c1cdbbbb81ab6f9fcec031
+```
+
+`SERPER_API_KEY` è rimasta esclusivamente GitHub Actions Secret e mascherata nei log.
+
+### PAA / related zero-state
+
+Un diagnostic separato ha verificato che il parser `relatedSearches` funziona live:
+
+```text
+control-us q=google:
+  relatedSearches=8
+  peopleAlsoAsk=0
+
+migliore esim IT:
+  relatedSearches=0
+  peopleAlsoAsk=0
+
+esim europa IT:
+  relatedSearches=0
+  peopleAlsoAsk=0
+
+come funziona esim IT:
+  relatedSearches=0
+  peopleAlsoAsk=0
+```
+
+Quindi le PAA non vengono inventate. Nella capture corrente restano **zero-state osservato**.
+
+### Nuovi segnali utili
+
+- `esim hotspot`: 227 suggestion uniche, quasi interamente setup/tethering/problem intent → candidate traffic/problem feeder, non money page primaria;
+- `esim usa`: forte domanda su voice/calls/local number oltre ai dati → nuovo evidence requirement per la futura USA page;
+- `esim europa`: unlimited, durata, dati, prezzo e voice/number emergono come dimensioni esplicite;
+- Airalo/Holafly: attivazione, troubleshooting, hotspot, compatibilità, review e coupon confermano la necessità di intent separation;
+- `esim iphone`: 260 suggestion uniche, quasi interamente model/compatibility/setup → manufacturer-first feeder.
+
+Documento risultato:
+
+```text
+docs/research/M7-AUTOCOMPLETE-PAA-RESULT-2026-08-06.md
+```
 
 ## Evidence supply chain
 
-Contratto verificato:
+Contratto:
 
 ```text
 source_registry
@@ -193,55 +200,50 @@ source_registry
 → separate human publication gate
 ```
 
-### Verificato live
+D1 remoto resta a `0020`.
+
+Schema `0021` è soltanto versionato/local-tested e comprende:
 
 ```text
-#104 immutable snapshot spike
-#106 Italy local pack
-#107 Europe regional pack
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
+evidence_claim_candidates
 ```
-
-Italy e Europe sono state catturate due volte con raw identity distinta e semantic fingerprint stabile.
 
 Regole invarianti:
 
 - missing evidence != false;
 - `partial` non diventa completezza;
-- aggregate country count non prova country membership;
+- aggregate country count non prova membership;
 - source-native price non viene convertito implicitamente;
 - hotspot allowed e share limit restano separati;
 - technology != measured performance;
-- source URL/prezzo/raw hash non sono plan identity;
 - ranking non viene calcolato dal layer evidence.
 
-## Gate truth-engine successivo
-
-Dopo il merge della #111, il prossimo gate tecnico è **source reconciliation / onboarding**:
+## Truth Engine — prossimo gate tecnico
 
 ```text
-pack sourceAuditKey + canonical URL + provider/source role
-→ exactly one approved source_registry row
-```
-
-Fail closed:
-
-```text
-0 match  → source_not_registered
->1 match → source_registry_ambiguous
-```
-
-Soltanto dopo:
-
-```text
-idempotent importer
-→ controlled remote schema apply (gate separato)
+source reconciliation / onboarding
+→ idempotent importer
+→ explicit remote 0021 apply
 → controlled ingest
 → verification provenance bridge
 ```
 
-Non costruire un crawler o un terzo exploratory evidence pack salvo un nuovo blocker strutturale.
+Source reconciliation deve essere fail-closed:
 
-## Monetizzazione — stato
+```text
+sourceAuditKey + canonical URL + provider/source role
+→ exactly one approved source_registry row
+
+0 match  → source_not_registered
+>1 match → source_registry_ambiguous
+```
+
+Nessun auto-registration URL.
+
+## Monetizzazione
 
 Il sito resta:
 
@@ -250,23 +252,24 @@ AFFILIATE_MODE=disabled
 affiliate tracking=disabled
 ```
 
-Sono stati verificati percorsi affiliate ufficiali per Airalo, Holafly e Ubigi. L'utente sta aprendo le relative application mentre #111 prosegue.
+Le application partner Airalo/Holafly/Ubigi procedono in parallelo.
 
-Affiliate activation richiederà separatamente:
+Prima dell'attivazione affiliate servono:
 
-- account/provider approval;
-- partner links/config riservata;
-- disclosure pubblica;
-- redirect destination validation;
-- `provider_redirect_intent` measurement scope;
-- privacy/consent recheck;
-- explicit production deploy.
-
-Nessun partner ID, token o secret viene versionato.
+1. almeno una money page consumer-ready;
+2. facts commerciali bounded e fresh;
+3. affiliate account approvato;
+4. `/go/*` destination/redirect validato;
+5. disclosure pubblica;
+6. `provider_redirect_intent` measurement scope;
+7. privacy/consent recheck;
+8. partner secret/config fuori dal repository;
+9. deploy production manuale autorizzato;
+10. live smoke redirect + disclosure.
 
 ## Search-to-Social
 
-M7.1 definisce un futuro M7.2:
+Direzione M7.2:
 
 ```text
 search demand
@@ -275,59 +278,37 @@ search demand
 → creative angle
 → short / carousel / video
 → human review
-→ publish
+→ publish manuale
 → click/comment/branded search
 → new demand candidates
 ```
 
-L'AI può produrre draft creativi. Non pubblica autonomamente e non può trasformare aneddoti community in performance truth.
-
-## Production e measurement
-
-Pipeline production invariata:
-
-```text
-workflow_dispatch
-→ fail-closed preflight
-→ npm run deploy
-→ D1 binding read-only
-→ no implicit remote migration
-→ live smoke
-```
-
-Measurement attuale:
-
-```text
-CMP: iubenda
-Consent Mode: Basic
-GTM: live
-GA4: live
-Ads: disabled
-affiliate event: not active
-```
+Tool AI/video sono strumenti di produzione, non fonti di verità.
 
 ## Checkpoint aperti
 
-- chiudere e mergeare #111 dopo final CI;
+- final CI + closeout #113;
 - source reconciliation / onboarding;
-- affiliate application result Airalo/Holafly/Ubigi;
-- first-money implementation di `/migliore-esim`;
-- prima nuova page `/esim-europa` dopo bounded evidence materialization;
-- consumer-first rewrite di homepage/hub;
-- provider redirect measurement + affiliate gate separati;
+- affiliate approval Airalo/Holafly/Ubigi;
+- preview-first `/migliore-esim` consumer rewrite;
+- first bounded evidence materialization;
+- affiliate/measurement gate;
+- first explicit production deploy money-ready;
+- `/esim-europa` come prima nuova money page;
+- consumer-first rewrite homepage/hub dopo la prima money slice;
 - ricontrollo definitivo `www → apex`;
-- osservazione GSC/GA4 con dati più maturi.
+- GSC/GA4 feedback quando il dataset diventa sostanziale.
 
 ## Freeze
 
 - niente deploy implicito;
 - niente remote migration implicita;
 - niente importer prima di source reconciliation;
-- niente auto-registration fonti;
+- niente source auto-registration;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
 - niente provider winner universale;
-- niente pubblicazione autonoma AI;
-- niente affiliate secrets nel repository;
-- niente token operativi negli URL;
-- niente mass pSEO prima della prima vertical slice misurata.
+- niente mass pSEO;
+- niente affiliate secret versionato;
+- niente tracking non consentito;
+- niente pubblicazione autonoma dell'AI.
