@@ -1,34 +1,51 @@
 # Stato del progetto
 
-Data di riferimento: **3 agosto 2026**.
+Data di riferimento: **6 agosto 2026**.
 
-Questo documento fotografa lo stato operativo reale di Senza Roaming.
+Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato delle singole milestone.
 
 ## Stato sintetico
 
 | Area | Stato | Nota |
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve Astro |
-| Dominio `www` | Da ricontrollare | redirect implementato, checkpoint definitivo aperto |
+| Dominio `www` | Da ricontrollare | redirect implementato; checkpoint definitivo ancora aperto |
 | Worker e D1 | Operativi | un solo custom Worker; D1 remoto fino a `0020` |
 | Workflow e Container | Operativi | ciclo recent-demand verificato end-to-end |
 | AI Gateway e Vertex AI | Operativi | percorso AI controllato |
 | Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione automatica |
-| Control Room nuova | Operativa | read-only completo; prima mutation live |
+| Control Room nuova | Operativa | read-only completo e mutation già introdotte per slice |
 | Control Room legacy | Transitoria | fallback delle mutation residue |
 | Frontend pubblico Astro | Live | M5.7 chiusa e verificata |
-| M7 on-page foundation | Live | homepage e tre hub riallineati alla keyword ownership |
-| M7 `/migliore-esim` | Live | ponte legacy slug-bound e guida decisionale senza ranking |
+| M7 on-page foundation | Live | homepage, hub e `/migliore-esim` riallineati senza ranking commerciale |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
-| Catalog pilot | Audit live completato | 1 candidate, 0 eligible, 0 selected |
-| Evidence supply chain | Coverage audit in closeout | source universe chiuso; snapshot live Ubigi verificato; 54 provider×field rows; nessun provider ancora comparison-ready |
-| iubenda CMP | Live e ricertificata | ripristinata dopo la regressione M7 #62; reject/grant/reload/revoke verificati nel browser reale |
-| Google access | Verificato | GA4, GTM e Search Console via service account impersonato |
-| Search Console | Primo export live verificato | 26–27 luglio: 0 click, 0 impression, dati freschi incompleti |
-| GTM container M6 | Pubblicato | versione 2, 7 variabili, 1 trigger, 1 tag |
-| GTM e GA4 produzione | Live e consent-gated | ripristinati; `page_view` reale e zero Google dopo revoca verificati |
-| Google Ads e remarketing | Disabilitati | fuori scope M6 |
-| Affiliazioni | Disabilitate | nessun tracking o link remunerato attivo |
+| Catalog pilot | Audit live completato | release candidate governate dai gate; nessuna pubblicazione implicita |
+| Evidence supply chain | Evidence exploration chiusa; schema mapping in draft | #106 Italy + #107 Europe verificati live; PR #108 design-only |
+| iubenda CMP | Live e ricertificata | reject/grant/reload/revoke verificati |
+| GTM e GA4 | Live e consent-gated | Basic Consent Mode; `page_view` verificato |
+| Search Console | Collegata | exporter read-only verificato; primi snapshot iniziali ancora poveri |
+| Google Ads / remarketing | Disabilitati | fuori scope |
+| Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
+| Production deploy | Manual-only | nessuna migration o mutation D1 implicita nel deploy |
+
+## Main corrente
+
+Ultimo merge verificato prima della branch di design:
+
+```text
+PR #107 — Europe regional comparison evidence pack
+merge/main: 4480141d8debcff4ebe0538251ed1d1af9a81597
+CI main #578: success
+```
+
+La branch corrente di design nasce esattamente da quel commit:
+
+```text
+design/evidence-d1-schema-mapping
+PR #108 — draft
+```
+
+PR #108 non contiene migration, runtime ingest o deploy.
 
 ## Architettura live
 
@@ -46,54 +63,87 @@ Cloudflare Assets
 
 Astro possiede home, listing, trust pages, articoli published-only, sitemap, robots, 404, preview e shell Control Room. API, `/go/*`, legacy privata ed execution plane restano backend-owned.
 
-## M5 — frontend pubblico
+## Frontend pubblico e SEO
+
+Stato verificato:
+
+- apex su Astro;
+- homepage live;
+- listing live;
+- trust pages live;
+- `/migliore-esim` live con metodo decisionale ma senza provider winner, prezzi specifici o ranking automatico;
+- sitemap e robots live;
+- preview isolate dalle canonical;
+- pagine pubbliche alimentate soltanto da contenuti `published` o bridge legacy esplicitamente bounded;
+- nessun accesso browser diretto a D1.
+
+La baseline M7 conserva ownership esplicita per homepage e hub e non autorizza nuove pagine commerciali prive di evidence verificata.
+
+## Control Room e governance editoriale
+
+Il modello resta:
 
 ```text
-PR #81 — apex cutover
-merge e62b570248bf97afaa3f283cfbb847ceea01f529
-CI finale #404
-
-PR #82 — live closeout
-merge 6735a05515c2155eb990a9315d6168d111b9261c
-CI #406
+segnale
+→ brief
+→ accettazione umana
+→ claim atomici
+→ verifica
+→ evidence bundle
+→ Page Readiness
+→ draft grounded
+→ decisione umana sul draft
+→ gate di pubblicazione separato
 ```
 
-Verificato live:
+Regole invarianti:
 
-- homepage con nuovo design;
-- articolo `/migliore-esim`;
-- listing e trust pages;
-- `/sitemap.xml`;
-- `/robots.txt`;
-- redirect `/go/airalo`;
-- navigazione e rendering operativi.
+- AI non pubblica autonomamente;
+- draft approvato != pagina pubblicabile;
+- evidence insufficiente, contraddetta o scaduta non alimenta testo fattuale;
+- Control Room resta privata, `noindex` e `no-store`;
+- identità operativa deriva da Cloudflare Access/Worker, non da token nel browser o negli URL;
+- audit delle mutation resta append-only.
 
-Homepage, listing e `/migliore-esim` includono il riallineamento M7 pubblicato automaticamente dal run di deploy #62 sul merge commit `abfe7e331435ed05660bcece005f7105232644c8`.
+## Production e measurement
 
-## Catalog pilot
+Pipeline production:
 
 ```text
-candidateCount: 1
-eligibleCount: 0
-selectedCount: 0
-excludedCount: 1
+workflow_dispatch soltanto
+→ preflight fail-closed
+→ npm run deploy
+→ binding D1 read-only nel deploy
+→ nessuna creazione/migration D1
+→ smoke live
 ```
 
-La candidate `esim-cina-senza-vpn` resta:
+Measurement:
 
 ```text
-page status: review
-publication eligible: false
-ready for publication: false
+Consent Mode Basic
+CMP iubenda
+GTM-W3LSK9RZ
+GA4 G-GWJ9YPPVJW
+Ads: disabled
+affiliate tracking: disabled
 ```
 
-Il manifest pubblico resta vuoto.
+Nessun GTM/GA4 parte prima del consenso alla Misurazione. Preview, Control Room e route tecniche restano escluse.
 
-## Evidence supply chain — Source Universe, snapshot e Claims Coverage
+## Evidence supply chain — stato verificato
 
-La PR #103 ha chiuso il Source Universe Audit e ha ricondotto le fonti/provider e i tool già studiati al contratto upstream senza introdurre un secondo source system.
+### Source Universe / snapshot / claims coverage
 
-La PR #104 ha implementato e verificato il primo spike tecnico su una sola pagina pubblica Ubigi:
+Chiusi:
+
+```text
+PR #103 — Source Universe Audit
+PR #104 — immutable evidence snapshot spike
+PR #105 — Claims Coverage Audit
+```
+
+Contratto verificato:
 
 ```text
 SOURCE
@@ -101,447 +151,220 @@ SOURCE
 → deterministic field extraction
 → NORMALIZED DATUM
 → PENDING CLAIM CANDIDATE
+→ verification/conflict/freshness gates
 ```
 
-Prima cattura reale:
+`source_registry` resta il registro canonico delle fonti; un URL vivo non sostituisce uno snapshot storico.
+
+### PR #106 — Italy local comparison evidence pack
+
+Mergiata e verificata live.
+
+Scenario:
 
 ```text
-source: Ubigi Italy 50GB / 30 days
-HTTP: 200
-locale: en-GB
-country context: IT
-currency context: USD
-fields: data_gb, validity_days, price
-all candidates: pending
-D1 writes: none
+Italy
+10-day trip
+high data
+hotspot required
+Airalo / Holafly / Ubigi
 ```
 
-Il prezzo `US$29` resta `price { amount: 29, currency: USD }` con warning `downstream_price_eur_mapping_required`; non viene promosso a `price_eur`. `validity_days=30` conserva `activation_trigger_out_of_scope` perché l'H1 non prova il trigger di attivazione.
-
-I tre locator verso l'H1 sono stati riprodotti contro lo snapshot reale.
-
-Seconda cattura reale:
+Due capture reali consecutive:
 
 ```text
-raw snapshot: changed
-semantic fingerprint: unchanged
-Semantic changes: 0
+first pack:  9256b180cc820ce22dfc0351fca7c7bf2406fe5903a4909c5c43d0d53e0c1433
+second pack: add5664ab7e2f03ab84560ffb20e5141a1bf096c8d0fcf77ba8807634f9be0a9
+semantic fingerprint: ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8
+Provider semantic changes: 0
+ranking: not_computed
 ```
 
-Questo verifica sul provider reale il confine `page/raw drift ≠ commercial fact drift`.
+Forme osservate:
 
-Bake-off opzionale:
+- local destination coverage;
+- source-native EUR/USD;
+- finite data vs unlimited + FUP;
+- hotspot allowed separato da share limit;
+- activation policy plan-specific;
+- network `observed/partial/unknown`;
+- radio technology separata da network;
+- `unknown` e `not_applicable` preservati.
+
+Documento:
 
 ```text
-Trafilatura: 2.2.0
-50GB retained verbatim: true
-30 days retained verbatim: true
-US$29 retained verbatim: true
+docs/research/ITALY-COMPARISON-EVIDENCE-PACK-RESULT-2026-08-05.md
 ```
 
-Trafilatura resta helper/benchmark offline, non dependency canonica e non source-of-truth. Nessun crawler, scheduler, change monitor, Partner API credential, maintenance queue integration o deploy è stato introdotto.
+### PR #107 — Europe regional comparison evidence pack
 
-Documento risultato:
+Mergiata con:
 
 ```text
-docs/research/EVIDENCE-SNAPSHOT-SPIKE-RESULT-2026-08-03.md
+4480141d8debcff4ebe0538251ed1d1af9a81597
 ```
 
-### Claims Coverage Audit
-
-La PR #105 è il closeout read-only della copertura necessaria alle prime pagine commerciali.
-
-Output:
+Scenario:
 
 ```text
-docs/research/claims-field-catalog.md
-docs/research/claims-source-candidates.csv
-docs/research/claims-coverage-matrix.csv
-docs/research/CLAIMS-COVERAGE-AUDIT.md
+Europe
+14-day trip
+Italy + France + Spain
+high data
+hotspot required
+Airalo / Holafly / Ubigi
 ```
 
-Stato audit:
+Due capture reali consecutive:
 
 ```text
-providers: Airalo, Holafly, Ubigi
-coverage rows: 54 provider×field
-runtime changes: none
-D1 writes/migrations: none
-provider credentials: none
-ranking: none
-publication: none
-deploy: none
+first pack:  23f36f8eac4314fc4c0bffc9a60d21fb9509f563b7caef89719a7fb0d5efa5dd
+second pack: d53bd50b002b6dcf1f5bcd3fc345a2145fe67a325382555720bddd466eb1d144
+semantic fingerprint: efb5924eee13f0c2f2a17381cf823c7e78873ab53925842949525982e96dbb89
+Provider semantic changes: 0
+ranking: not_computed
 ```
 
-Conclusioni:
+Il live ha inoltre dimostrato:
 
-- fonti ufficiali adatte esistono già per gran parte del core commerciale;
-- solo Ubigi possiede al momento tre core field verificati tramite snapshot canonico;
-- Airalo e Holafly hanno superfici ufficiali identificate ma non ancora snapshot-canonicalizzate;
-- nessun provider è ancora comparison-ready come row completa e simmetrica;
-- prezzo/valuta richiedono capture context comune o futura derivazione FX esplicita; `price_eur` non viene inferito;
-- hotspot allowed e share limit/period devono restare separati;
-- unlimited e FUP devono restare distinti ma collegati;
-- Airalo activation resta exact-package;
-- network/operator e radio technology non dimostrano performance reale;
-- refund richiede scenario/effective-date e può avere conflict fra fonti ufficiali;
-- compatibility richiede exact model + hardware region; carrier lock resta user-state;
-- performance e routing/VPN restano unsupported come claim propri automatici senza protocollo osservativo.
+- `plan_type=regional` può essere evidence separata;
+- aggregate country count non prova membership dei singoli Paesi;
+- regional coverage può restare `partial` o `unknown`;
+- operatori regionali non vanno appiattiti quando l'attribuzione è country-scoped;
+- mixed source currency resta nativa;
+- deep-link URL non è identità stabile del piano;
+- raw drift non equivale a commercial semantic drift.
 
-Il prossimo gate è un **Italy comparison evidence pack** read-only: stessa destinazione, tre provider, uno scenario decisionale bounded e stessa capture window, con unknown/conflict preservati e nessun provider winner.
-
-## M6 — Consent e measurement
-
-Contratti:
+Documento:
 
 ```text
-Consent Mode Basic
-nessun GTM o GA4 prima del consenso
-nessun ping Google pre-consenso
-ad_storage denied
-ad_user_data denied
-ad_personalization denied
+docs/research/EUROPE-REGIONAL-EVIDENCE-PACK-RESULT-2026-08-05.md
 ```
 
-Advanced Consent Mode, cookieless pings, Google Ads, remarketing e affiliate tracking restano fuori scope.
+### Stop condition evidence exploration
 
-### CMP
+L'esplorazione con nuovi evidence pack è chiusa.
+
+Non è emerso un difetto strutturale che giustifichi un terzo pack prima del mapping D1.
+
+## PR #108 — Evidence → D1 schema mapping
+
+Stato corrente:
 
 ```text
-PR #85 — remote embed reale
-merge f421d247e5a2ce250ba432e445f2aedf74af6f50
-
-PR #90 — deploy osservabile e contratto D1 production
-merge c29bf0cf31a66bf830cb74a7cf46d57a7f060c76
-CI #448
+draft
+design-only
+no migration
+no D1 write
+no runtime ingest
+no deploy
 ```
 
-Verificato live:
-
-- un solo embed iubenda sulle route canoniche;
-- CMP assente da preview e route tecniche;
-- banner reale;
-- rifiuto, consenso, persistenza e revoca;
-- finalità `4` — Misurazione;
-- nessuna richiesta Google quando la Misurazione è rifiutata o revocata.
-
-### Google access
+Design proposto:
 
 ```text
-GA4 account: 402095950
-GA4 property: 546858987
-GA4 stream: 15310040016
-Measurement ID: G-GWJ9YPPVJW
-
-GTM account: 6367654517
-GTM container: 259190865
-GTM public ID: GTM-W3LSK9RZ
-
-Search Console: sc-domain:senzaroaming.it
-permission: siteOwner
+source_registry
+→ evidence_capture_runs
+→ evidence_snapshots
+→ evidence_field_observations
+→ evidence_claim_candidates
+→ separate verification gate
+→ claim_verifications
 ```
 
-Autenticazione tramite impersonazione del service account e ADC; nessuna key JSON creata o versionata.
+Boundary principali:
 
-### GTM e GA4 foundation
+- `source_registry` resta l'unico source registry canonico;
+- source del pack deve mappare a una sola row registrata prima dell'import;
+- importer futuro non auto-registra URL;
+- `editorial_claim_candidates` resta brief-scoped e separata;
+- `plans` v1 non è un evidence-ingest target;
+- capture run preserva scenario, same-window context, pack identity e semantic fingerprint;
+- snapshot/observation sono progettati come immutabili;
+- `coverage_state` è first-class: `observed`, `partial`, `unknown`, `not_applicable`;
+- `plan_type=local` non viene dedotto dal solo `destination_coverage.scope=local`;
+- source-native price resta `{amount,currency}`;
+- network country-scoped non viene appiattito;
+- URL/prezzo/raw hash non definiscono plan identity;
+- `claim_verifications` resta current verified state downstream;
+- verification provenance bridge resta un gate successivo separato.
+
+Documenti di design:
 
 ```text
-PR #91
-merge 24f473b5de9f714e997c4ddd6e50d77c36c34a29
-CI main #468: success
-GTM version 2: published
-PR deploy #92
-merge 9f4ba922c8cbf0682474c98aebb4b8b7ea2e6297
-CI deploy #470
-PR cleanup #93
-merge f9aaf071b69164e81617840fc85d36d507ec710e
-CI cleanup #471: success
+docs/research/EVIDENCE-D1-SCHEMA-MAPPING.md
+docs/research/EVIDENCE-SOURCE-RECONCILIATION.md
+docs/research/evidence-d1-field-mapping.csv
 ```
 
-Configurazione pubblicata:
+ADR proposta:
 
 ```text
-variables: 7
-triggers: 1
-tags: 1
-errors: 0
-trigger: CE - sr_page_view_ready
-tag: GA4 - page_view - consent gated
-event: page_view
-oncePerLoad: true
-additional consent: analytics_storage
+ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
 ```
 
-Parametri bounded:
+## D1 — boundary attuale
+
+Schema remoto resta fino a:
 
 ```text
-page_location
-route_class
-page_type
-content_slug
-render_mode
-site_language
+0020
 ```
 
-### Deploy e verifica live originari
+PR #108 non crea `0021`.
 
-Il job di produzione M6 originario ha completato con successo deploy e verifica server-side. Il run #470 è rosso soltanto perché i due step opzionali di commento PR hanno ricevuto `HTTP 403 — Resource not accessible by integration` dopo il successo del deploy.
+La tabella `plans` v1 resta invariata e non riceve evidence importata.
 
-Browser live verificato il 27 luglio 2026:
+Nessuna source, snapshot, candidate o claim verification dei pack #106/#107 è stata scritta in D1.
+
+## Prossimo gate dopo l'approvazione del design
+
+La prima implementation slice autorizzabile sarà una branch separata, schema-only e local-only:
 
 ```text
-rifiuto:
-  purpose 4=false
-  bootstrap=false
-  Google requests=0
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
+evidence_claim_candidates
 
-consenso:
-  purpose 4=true
-  bootstrap=true
-  sr_page_view_ready=1
-  GTM request=present
-  GA4 collect=present
-
-persistenza:
-  banner non riproposto
-  pageReadyCount=1 per page load
-  GTM e GA4 presenti
-
-revoca + reload:
-  purpose 4=false
-  bootstrap=false
-  Google requests=0
++ CHECK/FK/index
++ immutability smoke
++ local migrated-fixture validation
 ```
 
-### Regressione M7 e recovery production
-
-Il deploy automatico M7 #62 del 28 luglio ha pubblicato vuoti `CMP_PROVIDER`, `CMP_EMBED_ID`, `GTM_ID` e `GA4_MEASUREMENT_ID`. La regressione è rimasta privacy-safe perché il codice fail-closed non ha avviato tracking Google.
-
-La pipeline production è stata quindi corretta e resa manual-only:
+Ancora fuori scope in quella slice:
 
 ```text
-PR #99 — Harden production deploy safety
-merge fd511a5ffd51b55bce7b4b28b1d01b4f43ded8e4
-
-PR #100 — Fix production live Control Room smoke contract
-merge f2579346ab9591015e31cf54f3a9e4efa4791ceb
-
-PR #101 — Fix production consent smoke dialog visibility
-merge f2df5cd6ef4bf4784205911e80786f55c28f3dd0
+remote migration
+runtime ingest
+source onboarding
+pack import
+claim verification mutation
+maintenance queue
+scheduler
+plans redesign
+ranking
+publication
+deploy
 ```
 
-Recovery riuscita:
+## Altri checkpoint aperti
 
-```text
-GitHub Actions run: 30439227471
-commit: f2df5cd6ef4bf4784205911e80786f55c28f3dd0
-conclusion: success
-Worker version: db76b202-2a62-4871-8abf-61c488316285
-AFFILIATE_MODE: disabled
-D1 remote migration/mutation: none
-```
+- ricontrollo definitivo redirect `www`;
+- osservazione Search Console/GA4 su dati più maturi;
+- mutation M4 residue e permanenza legacy finché serve come fallback;
+- nessuna attivazione affiliate finché quality, disclosure e measurement dedicato non sono progettati.
 
-Il run ha completato deploy, route M7, preview, SEO, published-only, smoke CMP/measurement, legacy Control Room e Control Room foundation protetta da Access.
+## Freeze immediato
 
-### Ricertificazione browser reale post-recovery
-
-Il browser smoke automatizzato usa uno stub iubenda controllato, quindi il widget reale è stato ricertificato separatamente in Chrome Incognito. Durante il test finale il blocco DNS locale è stato disattivato.
-
-Risultati osservati:
-
-```text
-pre-consenso:
-  Google requests=0
-
-rifiuto + reload:
-  Google requests=0
-
-consenso:
-  GTM-W3LSK9RZ attivato
-
-reload con consenso persistito:
-  Google tag HTTP 200
-  GA4 collect HTTP 204
-  tid=G-GWJ9YPPVJW
-  en=page_view
-  dl=https://senzaroaming.it/destinazioni
-  ep.route_class=listing
-  ep.page_type=destination_listing
-
-revoca salvata + reload:
-  Google requests=0
-  GTM assente
-  GA4 collect assente
-```
-
-Il ciclo reale reject → grant → persistence → revoke è quindi nuovamente chiuso live dopo il recovery.
-
-Contesto homepage verificato nello storico M6:
-
-```text
-route_class: home
-page_type: home
-content_slug: ""
-render_mode: canonical
-site_language: it
-page_location: https://senzaroaming.it/
-```
-
-Documenti:
-
-```text
-docs/GTM-GA4-FOUNDATION.md
-docs/GTM-GA4-CONTAINER-CHECKLIST.md
-docs/PUBLIC-MEASUREMENT-DEPLOY-RESULT-2026-07-27.md
-docs/PRODUCTION-RECOVERY-CHECKPOINT-2026-07-29.md
-```
-
-## Search Console e sitemap
-
-La proprietà dominio è accessibile e la sitemap canonica è stata inviata il 26 luglio 2026:
-
-```text
-https://senzaroaming.it/sitemap.xml
-```
-
-Primo export diretto verificato il 27 luglio 2026:
-
-```text
-property: sc-domain:senzaroaming.it
-range: 2026-07-26 → 2026-07-27
-dataState: all
-daily rows: 2
-clicks: 0
-impressions: 0
-query/page/country/device rows: 0
-firstIncompleteDate: 2026-07-26
-```
-
-L'accesso ADC impersonato, lo scope read-only e il client Search Analytics funzionano. I dati sono ancora freschi e insufficienti per modificare keyword ownership, copy o priorità.
-
-Non è stata usata la Indexing API. Non ripetere la submission. Le richieste manuali restano rinviate finché homepage, listing e prime pagine prioritarie non sono riallineate a una keyword map e a intenti SEO definitivi.
-
-## M7 — prima slice on-page
-
-Implementazione verificata sulla PR #97 e pubblicata dal deploy automatico #62:
-
-```text
-homepage: owner dell’intento umbrella “esim viaggio”
-/destinazioni: hub geografico, non pagina Paese
-/guide: hub dei problemi pratici
-/confronti: hub comparativo, non classifica generale
-CI branch: success
-CI merge commit #520: success
-deploy automatico #62: success
-```
-
-La slice introduce:
-
-- title, description, H1 e promessa coerenti con la keyword map M7;
-- criteri distinti per i tre hub;
-- link curati soltanto verso URL esistenti e pubblicati;
-- link preview-aware nel namespace `/astro-foundation`;
-- smoke dedicato su ownership, title, H1, internal linking e assenza di `/esim-viaggio`;
-- verifica desktop e mobile senza overflow;
-- contratti CMP e measurement invariati.
-
-La slice non introduce:
-
-- nuove route o pSEO;
-- modifiche a Worker backend, D1, Workflow, Container, AI o Control Room;
-- mutation o publication capability;
-- affiliazioni, Ads o nuovi eventi analytics;
-- submission Search Console o Indexing API;
-
-## M7 — riallineamento `/migliore-esim`
-
-Implementazione verificata sulla PR #98 e pubblicata dal deploy automatico #62:
-
-```text
-branch: feat/m7-migliore-esim-alignment
-base: 006472311ed8f727873257c94c4f53f271ad5368
-CI branch #519: success
-CI merge commit #520: success
-deploy automatico #62: success
-```
-
-La slice introduce:
-
-- title, meta description e H1 coerenti con l’ownership `migliore esim`;
-- risposta diretta, criteri, scenari, limiti e FAQ senza vincitore universale;
-- ponte legacy temporaneo e slug-bound nel read model pubblico esistente;
-- fail-closed se il seed non resta `comparison` con primary keyword `migliore esim`;
-- nessun prezzo, ranking, copertura, soglia, velocità o provider vincitore;
-- link in uscita verso homepage, hub e tre guide, con articoli caricati tramite `loadPublishedArticle()` e omessi se non `published`;
-- link canonical e preview coerenti con il rispettivo namespace;
-- disclosure coerente con affiliazioni disabilitate;
-- smoke dedicato su canonical, preview, published-only, desktop, mobile e assenza overflow;
-- internal-linking matrix aggiornata soltanto per i link in uscita.
-
-Il ponte non è una seconda pipeline editoriale: resta limitato al seed legacy pubblicato e deve essere rimosso quando la pagina sarà rimaterializzata tramite il workflow grounded. Nessuna altra pagina è stata riscritta per aggiungere link in entrata.
-
-La slice non introduce:
-
-- nuove route, backend o API;
-- migrazioni o mutation D1;
-- Workflow, Container, AI, Control Room o gate editoriali;
-- publication capability;
-- affiliazioni, Ads o nuovi eventi analytics;
-- submission Search Console o Indexing API;
-
-## Contratto di deploy D1
-
-Il config sorgente conserva:
-
-```text
-database_id=REPLACE_WITH_D1_DATABASE_ID
-```
-
-`scripts/prepare-production-d1-binding.mjs` risolve il solo database remoto `senza-roaming`, valida UUID e binding e modifica esclusivamente `apps/web/dist/server/wrangler.json`. Nessuna migration o mutation è implicita nel deploy.
-
-Il workflow GitHub production è ora allineato a questo contratto:
-
-```text
-workflow_dispatch soltanto
-→ npm ci
-→ preflight M6 e AFFILIATE_MODE=disabled
-→ npm run deploy
-→ binding D1 read-only
-→ nessuna creazione D1
-→ nessuna migration o mutation D1 remote
-→ smoke live pubblico e Control Room
-```
-
-Il recovery run `30439227471` ha verificato questo percorso end-to-end.
-
-## Performance measurement foundation
-
-Lighthouse locale post-consenso in browser pulito:
-
-```text
-mobile: Performance 89, FCP 1,7 s, LCP 3,2 s, TBT 170 ms, CLS 0
-desktop: Performance 100, FCP 0,7 s, LCP 0,7 s, TBT 20 ms, CLS 0
-```
-
-Il carico residuo osservato è principalmente vendor iubenda/GTM. Nessuna ottimizzazione vendor è stata inclusa nella foundation.
-
-## Guardrail invariati
-
-- nessun tracking Google prima del consenso Misurazione;
-- nessun analytics nella Control Room o preview;
-- nessun Ads, remarketing o affiliazione;
-- nessuna PII, token, JWT o ID editoriali interni negli eventi;
-- nessuna mutation o migration D1;
-- nessun cambio routing;
-- nessuna publication capability;
-- nessuna rimozione legacy.
-
-## Gap aperti
-
-- Italy comparison evidence pack prima di generalizzare evidence capture, monitoring o ingest;
-- dati Search Console sostanziali e primi dati GA4 da osservare senza modifiche premature;
-- redirect `www → apex` definitivo;
-- topic-mismatch sul prossimo run autorizzato;
-- mutation M4 residue;
-- publication capability separata;
-- eventuale rimozione legacy dopo stabilizzazione.
+- niente deploy pubblico fuori da pipeline esplicita;
+- niente migration D1 remota implicita;
+- niente auto-registration di fonti catturate;
+- niente FX implicito;
+- niente `unknown → false/0`;
+- niente ranking/provider winner;
+- niente pubblicazione automatica;
+- niente accesso browser diretto a D1;
+- niente secret o token negli URL, bundle o repository;
+- niente rimozione legacy finché i fallback operativi servono.
