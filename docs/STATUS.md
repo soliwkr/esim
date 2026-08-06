@@ -20,7 +20,7 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 | M7 on-page foundation | Live | homepage, hub e `/migliore-esim` riallineati senza ranking commerciale |
 | Sitemap e robots | Live | endpoint Astro raggiungibili |
 | Catalog pilot | Audit live completato | release candidate governate dai gate; nessuna pubblicazione implicita |
-| Evidence supply chain | Evidence exploration chiusa; schema mapping in draft | #106 Italy + #107 Europe verificati live; PR #108 design-only |
+| Evidence supply chain | Evidence design accettato; schema implementation next | #106 Italy + #107 Europe verificati live; #108 merged |
 | iubenda CMP | Live e ricertificata | reject/grant/reload/revoke verificati |
 | GTM e GA4 | Live e consent-gated | Basic Consent Mode; `page_view` verificato |
 | Search Console | Collegata | exporter read-only verificato; primi snapshot iniziali ancora poveri |
@@ -30,22 +30,15 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 
 ## Main corrente
 
-Ultimo merge verificato prima della branch di design:
+Ultimo merge verificato:
 
 ```text
-PR #107 — Europe regional comparison evidence pack
-merge/main: 4480141d8debcff4ebe0538251ed1d1af9a81597
-CI main #578: success
+PR #108 — Evidence → D1 schema mapping
+merge/main: 9689dd20e1a5b477a16a7cd938788a4200fe0baf
+CI main #587: success
 ```
 
-La branch corrente di design nasce esattamente da quel commit:
-
-```text
-design/evidence-d1-schema-mapping
-PR #108 — draft
-```
-
-PR #108 non contiene migration, runtime ingest o deploy.
+PR #108 è design-only e non ha introdotto migration, runtime ingest o deploy. ADR-039 è ora accettata, mentre il D1 remoto resta invariato a `0020`.
 
 ## Architettura live
 
@@ -250,18 +243,20 @@ Non è emerso un difetto strutturale che giustifichi un terzo pack prima del map
 
 ## PR #108 — Evidence → D1 schema mapping
 
-Stato corrente:
+Stato:
 
 ```text
-draft
-design-only
+merged
+accepted design
+merge/main: 9689dd20e1a5b477a16a7cd938788a4200fe0baf
+CI main #587: success
 no migration
 no D1 write
 no runtime ingest
 no deploy
 ```
 
-Design proposto:
+Design accettato:
 
 ```text
 source_registry
@@ -298,7 +293,7 @@ docs/research/EVIDENCE-SOURCE-RECONCILIATION.md
 docs/research/evidence-d1-field-mapping.csv
 ```
 
-ADR proposta:
+ADR accettata:
 
 ```text
 ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
@@ -312,15 +307,15 @@ Schema remoto resta fino a:
 0020
 ```
 
-PR #108 non crea `0021`.
+PR #108 non ha creato `0021`.
 
 La tabella `plans` v1 resta invariata e non riceve evidence importata.
 
 Nessuna source, snapshot, candidate o claim verification dei pack #106/#107 è stata scritta in D1.
 
-## Prossimo gate dopo l'approvazione del design
+## Prossimo gate — schema upstream local-only
 
-La prima implementation slice autorizzabile sarà una branch separata, schema-only e local-only:
+La prima implementation slice è una branch separata, schema-only e local-only:
 
 ```text
 evidence_capture_runs
