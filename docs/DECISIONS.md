@@ -380,9 +380,9 @@ Regole iniziali:
 
 ## ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
 
-**Stato:** proposta nella PR #108; non ancora implementata in D1.
+**Stato:** accettata e mergiata con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`); CI main #587 `success`. Non ancora implementata in D1.
 
-**Decisione proposta:** materializzare in futuro il layer evidence con oggetti upstream dedicati:
+**Decisione:** materializzare il layer evidence con oggetti upstream dedicati:
 
 ```text
 source_registry
@@ -394,7 +394,7 @@ source_registry
 → claim_verifications
 ```
 
-Vincoli della proposta:
+Vincoli della decisione:
 
 - `source_registry` resta l'unico registro canonico delle fonti;
 - ogni snapshot richiede source reconciliation univoca prima dell'import;
@@ -413,4 +413,4 @@ Vincoli della proposta:
 - `claim_verifications` resta il current verified state downstream;
 - il bridge fra verification decision e evidence candidate deve avere provenance append-only/revisioned prima di essere automatizzato.
 
-**Conseguenza proposta:** dopo l'approvazione della PR #108, la prima implementation slice può essere soltanto una migration locale/versionata e additiva per le tabelle upstream, con constraint/index/immutability smoke e senza runtime ingest o migration remota. Source onboarding, importer, verification bridge e qualsiasi redesign `plans` restano gate separati.
+**Conseguenza:** la prima implementation slice può essere soltanto una migration locale/versionata e additiva per le tabelle upstream, con constraint/index/immutability smoke e senza runtime ingest o migration remota. Source onboarding, importer, verification bridge e qualsiasi redesign `plans` restano gate separati.
