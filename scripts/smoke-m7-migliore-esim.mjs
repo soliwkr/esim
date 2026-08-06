@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
 const port = Number(process.env.M7_MIGLIORE_ESIM_SMOKE_PORT || 8811);
@@ -10,6 +10,7 @@ const configPath = 'apps/web/dist/server/wrangler.json';
 const stateRoot = '.wrangler/m7-migliore-esim-smoke';
 const canonicalPath = '/migliore-esim';
 const previewPath = '/astro-foundation/articoli/migliore-esim';
+const screenshotDir = process.env.M7_MIGLIORE_ESIM_SCREENSHOT_DIR?.trim() || null;
 
 function wrangler(args) {
   const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', ...args], {
@@ -95,7 +96,7 @@ async function stopRuntime(runtime) {
   signalRuntime(runtime, 'SIGKILL');
   await Promise.race([
     once(runtime.child, 'exit'),
-    new Promise((resolve) => setTimeout(resolve, 5_000)),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5_000)),
   ]);
 }
 
@@ -211,6 +212,12 @@ async function verifyHttp() {
   }
 }
 
+async function maybeCapture(page, filename) {
+  if (!screenshotDir) return;
+  await mkdir(screenshotDir, { recursive: true });
+  await page.screenshot({ path: `${screenshotDir}/${filename}`, fullPage: true });
+}
+
 async function verifyBrowser() {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -240,6 +247,7 @@ async function verifyBrowser() {
       await previewDesktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       true,
     );
+    await maybeCapture(previewDesktop, 'migliore-esim-preview-desktop.png');
     await previewDesktop.close();
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -256,6 +264,7 @@ async function verifyBrowser() {
       await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       true,
     );
+    await maybeCapture(mobile, 'migliore-esim-preview-mobile.png');
     await mobile.close();
   } finally {
     await browser.close();
