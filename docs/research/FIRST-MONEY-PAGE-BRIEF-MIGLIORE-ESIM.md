@@ -32,6 +32,48 @@ Planner aggregate cluster: 12.050
 
 L'utente non cerca il nostro workflow editoriale. Cerca una decisione.
 
+## Autocomplete A–Z enrichment — 6 agosto 2026
+
+La capture riproducibile M7.1b ha interrogato:
+
+```text
+migliore esim
+migliore esim + a…z
+```
+
+con `gl=it`, `hl=it`, `location=Italy`.
+
+Risultato per il seed:
+
+```text
+148 suggestion uniche
+```
+
+Le base suggestions sono soprattutto destination-led:
+
+```text
+migliore esim giappone
+migliore esim per usa
+migliore esim per egitto
+migliore esim per la cina
+migliore esim per turchia
+migliore esim regno unito
+migliore esim per albania
+migliore esim per marocco
+migliore esim per londra
+```
+
+Conseguenze sul brief:
+
+1. `/migliore-esim` possiede **la decisione generica**, non le risposte complete per singola destinazione;
+2. above-the-fold deve portare rapidamente da “qual è la migliore?” a “dove vai / quanti giorni / quanti dati / hotspot?”;
+3. le destination specialist devono ricevere il deep answer appena esistono;
+4. non creare blocchi lunghi tipo “migliore eSIM USA/Giappone/Egitto…” dentro questa pagina: diventerebbero cannibalizzazione;
+5. le destination mentions servono come routing cards/link, non come mini-articoli;
+6. il termine “migliore” deve restare scenario-bound, non diventare winner universale.
+
+La capture PAA live per il seed ha restituito zero righe; le domande SERP/FAQ/community di #111 restano fonti demand distinte e non vengono rinominate PAA.
+
 ## Problema della pagina corrente
 
 La pagina corrente è intenzionalmente provider-neutral e utile come safety foundation, ma è ancora troppo astratta per convertire.
@@ -153,6 +195,25 @@ Confronta le eSIM per l'Europa → /esim-europa
 ```
 
 quando la nuova page esisterà.
+
+## Routing destinations — progressive disclosure
+
+L'A–Z giustifica una superficie di routing, non una lista infinita di paragrafi.
+
+Prima tranche coerente con la priority map:
+
+```text
+Europa
+USA
+Egitto
+Giappone
+Turchia
+Albania
+Svizzera
+Thailandia
+```
+
+Altri destination tail osservati (`Cina`, `Marocco`, `Regno Unito/Londra`, ecc.) restano candidate demand da validare nella rispettiva priorità; non vanno pubblicati come link a route inesistenti.
 
 ## Provider comparison module
 
@@ -311,6 +372,8 @@ future /esim-europa
 future /airalo-recensioni
 future /airalo-vs-holafly
 ```
+
+Quando le destination pages esistono, le routing cards devono puntare direttamente agli owner specialistici e non moltiplicare la risposta dentro `/migliore-esim`.
 
 ## SERP differentiation
 
