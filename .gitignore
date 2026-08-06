@@ -12,5 +12,6 @@ wrangler.production.jsonc
 research/seo/gsc/*/
 research/evidence/snapshots/
 research/evidence/packs/
+research/local/
 .DS_Store
 *.log
