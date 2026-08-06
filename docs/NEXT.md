@@ -4,48 +4,36 @@ Ultimo aggiornamento: **6 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Gate corrente — PR #108 schema mapping / D1 design
+## Closeout design evidence D1 — chiuso
 
-Branch:
-
-```text
-design/evidence-d1-schema-mapping
-```
-
-Base:
+Stato verificato:
 
 ```text
-4480141d8debcff4ebe0538251ed1d1af9a81597
+PR #108 — Evidence → D1 schema mapping: merged
+merge/main: 9689dd20e1a5b477a16a7cd938788a4200fe0baf
+CI PR #586: success
+CI main #587: success
+ADR-039: accepted
+D1 remote: ancora fino a 0020
+runtime ingest: none
+deploy: none
 ```
 
-Scope esclusivo:
+Il design accettato è:
 
 ```text
-Italy local evidence (#106)
-+
-Europe regional evidence (#107)
-→ canonical evidence-to-D1 mapping
+source_registry
+→ evidence_capture_runs
+→ evidence_snapshots
+→ evidence_field_observations
+→ evidence_claim_candidates
+→ separate verification gate
+→ claim_verifications
 ```
 
-La PR resta design-only:
+Boundary accettati:
 
-```text
-no migration
-no D1 write
-no runtime ingest
-no source registration
-no Worker/API
-no Workflow/scheduler
-no ranking
-no publication
-no deploy
-```
-
-### Acceptance del design
-
-Prima di rendere #108 ready devono essere verificati almeno:
-
-1. mapping lossless di tutte le forme osservate nei pack Italia/Europa;
+1. mapping lossless delle forme osservate nei pack Italia/Europa;
 2. preservation del capture-run context e della same capture window;
 3. source reconciliation fail-closed prima di ogni snapshot import;
 4. `source_registry` invariato come registry canonico;
@@ -57,8 +45,7 @@ Prima di rendere #108 ready devono essere verificati almeno:
 10. plan identity separata da URL, raw hash e prezzo;
 11. local `plan_type` non inferito dal solo `destination_coverage.scope=local`;
 12. `claim_verifications` mantenuta come current verified state downstream;
-13. verification provenance bridge separato;
-14. CI completa verde sul final head.
+13. verification provenance bridge separato.
 
 Documenti:
 
@@ -68,17 +55,11 @@ docs/research/EVIDENCE-SOURCE-RECONCILIATION.md
 docs/research/evidence-d1-field-mapping.csv
 ```
 
-ADR proposta:
+## Gate corrente — schema upstream local-only
 
-```text
-ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
-```
+Aprire una **nuova branch** dal `main` aggiornato dopo PR #108.
 
-## Gate successivo dopo merge #108 — schema upstream local-only
-
-Aprire una **nuova branch**. Non implementarla dentro #108.
-
-Scope raccomandato:
+Scope esclusivo:
 
 ```text
 additive versioned migration
@@ -99,7 +80,10 @@ Regola critica:
 
 ```text
 schema-only
+local-only validation
 ```
+
+È ammesso versionare la migration successiva nel repository, ma **non applicarla al D1 remoto** in questo gate.
 
 Non includere:
 
@@ -115,11 +99,30 @@ Non includere:
 - remote migration;
 - deploy.
 
+### Acceptance del gate schema
+
+Prima del merge devono essere provati almeno:
+
+1. tutte e quattro le tabelle create su D1 locale migrato;
+2. FK coerenti con il design accettato;
+3. `coverage_state` vincolato a `observed | partial | unknown | not_applicable`;
+4. status candidate vincolati al dominio accettato;
+5. JSON columns rifiutano JSON invalido dove previsto;
+6. snapshot e field observations non possono essere mutate come scorciatoia per una nuova cattura;
+7. unique identity e indici permettono idempotency futura senza introdurre importer;
+8. fixture locale copre almeno local + regional, source-native EUR/USD e `partial/unknown/not_applicable`;
+9. nessuna tabella `plans` modificata;
+10. nessun `claim_verifications` write;
+11. nessun accesso remoto D1 necessario ai test;
+12. CI completa verde sul final head.
+
 ### Remote D1
 
-Il D1 remoto resta a `0020` finché una migration successiva non viene autorizzata esplicitamente.
+Il D1 remoto resta a `0020` per tutta questa slice.
 
 Il deploy production non applica migration remote.
+
+Qualsiasi eventuale applicazione remota della nuova migration richiederà un gate separato ed esplicito dopo merge e verifica locale.
 
 ## Gate seguente — source reconciliation / onboarding
 
@@ -256,8 +259,8 @@ Non mischiare M4 con evidence schema work.
 
 ## Freeze immediato
 
-- niente `0021` dentro PR #108;
-- niente remote migration implicita;
+- niente applicazione remota della migration schema nella slice corrente;
+- niente runtime ingest;
 - niente auto-registration di source;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;

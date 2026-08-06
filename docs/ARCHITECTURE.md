@@ -80,9 +80,9 @@ SOURCE
 
 PR #104 ha provato snapshot immutabile e raw-vs-semantic drift su una source Ubigi reale. PR #106 e #107 hanno generalizzato il contratto a pack multi-provider locale e regionale, con due capture consecutive per pack e `Provider semantic changes: 0`.
 
-### Proposta D1 upstream — PR #108
+### Upstream D1 evidence — ADR-039 / PR #108
 
-PR #108 propone, senza materializzarlo ancora nel database, il mapping:
+PR #108 ha definito e fatto accettare il mapping canonico, senza materializzarlo ancora nel database:
 
 ```text
 source_registry
@@ -102,9 +102,9 @@ claim_verifications
 editorial evidence bundle / readiness / draft
 ```
 
-**Stato:** proposto, non ancora materializzato. Il D1 remoto resta a `0020`.
+**Stato:** design accettato e mergiato con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`), CI main #587 `success`; non ancora materializzato. Il D1 remoto resta a `0020`.
 
-Confini della proposta:
+Confini della decisione:
 
 - `source_registry` resta l'unico registro canonico delle fonti;
 - ogni future snapshot D1 richiede una source reconciliation univoca prima dell'import;
@@ -152,7 +152,7 @@ Una verification `verified` non può promuovere un sotto-fatto partial a complet
 
 ### Implementation boundary
 
-La prima slice implementativa autorizzabile dopo l'approvazione del design è soltanto schema upstream local-only:
+La prima slice implementativa successiva al design accettato è soltanto schema upstream local-only:
 
 ```text
 evidence_capture_runs
@@ -533,7 +533,7 @@ Evidence snapshot #104:        verificato live
 Claims Coverage #105:          chiuso
 Italy evidence pack #106:      merged; two live captures; semantic changes=0
 Europe evidence pack #107:     merged; two live captures; semantic changes=0
-Evidence D1 design #108:       draft; proposed; not materialized
+Evidence D1 design #108:       merged; accepted; not materialized
 D1 remote schema:              fino a 0020
 production workflow:           manual-only e verificato end-to-end
 CMP/measurement live:          ripristinati e ricertificati
