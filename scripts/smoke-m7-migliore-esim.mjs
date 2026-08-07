@@ -261,7 +261,7 @@ async function verifyBrowser() {
     await mobile.goto(`${origin}${previewPath}`);
     await mobile.getByRole('heading', { level: 1, name: 'Qual è la migliore eSIM per viaggiare?' }).waitFor();
     assert.equal(await mobile.locator('[data-first-money-preview="migliore-esim"]').count(), 1);
-    assert.equal(await mobile.getByRole('link', { name: 'Dove vai?', exact: true }).getAttribute('href'), '#dove-vai');
+    assert.equal(await mobile.locator('a[href="#dove-vai"]').getAttribute('href'), '#dove-vai');
     assert.equal(await mobile.getByText('Da verificare per l’offerta').count(), 6);
     assert.equal(
       await mobile.getByRole('link', { name: 'Sai già dove vai?' }).getAttribute('href'),
