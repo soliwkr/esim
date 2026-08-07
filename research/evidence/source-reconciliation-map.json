@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "mappingVersion": 1,
+  "generatedAt": "2026-08-07",
+  "rules": {
+    "matchCardinality": "exactly_one",
+    "missingOutcome": "source_not_registered",
+    "ambiguousOutcome": "source_registry_ambiguous",
+    "requireActive": true,
+    "allowProviderRootFallback": false,
+    "allowRedirectAutoRemap": false,
+    "allowImporterAutoRegistration": false,
+    "hardcodeEnvironmentSourceRegistryIds": false
+  },
+  "sources": [
+    {
+      "sourceAuditKey": "candidate-airalo-italy-catalog",
+      "provider": "airalo",
+      "evidenceRole": "product_catalog",
+      "entityType": "provider",
+      "entityKey": "airalo",
+      "sourceKind": "official_provider",
+      "registryCanonicalUrl": "https://www.airalo.com/it/italy-esim/",
+      "packRequestedUrls": ["https://www.airalo.com/it/italy-esim/"],
+      "onboardingState": "required"
+    },
+    {
+      "sourceAuditKey": "candidate-airalo-unlimited-fup",
+      "provider": "airalo",
+      "evidenceRole": "official_policy",
+      "entityType": "provider",
+      "entityKey": "airalo",
+      "sourceKind": "official_terms",
+      "registryCanonicalUrl": "https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy",
+      "packRequestedUrls": ["https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy"],
+      "onboardingState": "required",
+      "classificationNote": "The source governs fair-use conditions for unlimited packages; onboarding must confirm terms/policy classification before D1 mutation."
+    },
+    {
+      "sourceAuditKey": "candidate-holafly-italy-product",
+      "provider": "holafly",
+      "evidenceRole": "product_page",
+      "entityType": "provider",
+      "entityKey": "holafly",
+      "sourceKind": "official_provider",
+      "registryCanonicalUrl": "https://esim.holafly.com/it/esim-italia/",
+      "packRequestedUrls": ["https://esim.holafly.com/it/esim-italia/"],
+      "onboardingState": "required"
+    },
+    {
+      "sourceAuditKey": "candidate-holafly-unlimited-faq",
+      "provider": "holafly",
+      "evidenceRole": "official_help",
+      "entityType": "provider",
+      "entityKey": "holafly",
+      "sourceKind": "official_help",
+      "registryCanonicalUrl": "https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/",
+      "packRequestedUrls": ["https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/"],
+      "onboardingState": "required"
+    },
+    {
+      "sourceAuditKey": "provider-ubigi-commerce",
+      "provider": "ubigi",
+      "evidenceRole": "product_page",
+      "entityType": "provider",
+      "entityKey": "ubigi",
+      "sourceKind": "official_provider",
+      "registryCanonicalUrl": "https://cellulardata.ubigi.com/",
+      "packRequestedUrls": ["https://cellulardata.ubigi.com/rates-and-coverage/italy-data-plans/italy-50gb-30-days/"],
+      "onboardingState": "registered_expected",
+      "mappingNote": "Approved commerce-surface identity; requested/final product URL remains snapshot provenance and does not replace the registry canonical URL."
+    },
+    {
+      "sourceAuditKey": "candidate-ubigi-activation",
+      "provider": "ubigi",
+      "evidenceRole": "official_help",
+      "entityType": "provider",
+      "entityKey": "ubigi",
+      "sourceKind": "official_help",
+      "registryCanonicalUrl": "https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/",
+      "packRequestedUrls": ["https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/"],
+      "onboardingState": "required"
+    },
+    {
+      "sourceAuditKey": "candidate-airalo-europe-store-unlimited-15d",
+      "provider": "airalo",
+      "evidenceRole": "regional_store_page",
+      "entityType": "provider",
+      "entityKey": "airalo",
+      "sourceKind": "official_provider",
+      "registryCanonicalUrl": "https://www.airalo.com/europe-esim",
+      "packRequestedUrls": ["https://www.airalo.com/europe-esim"],
+      "onboardingState": "required",
+      "mappingNote": "Historic deep links may redirect here; redirect observation alone never authorizes this mapping."
+    },
+    {
+      "sourceAuditKey": "candidate-holafly-europe-product",
+      "provider": "holafly",
+      "evidenceRole": "regional_product_page",
+      "entityType": "provider",
+      "entityKey": "holafly",
+      "sourceKind": "official_provider",
+      "registryCanonicalUrl": "https://esim.holafly.com/it/esim-europa/",
+      "packRequestedUrls": ["https://esim.holafly.com/it/esim-europa/"],
+      "onboardingState": "required"
+    },
+    {
+      "sourceAuditKey": "candidate-ubigi-europe-25gb-30d",
+      "provider": "ubigi",
+      "evidenceRole": "regional_product_page",
+      "entityType": "provider",
+      "entityKey": "ubigi",
+      "sourceKind": "official_provider",
+      "registryCanonicalUrl": "https://cellulardata.ubigi.com/",
+      "packRequestedUrls": ["https://cellulardata.ubigi.com/rates-and-coverage/europe-data-plans/europe-25gb-30-days/"],
+      "onboardingState": "registered_expected",
+      "mappingNote": "Approved commerce-surface identity; the regional product URL remains immutable snapshot provenance."
+    }
+  ]
+}
