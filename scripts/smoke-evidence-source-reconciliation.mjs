@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { SOURCE_CONFIG as ITALY_SOURCE_CONFIG } from './italy-comparison-evidence-pack.mjs';
+import { SOURCE_CONFIG as EUROPE_SOURCE_CONFIG } from './europe-regional-evidence-pack.mjs';
 import {
   canonicalizeRegistryUrl,
   reconcileManifest,
   resolveSourceRegistryEntry,
+  validateManifestAgainstPackSources,
   validateReconciliationManifest,
 } from './evidence-source-reconciliation.mjs';
 
@@ -17,6 +20,39 @@ assert.equal(JSON.stringify(manifest).includes('sourceRegistryId'), false);
 assert.equal(manifest.rules.allowProviderRootFallback, false);
 assert.equal(manifest.rules.allowRedirectAutoRemap, false);
 assert.equal(manifest.rules.allowImporterAutoRegistration, false);
+
+const packCoverage = validateManifestAgainstPackSources(manifest, {
+  italy: ITALY_SOURCE_CONFIG,
+  europe: EUROPE_SOURCE_CONFIG,
+});
+assert.deepEqual(packCoverage, {
+  packCount: 2,
+  packSourceReferences: 12,
+  uniqueSourceIdentities: 9,
+});
+
+const driftedItalySources = structuredClone(ITALY_SOURCE_CONFIG);
+driftedItalySources[0].url = 'https://www.airalo.com/it/italy-esim/unapproved-drift';
+assert.throws(
+  () => validateManifestAgainstPackSources(manifest, {
+    italy: driftedItalySources,
+    europe: EUROPE_SOURCE_CONFIG,
+  }),
+  /pack_requested_url_unmapped:italy:candidate-airalo-italy-catalog/,
+);
+
+const staleManifest = structuredClone(manifest);
+staleManifest.sources.push({
+  ...structuredClone(staleManifest.sources[0]),
+  sourceAuditKey: 'candidate-unreferenced-source',
+});
+assert.throws(
+  () => validateManifestAgainstPackSources(staleManifest, {
+    italy: ITALY_SOURCE_CONFIG,
+    europe: EUROPE_SOURCE_CONFIG,
+  }),
+  /source_reconciliation_entry_unreferenced:candidate-unreferenced-source/,
+);
 
 const byKey = new Map(manifest.sources.map((entry) => [entry.sourceAuditKey, entry]));
 const airaloItaly = byKey.get('candidate-airalo-italy-catalog');
