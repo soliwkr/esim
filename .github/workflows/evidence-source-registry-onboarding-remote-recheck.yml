@@ -26,6 +26,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm ci
+      - name: Smoke-test atomic remote onboarding SQL
+        run: node scripts/smoke-evidence-source-registry-onboarding-remote.mjs
       - name: Check Cloudflare credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -54,7 +56,7 @@ jobs:
           if (result.registryRowCount !== 7 || result.manifestSourceCount !== 9 || result.counts.resolved !== 0 || result.counts.sourceNotRegistered !== 9 || result.counts.sourceRegistryAmbiguous !== 0 || result.readyForImporter !== false) {
             throw new Error(`unexpected_target_state:${JSON.stringify({ registryRowCount: result.registryRowCount, counts: result.counts })}`);
           }
-          console.log('target unchanged after rejected transaction: 7 rows, 0/9 resolved');
+          console.log('target unchanged before retry: 7 rows, 0/9 resolved');
           NODE
       - name: Upload recheck artifact
         if: always()
