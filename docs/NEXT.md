@@ -1,131 +1,14 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **6 agosto 2026**.
+Ultimo aggiornamento: **7 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Gate corrente — chiudere PR #113 Autocomplete A–Z + PAA / related
+## Gate corrente — source reconciliation / onboarding
 
-PR:
+PR #111, #113 e #117 sono mergiate.
 
-```text
-#113 — M7.1: add reproducible autocomplete and PAA expansion
-branch: research/m7-autocomplete-paa-expansion
-```
-
-Scope:
-
-- collector Serper secret-safe;
-- base + `a…z` per 17 seed prioritari;
-- PAA / related quando esposti dalla risposta live;
-- organic SERP shape;
-- output locale con raw SHA provenance;
-- summary versionato;
-- nessun backend/D1/affiliate/deploy.
-
-Capture reale completata:
-
-```text
-run: 31121790996
-requests: 476
-autocomplete rows: 3659
-expanded unique queries: 2829
-organic rows: 153
-PAA: 0
-related: 0
-errors: 0
-```
-
-Diagnostic completato:
-
-```text
-run: 31122315355
-control-us relatedSearches: 8
-control-us PAA: 0
-Italian P0 related/PAA: 0
-```
-
-Quindi PAA=0 resta un **zero-state osservato**, non una lacuna da riempire artificialmente.
-
-Prima di ready/merge #113:
-
-1. result document presente;
-2. collector self-test verde in CI;
-3. capture workflow manual-only;
-4. diagnostic workflow temporaneo rimosso;
-5. `STATUS/NEXT/ROADMAP` allineati;
-6. main CI post-#111 ricertificata dopo il flake GitHub Actions;
-7. CI completa verde sul final head #113;
-8. diff senza backend, D1, affiliate activation o deploy.
-
-## Decisione First Euro — invariata
-
-PR #111 è mergiata.
-
-Ordine iniziale:
-
-```text
-1  /migliore-esim        ← first existing-URL money slice
-2  /esim-europa          ← first new evidence-native money page
-3  /codice-sconto-holafly
-4  /airalo-recensioni
-5  /airalo-vs-holafly
-6  /esim-usa
-7  /esim-egitto
-8  /esim-giappone
-9  /esim-turchia
-10 /esim-albania
-```
-
-L'A–Z non autorizza un riordino meccanico.
-
-Nuovo candidate:
-
-```text
-/esim-hotspot
-```
-
-Ruolo previsto: **traffic/problem feeder**. La SERP è principalmente setup/support/tethering, quindi non trasformarla in money page solo perché l'Autocomplete è ampio.
-
-## Dopo #113 — due track parallele
-
-Non tornare a una roadmap puramente backend.
-
-### Track A — First Money UI
-
-Branch pubblica separata, preview-first:
-
-```text
-/migliore-esim consumer rewrite
-```
-
-Obiettivo:
-
-```text
-current foundation copy
-→ consumer-first buying decision
-```
-
-La preview può implementare:
-
-- hero orientato alla scelta;
-- scenario cards;
-- destinazione / giorni / dati / hotspot come percorso mentale;
-- A–Z-derived questions e anchor quando coerenti con l'owner;
-- evidence slots e `unknown/partial` states;
-- internal links v2;
-- disclosure placeholder non commerciale;
-- mobile/desktop/accessibility smoke.
-
-Non può ancora:
-
-- pubblicare provider claims non verificati;
-- attivare affiliate links;
-- introdurre winner universale;
-- cambiare `AFFILIATE_MODE`;
-- fare deploy.
-
-### Track B — Truth Engine minimo
+La First Money UI di `/migliore-esim` esiste ora come preview consumer-first, ma il canonical e le affiliazioni restano invariati.
 
 Prossima branch tecnica separata:
 
@@ -147,78 +30,164 @@ Fail closed:
 >1 match → source_registry_ambiguous
 ```
 
-Scope:
+Scope della branch:
 
-- definire quali `candidate_new` dei pack Italy/Europe vengono registrate;
-- mutation source separata e auditabile se autorizzata;
+- riconciliare le source dei pack Italy/Europe con `source_registry`;
+- classificare le `candidate_new` realmente da registrare;
+- produrre mapping versionato e validazione locale deterministica;
+- eventuale source onboarding soltanto come mutation separata e auditabile se esplicitamente autorizzata;
 - nessun importer nella stessa branch;
 - nessuna remote migration implicita;
 - nessun `claim_verifications` write;
+- nessun ranking;
 - nessun deploy.
 
-Gate seguente:
+Regole:
+
+- nessun auto-registration di URL;
+- nessun provider-root fallback;
+- redirect target non sostituisce silenziosamente l'identità della fonte;
+- una source reconciliation deve risolvere esattamente una source canonica oppure bloccare l'import.
+
+## Gate seguente — importer idempotente
+
+Soltanto dopo source reconciliation:
 
 ```text
-idempotent fixture/artifact importer
-→ capture run
-→ snapshots
-→ observations
-→ pending evidence candidates
+pack.json + immutable artifacts
+→ evidence_capture_runs
+→ evidence_snapshots
+→ evidence_field_observations
+→ pending evidence_claim_candidates
 ```
 
-Soltanto dopo:
+Requisiti:
+
+- idempotenza/content-addressed identity;
+- artifact hash verificato;
+- `observed` e il sotto-fatto realmente supportato da `partial` possono alimentare candidate;
+- `unknown` e `not_applicable` non diventano factual candidate;
+- nessun `claim_verifications` write;
+- nessun ranking/publication;
+- fixture locale prima di un ingest reale.
+
+## Remote D1 — gate esplicito separato
+
+D1 remoto resta a:
 
 ```text
-remote 0021 apply — gate esplicito separato
+0020
+```
+
+`0021_evidence_upstream_storage.sql` è versionata e local-tested.
+
+Non applicarla al remoto come effetto collaterale di importer, deploy o source reconciliation.
+
+Sequenza prevista:
+
+```text
+source reconciliation
+→ importer local/fixture
+→ explicit remote 0021 authorization
 → controlled ingest
 → verification provenance bridge
 ```
 
-## Evidence requirements emersi dall'A–Z
+## First Money UI — stato dopo PR #117
 
-### `/esim-europa`
-
-Il brief deve considerare esplicitamente:
+Preview mergiata:
 
 ```text
-coverage
-validity/duration
+/astro-foundation/articoli/migliore-esim
+```
+
+Canonical ancora invariato:
+
+```text
+/migliore-esim
+```
+
+La preview è stata verificata desktop/mobile e conserva:
+
+- hero consumer-first;
+- destinazione → giorni → dati → hotspot;
+- scenario cards;
+- sei evidence slot;
+- FAQ/obiezioni A–Z-informed;
+- internal links namespaced;
+- noindex/no-store;
+- published-only;
+- nessun `/go/*`;
+- nessun affiliate claim o winner.
+
+I sei slot restano intenzionalmente:
+
+```text
+Da verificare per l'offerta
+```
+
+fino alla materializzazione di facts bounded e fresh.
+
+## Decisione First Euro — invariata
+
+Ordine iniziale:
+
+```text
+1  /migliore-esim        ← first existing-URL money slice
+2  /esim-europa          ← first new evidence-native money page
+3  /codice-sconto-holafly
+4  /airalo-recensioni
+5  /airalo-vs-holafly
+6  /esim-usa
+7  /esim-egitto
+8  /esim-giappone
+9  /esim-turchia
+10 /esim-albania
+```
+
+`/esim-hotspot` resta candidate **traffic/problem feeder**, non money page automatica.
+`/esim-iphone` resta high-demand compatibility feeder.
+
+## Evidence requirements già emersi
+
+### `/migliore-esim`
+
+Per il primo confronto commerciale servono almeno, per offerte bounded:
+
+```text
 data amount / unlimited model
+validity/duration
+hotspot allowed
+hotspot share limit when stated
 FUP
-hotspot
-voice/number availability when supported
+activation trigger
+voice/SMS availability when relevant
 source-native price
 ```
 
+Unknown resta unknown.
+
+### `/esim-europa`
+
+Verificare inoltre:
+
+```text
+regional product identity
+itinerary country membership
+country-scoped network statements
+```
+
+Il numero aggregato di Paesi non prova membership dell'itinerario.
+
 ### `/esim-usa`
 
-Prima della money page completa verificare anche:
+Prima della money page completa verificare esplicitamente:
 
 ```text
 data-only
 vs
 voice/SMS/local number
 ```
-
-Le query A–Z mostrano forte domanda per chiamate/numero, non soltanto GB.
-
-### Provider pages
-
-Mantenere intent separation:
-
-```text
-Airalo:
-  /airalo-come-funziona
-  /airalo-recensioni
-  /airalo-vs-holafly
-
-Holafly:
-  /holafly-come-funziona
-  /holafly-recensioni
-  /codice-sconto-holafly
-```
-
-Non creare mega-guide provider che cannibalizzano setup, review e coupon.
 
 ## Affiliate applications — dipendenza esterna parallela
 
@@ -233,23 +202,40 @@ Ubigi
 Regole:
 
 - non incollare secret/token in chat o repository;
-- partner IDs/tracking config restano secret/config appropriata;
-- nessun link production senza disclosure + measurement gate.
+- partner ID e tracking config restano in secret/config appropriata;
+- nessun link affiliate production senza disclosure + evidence + measurement gate.
 
 ## First affiliate activation gate
 
-Prima di accendere monetizzazione:
+Prima di `AFFILIATE_MODE=enabled`:
 
-1. almeno una money page consumer-ready;
-2. facts commerciali bounded e fresh;
+1. money page consumer-ready;
+2. facts commerciali bounded, fresh e verificati;
 3. affiliate account approvato;
 4. `/go/*` destination/redirect validato;
 5. disclosure pubblica chiara;
 6. `provider_redirect_intent` event design accettato;
-7. consent/privacy regression rechecked;
-8. `AFFILIATE_MODE` change esplicito;
-9. production deploy manuale autorizzato;
-10. live smoke redirect + disclosure + no secret leakage.
+7. privacy/consent regression rechecked;
+8. secret/config partner fuori dal repository;
+9. `AFFILIATE_MODE` change esplicito;
+10. production deploy manuale autorizzato;
+11. live smoke redirect + disclosure + no secret leakage.
+
+## Canonical cutover `/migliore-esim`
+
+La preview mergiata **non autorizza** il cutover canonico.
+
+Il cutover richiede branch separata dopo la materializzazione dei facts necessari e deve verificare:
+
+```text
+preview approved
++ facts verified/fresh
++ no unsupported claim
++ publication boundary preserved
+→ canonical materialization
+```
+
+Affiliate activation e deploy production restano gate ulteriormente separati.
 
 ## M7.2 — Search-to-Social
 
@@ -307,8 +293,7 @@ Per ora:
 
 - non cambiare ownership su GSC quasi vuota;
 - non ripetere sitemap submission;
-- non usare Indexing API;
-- interrogare GSC quando il dataset diventa sostanziale.
+- non usare Indexing API.
 
 Quando emergono query reali:
 
@@ -323,14 +308,19 @@ new long tails
 
 ## Checkpoint aperti
 
-- final CI + ready/merge #113;
-- source reconciliation;
-- preview-first `/migliore-esim`;
+- CI post-merge #627 sul merge #117;
+- source reconciliation / onboarding;
 - affiliate approvals;
-- first bounded evidence materialization;
+- importer idempotente;
+- explicit remote `0021` gate;
+- controlled ingest;
+- verification provenance bridge;
+- facts materializzati nella First Money UI;
+- canonical cutover separato `/migliore-esim`;
 - affiliate/measurement gate;
 - first explicit production deploy money-ready;
 - `/esim-europa`;
+- M7.2 bounded social test;
 - consumer-first homepage/hub;
 - `www → apex` definitivo.
 
