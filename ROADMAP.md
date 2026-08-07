@@ -136,7 +136,7 @@ clicks: 0
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato: demand intelligence completata; First Money UI pronta come preview; Truth Engine nella corsia finale verso materializzazione commerciale.**
+**Stato: demand intelligence completata; First Money UI pronta come preview; Truth Engine oltre il source gate production.**
 
 ### M7.0 — SEO foundation
 
@@ -251,7 +251,7 @@ Metodo/governance restano trust assets su `/metodo` e `/trasparenza`.
 
 ## Evidence Truth Engine — track parallela
 
-**Stato: reconciliation, target verification e local onboarding completati; explicit remote source onboarding è il gate corrente.**
+**Stato: reconciliation, target verification e source onboarding production completati; importer idempotente local/fixture è il gate corrente.**
 
 Completati:
 
@@ -267,6 +267,7 @@ Completati:
 #119 fail-closed source reconciliation
 #121 target source_registry read-only verification
 #122 local idempotent source onboarding gate
+remote run 31205724615 production source onboarding
 ```
 
 ### Upstream schema
@@ -314,7 +315,7 @@ Nessun auto-registration, provider-root fallback, redirect auto-remap o ID D1 en
 
 ### Target verification — PR #121
 
-Due read remote indipendenti hanno osservato:
+Due read remote indipendenti avevano osservato:
 
 ```text
 source_registry rows inspected: 7
@@ -338,35 +339,72 @@ research/evidence/source-registry-onboarding-intents.json
 Local D1 smoke:
 
 ```text
-first run:
-8 inserts
-9/9 manifest identities resolved
-
-second run:
-0 inserts
-9/9 manifest identities resolved
+first run:  8 inserts → 9/9 resolved
+second run: 0 inserts → 9/9 resolved
 ```
 
 Metadata conflict blocca; la CLI rifiuta `--remote`; nessun metadata overwrite automatico.
 
-### Gate corrente
+### Production source onboarding — chiuso
 
-Con autorizzazione remota separata:
+Autorizzazione remota separata eseguita il 7 agosto 2026.
+
+Run riuscito:
 
 ```text
-remote read-only preflight
-→ explicit onboarding of 8 approved registry identities
-→ remote read-only verifier rerun
-→ require 9/9 exactly-one
+run:                  31205724615
+registry rows before: 7
+approved inserts:     8
+registry rows after:  15
+resolved:             9/9
+missing:              0
+ambiguous:            0
 ```
+
+La verifica read-only indipendente immediata ha confermato:
+
+```text
+verified_at: 2026-08-07T18:11:04.432Z
+readyForImporter: true
+```
+
+Il primo tentativo con `BEGIN TRANSACTION` era stato rifiutato da Cloudflare code 7500; un recheck read-only aveva certificato zero write prima del retry. Il retry ha usato una singola `INSERT` multi-row, preceduta da nuovo dry run/read-only preflight.
+
+Documento risultato:
+
+```text
+docs/research/EVIDENCE-SOURCE-REGISTRY-REMOTE-ONBOARDING-RESULT-2026-08-07.md
+```
+
+### Gate corrente — importer idempotente local/fixture
+
+```text
+approved pack + immutable artifacts
+→ resolved fixture/environment source IDs
+→ evidence_capture_runs
+→ evidence_snapshots
+→ evidence_field_observations
+→ pending evidence_claim_candidates
+```
+
+Requisiti:
+
+- content-addressed/idempotent;
+- artifact hash verificato;
+- rerun senza duplicati semantici;
+- `unknown`, `partial` e conflict preservati;
+- source-native currency preservata;
+- nessun `claim_verifications` write;
+- nessun ranking/publication;
+- nessun ingest remoto;
+- nessuna remote `0021` implicita.
 
 Gate successivi:
 
 ```text
-9/9 remote source resolution
-→ idempotent importer
-→ explicit remote 0021 apply
-→ controlled ingest
+importer local/fixture
+→ explicit remote 0021 authorization
+→ controlled evidence ingest
 → verification provenance bridge
 → bounded commercial fact materialization
 ```
@@ -377,7 +415,7 @@ Non costruire un terzo exploratory evidence pack senza un nuovo blocker struttur
 
 ## M8 — Monetizzazione controllata
 
-**Stato: non attiva; First Money UI pronta come preview; percorso al primo click definito.**
+**Stato: non attiva; First Money UI pronta come preview; source gate production chiuso.**
 
 Obiettivo:
 
@@ -399,9 +437,10 @@ Ubigi
 Percorso corrente:
 
 ```text
-remote source onboarding
-→ 9/9 source verification
-→ evidence ingest
+source gate 9/9 ✅
+→ importer local/fixture
+→ explicit remote 0021
+→ controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
 → affiliate + measurement gate
@@ -458,10 +497,9 @@ First Money preview merged
 ### Track B — Truth Engine
 
 ```text
-local onboarding proven
-→ explicit remote source onboarding
-→ 9/9 remote resolution
-→ importer
+source reconciliation ✅
+→ source onboarding production 9/9 ✅
+→ importer local/fixture
 → explicit remote 0021
 → controlled ingest
 → verification provenance
@@ -487,10 +525,8 @@ Non fare adesso:
 - terzo evidence pack esplorativo senza blocker;
 - ranking/provider winner universale;
 - affiliate activation senza disclosure/evidence/measurement;
-- remote source onboarding senza autorizzazione esplicita;
-- remote migration implicita;
-- importer prima del remote `9/9`;
-- metadata overwrite automatico nel source registry;
+- remote `0021` senza nuova autorizzazione esplicita;
+- controlled evidence ingest remoto senza scope/autorizzazione separati;
 - deploy automatico;
 - social publishing autonomo;
 - FX implicito;
