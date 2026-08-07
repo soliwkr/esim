@@ -303,7 +303,7 @@ Metodo/governance restano trust assets su `/metodo` e `/trasparenza`.
 
 ## Evidence Truth Engine — track parallela
 
-**Stato: design + schema repository/local completati; source reconciliation è il gate corrente.**
+**Stato: design + schema repository/local + source reconciliation fail-closed completati; environment verification/onboarding è il gate corrente.**
 
 Completati:
 
@@ -316,6 +316,7 @@ Completati:
 #108 D1 mapping design
 #109 canonical closeout
 #110 upstream evidence D1 schema foundation
+#119 fail-closed source reconciliation
 ```
 
 Schema versionato e local-tested:
@@ -335,25 +336,44 @@ evidence_claim_candidates
 
 **D1 remoto resta a `0020`.**
 
-Gate corrente:
+Source reconciliation implementata:
 
 ```text
-source reconciliation / onboarding
+2 evidence pack
+12 source reference
+9 source identity uniche
 ```
 
-Target:
+Contratto:
 
 ```text
 sourceAuditKey + canonical URL + provider/source role
-→ exactly one approved source_registry row
+→ exactly one active approved source_registry row
 ```
 
-Fail closed su zero o più di un match. Nessun auto-registration o provider-root fallback.
+Fail closed:
+
+```text
+0 match  → source_not_registered
+>1 match → source_registry_ambiguous
+```
+
+Nessun auto-registration, provider-root fallback, redirect auto-remap o ID D1 environment-specific versionato.
+
+Gate corrente:
+
+```text
+target-environment source_registry verification
+→ explicit source onboarding for unresolved identities
+→ all pack sources resolve exactly-one
+```
+
+Il manifest contiene due mapping `registered_expected` verso l'identity commerce Ubigi e sette mapping `required`; `registered_expected` **non certifica** che la riga esista nell'ambiente interrogato.
 
 Gate successivi:
 
 ```text
-source reconciliation
+environment verification / source onboarding
 → idempotent importer
 → explicit remote 0021 apply
 → controlled ingest
@@ -436,7 +456,9 @@ First Money preview merged
 ### Track B — Truth Engine
 
 ```text
-source reconciliation
+environment source_registry verification
+→ explicit source onboarding where required
+→ all 9 source identities exactly-one
 → importer
 → explicit remote 0021
 → controlled ingest
@@ -464,7 +486,8 @@ Non fare adesso:
 - ranking/provider winner universale;
 - affiliate activation senza disclosure/evidence/measurement;
 - remote migration implicita;
-- importer prima della source reconciliation;
+- importer prima che tutte le source dei pack risolvano exactly-one;
+- source onboarding remoto senza autorizzazione esplicita;
 - deploy automatico;
 - social publishing autonomo;
 - FX implicito;

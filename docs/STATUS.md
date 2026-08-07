@@ -21,7 +21,8 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 | First Money UI | Preview mergiata | PR #117; canonical `/migliore-esim` ancora invariato |
 | Evidence packs | Verificati live | Italy #106 + Europe #107, due capture ciascuno |
 | Upstream evidence D1 | Schema repository/local | #108 design + #110 `0021`; remoto ancora `0020` |
-| Truth Engine | Prossimo gate | source reconciliation / onboarding fail-closed |
+| Source reconciliation | Implementata | PR #119; fail-closed e bound ai `SOURCE_CONFIG` reali dei due pack |
+| Truth Engine | Gate corrente | target-environment `source_registry` verification + source onboarding separato dove necessario |
 | Search Console | Collegata | 1 impression osservata il 24 luglio; dataset ancora troppo piccolo |
 | CMP / GTM / GA4 | Live e consent-gated | Basic Consent Mode ricertificato |
 | Affiliazioni | Disabilitate nel sito | application Airalo/Holafly/Ubigi in parallelo; `AFFILIATE_MODE=disabled` |
@@ -32,26 +33,25 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 Ultimo merge:
 
 ```text
-PR #117 — M7 first-money migliore eSIM preview
-merge/main: ddd324714c2937f2f0d720f1c99978dbc5d61577
-PR head:   79d4b7f3adac96d27ed6f055d4fd61441670db6a
+PR #119 — fail-closed evidence source reconciliation
+merge/main: 149dc3d7bb5907347d20327aa595fa171ebb680d
+PR head:   142279b73015994a230dfc49da3d3a6a41b5d37a
 ```
 
 Gate pre-merge:
 
 ```text
-CI #626: success
-M7 Migliore eSIM Preview Capture #5: success
+CI #633: success
 ```
 
 CI post-merge:
 
 ```text
-CI #627: success
-merge SHA: ddd324714c2937f2f0d720f1c99978dbc5d61577
+CI #634: success
+merge SHA: 149dc3d7bb5907347d20327aa595fa171ebb680d
 ```
 
-Non è stato eseguito alcun deploy production.
+Non è stato eseguito alcun deploy production e non è stata applicata alcuna mutation D1 remota.
 
 ## Frontend pubblico — stato commerciale
 
@@ -245,38 +245,88 @@ Regole invarianti:
 - technology != measured performance;
 - ranking non viene calcolato dal layer evidence.
 
-## Truth Engine — gate tecnico corrente
+## Source reconciliation — PR #119 chiusa
+
+La source reconciliation fail-closed è ora implementata e integrata in `smoke:runtime`.
+
+Manifest e resolver:
 
 ```text
-source reconciliation / onboarding
+research/evidence/source-reconciliation-map.json
+scripts/evidence-source-reconciliation.mjs
+scripts/smoke-evidence-source-reconciliation.mjs
+```
+
+Cardinalità verificata contro i `SOURCE_CONFIG` reali:
+
+```text
+pack:                     2
+source references:       12
+unique source identities: 9
+```
+
+Contratto:
+
+```text
+sourceAuditKey
++ entity type/key
++ source kind
++ approved registry canonical URL
+→ exactly one active source_registry row
+```
+
+Esiti:
+
+```text
+0 match  → source_not_registered
+1 match  → resolved with environment-specific sourceRegistryId
+>1 match → source_registry_ambiguous
+```
+
+Guardrail verificati:
+
+- nessun provider-root fallback;
+- nessun redirect auto-remap;
+- nessun importer auto-registration;
+- nessun ID numerico D1 versionato;
+- pack URL/provider/role drift bloccato;
+- manifest stale/unreferenced bloccato;
+- row `blocked` non risolve;
+- resolver non muta il registry.
+
+Il manifest classifica:
+
+```text
+registered_expected: 2 mapping entries
+required:            7 mapping entries
+```
+
+`registered_expected` è soltanto un'aspettativa derivata dal source universe repository; **non prova** che la riga esista nel D1 target.
+
+## Truth Engine — gate tecnico corrente
+
+La reconciliation come contratto è chiusa. Il gate successivo è verificare il registry dell'ambiente target e, soltanto dopo, fare onboarding esplicito delle identity realmente mancanti.
+
+```text
+target-environment source_registry verification
+→ explicit source onboarding where required
+→ all 9 source identities resolve exactly-one
 → idempotent importer
 → explicit remote 0021 apply
 → controlled ingest
 → verification provenance bridge
 ```
 
-Il **prossimo branch tecnico** deve fermarsi a source reconciliation/onboarding.
+Prima dell'onboarding remoto:
 
-Target:
-
-```text
-sourceAuditKey + canonical URL + provider/source role
-→ exactly one approved source_registry row
-```
-
-Fail closed:
-
-```text
-0 match  → source_not_registered
->1 match → source_registry_ambiguous
-```
-
-Regole:
-
-- nessun auto-registration URL;
-- nessun provider-root fallback;
-- redirect target non sostituisce silenziosamente l'identità della fonte;
-- importer fuori dalla stessa branch;
+- interrogare/esportare `source_registry` dell'ambiente target;
+- risolvere tutte le 9 identity con il resolver versionato;
+- distinguere realmente `resolved`, `source_not_registered`, `source_registry_ambiguous`;
+- nessuna mutation remota come effetto collaterale della verifica;
+- source onboarding in scope separato e auditabile;
+- locale/fixture prima del remoto;
+- remote mutation soltanto con autorizzazione esplicita;
+- importer resta fuori dalla branch di onboarding;
 - nessuna remote `0021` apply implicita;
 - nessun `claim_verifications` write;
 - nessun deploy.
@@ -325,7 +375,8 @@ Tool AI/video sono strumenti di produzione, non fonti di verità.
 
 ## Checkpoint aperti
 
-- source reconciliation / onboarding;
+- target-environment `source_registry` verification;
+- source onboarding separato delle identity realmente mancanti;
 - affiliate approval Airalo/Holafly/Ubigi;
 - first bounded evidence materialization;
 - importer idempotente in branch separata;
@@ -343,8 +394,9 @@ Tool AI/video sono strumenti di produzione, non fonti di verità.
 
 - niente deploy implicito;
 - niente remote migration implicita;
-- niente importer prima di source reconciliation;
+- niente importer prima che tutte le source dei pack risolvano exactly-one;
 - niente source auto-registration;
+- niente source onboarding remoto senza autorizzazione esplicita;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
 - niente provider winner universale;

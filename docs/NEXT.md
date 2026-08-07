@@ -4,57 +4,121 @@ Ultimo aggiornamento: **7 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Gate corrente — source reconciliation / onboarding
+## Gate corrente — target-environment source registry verification
 
-PR #111, #113 e #117 sono mergiate.
+La source reconciliation fail-closed è stata mergiata con PR #119.
 
-La First Money UI di `/migliore-esim` esiste ora come preview consumer-first, ma il canonical e le affiliazioni restano invariati.
-
-Prossima branch tecnica separata:
+Checkpoint certificato:
 
 ```text
-source reconciliation / onboarding
+PR #119
+head:       142279b73015994a230dfc49da3d3a6a41b5d37a
+merge/main: 149dc3d7bb5907347d20327aa595fa171ebb680d
+CI #633:    success
+CI #634:    success
 ```
 
-Target:
+Nessun deploy production e nessuna mutation D1 remota sono stati eseguiti.
+
+Il resolver è bound ai `SOURCE_CONFIG` reali dei due evidence pack:
 
 ```text
-pack sourceAuditKey + canonical URL + provider/source role
-→ exactly one approved source_registry row
+pack:                     2
+source references:       12
+unique source identities: 9
+```
+
+Contratto implementato:
+
+```text
+sourceAuditKey
++ entity type/key
++ source kind
++ approved registry canonical URL
+→ exactly one active source_registry row
 ```
 
 Fail closed:
 
 ```text
 0 match  → source_not_registered
+1 match  → resolved
 >1 match → source_registry_ambiguous
 ```
 
-Scope della branch:
+Il manifest classifica oggi:
 
-- riconciliare le source dei pack Italy/Europe con `source_registry`;
-- classificare le `candidate_new` realmente da registrare;
-- produrre mapping versionato e validazione locale deterministica;
-- eventuale source onboarding soltanto come mutation separata e auditabile se esplicitamente autorizzata;
-- nessun importer nella stessa branch;
-- nessuna remote migration implicita;
-- nessun `claim_verifications` write;
-- nessun ranking;
-- nessun deploy.
+```text
+registered_expected: 2 mapping entries
+required:            7 mapping entries
+```
+
+Questi stati **non descrivono ancora il contenuto reale del D1 target**. In particolare `registered_expected` è un'aspettativa derivata dal source universe repository, non una certificazione ambientale.
+
+### Prossima branch tecnica separata
+
+Obiettivo esclusivo:
+
+```text
+read-only target-environment source_registry verification
+```
+
+Deve:
+
+- interrogare o esportare in modo read-only il `source_registry` dell'ambiente target;
+- eseguire il resolver versionato sulle 9 identity;
+- produrre un risultato deterministico con `resolved`, `source_not_registered` e `source_registry_ambiguous`;
+- identificare quali source richiedono realmente onboarding;
+- preservare gli ID numerici come dati environment-specific, non versionati nel manifest;
+- non fare INSERT/UPDATE durante la verifica;
+- non applicare `0021` al remoto;
+- non importare evidence pack;
+- non scrivere `claim_verifications`;
+- non fare ranking, publication o deploy.
+
+## Gate successivo — source onboarding separato
+
+Soltanto dopo la verifica read-only dell'ambiente target.
+
+Se esistono identity `source_not_registered`, l'onboarding deve essere una mutation separata e auditabile.
+
+Requisiti:
+
+```text
+approved manifest identity
++ exact entity type/key
++ exact source kind
++ exact canonical registry URL
+→ explicit source_registry onboarding
+```
 
 Regole:
 
-- nessun auto-registration di URL;
+- nessun auto-registration;
 - nessun provider-root fallback;
-- redirect target non sostituisce silenziosamente l'identità della fonte;
-- una source reconciliation deve risolvere esattamente una source canonica oppure bloccare l'import.
+- nessun redirect target usato come remap implicito;
+- nessun hardcoded environment ID;
+- duplicate/ambiguous state deve bloccare, non essere “riparato” automaticamente;
+- fixture/local verification prima del remoto;
+- mutation remota soltanto con autorizzazione esplicita;
+- nessun importer nella stessa branch;
+- nessuna remote `0021` apply implicita;
+- nessun deploy.
+
+Il gate si chiude soltanto quando:
+
+```text
+all 9 source identities
+→ exactly one active approved source_registry row ciascuna
+```
 
 ## Gate seguente — importer idempotente
 
-Soltanto dopo source reconciliation:
+Soltanto dopo environment verification + onboarding chiusi:
 
 ```text
 pack.json + immutable artifacts
+→ resolved source IDs
 → evidence_capture_runs
 → evidence_snapshots
 → evidence_field_observations
@@ -65,6 +129,7 @@ Requisiti:
 
 - idempotenza/content-addressed identity;
 - artifact hash verificato;
+- source ID ottenuti dal resolver contro l'ambiente, non hardcoded;
 - `observed` e il sotto-fatto realmente supportato da `partial` possono alimentare candidate;
 - `unknown` e `not_applicable` non diventano factual candidate;
 - nessun `claim_verifications` write;
@@ -81,19 +146,21 @@ D1 remoto resta a:
 
 `0021_evidence_upstream_storage.sql` è versionata e local-tested.
 
-Non applicarla al remoto come effetto collaterale di importer, deploy o source reconciliation.
+Non applicarla al remoto come effetto collaterale di verifier, source onboarding, importer o deploy.
 
 Sequenza prevista:
 
 ```text
-source reconciliation
+environment source_registry verification
+→ source onboarding where required
+→ all sources exactly-one
 → importer local/fixture
 → explicit remote 0021 authorization
 → controlled ingest
 → verification provenance bridge
 ```
 
-## First Money UI — stato dopo PR #117
+## First Money UI — stato invariato
 
 Preview mergiata:
 
@@ -107,7 +174,7 @@ Canonical ancora invariato:
 /migliore-esim
 ```
 
-La preview è stata verificata desktop/mobile e conserva:
+La preview conserva:
 
 - hero consumer-first;
 - destinazione → giorni → dati → hotspot;
@@ -126,7 +193,7 @@ I sei slot restano intenzionalmente:
 Da verificare per l'offerta
 ```
 
-fino alla materializzazione di facts bounded e fresh.
+fino alla materializzazione di facts bounded, fresh e verificati.
 
 ## Decisione First Euro — invariata
 
@@ -308,8 +375,8 @@ new long tails
 
 ## Checkpoint aperti
 
-- CI post-merge #627 sul merge #117;
-- source reconciliation / onboarding;
+- target-environment `source_registry` verification;
+- source onboarding separato delle identity realmente mancanti;
 - affiliate approvals;
 - importer idempotente;
 - explicit remote `0021` gate;
@@ -328,8 +395,9 @@ new long tails
 
 - niente terzo evidence pack esplorativo salvo blocker strutturale;
 - niente remote `0021` apply senza gate esplicito;
-- niente importer prima di source reconciliation;
+- niente importer prima che tutte le source dei pack risolvano exactly-one;
 - niente source auto-registration;
+- niente source onboarding remoto senza autorizzazione esplicita;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
 - niente ranking/provider winner universale;
