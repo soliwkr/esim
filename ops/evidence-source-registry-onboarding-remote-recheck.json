@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "attempt": 2,
-  "reason": "verify_atomic_multirow_retry_contract_and_target_unchanged",
-  "expectedRegistryRows": 7,
-  "expectedResolved": 0,
-  "expectedMissing": 9,
-  "expectedAmbiguous": 0
-}
