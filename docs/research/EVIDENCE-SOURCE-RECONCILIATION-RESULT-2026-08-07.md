@@ -50,7 +50,17 @@ Il manifest copre le source uniche realmente usate dai pack Italia ed Europa:
 - Holafly Europe product;
 - Ubigi Europe product mapped to the approved Ubigi commerce identity.
 
-Le due source Ubigi product conservano requested/final product URL nello snapshot, ma risolvono verso la canonical commerce surface già approvata. Questo mapping è esplicito; non è un fallback automatico.
+Cardinalità verificata contro i `SOURCE_CONFIG` reali dei due pack:
+
+```text
+pack:                    2
+source references:      12
+unique source identities: 9
+```
+
+Le source condivise tra i due pack restano una sola identity di reconciliation quando `sourceAuditKey`, provider, role e requested URL coincidono.
+
+Le due source Ubigi product conservano requested/final product URL nello snapshot, ma risolvono verso la canonical commerce surface già approvata nel source universe repository. Questo mapping è esplicito; non è un fallback automatico.
 
 ## Stato onboarding atteso
 
@@ -59,22 +69,25 @@ registered_expected: 2 mapping entries
 required:            7 mapping entries
 ```
 
-`registered_expected` descrive l'aspettativa versionata. Il resolver continua comunque a fallire chiuso se la riga attiva non esiste nell'ambiente interrogato.
+`registered_expected` descrive soltanto l'aspettativa versionata derivata dal source universe approvato; non certifica la presenza della riga in un ambiente D1. Il resolver continua a fallire chiuso se la riga attiva non esiste nell'ambiente interrogato.
 
 ## Guardrail testati
 
 Lo smoke verifica:
 
-1. root Airalo non soddisfa la source Italy product/catalog;
-2. Ubigi commerce exact identity risolve;
-3. exact candidate onboarding risolve;
-4. due righe equivalenti producono `source_registry_ambiguous`;
-5. riga `blocked` non risolve;
-6. historic/deep redirect URL non sostituisce la canonical identity approvata;
-7. URL non HTTPS o con credenziali è rifiutato;
-8. `sourceRegistryId` hardcoded nel manifest è rifiutato;
-9. `sourceAuditKey` duplicato è rifiutato;
-10. il resolver non muta né auto-registra righe del registry.
+1. il manifest corrisponde ai `SOURCE_CONFIG` correnti dei pack Italia ed Europa;
+2. una requested URL del pack che deriva dal mapping viene bloccata;
+3. una identity presente nel manifest ma non più referenziata dai pack viene bloccata;
+4. root Airalo non soddisfa la source Italy product/catalog;
+5. Ubigi commerce exact identity risolve;
+6. exact candidate onboarding risolve;
+7. due righe equivalenti producono `source_registry_ambiguous`;
+8. riga `blocked` non risolve;
+9. historic/deep redirect URL non sostituisce la canonical identity approvata;
+10. URL non HTTPS o con credenziali è rifiutato;
+11. `sourceRegistryId` hardcoded nel manifest è rifiutato;
+12. `sourceAuditKey` duplicato è rifiutato;
+13. il resolver non muta né auto-registra righe del registry.
 
 ## Confini
 
@@ -92,7 +105,7 @@ Questa slice non autorizza:
 
 ## Prossimo gate
 
-Dopo il merge, la fase successiva deve decidere e applicare separatamente l'onboarding delle sette source mancanti, prima nell'ambiente locale e soltanto con autorizzazione separata in remoto.
+Dopo il merge, la fase successiva deve verificare l'ambiente target e applicare separatamente l'onboarding delle source che risultano realmente mancanti, prima in locale e soltanto con autorizzazione separata in remoto.
 
 Solo quando ogni source dei pack risolve exactly-one può partire l'importer idempotente:
 
