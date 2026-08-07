@@ -47,9 +47,8 @@ M7 Migliore eSIM Preview Capture #5: success
 CI post-merge:
 
 ```text
-CI #627
+CI #627: success
 merge SHA: ddd324714c2937f2f0d720f1c99978dbc5d61577
-stato al closeout branch: in_progress
 ```
 
 Non è stato eseguito alcun deploy production.
@@ -192,12 +191,13 @@ Canonical:
 
 resta invariata.
 
-Verifiche finali pre-merge:
+Verifiche finali:
 
 - CI #626 completamente verde;
 - visual capture #5 verde;
 - desktop `1365×900` review completata;
 - mobile `390×844` review completata;
+- CI post-merge #627 verde sul merge SHA;
 - nessun overflow orizzontale;
 - singolo H1;
 - internal links namespaced;
@@ -325,7 +325,6 @@ Tool AI/video sono strumenti di produzione, non fonti di verità.
 
 ## Checkpoint aperti
 
-- CI post-merge #627 su `ddd324714...`;
 - source reconciliation / onboarding;
 - affiliate approval Airalo/Holafly/Ubigi;
 - first bounded evidence materialization;
