@@ -72,6 +72,54 @@ export function validateReconciliationManifest(manifest) {
   return manifest;
 }
 
+export function validateManifestAgainstPackSources(manifest, packSourceGroups) {
+  validateReconciliationManifest(manifest);
+  if (!packSourceGroups || typeof packSourceGroups !== 'object' || Array.isArray(packSourceGroups)) {
+    throw new Error('pack_source_groups_invalid');
+  }
+
+  const byAuditKey = new Map(manifest.sources.map((entry) => [entry.sourceAuditKey, entry]));
+  const referencedAuditKeys = new Set();
+
+  for (const [packName, sources] of Object.entries(packSourceGroups)) {
+    if (!packName || !Array.isArray(sources) || sources.length === 0) {
+      throw new Error('pack_source_group_invalid');
+    }
+    for (const source of sources) {
+      if (!source || typeof source.sourceAuditKey !== 'string' || !source.sourceAuditKey) {
+        throw new Error(`pack_source_audit_key_invalid:${packName}`);
+      }
+      const entry = byAuditKey.get(source.sourceAuditKey);
+      if (!entry) throw new Error(`pack_source_unmapped:${packName}:${source.sourceAuditKey}`);
+      if (entry.provider !== source.provider) {
+        throw new Error(`pack_source_provider_mismatch:${packName}:${source.sourceAuditKey}`);
+      }
+      if (entry.evidenceRole !== source.role) {
+        throw new Error(`pack_source_role_mismatch:${packName}:${source.sourceAuditKey}`);
+      }
+      const requestedUrl = canonicalizeRegistryUrl(source.url);
+      const approvedRequestedUrls = new Set(entry.packRequestedUrls.map(canonicalizeRegistryUrl));
+      if (!approvedRequestedUrls.has(requestedUrl)) {
+        throw new Error(`pack_requested_url_unmapped:${packName}:${source.sourceAuditKey}`);
+      }
+      referencedAuditKeys.add(source.sourceAuditKey);
+    }
+  }
+
+  const unreferenced = manifest.sources
+    .map((entry) => entry.sourceAuditKey)
+    .filter((sourceAuditKey) => !referencedAuditKeys.has(sourceAuditKey));
+  if (unreferenced.length > 0) {
+    throw new Error(`source_reconciliation_entry_unreferenced:${unreferenced.sort().join(',')}`);
+  }
+
+  return Object.freeze({
+    packCount: Object.keys(packSourceGroups).length,
+    packSourceReferences: Object.values(packSourceGroups).reduce((total, sources) => total + sources.length, 0),
+    uniqueSourceIdentities: referencedAuditKeys.size,
+  });
+}
+
 export function resolveSourceRegistryEntry(entry, registryRows) {
   if (!Array.isArray(registryRows)) throw new Error('source_registry_rows_invalid');
   const canonicalUrl = canonicalizeRegistryUrl(entry.registryCanonicalUrl);
