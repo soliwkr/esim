@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -8,6 +8,7 @@ import {
 } from './evidence-source-reconciliation.mjs';
 
 export const TARGET_D1_DATABASE = 'senza-roaming';
+export const TARGET_D1_BINDING = 'DB';
 export const SOURCE_REGISTRY_READ_QUERY = [
   'SELECT',
   '  id,',
@@ -123,18 +124,22 @@ function parseJsonOutput(stdout) {
 }
 
 export function queryRemoteSourceRegistry() {
+  const configPath = process.env.EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG;
+  const args = [
+    'node_modules/wrangler/bin/wrangler.js',
+    'd1',
+    'execute',
+    configPath ? TARGET_D1_BINDING : TARGET_D1_DATABASE,
+    '--remote',
+    '--command',
+    SOURCE_REGISTRY_READ_QUERY,
+    '--json',
+  ];
+  if (configPath) args.push('--config', configPath);
+
   const result = spawnSync(
     process.execPath,
-    [
-      'node_modules/wrangler/bin/wrangler.js',
-      'd1',
-      'execute',
-      TARGET_D1_DATABASE,
-      '--remote',
-      '--command',
-      SOURCE_REGISTRY_READ_QUERY,
-      '--json',
-    ],
+    args,
     {
       encoding: 'utf8',
       env: process.env,
