@@ -22,37 +22,30 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 | Evidence packs | Verificati live | Italy #106 + Europe #107 |
 | Upstream evidence schema | Repository/local | #110 `0021`; remoto ancora `0020` |
 | Source reconciliation | Completata | PR #119, fail-closed e bound ai pack reali |
-| Target source verification | Completata | PR #121: target D1 = 0/9 resolved, 9 missing, 0 ambiguous |
-| Source onboarding local | Verificato | PR #122: 8 insert → 9/9 resolved; repeat → 0 insert |
-| Truth Engine | Gate corrente | explicit remote onboarding delle 8 registry identity approvate |
+| Target source verification | Completata | PR #121: target iniziale = 0/9 resolved, 9 missing, 0 ambiguous |
+| Source onboarding local | Verificato | PR #122: 8 insert → 9/9; repeat → 0 insert |
+| Source onboarding remoto | Completato | run `31205724615`: 8 insert, target 15 rows, 9/9 resolved |
+| Truth Engine | Gate corrente | importer idempotente local/fixture; nessun ingest remoto ancora |
 | Search Console | Collegata | dataset iniziale ancora minimo |
 | CMP / GTM / GA4 | Live e consent-gated | Basic Consent Mode ricertificato |
 | Affiliazioni | Disabilitate nel sito | `AFFILIATE_MODE=disabled`; partner work in parallelo |
 | Google Ads / remarketing | Disabilitati | fuori scope |
 
-## Main certificato prima della slice corrente
+## Main stabile prima del closeout corrente
 
-Ultimo merge stabile verificato:
-
-```text
-PR #121 — target evidence source registry read-only verification
-merge/main: 4903b2caef0c82e51ac5cd1b458dc3f0e2f513e1
-PR head:   c93718d893eb9df1913fd99850f5dd71c094f747
-CI #637:   success
-CI #638:   success
-```
-
-La slice corrente PR #122 prepara e verifica **solo localmente** l'onboarding source registry.
-
-Checkpoint CI locale della slice:
+Ultimo merge certificato:
 
 ```text
-PR #122
-head:    57b433269b744649bb14f1ff02f31c4a00dddc5c
-CI #639: success
+PR #122 — local evidence source registry onboarding
+merge/main: 51bf26e7585a71ed914d868bd3a2afb18bbfda6a
+PR head:   0fda349bc480da0aa09e6cb371a03b5978a8cbb2
+CI #643:   success
+CI #644:   success
 ```
 
-Nessun deploy production, nessuna source mutation remota e nessuna remote migration sono stati eseguiti da #119–#122.
+La mutation source registry production è stata eseguita successivamente su branch operativa separata e verrà chiusa con questo checkpoint documentale.
+
+Non è stato eseguito alcun deploy production e non è stata applicata `0021` al D1 remoto.
 
 ## Frontend pubblico — stato commerciale
 
@@ -187,7 +180,7 @@ Nessun provider-root fallback, redirect auto-remap, importer auto-registration o
 
 ## Target source registry — PR #121
 
-Due letture remote read-only indipendenti hanno prodotto lo stesso risultato:
+Due letture remote read-only indipendenti avevano prodotto:
 
 ```text
 source_registry rows inspected: 7
@@ -198,16 +191,7 @@ source_registry_ambiguous:       0
 readyForImporter:                false
 ```
 
-Questo ha corretto una precedente aspettativa repository: anche le due source Ubigi `registered_expected` non esistono realmente nel target.
-
-Le 9 reconciliation identity richiedono **8 registry identity uniche** perché due mapping Ubigi convergono su:
-
-```text
-provider
-ubigi
-official_provider
-https://cellulardata.ubigi.com/
-```
+Le 9 reconciliation identity richiedevano **8 registry identity uniche** perché due mapping Ubigi convergono sulla stessa source commerce approvata.
 
 ## Source onboarding local — PR #122
 
@@ -236,58 +220,123 @@ no redirect auto-remap
 no hardcoded environment IDs
 ```
 
-Il preflight blocca una stessa identity D1 con metadata diversi; non esegue update automatici.
-
-CI #639 ha verificato su D1 locale isolato e migrato:
+CI #639/#643 ha verificato su D1 locale isolato:
 
 ```text
-first onboarding:
-8 inserts
-8 exact rows after
-9/9 reconciliation identities resolved
-readyForImporter=true (local only)
-
-second onboarding:
-0 inserts
-8 exact rows before/after
-9/9 reconciliation identities resolved
-readyForImporter=true (local only)
+first onboarding:  8 inserts → 9/9 resolved
+second onboarding: 0 inserts → 9/9 resolved
 ```
 
-La CLI rifiuta `--remote`.
+## Source onboarding remoto — completato
+
+Documento risultato:
+
+```text
+docs/research/EVIDENCE-SOURCE-REGISTRY-REMOTE-ONBOARDING-RESULT-2026-08-07.md
+```
+
+Primo tentativo:
+
+```text
+run:    31205333567
+result: failure
+cause:  Cloudflare D1 code 7500 su BEGIN TRANSACTION
+```
+
+Un recheck read-only successivo (`31205451535`) ha provato che il target era rimasto invariato:
+
+```text
+7 rows
+0/9 resolved
+9 missing
+0 ambiguous
+```
+
+Il retry è stato corretto a una sola `INSERT` multi-row, senza `BEGIN`, `SAVEPOINT` o `OR IGNORE`, e ricertificato read-only prima della mutation (`31205653115`).
+
+Mutation riuscita:
+
+```text
+run:                      31205724615
+head:                     a862b9d8e3fc152e65173cbe8cc19287dd016b59
+registry rows before:     7
+approved inserts:         8
+registry rows after:      15
+manifest resolved:        9/9
+missing:                  0
+ambiguous:                0
+ready for importer gate:  yes
+```
+
+Verifica read-only indipendente immediata:
+
+```text
+verified_at: 2026-08-07T18:11:04.432Z
+registry rows: 15
+resolved:      9/9
+missing:       0
+ambiguous:     0
+```
+
+Artifact sanitizzato:
+
+```text
+id:     9004629906
+digest: sha256:4f14933993b678221b54619ade7fc277ebf71d16a41855dd86c5b4eef60f1996
+```
+
+Nessuna migration remota, importer, claim write o deploy è stata eseguita insieme all'onboarding.
 
 ## Truth Engine — gate tecnico corrente
 
-Il local-first onboarding gate è chiuso. Il target remoto resta invariato.
-
-Prossimo gate, con autorizzazione esplicita separata:
+Il source gate production è **chiuso**:
 
 ```text
-remote read-only preflight
-→ 8 approved missing identities / 0 conflicts
-→ explicit source_registry onboarding
-→ remote read-only verifier rerun
-→ require 9/9 resolved exactly-one
+8 approved registry identities onboarded
+→ 9/9 reconciliation identities exactly-one
 ```
 
-Solo dopo:
+Gate corrente:
 
 ```text
-idempotent importer
-→ explicit remote 0021 authorization
-→ controlled ingest
+idempotent importer local/fixture
+```
+
+L'importer deve:
+
+- consumare pack/artifact già approvati;
+- risolvere gli environment source IDs, non hardcodarli;
+- creare solo upstream evidence rows previste da `0021` in un D1 locale/fixture;
+- essere content-addressed/idempotente;
+- preservare `unknown`, `partial`, conflict e source-native currency;
+- non scrivere `claim_verifications`;
+- non fare ranking/publication;
+- non applicare `0021` al remoto come effetto collaterale.
+
+Solo dopo importer local/fixture verde:
+
+```text
+explicit remote 0021 authorization
+→ controlled evidence ingest
 → verification provenance bridge
 → bounded facts per First Money UI
 ```
 
 ## Percorso verso production SEO + primo click affiliate
 
-Siamo nella corsia finale, ma il click non è ancora sbloccato:
+Primi due gate Truth Engine chiusi:
 
 ```text
-remote source onboarding
-→ 9/9 source verification
-→ evidence ingest
+source reconciliation ✅
+remote source onboarding 9/9 ✅
+```
+
+Percorso restante:
+
+```text
+importer local/fixture
+→ explicit remote 0021
+→ controlled evidence ingest
 → verified commercial facts
 → /migliore-esim canonical materialization
 → affiliate + measurement gate
@@ -319,9 +368,7 @@ Prima dell'attivazione affiliate servono:
 
 ## Checkpoint aperti
 
-- explicit remote onboarding delle 8 source identity;
-- remote post-verification 9/9;
-- importer idempotente;
+- importer idempotente local/fixture;
 - explicit remote `0021` gate;
 - controlled evidence ingest;
 - verification provenance bridge;
@@ -337,10 +384,10 @@ Prima dell'attivazione affiliate servono:
 
 ## Freeze
 
-- niente source onboarding remoto senza autorizzazione esplicita;
+- niente ulteriori source mutation remote senza scope/autorizzazione espliciti;
 - niente deploy implicito;
-- niente remote migration implicita;
-- niente importer prima del remote `9/9`;
+- niente remote `0021` implicita;
+- niente evidence ingest remoto prima di importer local/fixture + migration gate;
 - niente source auto-registration;
 - niente metadata overwrite automatico;
 - niente FX implicito;
