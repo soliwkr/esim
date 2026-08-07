@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **6 agosto 2026**.
+Ultimo aggiornamento: **7 agosto 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`. Lo storico dettagliato vive nel versionamento Git e nei documenti risultato.
 
@@ -138,7 +138,7 @@ clicks: 0
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato: foundation + First Euro map mergiate; demand expansion in corso.**
+**Stato: demand intelligence completata; prima First Money UI mergiata come preview.**
 
 ### M7.0 — SEO foundation
 
@@ -156,7 +156,7 @@ La foundation **non equivale a SEO completata**.
 
 ### M7.1 — First Euro Demand Intelligence
 
-**PR #111 mergiata.**
+**Completata con PR #111 e PR #113.**
 
 Contratto:
 
@@ -174,13 +174,26 @@ Output versionati:
 - corpus Planner completo;
 - long-tail priority universe;
 - SERP competitor snapshot;
-- question expansion da SERP / FAQ provider / community;
+- question expansion;
 - top 20 execution order;
 - cannibalization v2;
 - internal linking v2;
 - `/migliore-esim` brief;
 - `/esim-europa` brief;
-- search-to-social angle bank.
+- search-to-social angle bank;
+- Autocomplete base + `a…z` per 17 seed;
+- organic SERP shape;
+- PAA/related zero-state osservato e diagnosticato.
+
+Capture A–Z:
+
+```text
+476 request
+3659 autocomplete rows
+2829 query uniche
+153 organic rows
+0 errors
+```
 
 Decisione:
 
@@ -190,61 +203,54 @@ Decisione:
 ```
 
 `/esim-iphone` è un forte traffic feeder.
+`/esim-hotspot` è un candidate problem/setup feeder, non una money page automatica.
 
-### M7.1b — Autocomplete A–Z + PAA / related
+### M7.1c — First Money UI `/migliore-esim`
 
-**Gate corrente — draft PR #113.**
+**PR #117 mergiata.**
 
-Collector riproducibile:
-
-```text
-Serper /autocomplete
-→ seed + base + a…z
-
-Serper /search
-→ PAA / related quando esposti
-→ organic SERP shape
-```
-
-Prima capture reale:
+Preview repository:
 
 ```text
-17 seed
-476 request
-3659 autocomplete rows
-2829 query uniche
-153 organic rows
-0 errors
+/astro-foundation/articoli/migliore-esim
 ```
 
-PAA/related IT nella capture corrente:
+Implementa:
 
 ```text
-peopleAlsoAsk=0
-relatedSearches=0
+destinazione
+→ giorni
+→ dati
+→ hotspot
+→ scenario
+→ evidence slots
+→ FAQ/obiezioni
+→ supporting guides
 ```
 
-Diagnostic separato:
+Verifiche pre-merge:
 
 ```text
-US control relatedSearches=8
-US control PAA=0
-Italian P0 PAA/related=0
+CI #626: success
+Visual Capture #5: success
+desktop/mobile review: completata
 ```
 
-Regola: zero resta zero. Nessuna domanda sintetica viene rinominata PAA.
+La route canonica `/migliore-esim` **non è stata materializzata con questa PR**.
 
-Nuovi segnali:
+La preview non contiene:
 
-- hotspot = forte problem/setup feeder;
-- USA = voice/local-number requirement;
-- Europe = unlimited/duration/data/voice dimensions;
-- Airalo/Holafly = intent separation confermata;
-- iPhone = model/compatibility feeder.
+- link affiliate `/go/*`;
+- provider ranking/winner;
+- nuovi claim commerciali provider-specifici;
+- publication mutation;
+- deploy.
+
+I facts commerciali restano il punto di convergenza con la Truth Engine.
 
 ### M7.2 — Search-to-Social Content Engine
 
-**Dopo la prima money page, test bounded.**
+**Dopo la prima money page materializzata, test bounded.**
 
 ```text
 query / SERP question
@@ -297,7 +303,7 @@ Metodo/governance restano trust assets su `/metodo` e `/trasparenza`.
 
 ## Evidence Truth Engine — track parallela
 
-**Stato: design + schema local-only completati.**
+**Stato: design + schema repository/local completati; source reconciliation è il gate corrente.**
 
 Completati:
 
@@ -312,7 +318,7 @@ Completati:
 #110 upstream evidence D1 schema foundation
 ```
 
-Schema versionato:
+Schema versionato e local-tested:
 
 ```text
 0021_evidence_upstream_storage.sql
@@ -329,14 +335,30 @@ evidence_claim_candidates
 
 **D1 remoto resta a `0020`.**
 
-Prossimi gate:
+Gate corrente:
 
 ```text
 source reconciliation / onboarding
+```
+
+Target:
+
+```text
+sourceAuditKey + canonical URL + provider/source role
+→ exactly one approved source_registry row
+```
+
+Fail closed su zero o più di un match. Nessun auto-registration o provider-root fallback.
+
+Gate successivi:
+
+```text
+source reconciliation
 → idempotent importer
 → explicit remote 0021 apply
 → controlled ingest
 → verification provenance bridge
+→ bounded commercial materialization
 ```
 
 Non costruire un terzo exploratory evidence pack senza un nuovo blocker strutturale.
@@ -345,7 +367,7 @@ Non costruire un terzo exploratory evidence pack senza un nuovo blocker struttur
 
 ## M8 — Monetizzazione controllata
 
-**Stato: non attiva; partner application in parallelo.**
+**Stato: non attiva; First Money UI pronta come preview, partner application in parallelo.**
 
 Obiettivo:
 
@@ -366,16 +388,19 @@ Ubigi
 
 Prima di `AFFILIATE_MODE=enabled`:
 
-1. almeno una money page consumer-ready;
-2. claim commerciali bounded e fresh;
+1. First Money UI consumer-ready;
+2. claim commerciali bounded, fresh e verificati;
 3. programma affiliate approvato;
 4. partner redirect/config validata;
 5. disclosure chiara;
 6. `provider_redirect_intent` measurement design;
 7. privacy/consent recheck;
 8. secret/config fuori dal repository;
-9. deploy production manuale autorizzato;
-10. live smoke redirect + disclosure.
+9. `AFFILIATE_MODE` change esplicito;
+10. deploy production manuale autorizzato;
+11. live smoke redirect + disclosure.
+
+Il canonical cutover della money page, l'affiliate activation e il deploy restano gate separati.
 
 Revenue scoring viene dopo dati reali.
 
@@ -399,9 +424,9 @@ Revenue scoring viene dopo dati reali.
 ### Track A — Traffic & Money
 
 ```text
-close #113 A–Z/PAA enrichment
-→ preview-first /migliore-esim consumer rewrite
-→ bounded commercial materialization
+First Money preview merged
+→ attend verified commercial materialization
+→ canonical /migliore-esim cutover separato
 → affiliate/measurement gate
 → explicit production deploy
 → /esim-europa
@@ -416,6 +441,7 @@ source reconciliation
 → explicit remote 0021
 → controlled ingest
 → verification provenance
+→ facts per First Money UI
 ```
 
 ### Track C — Operations
@@ -438,6 +464,7 @@ Non fare adesso:
 - ranking/provider winner universale;
 - affiliate activation senza disclosure/evidence/measurement;
 - remote migration implicita;
+- importer prima della source reconciliation;
 - deploy automatico;
 - social publishing autonomo;
 - FX implicito;
