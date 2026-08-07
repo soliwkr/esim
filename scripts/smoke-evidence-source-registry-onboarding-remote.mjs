@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   assertRemotePostcondition,
   assertRemotePreflight,
+  buildAtomicRemoteInsertSql,
   validateRemoteAuthorizationMarker,
 } from './evidence-source-registry-onboarding-remote.mjs';
 import { loadSourceOnboardingIntents } from './evidence-source-registry-onboarding.mjs';
@@ -53,6 +54,13 @@ assert.deepEqual(preflight.reconciliationCounts, {
   sourceNotRegistered: 9,
   sourceRegistryAmbiguous: 0,
 });
+
+const atomicSql = buildAtomicRemoteInsertSql(onboarding, preflight.plan);
+assert.match(atomicSql, /^INSERT INTO source_registry \(/);
+assert.doesNotMatch(atomicSql, /BEGIN|TRANSACTION|SAVEPOINT|OR IGNORE/i);
+assert.equal((atomicSql.match(/\n  \(/g) || []).length, 8);
+assert.equal((atomicSql.match(/INSERT INTO source_registry/g) || []).length, 1);
+assert.ok(atomicSql.trimEnd().endsWith(';'));
 
 const insertedRows = onboarding.intents.map((intent, index) => ({
   id: 100 + index,
