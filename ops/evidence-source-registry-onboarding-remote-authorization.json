@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "scope": "source_registry_onboarding",
+  "authorizedOn": "2026-08-07",
+  "authorizationBasis": "explicit_project_owner_authorization_in_active_session",
+  "remoteMutationAuthorized": true,
+  "expectedIntentCount": 8,
+  "expectedManifestIdentityCount": 9,
+  "expectedBeforeRegistryRows": 7,
+  "expectedAfterRegistryRows": 15,
+  "forbidRemoteMigration": true,
+  "forbidImporter": true,
+  "forbidDeploy": true
+}
