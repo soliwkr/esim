@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
-  "reason": "verify_target_unchanged_after_cloudflare_rejected_begin_transaction",
+  "attempt": 2,
+  "reason": "verify_atomic_multirow_retry_contract_and_target_unchanged",
   "expectedRegistryRows": 7,
   "expectedResolved": 0,
   "expectedMissing": 9,
