@@ -118,8 +118,6 @@ M4 non blocca il First Euro pubblico.
 - production recovery e safety contract;
 - deploy `workflow_dispatch` only.
 
-Stato:
-
 ```text
 GA4: live
 GTM: live
@@ -138,13 +136,13 @@ clicks: 0
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato: demand intelligence completata; prima First Money UI mergiata come preview.**
+**Stato: demand intelligence completata; First Money UI pronta come preview; Truth Engine nella corsia finale verso materializzazione commerciale.**
 
 ### M7.0 — SEO foundation
 
 **Completata.**
 
-- Keyword Planner originale: 1.623 keyword uniche;
+- Keyword Planner: 1.623 keyword uniche;
 - ownership iniziale;
 - cannibalization baseline;
 - title/H1/promise baseline;
@@ -152,13 +150,11 @@ clicks: 0
 - homepage, hub e `/migliore-esim` riallineati;
 - GSC read-only disponibile.
 
-La foundation **non equivale a SEO completata**.
+La foundation non equivale a monetizzazione live.
 
 ### M7.1 — First Euro Demand Intelligence
 
-**Completata con PR #111 e PR #113.**
-
-Contratto:
+**Completata con PR #111 e #113.**
 
 ```text
 search demand
@@ -169,32 +165,6 @@ search demand
 → first commercial slice
 ```
 
-Output versionati:
-
-- corpus Planner completo;
-- long-tail priority universe;
-- SERP competitor snapshot;
-- question expansion;
-- top 20 execution order;
-- cannibalization v2;
-- internal linking v2;
-- `/migliore-esim` brief;
-- `/esim-europa` brief;
-- search-to-social angle bank;
-- Autocomplete base + `a…z` per 17 seed;
-- organic SERP shape;
-- PAA/related zero-state osservato e diagnosticato.
-
-Capture A–Z:
-
-```text
-476 request
-3659 autocomplete rows
-2829 query uniche
-153 organic rows
-0 errors
-```
-
 Decisione:
 
 ```text
@@ -202,20 +172,20 @@ Decisione:
 #2 /esim-europa     → first new evidence-native money page
 ```
 
-`/esim-iphone` è un forte traffic feeder.
-`/esim-hotspot` è un candidate problem/setup feeder, non una money page automatica.
+`/esim-iphone` resta traffic feeder.
+`/esim-hotspot` resta problem/setup feeder.
 
 ### M7.1c — First Money UI `/migliore-esim`
 
 **PR #117 mergiata.**
 
-Preview repository:
+Preview:
 
 ```text
 /astro-foundation/articoli/migliore-esim
 ```
 
-Implementa:
+Struttura:
 
 ```text
 destinazione
@@ -228,15 +198,16 @@ destinazione
 → supporting guides
 ```
 
-Verifiche pre-merge:
+Verifiche:
 
 ```text
 CI #626: success
 Visual Capture #5: success
 desktop/mobile review: completata
+CI post-merge #627: success
 ```
 
-La route canonica `/migliore-esim` **non è stata materializzata con questa PR**.
+La canonical `/migliore-esim` resta invariata.
 
 La preview non contiene:
 
@@ -246,7 +217,7 @@ La preview non contiene:
 - publication mutation;
 - deploy.
 
-I facts commerciali restano il punto di convergenza con la Truth Engine.
+I facts commerciali sono il punto di convergenza con la Truth Engine.
 
 ### M7.2 — Search-to-Social Content Engine
 
@@ -264,13 +235,6 @@ query / SERP question
 → new demand candidates
 ```
 
-Principi:
-
-- social deriva dalla stessa evidence della pagina;
-- community/aneddoti alimentano domanda/sentiment, non performance truth;
-- HeyGen/Hyperframes o equivalenti sono execution tools, non fonti;
-- niente social auto-publish nella prima slice.
-
 ### M7.3 — Consumer-first public surfaces
 
 Dopo la prima money slice riallineare:
@@ -281,29 +245,13 @@ Dopo la prima money slice riallineare:
 /confronti
 ```
 
-Da:
-
-```text
-foundation/dev-facing copy
-```
-
-A:
-
-```text
-destinazione
-→ giorni
-→ dati
-→ hotspot
-→ decision page / money page
-```
-
 Metodo/governance restano trust assets su `/metodo` e `/trasparenza`.
 
 ---
 
 ## Evidence Truth Engine — track parallela
 
-**Stato: design + schema repository/local + source reconciliation fail-closed completati; environment verification/onboarding è il gate corrente.**
+**Stato: reconciliation, target verification e local onboarding completati; explicit remote source onboarding è il gate corrente.**
 
 Completati:
 
@@ -317,9 +265,13 @@ Completati:
 #109 canonical closeout
 #110 upstream evidence D1 schema foundation
 #119 fail-closed source reconciliation
+#121 target source_registry read-only verification
+#122 local idempotent source onboarding gate
 ```
 
-Schema versionato e local-tested:
+### Upstream schema
+
+Schema versionato/local-tested:
 
 ```text
 0021_evidence_upstream_storage.sql
@@ -336,12 +288,12 @@ evidence_claim_candidates
 
 **D1 remoto resta a `0020`.**
 
-Source reconciliation implementata:
+### Source reconciliation
 
 ```text
 2 evidence pack
-12 source reference
-9 source identity uniche
+12 source references
+9 reconciliation identities
 ```
 
 Contratto:
@@ -360,25 +312,63 @@ Fail closed:
 
 Nessun auto-registration, provider-root fallback, redirect auto-remap o ID D1 environment-specific versionato.
 
-Gate corrente:
+### Target verification — PR #121
+
+Due read remote indipendenti hanno osservato:
 
 ```text
-target-environment source_registry verification
-→ explicit source onboarding for unresolved identities
-→ all pack sources resolve exactly-one
+source_registry rows inspected: 7
+manifest identities:             9
+resolved:                        0
+source_not_registered:           9
+source_registry_ambiguous:       0
+readyForImporter:                false
 ```
 
-Il manifest contiene due mapping `registered_expected` verso l'identity commerce Ubigi e sette mapping `required`; `registered_expected` **non certifica** che la riga esista nell'ambiente interrogato.
+Le 9 identity deduplicano a **8 registry identity D1 uniche**.
+
+### Local onboarding — PR #122
+
+Intent versionati e revisionabili:
+
+```text
+research/evidence/source-registry-onboarding-intents.json
+```
+
+Local D1 smoke:
+
+```text
+first run:
+8 inserts
+9/9 manifest identities resolved
+
+second run:
+0 inserts
+9/9 manifest identities resolved
+```
+
+Metadata conflict blocca; la CLI rifiuta `--remote`; nessun metadata overwrite automatico.
+
+### Gate corrente
+
+Con autorizzazione remota separata:
+
+```text
+remote read-only preflight
+→ explicit onboarding of 8 approved registry identities
+→ remote read-only verifier rerun
+→ require 9/9 exactly-one
+```
 
 Gate successivi:
 
 ```text
-environment verification / source onboarding
+9/9 remote source resolution
 → idempotent importer
 → explicit remote 0021 apply
 → controlled ingest
 → verification provenance bridge
-→ bounded commercial materialization
+→ bounded commercial fact materialization
 ```
 
 Non costruire un terzo exploratory evidence pack senza un nuovo blocker strutturale.
@@ -387,7 +377,7 @@ Non costruire un terzo exploratory evidence pack senza un nuovo blocker struttur
 
 ## M8 — Monetizzazione controllata
 
-**Stato: non attiva; First Money UI pronta come preview, partner application in parallelo.**
+**Stato: non attiva; First Money UI pronta come preview; percorso al primo click definito.**
 
 Obiettivo:
 
@@ -398,7 +388,7 @@ first verified money page
 → first euro
 ```
 
-Provider partner iniziali:
+Provider iniziali:
 
 ```text
 Airalo
@@ -406,21 +396,33 @@ Holafly
 Ubigi
 ```
 
+Percorso corrente:
+
+```text
+remote source onboarding
+→ 9/9 source verification
+→ evidence ingest
+→ verified commercial facts
+→ canonical /migliore-esim
+→ affiliate + measurement gate
+→ explicit production deploy
+→ first affiliate click
+```
+
 Prima di `AFFILIATE_MODE=enabled`:
 
-1. First Money UI consumer-ready;
-2. claim commerciali bounded, fresh e verificati;
-3. programma affiliate approvato;
-4. partner redirect/config validata;
-5. disclosure chiara;
-6. `provider_redirect_intent` measurement design;
-7. privacy/consent recheck;
-8. secret/config fuori dal repository;
-9. `AFFILIATE_MODE` change esplicito;
-10. deploy production manuale autorizzato;
-11. live smoke redirect + disclosure.
+1. First Money UI con facts bounded/fresh/verificati;
+2. programma affiliate approvato/config disponibile;
+3. partner redirect/config validata;
+4. disclosure chiara;
+5. `provider_redirect_intent` measurement design;
+6. privacy/consent recheck;
+7. secret/config fuori dal repository;
+8. `AFFILIATE_MODE` change esplicito;
+9. deploy production manuale autorizzato;
+10. live smoke redirect + disclosure.
 
-Il canonical cutover della money page, l'affiliate activation e il deploy restano gate separati.
+Canonical cutover, affiliate activation e deploy restano gate separati.
 
 Revenue scoring viene dopo dati reali.
 
@@ -445,20 +447,20 @@ Revenue scoring viene dopo dati reali.
 
 ```text
 First Money preview merged
-→ attend verified commercial materialization
-→ canonical /migliore-esim cutover separato
+→ await bounded verified commercial facts
+→ canonical /migliore-esim cutover
 → affiliate/measurement gate
 → explicit production deploy
+→ first affiliate click
 → /esim-europa
-→ M7.2 search-to-social test
 ```
 
 ### Track B — Truth Engine
 
 ```text
-environment source_registry verification
-→ explicit source onboarding where required
-→ all 9 source identities exactly-one
+local onboarding proven
+→ explicit remote source onboarding
+→ 9/9 remote resolution
 → importer
 → explicit remote 0021
 → controlled ingest
@@ -474,7 +476,7 @@ M4 mutation residue
 + www redirect checkpoint
 ```
 
-Track A e B procedono in parallelo e si incontrano sui fatti pubblicabili della money page.
+Track A e B si incontrano sui fatti pubblicabili della money page.
 
 ## Stop conditions
 
@@ -485,15 +487,16 @@ Non fare adesso:
 - terzo evidence pack esplorativo senza blocker;
 - ranking/provider winner universale;
 - affiliate activation senza disclosure/evidence/measurement;
+- remote source onboarding senza autorizzazione esplicita;
 - remote migration implicita;
-- importer prima che tutte le source dei pack risolvano exactly-one;
-- source onboarding remoto senza autorizzazione esplicita;
+- importer prima del remote `9/9`;
+- metadata overwrite automatico nel source registry;
 - deploy automatico;
 - social publishing autonomo;
 - FX implicito;
 - claim performance da community anecdotes.
 
-Il prossimo valore deve essere misurabile come:
+Il prossimo valore deve restare misurabile come:
 
 ```text
 impression

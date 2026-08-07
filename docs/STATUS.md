@@ -10,64 +10,66 @@ Questo documento fotografa lo stato operativo reale di Senza Roaming. Lo storico
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve Astro |
 | Dominio `www` | Da ricontrollare | redirect implementato; checkpoint definitivo ancora aperto |
-| Worker | Operativo | un solo custom Worker; deploy production manual-only |
-| D1 remoto | Operativo fino a `0020` | `0021` è versionata e local-tested ma **non applicata al remoto** |
-| Workflow / Container / AI | Operativi | recent-demand, Container e AI Gateway già verificati |
+| Worker | Operativo | custom Worker; deploy production manual-only |
+| D1 remoto | Operativo fino a `0020` | `0021` versionata/local-tested, non applicata al remoto |
+| Workflow / Container / AI | Operativi | recent-demand, Container e AI Gateway verificati |
 | Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione autonoma dell'AI |
 | Control Room | Operativa | read-only completo + prime mutation; legacy ancora fallback |
-| Frontend pubblico Astro | Live | homepage, hub, trust pages, articoli published-only, sitemap/robots |
+| Frontend pubblico Astro | Live | homepage, hub, trust pages, published-only routing, sitemap/robots |
 | M7.0 SEO foundation | Live | ownership e on-page baseline applicate |
-| M7.1 First Euro Demand Intelligence | Completata | PR #111 + A–Z/PAA PR #113 mergiate |
-| First Money UI | Preview mergiata | PR #117; canonical `/migliore-esim` ancora invariato |
-| Evidence packs | Verificati live | Italy #106 + Europe #107, due capture ciascuno |
-| Upstream evidence D1 | Schema repository/local | #108 design + #110 `0021`; remoto ancora `0020` |
-| Source reconciliation | Implementata | PR #119; fail-closed e bound ai `SOURCE_CONFIG` reali dei due pack |
-| Truth Engine | Gate corrente | target-environment `source_registry` verification + source onboarding separato dove necessario |
-| Search Console | Collegata | 1 impression osservata il 24 luglio; dataset ancora troppo piccolo |
+| M7.1 Demand Intelligence | Completata | PR #111 + PR #113 |
+| First Money UI | Preview mergiata | PR #117; canonical `/migliore-esim` invariato |
+| Evidence packs | Verificati live | Italy #106 + Europe #107 |
+| Upstream evidence schema | Repository/local | #110 `0021`; remoto ancora `0020` |
+| Source reconciliation | Completata | PR #119, fail-closed e bound ai pack reali |
+| Target source verification | Completata | PR #121: target D1 = 0/9 resolved, 9 missing, 0 ambiguous |
+| Source onboarding local | Verificato | PR #122: 8 insert → 9/9 resolved; repeat → 0 insert |
+| Truth Engine | Gate corrente | explicit remote onboarding delle 8 registry identity approvate |
+| Search Console | Collegata | dataset iniziale ancora minimo |
 | CMP / GTM / GA4 | Live e consent-gated | Basic Consent Mode ricertificato |
-| Affiliazioni | Disabilitate nel sito | application Airalo/Holafly/Ubigi in parallelo; `AFFILIATE_MODE=disabled` |
+| Affiliazioni | Disabilitate nel sito | `AFFILIATE_MODE=disabled`; partner work in parallelo |
 | Google Ads / remarketing | Disabilitati | fuori scope |
 
-## Main corrente
+## Main certificato prima della slice corrente
 
-Ultimo merge:
-
-```text
-PR #119 — fail-closed evidence source reconciliation
-merge/main: 149dc3d7bb5907347d20327aa595fa171ebb680d
-PR head:   142279b73015994a230dfc49da3d3a6a41b5d37a
-```
-
-Gate pre-merge:
+Ultimo merge stabile verificato:
 
 ```text
-CI #633: success
+PR #121 — target evidence source registry read-only verification
+merge/main: 4903b2caef0c82e51ac5cd1b458dc3f0e2f513e1
+PR head:   c93718d893eb9df1913fd99850f5dd71c094f747
+CI #637:   success
+CI #638:   success
 ```
 
-CI post-merge:
+La slice corrente PR #122 prepara e verifica **solo localmente** l'onboarding source registry.
+
+Checkpoint CI locale della slice:
 
 ```text
-CI #634: success
-merge SHA: 149dc3d7bb5907347d20327aa595fa171ebb680d
+PR #122
+head:    57b433269b744649bb14f1ff02f31c4a00dddc5c
+CI #639: success
 ```
 
-Non è stato eseguito alcun deploy production e non è stata applicata alcuna mutation D1 remota.
+Nessun deploy production, nessuna source mutation remota e nessuna remote migration sono stati eseguiti da #119–#122.
 
 ## Frontend pubblico — stato commerciale
 
-Il sito è tecnicamente live e indicizzabile, ma **non è ancora money-ready in produzione**.
+Il sito è live e indicizzabile, ma **non è ancora money-ready in produzione**.
 
-Stato reale:
+Stato:
 
-- homepage e hub hanno struttura UX/SEO valida;
-- parte del copy canonico racconta ancora workflow/gate interni più del problema del viaggiatore;
-- `/migliore-esim` canonica è ancora la foundation provider-neutral e senza CTA affiliate;
-- la nuova UI consumer-first è stata mergiata come **preview isolata** sotto `/astro-foundation/articoli/migliore-esim`;
-- la preview è noindex/no-store e non contiene `/go/*`, ranking provider o claim commerciali nuovi;
-- affiliazioni e provider redirect measurement commerciale restano disabilitati;
-- le prime money page specialistiche non sono ancora pubblicate.
+- homepage/hub sono live;
+- `/migliore-esim` canonica resta provider-neutral e senza CTA affiliate;
+- la UI consumer-first è disponibile come preview isolata `/astro-foundation/articoli/migliore-esim`;
+- preview noindex/no-store;
+- nessun `/go/*` nella money preview;
+- nessun provider winner automatico;
+- nessun nuovo claim commerciale provider-specifico materializzato;
+- affiliate tracking resta disabilitato.
 
-La preview #117 implementa:
+La preview implementa:
 
 ```text
 destinazione
@@ -75,39 +77,28 @@ destinazione
 → dati
 → hotspot
 → scenario
-→ sei evidence slot
+→ evidence slots
 → FAQ/obiezioni
 → supporting guides
 ```
 
-I sei slot restano intenzionalmente:
+Gli evidence slot restano non materializzati finché non esistono facts bounded, fresh e verificati.
+
+## M7 / First Euro
+
+Demand intelligence già chiusa:
+
+- 1.623 keyword Planner uniche;
+- A–Z autocomplete e SERP expansion;
+- ownership/cannibalization/internal linking;
+- top 20 execution order;
+- brief `/migliore-esim` e `/esim-europa`.
+
+Ordine iniziale:
 
 ```text
-Da verificare per l'offerta
-```
-
-finché la Truth Engine non fornisce fatti commerciali bounded, fresh e verificati.
-
-## M7.1 — First Euro Demand Intelligence
-
-PR #111 è mergiata e ha versionato:
-
-- workbook Keyword Planner originale con **1.623 keyword uniche** realmente analizzato;
-- long-tail priority universe;
-- SERP competitor snapshot;
-- question expansion da SERP, FAQ provider e community;
-- cannibalization v2;
-- internal linking v2;
-- search-to-social angle bank;
-- brief `/migliore-esim`;
-- brief `/esim-europa`;
-- execution order 1→20.
-
-Decisione first-money:
-
-```text
-1  /migliore-esim        ← first existing-URL money slice
-2  /esim-europa          ← first new evidence-native money page
+1  /migliore-esim
+2  /esim-europa
 3  /codice-sconto-holafly
 4  /airalo-recensioni
 5  /airalo-vs-holafly
@@ -118,98 +109,11 @@ Decisione first-money:
 10 /esim-albania
 ```
 
-L'ordine completo 1→20 vive in:
-
-```text
-research/seo/m7-first-euro-execution-order.csv
-```
-
-`/esim-iphone` resta un forte traffic feeder, non una money page primaria.
-
-## Autocomplete A–Z + PAA / related — PR #113 chiusa
-
-PR #113 è mergiata. Il collector riproducibile:
-
-```text
-scripts/seo-demand-expand.py
-```
-
-ha eseguito per 17 seed:
-
-```text
-seed
-seed + a
-...
-seed + z
-```
-
-con `gl=it`, `hl=it`, `location=Italy`.
-
-Capture reale:
-
-```text
-workflow run: 31121790996
-request: 476
-autocomplete rows: 3659
-expanded unique queries: 2829
-organic rows: 153
-peopleAlsoAsk rows: 0
-relatedSearches rows: 0
-errors: 0
-```
-
-Un diagnostic separato ha provato che `relatedSearches` viene estratto quando la risposta lo espone:
-
-```text
-control-us q=google: relatedSearches=8, PAA=0
-Italian P0: relatedSearches=0, PAA=0
-```
-
-Quindi PAA/related IT restano **zero-state osservato**. Nessuna domanda sintetica viene rinominata PAA.
-
-Segnali utili assorbiti nei brief:
-
-- `esim hotspot` → forte problem/setup feeder;
-- USA → voice/calls/local-number come evidence requirement;
-- Europe → unlimited/duration/data/voice dimensions;
-- Airalo/Holafly → intent separation confermata;
-- iPhone → model/compatibility feeder.
-
-## First Money preview — PR #117
-
-Preview:
-
-```text
-/astro-foundation/articoli/migliore-esim
-```
-
-Canonical:
-
-```text
-/migliore-esim
-```
-
-resta invariata.
-
-Verifiche finali:
-
-- CI #626 completamente verde;
-- visual capture #5 verde;
-- desktop `1365×900` review completata;
-- mobile `390×844` review completata;
-- CI post-merge #627 verde sul merge SHA;
-- nessun overflow orizzontale;
-- singolo H1;
-- internal links namespaced;
-- published-only preservato;
-- preview noindex/no-store;
-- nessun `/go/*`;
-- nessun affiliate activation;
-- nessun provider winner o factual claim nuovo.
+`/esim-iphone` resta traffic feeder; `/esim-hotspot` problem/setup feeder.
 
 ## Evidence supply chain
 
-Contratto:
+Contratto canonico:
 
 ```text
 source_registry
@@ -224,9 +128,15 @@ source_registry
 → separate human publication gate
 ```
 
-D1 remoto resta a `0020`.
+Remote D1 resta a `0020`.
 
-Schema `0021` è versionato e local-tested e comprende:
+Schema upstream repository/local:
+
+```text
+0021_evidence_upstream_storage.sql
+```
+
+Tabelle previste:
 
 ```text
 evidence_capture_runs
@@ -235,34 +145,24 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-Regole invarianti:
+Invarianti:
 
 - missing evidence != false;
 - `partial` non diventa completezza;
 - aggregate country count non prova membership;
 - source-native price non viene convertito implicitamente;
-- hotspot allowed e share limit restano separati;
+- hotspot allowed e share limit restano distinti;
 - technology != measured performance;
-- ranking non viene calcolato dal layer evidence.
+- ranking non appartiene al layer evidence.
 
-## Source reconciliation — PR #119 chiusa
+## Source reconciliation — PR #119
 
-La source reconciliation fail-closed è ora implementata e integrata in `smoke:runtime`.
-
-Manifest e resolver:
+Manifest:
 
 ```text
-research/evidence/source-reconciliation-map.json
-scripts/evidence-source-reconciliation.mjs
-scripts/smoke-evidence-source-reconciliation.mjs
-```
-
-Cardinalità verificata contro i `SOURCE_CONFIG` reali:
-
-```text
-pack:                     2
-source references:       12
-unique source identities: 9
+2 pack
+12 source references
+9 reconciliation identities
 ```
 
 Contratto:
@@ -271,132 +171,178 @@ Contratto:
 sourceAuditKey
 + entity type/key
 + source kind
-+ approved registry canonical URL
++ approved canonical registry URL
 → exactly one active source_registry row
 ```
 
-Esiti:
+Fail closed:
 
 ```text
 0 match  → source_not_registered
-1 match  → resolved with environment-specific sourceRegistryId
+1 match  → resolved
 >1 match → source_registry_ambiguous
 ```
 
-Guardrail verificati:
+Nessun provider-root fallback, redirect auto-remap, importer auto-registration o environment ID versionato.
 
-- nessun provider-root fallback;
-- nessun redirect auto-remap;
-- nessun importer auto-registration;
-- nessun ID numerico D1 versionato;
-- pack URL/provider/role drift bloccato;
-- manifest stale/unreferenced bloccato;
-- row `blocked` non risolve;
-- resolver non muta il registry.
+## Target source registry — PR #121
 
-Il manifest classifica:
+Due letture remote read-only indipendenti hanno prodotto lo stesso risultato:
 
 ```text
-registered_expected: 2 mapping entries
-required:            7 mapping entries
+source_registry rows inspected: 7
+manifest identities:             9
+resolved:                        0
+source_not_registered:           9
+source_registry_ambiguous:       0
+readyForImporter:                false
 ```
 
-`registered_expected` è soltanto un'aspettativa derivata dal source universe repository; **non prova** che la riga esista nel D1 target.
+Questo ha corretto una precedente aspettativa repository: anche le due source Ubigi `registered_expected` non esistono realmente nel target.
+
+Le 9 reconciliation identity richiedono **8 registry identity uniche** perché due mapping Ubigi convergono su:
+
+```text
+provider
+ubigi
+official_provider
+https://cellulardata.ubigi.com/
+```
+
+## Source onboarding local — PR #122
+
+Intent versionati:
+
+```text
+research/evidence/source-registry-onboarding-intents.json
+```
+
+Cardinalità:
+
+```text
+8 unique onboarding intents
+→ cover 9 sourceAuditKeys
+```
+
+Ogni intent include identity, source kind, label, canonical URL, trust, freshness, active status e notes.
+
+Guardrail:
+
+```text
+allowRemoteMutation=false
+allowMetadataOverwrite=false
+no provider-root fallback
+no redirect auto-remap
+no hardcoded environment IDs
+```
+
+Il preflight blocca una stessa identity D1 con metadata diversi; non esegue update automatici.
+
+CI #639 ha verificato su D1 locale isolato e migrato:
+
+```text
+first onboarding:
+8 inserts
+8 exact rows after
+9/9 reconciliation identities resolved
+readyForImporter=true (local only)
+
+second onboarding:
+0 inserts
+8 exact rows before/after
+9/9 reconciliation identities resolved
+readyForImporter=true (local only)
+```
+
+La CLI rifiuta `--remote`.
 
 ## Truth Engine — gate tecnico corrente
 
-La reconciliation come contratto è chiusa. Il gate successivo è verificare il registry dell'ambiente target e, soltanto dopo, fare onboarding esplicito delle identity realmente mancanti.
+Il local-first onboarding gate è chiuso. Il target remoto resta invariato.
+
+Prossimo gate, con autorizzazione esplicita separata:
 
 ```text
-target-environment source_registry verification
-→ explicit source onboarding where required
-→ all 9 source identities resolve exactly-one
-→ idempotent importer
-→ explicit remote 0021 apply
-→ controlled ingest
-→ verification provenance bridge
+remote read-only preflight
+→ 8 approved missing identities / 0 conflicts
+→ explicit source_registry onboarding
+→ remote read-only verifier rerun
+→ require 9/9 resolved exactly-one
 ```
 
-Prima dell'onboarding remoto:
+Solo dopo:
 
-- interrogare/esportare `source_registry` dell'ambiente target;
-- risolvere tutte le 9 identity con il resolver versionato;
-- distinguere realmente `resolved`, `source_not_registered`, `source_registry_ambiguous`;
-- nessuna mutation remota come effetto collaterale della verifica;
-- source onboarding in scope separato e auditabile;
-- locale/fixture prima del remoto;
-- remote mutation soltanto con autorizzazione esplicita;
-- importer resta fuori dalla branch di onboarding;
-- nessuna remote `0021` apply implicita;
-- nessun `claim_verifications` write;
-- nessun deploy.
+```text
+idempotent importer
+→ explicit remote 0021 authorization
+→ controlled ingest
+→ verification provenance bridge
+→ bounded facts per First Money UI
+```
+
+## Percorso verso production SEO + primo click affiliate
+
+Siamo nella corsia finale, ma il click non è ancora sbloccato:
+
+```text
+remote source onboarding
+→ 9/9 source verification
+→ evidence ingest
+→ verified commercial facts
+→ /migliore-esim canonical materialization
+→ affiliate + measurement gate
+→ manual production deploy
+→ first real affiliate click
+```
 
 ## Monetizzazione
 
-Il sito resta:
+Stato:
 
 ```text
 AFFILIATE_MODE=disabled
 affiliate tracking=disabled
 ```
 
-Le application partner Airalo/Holafly/Ubigi procedono in parallelo.
-
 Prima dell'attivazione affiliate servono:
 
-1. la First Money UI consumer-ready;
-2. facts commerciali bounded e fresh materializzati nei relativi slot;
-3. affiliate account approvato;
-4. `/go/*` destination/redirect validato;
-5. disclosure pubblica;
-6. `provider_redirect_intent` measurement scope;
-7. privacy/consent recheck;
-8. partner secret/config fuori dal repository;
-9. `AFFILIATE_MODE` change esplicito;
-10. deploy production manuale autorizzato + live smoke.
-
-## Search-to-Social
-
-Direzione M7.2:
-
-```text
-search demand
-→ money page
-→ verified fact
-→ creative angle
-→ short / carousel / video
-→ human review
-→ publish manuale
-→ click/comment/branded search
-→ new demand candidates
-```
-
-Tool AI/video sono strumenti di produzione, non fonti di verità.
+1. facts commerciali bounded/fresh/verificati nella money page;
+2. affiliate account/provider approval;
+3. `/go/*` destination/redirect validato;
+4. disclosure pubblica;
+5. `provider_redirect_intent` measurement scope;
+6. privacy/consent recheck;
+7. partner secret/config fuori dal repository;
+8. explicit `AFFILIATE_MODE` change;
+9. deploy production manuale autorizzato;
+10. live smoke redirect + disclosure.
 
 ## Checkpoint aperti
 
-- target-environment `source_registry` verification;
-- source onboarding separato delle identity realmente mancanti;
-- affiliate approval Airalo/Holafly/Ubigi;
-- first bounded evidence materialization;
-- importer idempotente in branch separata;
+- explicit remote onboarding delle 8 source identity;
+- remote post-verification 9/9;
+- importer idempotente;
 - explicit remote `0021` gate;
+- controlled evidence ingest;
 - verification provenance bridge;
-- canonical cutover `/migliore-esim` separato e umano;
+- first bounded commercial fact materialization;
+- canonical `/migliore-esim` cutover;
 - affiliate/measurement gate;
-- first explicit production deploy money-ready;
-- `/esim-europa` come prima nuova money page;
-- consumer-first rewrite homepage/hub dopo la prima money slice;
-- ricontrollo definitivo `www → apex`;
+- explicit money-ready production deploy;
+- first affiliate click;
+- `/esim-europa`;
+- consumer-first homepage/hub follow-up;
+- `www → apex` definitivo;
 - GSC/GA4 feedback quando il dataset diventa sostanziale.
 
 ## Freeze
 
+- niente source onboarding remoto senza autorizzazione esplicita;
 - niente deploy implicito;
 - niente remote migration implicita;
-- niente importer prima che tutte le source dei pack risolvano exactly-one;
+- niente importer prima del remote `9/9`;
 - niente source auto-registration;
-- niente source onboarding remoto senza autorizzazione esplicita;
+- niente metadata overwrite automatico;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
 - niente provider winner universale;

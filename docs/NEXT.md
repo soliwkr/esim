@@ -4,121 +4,91 @@ Ultimo aggiornamento: **7 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Gate corrente — target-environment source registry verification
+## Gate corrente — explicit remote source onboarding
 
-La source reconciliation fail-closed è stata mergiata con PR #119.
+La catena di source identity è ora verificata fino al local-first gate.
 
-Checkpoint certificato:
+Checkpoint chiusi:
 
 ```text
-PR #119
-head:       142279b73015994a230dfc49da3d3a6a41b5d37a
-merge/main: 149dc3d7bb5907347d20327aa595fa171ebb680d
-CI #633:    success
-CI #634:    success
+PR #119  fail-closed source reconciliation
+PR #121  target D1 read-only verification
+PR #122  local idempotent source onboarding gate
 ```
 
-Nessun deploy production e nessuna mutation D1 remota sono stati eseguiti.
-
-Il resolver è bound ai `SOURCE_CONFIG` reali dei due evidence pack:
+Target D1 osservato con PR #121, in due letture indipendenti:
 
 ```text
-pack:                     2
-source references:       12
-unique source identities: 9
+source_registry rows inspected: 7
+manifest identities:             9
+resolved:                        0
+source_not_registered:           9
+source_registry_ambiguous:       0
+readyForImporter:                false
 ```
 
-Contratto implementato:
+Le 9 identity di reconciliation deduplicano a **8 registry identity D1 uniche** perché due source Ubigi condividono intenzionalmente la stessa canonical commerce identity.
+
+La slice locale della PR #122 ha dimostrato su D1 isolato e migrato:
 
 ```text
-sourceAuditKey
-+ entity type/key
-+ source kind
-+ approved registry canonical URL
-→ exactly one active source_registry row
+first run:   8 inserts → 9/9 resolved
+second run:  0 inserts → 9/9 resolved
+metadata conflict: fail closed
+--remote: forbidden
 ```
 
-Fail closed:
+### Prossima mutation separata
+
+L'onboarding remoto **non è autorizzato implicitamente** dal local test.
+
+Quando viene autorizzato, la sequenza deve essere:
 
 ```text
-0 match  → source_not_registered
-1 match  → resolved
->1 match → source_registry_ambiguous
-```
-
-Il manifest classifica oggi:
-
-```text
-registered_expected: 2 mapping entries
-required:            7 mapping entries
-```
-
-Questi stati **non descrivono ancora il contenuto reale del D1 target**. In particolare `registered_expected` è un'aspettativa derivata dal source universe repository, non una certificazione ambientale.
-
-### Prossima branch tecnica separata
-
-Obiettivo esclusivo:
-
-```text
-read-only target-environment source_registry verification
-```
-
-Deve:
-
-- interrogare o esportare in modo read-only il `source_registry` dell'ambiente target;
-- eseguire il resolver versionato sulle 9 identity;
-- produrre un risultato deterministico con `resolved`, `source_not_registered` e `source_registry_ambiguous`;
-- identificare quali source richiedono realmente onboarding;
-- preservare gli ID numerici come dati environment-specific, non versionati nel manifest;
-- non fare INSERT/UPDATE durante la verifica;
-- non applicare `0021` al remoto;
-- non importare evidence pack;
-- non scrivere `claim_verifications`;
-- non fare ranking, publication o deploy.
-
-## Gate successivo — source onboarding separato
-
-Soltanto dopo la verifica read-only dell'ambiente target.
-
-Se esistono identity `source_not_registered`, l'onboarding deve essere una mutation separata e auditabile.
-
-Requisiti:
-
-```text
-approved manifest identity
-+ exact entity type/key
-+ exact source kind
-+ exact canonical registry URL
+read-only remote preflight
+→ expect 8 missing approved identities and 0 conflicts
 → explicit source_registry onboarding
+→ read-only verifier rerun
+→ require 9/9 resolved exactly-one
+```
+
+La mutation deve usare esclusivamente gli intent versionati in:
+
+```text
+research/evidence/source-registry-onboarding-intents.json
 ```
 
 Regole:
 
-- nessun auto-registration;
+- nessun URL arbitrario;
+- nessun auto-registration dall'importer;
 - nessun provider-root fallback;
-- nessun redirect target usato come remap implicito;
-- nessun hardcoded environment ID;
-- duplicate/ambiguous state deve bloccare, non essere “riparato” automaticamente;
-- fixture/local verification prima del remoto;
-- mutation remota soltanto con autorizzazione esplicita;
-- nessun importer nella stessa branch;
-- nessuna remote `0021` apply implicita;
-- nessun deploy.
+- nessun redirect auto-remap;
+- nessun hardcoded environment source ID;
+- nessun overwrite automatico di metadata esistenti;
+- stessa identity D1 con metadata diversi → block;
+- nessuna maintenance queue mutation;
+- nessuna remote `0021` apply nella stessa operazione;
+- nessun evidence import;
+- nessun `claim_verifications` write;
+- nessun ranking, publication, affiliate activation o deploy.
 
-Il gate si chiude soltanto quando:
+Il gate si chiude soltanto con:
 
 ```text
-all 9 source identities
+9/9 manifest identities
 → exactly one active approved source_registry row ciascuna
 ```
 
-## Gate seguente — importer idempotente
+## Gate successivo — importer idempotente
 
-Soltanto dopo environment verification + onboarding chiusi:
+Soltanto dopo il postcondition remoto `9/9 resolved`.
+
+Contratto previsto:
 
 ```text
 pack.json + immutable artifacts
-→ resolved source IDs
+→ resolved environment source IDs
 → evidence_capture_runs
 → evidence_snapshots
 → evidence_field_observations
@@ -129,14 +99,14 @@ Requisiti:
 
 - idempotenza/content-addressed identity;
 - artifact hash verificato;
-- source ID ottenuti dal resolver contro l'ambiente, non hardcoded;
-- `observed` e il sotto-fatto realmente supportato da `partial` possono alimentare candidate;
+- source ID risolti dall'ambiente, mai hardcoded nel pack;
+- `observed` e soltanto il sotto-fatto realmente supportato da `partial` possono alimentare candidate;
 - `unknown` e `not_applicable` non diventano factual candidate;
 - nessun `claim_verifications` write;
 - nessun ranking/publication;
-- fixture locale prima di un ingest reale.
+- fixture locale prima di ingest reale.
 
-## Remote D1 — gate esplicito separato
+## Remote D1 schema — gate ulteriore
 
 D1 remoto resta a:
 
@@ -144,23 +114,22 @@ D1 remoto resta a:
 0020
 ```
 
-`0021_evidence_upstream_storage.sql` è versionata e local-tested.
+`0021_evidence_upstream_storage.sql` è versionata e local-tested ma **non applicata al remoto**.
 
-Non applicarla al remoto come effetto collaterale di verifier, source onboarding, importer o deploy.
-
-Sequenza prevista:
+Sequenza corretta:
 
 ```text
-environment source_registry verification
-→ source onboarding where required
-→ all sources exactly-one
+remote source onboarding
+→ 9/9 source verification
 → importer local/fixture
 → explicit remote 0021 authorization
-→ controlled ingest
+→ controlled evidence ingest
 → verification provenance bridge
 ```
 
-## First Money UI — stato invariato
+Non applicare `0021` come effetto collaterale di onboarding, importer o deploy.
+
+## First Money UI — pronta a ricevere facts
 
 Preview mergiata:
 
@@ -174,30 +143,75 @@ Canonical ancora invariato:
 /migliore-esim
 ```
 
-La preview conserva:
-
-- hero consumer-first;
-- destinazione → giorni → dati → hotspot;
-- scenario cards;
-- sei evidence slot;
-- FAQ/obiezioni A–Z-informed;
-- internal links namespaced;
-- noindex/no-store;
-- published-only;
-- nessun `/go/*`;
-- nessun affiliate claim o winner.
-
-I sei slot restano intenzionalmente:
+La preview contiene la struttura consumer-first ma conserva intenzionalmente gli evidence slot non materializzati.
 
 ```text
-Da verificare per l'offerta
+destinazione
+→ giorni
+→ dati
+→ hotspot
+→ scenario
+→ evidence slots
+→ FAQ/obiezioni
+→ supporting guides
 ```
 
-fino alla materializzazione di facts bounded, fresh e verificati.
+Nessun `/go/*`, provider winner o affiliate claim è live.
+
+### Facts minimi per la prima money page
+
+Per offerte bounded servono almeno:
+
+```text
+data amount / unlimited model
+validity/duration
+hotspot allowed
+hotspot share limit when stated
+FUP
+activation trigger
+voice/SMS availability when relevant
+source-native price
+```
+
+Unknown resta unknown. Nessun FX implicito.
+
+## Percorso diretto verso production SEO + primo click affiliate
+
+Il percorso corrente è:
+
+```text
+8 remote source onboarding intents
+→ 9/9 source identities resolved
+→ importer + controlled evidence ingest
+→ verification provenance
+→ bounded verified commercial facts
+→ materialize facts in First Money UI
+→ separate canonical /migliore-esim cutover
+→ affiliate + measurement gate
+→ explicit production deploy
+→ first real affiliate click
+```
+
+Quindi il progetto è nella **corsia finale verso il primo click affiliate**, ma il click non è ancora sbloccato.
+
+## First affiliate activation gate
+
+Prima di `AFFILIATE_MODE=enabled`:
+
+1. money page consumer-ready con facts verificati e fresh;
+2. affiliate account/provider approval disponibile;
+3. `/go/*` destination/redirect validato;
+4. disclosure pubblica chiara;
+5. `provider_redirect_intent` measurement design accettato;
+6. privacy/consent regression rechecked;
+7. partner secret/config fuori dal repository;
+8. `AFFILIATE_MODE` change esplicito;
+9. production deploy manuale autorizzato;
+10. live smoke redirect + disclosure + no secret leakage.
+
+Canonical cutover, affiliate activation e deploy restano gate distinti.
 
 ## Decisione First Euro — invariata
-
-Ordine iniziale:
 
 ```text
 1  /migliore-esim        ← first existing-URL money slice
@@ -212,53 +226,12 @@ Ordine iniziale:
 10 /esim-albania
 ```
 
-`/esim-hotspot` resta candidate **traffic/problem feeder**, non money page automatica.
 `/esim-iphone` resta high-demand compatibility feeder.
-
-## Evidence requirements già emersi
-
-### `/migliore-esim`
-
-Per il primo confronto commerciale servono almeno, per offerte bounded:
-
-```text
-data amount / unlimited model
-validity/duration
-hotspot allowed
-hotspot share limit when stated
-FUP
-activation trigger
-voice/SMS availability when relevant
-source-native price
-```
-
-Unknown resta unknown.
-
-### `/esim-europa`
-
-Verificare inoltre:
-
-```text
-regional product identity
-itinerary country membership
-country-scoped network statements
-```
-
-Il numero aggregato di Paesi non prova membership dell'itinerario.
-
-### `/esim-usa`
-
-Prima della money page completa verificare esplicitamente:
-
-```text
-data-only
-vs
-voice/SMS/local number
-```
+`/esim-hotspot` resta problem/setup feeder, non money page automatica.
 
 ## Affiliate applications — dipendenza esterna parallela
 
-In corso:
+Provider iniziali:
 
 ```text
 Airalo
@@ -266,103 +239,24 @@ Holafly
 Ubigi
 ```
 
-Regole:
-
-- non incollare secret/token in chat o repository;
-- partner ID e tracking config restano in secret/config appropriata;
-- nessun link affiliate production senza disclosure + evidence + measurement gate.
-
-## First affiliate activation gate
-
-Prima di `AFFILIATE_MODE=enabled`:
-
-1. money page consumer-ready;
-2. facts commerciali bounded, fresh e verificati;
-3. affiliate account approvato;
-4. `/go/*` destination/redirect validato;
-5. disclosure pubblica chiara;
-6. `provider_redirect_intent` event design accettato;
-7. privacy/consent regression rechecked;
-8. secret/config partner fuori dal repository;
-9. `AFFILIATE_MODE` change esplicito;
-10. production deploy manuale autorizzato;
-11. live smoke redirect + disclosure + no secret leakage.
-
-## Canonical cutover `/migliore-esim`
-
-La preview mergiata **non autorizza** il cutover canonico.
-
-Il cutover richiede branch separata dopo la materializzazione dei facts necessari e deve verificare:
-
-```text
-preview approved
-+ facts verified/fresh
-+ no unsupported claim
-+ publication boundary preserved
-→ canonical materialization
-```
-
-Affiliate activation e deploy production restano gate ulteriormente separati.
-
-## M7.2 — Search-to-Social
-
-La prima money page deve produrre un test bounded:
-
-```text
-1 money page
-→ 5–10 evidence-backed angles
-→ short/video/carousel drafts
-→ human review
-→ publication manuale
-→ click/comment/branded-search feedback
-```
-
-Principio:
-
-```text
-query
-→ tension
-→ fact
-→ twist
-→ CTA
-```
-
-Nessun social claim commerciale può superare il freshness/evidence standard della pagina.
-
-## Homepage e hub consumer-first
-
-Dopo la prima money slice riallineare:
-
-```text
-/
-/destinazioni
-/confronti
-```
-
-Obiettivo:
-
-- meno linguaggio su workflow/gate/ownership;
-- più destinazioni, domande, scenari e CTA;
-- metodo/governance su `/metodo` e `/trasparenza`;
-- nessuna cannibalizzazione delle specialist pages.
+Non versionare token, secret o partner credentials.
 
 ## Search Console feedback loop
 
-Stato osservato:
+Stato noto iniziale:
 
 ```text
 2026-07-24: 1 impression
 clicks: 0
-query/page rows: insufficienti
 ```
 
-Per ora:
+Finché il dataset resta minimo:
 
-- non cambiare ownership su GSC quasi vuota;
+- non cambiare ownership per rumore;
 - non ripetere sitemap submission;
 - non usare Indexing API.
 
-Quando emergono query reali:
+Quando emergono query reali, usare:
 
 ```text
 impressions without clicks
@@ -371,21 +265,21 @@ unexpected query-page matches
 new long tails
 ```
 
-→ alimentano refresh e priorità.
+per refresh e priorità.
 
 ## Checkpoint aperti
 
-- target-environment `source_registry` verification;
-- source onboarding separato delle identity realmente mancanti;
-- affiliate approvals;
+- explicit remote source onboarding delle 8 identity approvate;
+- read-only post-verification `9/9`;
 - importer idempotente;
 - explicit remote `0021` gate;
 - controlled ingest;
 - verification provenance bridge;
 - facts materializzati nella First Money UI;
 - canonical cutover separato `/migliore-esim`;
-- affiliate/measurement gate;
+- affiliate approval/config + measurement gate;
 - first explicit production deploy money-ready;
+- first real affiliate click;
 - `/esim-europa`;
 - M7.2 bounded social test;
 - consumer-first homepage/hub;
@@ -393,15 +287,14 @@ new long tails
 
 ## Freeze
 
-- niente terzo evidence pack esplorativo salvo blocker strutturale;
+- niente remote source onboarding senza autorizzazione esplicita;
 - niente remote `0021` apply senza gate esplicito;
-- niente importer prima che tutte le source dei pack risolvano exactly-one;
+- niente importer prima del `9/9` remoto;
 - niente source auto-registration;
-- niente source onboarding remoto senza autorizzazione esplicita;
+- niente metadata overwrite automatico;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
 - niente ranking/provider winner universale;
-- niente mass pSEO;
 - niente affiliate secret versionato;
 - niente tracking non consentito;
 - niente deploy automatico;

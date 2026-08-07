@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "mappingVersion": 1,
+  "generatedAt": "2026-08-07",
+  "rules": {
+    "targetStatus": "active",
+    "allowRemoteMutation": false,
+    "allowMetadataOverwrite": false,
+    "allowProviderRootFallback": false,
+    "allowRedirectAutoRemap": false,
+    "hardcodeEnvironmentSourceRegistryIds": false
+  },
+  "intents": [
+    {
+      "intentKey": "airalo-italy-catalog",
+      "sourceAuditKeys": ["candidate-airalo-italy-catalog"],
+      "entityType": "provider",
+      "entityKey": "airalo",
+      "sourceKind": "official_provider",
+      "label": "Airalo — catalogo eSIM Italia",
+      "canonicalUrl": "https://www.airalo.com/it/italy-esim/",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "Fonte ufficiale destination/product commerce per l'Italia. I claim restano scoped agli snapshot e al contesto di cattura."
+    },
+    {
+      "intentKey": "airalo-unlimited-fup",
+      "sourceAuditKeys": ["candidate-airalo-unlimited-fup"],
+      "entityType": "provider",
+      "entityKey": "airalo",
+      "sourceKind": "official_terms",
+      "label": "Airalo — Fair Use Policy piani illimitati",
+      "canonicalUrl": "https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "Policy ufficiale ad alta rilevanza commerciale per soglie e comportamento dei piani unlimited; non implica condizioni identiche per ogni package."
+    },
+    {
+      "intentKey": "holafly-italy-product",
+      "sourceAuditKeys": ["candidate-holafly-italy-product"],
+      "entityType": "provider",
+      "entityKey": "holafly",
+      "sourceKind": "official_provider",
+      "label": "Holafly — eSIM Italia",
+      "canonicalUrl": "https://esim.holafly.com/it/esim-italia/",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "Product surface ufficiale Italia. Durata, prezzo, hotspot e altri fatti commerciali richiedono snapshot con selection state quando applicabile."
+    },
+    {
+      "intentKey": "holafly-unlimited-faq",
+      "sourceAuditKeys": ["candidate-holafly-unlimited-faq"],
+      "entityType": "provider",
+      "entityKey": "holafly",
+      "sourceKind": "official_help",
+      "label": "Holafly — FAQ traffico dati illimitato",
+      "canonicalUrl": "https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "FAQ ufficiale su unlimited/FUP. Le Technical Specs della destinazione restano necessarie quando la FAQ rinvia a condizioni specifiche."
+    },
+    {
+      "intentKey": "ubigi-commerce",
+      "sourceAuditKeys": ["provider-ubigi-commerce", "candidate-ubigi-europe-25gb-30d"],
+      "entityType": "provider",
+      "entityKey": "ubigi",
+      "sourceKind": "official_provider",
+      "label": "Ubigi — catalogo commerce",
+      "canonicalUrl": "https://cellulardata.ubigi.com/",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "Commerce surface ufficiale già validata nel source universe. Le exact product URL restano provenance dello snapshot e non sostituiscono questa registry identity."
+    },
+    {
+      "intentKey": "ubigi-activation-help",
+      "sourceAuditKeys": ["candidate-ubigi-activation"],
+      "entityType": "provider",
+      "entityKey": "ubigi",
+      "sourceKind": "official_help",
+      "label": "Ubigi — FAQ attivazione piano dati",
+      "canonicalUrl": "https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/",
+      "trustLevel": 5,
+      "freshnessDays": 14,
+      "status": "active",
+      "notes": "Help ufficiale per il trigger di attivazione/SmartStart; preservare il contesto covered-area e l'eventuale attivazione immediata."
+    },
+    {
+      "intentKey": "airalo-europe-store",
+      "sourceAuditKeys": ["candidate-airalo-europe-store-unlimited-15d"],
+      "entityType": "provider",
+      "entityKey": "airalo",
+      "sourceKind": "official_provider",
+      "label": "Airalo — store eSIM Europa",
+      "canonicalUrl": "https://www.airalo.com/europe-esim",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "Store regionale ufficiale Europa. Redirect da deep link osservati non autorizzano mapping diversi da questa canonical identity approvata."
+    },
+    {
+      "intentKey": "holafly-europe-product",
+      "sourceAuditKeys": ["candidate-holafly-europe-product"],
+      "entityType": "provider",
+      "entityKey": "holafly",
+      "sourceKind": "official_provider",
+      "label": "Holafly — eSIM Europa",
+      "canonicalUrl": "https://esim.holafly.com/it/esim-europa/",
+      "trustLevel": 5,
+      "freshnessDays": 7,
+      "status": "active",
+      "notes": "Product surface regionale ufficiale Europa. La country membership dell'itinerario richiede evidence esplicita e non viene inferita dal numero aggregato di Paesi."
+    }
+  ]
+}
