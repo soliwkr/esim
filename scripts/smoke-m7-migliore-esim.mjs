@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
 const port = Number(process.env.M7_MIGLIORE_ESIM_SMOKE_PORT || 8811);
@@ -10,6 +10,7 @@ const configPath = 'apps/web/dist/server/wrangler.json';
 const stateRoot = '.wrangler/m7-migliore-esim-smoke';
 const canonicalPath = '/migliore-esim';
 const previewPath = '/astro-foundation/articoli/migliore-esim';
+const screenshotDir = process.env.M7_MIGLIORE_ESIM_SCREENSHOT_DIR?.trim() || null;
 
 function wrangler(args) {
   const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', ...args], {
@@ -95,7 +96,7 @@ async function stopRuntime(runtime) {
   signalRuntime(runtime, 'SIGKILL');
   await Promise.race([
     once(runtime.child, 'exit'),
-    new Promise((resolve) => setTimeout(resolve, 5_000)),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5_000)),
   ]);
 }
 
@@ -112,22 +113,34 @@ function assertArticleJsonLd(html, expectedUrl) {
   assert.equal(article.dateModified, '2026-07-28T00:00:00.000Z');
 }
 
-function assertCoreCopy(html) {
+function assertCanonicalCoreCopy(html) {
   assert.match(html, /<title>Migliore eSIM per viaggiare: criteri e confronto \| Senza Roaming<\/title>/);
   assert.match(html, /<h1>Qual è la migliore eSIM per viaggiare\?<\/h1>/);
   assert.match(html, /Senza verifiche datate non esiste un vincitore universale/);
   assert.match(html, /I criteri che cambiano davvero la scelta/);
-  assert.match(html, /Destinazione/);
-  assert.match(html, /Durata/);
-  assert.match(html, /Hotspot/);
-  assert.match(html, /Installazione/);
-  assert.match(html, /Attivazione/);
-  assert.match(html, /Fair use/);
-  assert.match(html, /Chiamate e SMS/);
-  assert.match(html, /Prezzi e condizioni hanno una data/);
   assert.match(html, /Nessuna classifica automatica o raccomandazione provider-specifica/);
   assert.match(html, /I link ai provider non sono attualmente remunerati/);
-  assert.doesNotMatch(html, /Airalo o Holafly: quale scegliere/);
+  assert.doesNotMatch(html, /data-first-money-preview="migliore-esim"/);
+}
+
+function assertFirstMoneyPreviewCopy(html) {
+  assert.match(html, /<title>Migliore eSIM per viaggiare: criteri e confronto \| Senza Roaming<\/title>/);
+  assert.match(html, /data-first-money-preview="migliore-esim"/);
+  assert.match(html, /Scegli in base al viaggio, non alla classifica/);
+  assert.match(html, /La migliore eSIM cambia con destinazione, giorni, quantità di dati e uso dell’hotspot/);
+  assert.match(html, /Non esiste una eSIM migliore per tutti\. Esiste quella che regge meglio il tuo scenario\./);
+  assert.match(html, /Mappe, messaggi e prenotazioni/);
+  assert.match(html, /Hotspot prima di tutto/);
+  assert.match(html, /Un itinerario non è un’etichetta “Europa”/);
+  assert.match(html, /Da verificare per l’offerta/);
+  assert.match(html, /“Illimitata” significa davvero senza limiti\?/);
+  assert.match(html, /Posso usare l’hotspot con una eSIM\?/);
+  assert.match(html, /Posso installarla prima di partire\?/);
+  assert.match(html, /Perdo WhatsApp o il mio numero\?/);
+  assert.match(html, /Questa è una preview editoriale/);
+  assert.doesNotMatch(html, /Intento:/);
+  assert.doesNotMatch(html, /Stato: published/);
+  assert.doesNotMatch(html, /href="\/go\//);
 }
 
 function assertCanonicalLinks(html) {
@@ -149,21 +162,28 @@ function assertPreviewLinks(html) {
   for (const href of [
     '/astro-foundation',
     '/astro-foundation/destinazioni',
-    '/astro-foundation/guide',
     '/astro-foundation/confronti',
-    '/astro-foundation/articoli/esim-estero',
-    '/astro-foundation/articoli/esim-come-funziona',
-    '/astro-foundation/articoli/esim-telefoni-compatibili',
   ]) {
     assert.match(html, new RegExp(`href="${href.replaceAll('/', '\\/')}"`));
   }
+
+  // Specialist guide cards are published-only enhancements. If present, they must
+  // stay inside the preview namespace; their absence is a valid fixture state.
+  for (const slug of ['esim-estero', 'esim-come-funziona', 'esim-telefoni-compatibili']) {
+    const canonicalHref = new RegExp(`href="\\/${slug}"`);
+    const previewHref = new RegExp(`href="\\/astro-foundation\\/articoli\\/${slug}"`);
+    assert.doesNotMatch(html, canonicalHref);
+    if (html.includes(slug)) assert.match(html, previewHref);
+  }
+
+  assert.doesNotMatch(html, /href="\/go\//);
 }
 
 async function verifyHttp() {
   const canonicalResponse = await fetch(`${origin}${canonicalPath}`);
   const canonicalHtml = await canonicalResponse.text();
   assert.equal(canonicalResponse.status, 200);
-  assertCoreCopy(canonicalHtml);
+  assertCanonicalCoreCopy(canonicalHtml);
   assertCanonicalLinks(canonicalHtml);
   assertArticleJsonLd(canonicalHtml, 'https://senzaroaming.it/migliore-esim');
 
@@ -172,16 +192,22 @@ async function verifyHttp() {
   assert.equal(previewResponse.status, 200);
   assert.match(previewResponse.headers.get('x-robots-tag') || '', /noindex/);
   assert.match(previewResponse.headers.get('cache-control') || '', /no-store/);
-  assertCoreCopy(previewHtml);
+  assertFirstMoneyPreviewCopy(previewHtml);
   assertPreviewLinks(previewHtml);
   assertArticleJsonLd(previewHtml, 'https://senzaroaming.it/astro-foundation/articoli/migliore-esim');
 
   executeSql("UPDATE pages SET status='review' WHERE slug='esim-come-funziona';");
-  const filteredResponse = await fetch(`${origin}${canonicalPath}`);
-  const filteredHtml = await filteredResponse.text();
-  assert.equal(filteredResponse.status, 200);
-  assert.doesNotMatch(filteredHtml, /href="\/esim-come-funziona"/);
-  assert.match(filteredHtml, /href="\/esim-estero"/);
+  const filteredPreviewResponse = await fetch(`${origin}${previewPath}`);
+  const filteredPreviewHtml = await filteredPreviewResponse.text();
+  assert.equal(filteredPreviewResponse.status, 200);
+  assert.doesNotMatch(filteredPreviewHtml, /href="\/astro-foundation\/articoli\/esim-come-funziona"/);
+  assertPreviewLinks(filteredPreviewHtml);
+
+  const filteredCanonicalResponse = await fetch(`${origin}${canonicalPath}`);
+  const filteredCanonicalHtml = await filteredCanonicalResponse.text();
+  assert.equal(filteredCanonicalResponse.status, 200);
+  assert.doesNotMatch(filteredCanonicalHtml, /href="\/esim-come-funziona"/);
+  assert.match(filteredCanonicalHtml, /href="\/esim-estero"/);
 
   executeSql("UPDATE pages SET status='review' WHERE slug='migliore-esim';");
   for (const path of [canonicalPath, previewPath]) {
@@ -193,6 +219,12 @@ async function verifyHttp() {
   }
 }
 
+async function maybeCapture(page, filename) {
+  if (!screenshotDir) return;
+  await mkdir(screenshotDir, { recursive: true });
+  await page.screenshot({ path: `${screenshotDir}/${filename}`, fullPage: true });
+}
+
 async function verifyBrowser() {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -201,30 +233,45 @@ async function verifyBrowser() {
     await desktop.getByRole('heading', { level: 1, name: 'Qual è la migliore eSIM per viaggiare?' }).waitFor();
     assert.equal(await desktop.getByRole('heading', { level: 1 }).count(), 1);
     assert.equal(await desktop.locator('[data-m7-migliore-esim-links]').count(), 1);
-    assert.equal(
-      await desktop.getByRole('link', { name: 'Scegli la destinazione' }).first().getAttribute('href'),
-      '/destinazioni',
-    );
+    assert.equal(await desktop.locator('[data-first-money-preview]').count(), 0);
     assert.equal(
       await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       true,
     );
     await desktop.close();
 
+    const previewDesktop = await browser.newPage({ viewport: { width: 1365, height: 900 } });
+    await previewDesktop.goto(`${origin}${previewPath}`);
+    await previewDesktop.getByRole('heading', { level: 1, name: 'Qual è la migliore eSIM per viaggiare?' }).waitFor();
+    assert.equal(await previewDesktop.getByRole('heading', { level: 1 }).count(), 1);
+    assert.equal(await previewDesktop.locator('[data-first-money-preview="migliore-esim"]').count(), 1);
+    assert.equal(await previewDesktop.locator('[data-first-money-evidence-slots] article').count(), 6);
+    assert.equal(
+      await previewDesktop.getByRole('link', { name: 'Sai già dove vai?' }).getAttribute('href'),
+      '/astro-foundation/destinazioni',
+    );
+    assert.equal(
+      await previewDesktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      true,
+    );
+    await maybeCapture(previewDesktop, 'migliore-esim-preview-desktop.png');
+    await previewDesktop.close();
+
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await mobile.goto(`${origin}${previewPath}`);
     await mobile.getByRole('heading', { level: 1, name: 'Qual è la migliore eSIM per viaggiare?' }).waitFor();
-    const tableWrap = mobile.locator('.article-table-wrap');
-    assert.equal(await tableWrap.count(), 1);
-    assert.equal(await tableWrap.evaluate((element) => element.scrollWidth > element.clientWidth), true);
+    assert.equal(await mobile.locator('[data-first-money-preview="migliore-esim"]').count(), 1);
+    assert.equal(await mobile.locator('a[href="#dove-vai"]').getAttribute('href'), '#dove-vai');
+    assert.equal(await mobile.getByText('Da verificare per l’offerta').count(), 6);
     assert.equal(
-      await mobile.getByRole('link', { name: 'Verifica se il telefono supporta eSIM' }).first().getAttribute('href'),
-      '/astro-foundation/articoli/esim-telefoni-compatibili',
+      await mobile.getByRole('link', { name: 'Sai già dove vai?' }).getAttribute('href'),
+      '/astro-foundation/destinazioni',
     );
     assert.equal(
       await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       true,
     );
+    await maybeCapture(mobile, 'migliore-esim-preview-mobile.png');
     await mobile.close();
   } finally {
     await browser.close();
@@ -239,7 +286,7 @@ try {
   await waitForRuntime(runtime);
   await verifyBrowser();
   await verifyHttp();
-  console.log('M7 migliore-esim alignment smoke passed.');
+  console.log('M7 migliore-esim first-money preview smoke passed.');
 } finally {
   if (runtime) await stopRuntime(runtime);
   await rm(stateRoot, { recursive: true, force: true });

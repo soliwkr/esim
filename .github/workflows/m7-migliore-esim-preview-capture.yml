@@ -1,0 +1,52 @@
+name: M7 Migliore eSIM Preview Capture
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/m7-migliore-esim-preview-capture.yml
+      - apps/web/src/components/public/MiglioreEsimFirstMoneyPreview.astro
+      - apps/web/src/components/public/migliore-esim-first-money-preview.css
+      - apps/web/src/components/public/PublicArticlePage.astro
+      - scripts/smoke-m7-migliore-esim.mjs
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Cloudflare binding types
+        run: npm run types
+
+      - name: Build Astro and Worker
+        run: npm run build
+
+      - name: Verify preview and capture screenshots
+        env:
+          M7_MIGLIORE_ESIM_SCREENSHOT_DIR: visual-capture/migliore-esim
+        run: npm run smoke:m7-migliore-esim
+
+      - name: Upload visual review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: m7-migliore-esim-first-money-preview
+          path: visual-capture/migliore-esim/*.png
+          if-no-files-found: error
+          retention-days: 14
