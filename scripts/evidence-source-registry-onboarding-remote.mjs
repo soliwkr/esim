@@ -4,12 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   SOURCE_REGISTRY_ONBOARDING_READ_QUERY,
-  buildSourceOnboardingInsertSql,
   buildSourceOnboardingPlan,
   loadSourceOnboardingIntents,
   parseOnboardingRegistryRows,
 } from './evidence-source-registry-onboarding.mjs';
 import {
+  canonicalizeRegistryUrl,
   loadReconciliationManifest,
   reconcileManifest,
 } from './evidence-source-reconciliation.mjs';
@@ -120,6 +120,40 @@ function reconciliationCounts(results) {
   }, { resolved: 0, sourceNotRegistered: 0, sourceRegistryAmbiguous: 0 });
 }
 
+function sqlString(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+export function buildAtomicRemoteInsertSql(onboarding, plan) {
+  if (plan.counts.blocked !== 0 || plan.counts.existingExact !== 0 || plan.counts.insert !== EXPECTED_INTENT_COUNT) {
+    throw new Error('remote_onboarding_atomic_sql_plan_invalid');
+  }
+  const insertKeys = new Set(
+    plan.items.filter((item) => item.action === 'insert').map((item) => item.intentKey),
+  );
+  const intents = onboarding.intents.filter((intent) => insertKeys.has(intent.intentKey));
+  if (intents.length !== EXPECTED_INTENT_COUNT) throw new Error('remote_onboarding_atomic_sql_intent_count_invalid');
+
+  const rows = intents.map((intent) => [
+    sqlString(intent.entityType),
+    sqlString(intent.entityKey),
+    sqlString(intent.sourceKind),
+    sqlString(intent.label),
+    sqlString(canonicalizeRegistryUrl(intent.canonicalUrl)),
+    String(intent.trustLevel),
+    String(intent.freshnessDays),
+    sqlString(intent.status),
+    sqlString(intent.notes),
+  ].join(', '));
+
+  return [
+    'INSERT INTO source_registry (',
+    '  entity_type, entity_key, source_kind, label, url, trust_level, freshness_days, status, notes',
+    ') VALUES',
+    ...rows.map((row, index) => `  (${row})${index === rows.length - 1 ? ';' : ','}`),
+  ].join('\n');
+}
+
 export function assertRemotePreflight({ onboarding, reconciliation, registryRows }) {
   if (onboarding.intents.length !== EXPECTED_INTENT_COUNT) throw new Error('remote_onboarding_intent_count_drift');
   if (reconciliation.sources.length !== EXPECTED_MANIFEST_IDENTITY_COUNT) {
@@ -185,7 +219,7 @@ export async function applyRemoteSourceOnboarding({ authorizationPath, outputPat
   const beforeRows = queryRemoteRegistry();
   const before = assertRemotePreflight({ onboarding, reconciliation, registryRows: beforeRows });
 
-  const sql = buildSourceOnboardingInsertSql(onboarding, before.plan);
+  const sql = buildAtomicRemoteInsertSql(onboarding, before.plan);
   executeRemoteInsertSql(sql);
 
   const afterRows = queryRemoteRegistry();
