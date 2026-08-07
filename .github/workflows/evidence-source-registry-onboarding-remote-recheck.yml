@@ -1,0 +1,66 @@
+name: Evidence Source Registry Remote Recheck
+
+on:
+  push:
+    branches:
+      - ops/evidence-source-registry-onboarding-remote
+    paths:
+      - ops/evidence-source-registry-onboarding-remote-recheck.json
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+      - name: Build compiled Wrangler configuration
+        run: npm run build
+      - name: Resolve temporary target D1 binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/prepare-production-d1-binding.mjs apps/web/dist/server/wrangler.json
+      - name: Verify target source registry read-only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/verify-evidence-source-registry-remote.mjs artifacts/evidence-source-registry-recheck.json
+      - name: Require unchanged pre-mutation state
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const result = JSON.parse(await readFile('artifacts/evidence-source-registry-recheck.json', 'utf8'));
+          if (result.registryRowCount !== 7 || result.manifestSourceCount !== 9 || result.counts.resolved !== 0 || result.counts.sourceNotRegistered !== 9 || result.counts.sourceRegistryAmbiguous !== 0 || result.readyForImporter !== false) {
+            throw new Error(`unexpected_target_state:${JSON.stringify({ registryRowCount: result.registryRowCount, counts: result.counts })}`);
+          }
+          console.log('target unchanged after rejected transaction: 7 rows, 0/9 resolved');
+          NODE
+      - name: Upload recheck artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-source-registry-remote-recheck
+          path: artifacts/evidence-source-registry-recheck.json
+          if-no-files-found: warn
+          retention-days: 14
