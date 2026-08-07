@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "reason": "verify_target_unchanged_after_cloudflare_rejected_begin_transaction",
+  "expectedRegistryRows": 7,
+  "expectedResolved": 0,
+  "expectedMissing": 9,
+  "expectedAmbiguous": 0
+}
