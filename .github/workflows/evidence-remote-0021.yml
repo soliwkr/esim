@@ -1,0 +1,99 @@
+name: Evidence Remote 0021
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact main SHA authorized for the migration
+        required: true
+        type: string
+      confirmation:
+        description: Type APPLY_0021_EVIDENCE_UPSTREAM
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout authorized main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+
+      - name: Verify authorization boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ inputs.confirmation }}" = "APPLY_0021_EVIDENCE_UPSTREAM"
+          test "$(git rev-parse HEAD)" = "${{ inputs.expected_main_sha }}"
+          test "${{ github.ref }}" = "refs/heads/main"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify gate contract
+        run: node scripts/evidence-remote-0021-gate.mjs --self-test
+
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Build compiled Wrangler configuration
+        run: npm run build
+
+      - name: Resolve target D1 binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/prepare-production-d1-binding.mjs apps/web/dist/server/wrangler.json
+
+      - name: Verify source registry remains importer-ready
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/verify-evidence-source-registry-remote.mjs artifacts/evidence-source-registry-pre-0021.json
+
+      - name: Read-only migration preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_REMOTE_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-remote-0021-gate.mjs preflight artifacts/evidence-remote-0021-preflight.json
+
+      - name: Apply exact pending migration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --remote --config apps/web/dist/server/wrangler.json
+
+      - name: Verify remote migration and schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_REMOTE_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-remote-0021-gate.mjs verify artifacts/evidence-remote-0021-result.json
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-remote-0021
+          path: artifacts/evidence-*.json
+          if-no-files-found: warn
+          retention-days: 30
