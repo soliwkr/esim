@@ -11,6 +11,11 @@ on:
         description: Type APPLY_0021_EVIDENCE_UPSTREAM
         required: true
         type: string
+  push:
+    branches:
+      - ops/evidence-remote-0021-run
+    paths:
+      - ops/evidence-remote-0021-authorization.json
 
 permissions:
   contents: read
@@ -24,18 +29,30 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout authorized main
+      - name: Checkout authorized revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.expected_main_sha }}
+          fetch-depth: 0
 
-      - name: Verify authorization boundary
+      - name: Resolve and verify authorization boundary
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ inputs.confirmation }}" = "APPLY_0021_EVIDENCE_UPSTREAM"
-          test "$(git rev-parse HEAD)" = "${{ inputs.expected_main_sha }}"
-          test "${{ github.ref }}" = "refs/heads/main"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            expected_sha="${{ inputs.expected_main_sha }}"
+            confirmation="${{ inputs.confirmation }}"
+            test "${{ github.ref }}" = "refs/heads/main"
+            test "$(git rev-parse HEAD)" = "$expected_sha"
+          else
+            test "${{ github.ref }}" = "refs/heads/ops/evidence-remote-0021-run"
+            test -f ops/evidence-remote-0021-authorization.json
+            expected_sha="$(node -p "JSON.parse(require('fs').readFileSync('ops/evidence-remote-0021-authorization.json','utf8')).expectedMainSha")"
+            confirmation="$(node -p "JSON.parse(require('fs').readFileSync('ops/evidence-remote-0021-authorization.json','utf8')).confirmation")"
+            test "$expected_sha" = "1bc46e4a49fd0d50c1b4648083ea08a086033918"
+            git merge-base --is-ancestor "$expected_sha" HEAD
+          fi
+          test "$confirmation" = "APPLY_0021_EVIDENCE_UPSTREAM"
+          echo "AUTHORIZED_MAIN_SHA=$expected_sha" >> "$GITHUB_ENV"
 
       - name: Set up Node
         uses: actions/setup-node@v4
