@@ -19,8 +19,6 @@ export const LIVE_SOURCE_CONFIG = Object.freeze(
     source.key === 'airalo-italy-plan'
       ? Object.freeze({
           ...source,
-          role: 'product_page',
-          sourceAuditKey: 'candidate-airalo-italy-unlimited-10d',
           url: AIRALO_EXACT_PACKAGE_URL,
         })
       : source,
