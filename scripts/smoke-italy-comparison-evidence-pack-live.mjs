@@ -10,7 +10,8 @@ const airalo = LIVE_SOURCE_CONFIG.find((source) => source.key === 'airalo-italy-
 const airaloFup = LIVE_SOURCE_CONFIG.find((source) => source.key === 'airalo-unlimited-fup');
 assert.ok(airalo, 'Airalo live source must exist.');
 assert.ok(airaloFup, 'Airalo FUP source must exist.');
-assert.equal(airalo.role, 'product_page');
+assert.equal(airalo.role, 'product_catalog');
+assert.equal(airalo.sourceAuditKey, 'candidate-airalo-italy-catalog');
 assert.equal(airalo.url, AIRALO_EXACT_PACKAGE_URL);
 assert.equal(airalo.url.includes('mamma-mia-in-10days-unlimited'), true);
 
@@ -56,8 +57,8 @@ assert.equal(captured.snapshot.requestedUrl, AIRALO_EXACT_PACKAGE_URL);
 assert.equal(captured.snapshot.finalUrl, AIRALO_EXACT_PACKAGE_URL);
 assert.equal(captured.snapshot.canonicalFinalUrl, AIRALO_EXACT_PACKAGE_URL);
 assert.equal(captured.snapshot.provider, 'airalo');
-assert.equal(captured.snapshot.role, 'product_page');
-assert.equal(captured.snapshot.sourceAuditKey, 'candidate-airalo-italy-unlimited-10d');
+assert.equal(captured.snapshot.role, 'product_catalog');
+assert.equal(captured.snapshot.sourceAuditKey, 'candidate-airalo-italy-catalog');
 assert.equal(captured.snapshot.locale, 'it');
 assert.match(captured.snapshot.snapshotId, /^snapshot:sha256:[0-9a-f]{64}$/);
 
