@@ -14,7 +14,7 @@ import {
   parseOnboardingRegistryRows,
 } from './evidence-source-registry-onboarding.mjs';
 
-const IMPORTER_VERSION = '1.0.0';
+const IMPORTER_VERSION = '1.0.1';
 const PARSER_INPUT_VERSION = 'evidence-pack-source-v1';
 const ALLOWED_COVERAGE_STATES = new Set(['observed', 'partial', 'unknown', 'not_applicable']);
 const CANDIDATE_COVERAGE_STATES = new Set(['observed', 'partial']);
@@ -171,10 +171,12 @@ function requirePackSourceShape(source, index) {
   const prefix = `pack_source_${index}`;
   for (const key of [
     'sourceKey', 'provider', 'role', 'sourceAuditKey', 'snapshotId', 'requestedUrl',
-    'finalUrl', 'canonicalFinalUrl', 'fetchedAt', 'contentType', 'bodySha256',
-    'visibleTextSha256',
+    'canonicalRequestedUrl', 'finalUrl', 'canonicalFinalUrl', 'fetchedAt', 'contentType',
+    'bodySha256', 'visibleTextSha256',
   ]) {
-    if (typeof source?.[key] !== 'string' || !source[key]) throw new Error(`${prefix}_${key}_invalid`);
+    if (typeof source?.[key] !== 'string' || !source[key]) {
+      throw new Error(`${prefix}_${key}_invalid`);
+    }
   }
   normalizeHash(source.bodySha256, `${prefix}_body_sha256`);
   normalizeHash(source.visibleTextSha256, `${prefix}_visible_text_sha256`);
@@ -191,9 +193,26 @@ function requirePackSourceShape(source, index) {
   isoDate(source.fetchedAt, `${prefix}_fetched_at`);
 }
 
+function expectedPackCandidateKey(candidate) {
+  return `sha256:${hashCanonical({
+    subjectKey: candidate.subjectKey,
+    fieldName: candidate.fieldName,
+    scope: candidate.scope,
+    rawValue: candidate.rawValue,
+    normalizedValue: candidate.normalizedValue,
+    evidence: candidate.evidence.map((entry) => ({
+      sourceKey: entry.sourceKey,
+      snapshotId: entry.snapshotId,
+    })),
+    extractorVersion: candidate.extractorVersion,
+  })}`;
+}
+
 function validatePackStructure(pack) {
   if (!pack || pack.schemaVersion !== 1) throw new Error('evidence_import_pack_schema_unsupported');
-  if (!/^pack:sha256:[0-9a-f]{64}$/.test(pack.packId || '')) throw new Error('evidence_import_pack_id_invalid');
+  if (!/^pack:sha256:[0-9a-f]{64}$/.test(pack.packId || '')) {
+    throw new Error('evidence_import_pack_id_invalid');
+  }
   if (!pack.scenario || typeof pack.scenario.id !== 'string' || !pack.scenario.id) {
     throw new Error('evidence_import_scenario_invalid');
   }
@@ -208,7 +227,9 @@ function validatePackStructure(pack) {
   if (!Array.isArray(pack.offers) || pack.offers.length === 0) {
     throw new Error('evidence_import_offers_missing');
   }
-  if (pack.ranking?.status !== 'not_computed') throw new Error('evidence_import_ranking_must_be_not_computed');
+  if (pack.ranking?.status !== 'not_computed') {
+    throw new Error('evidence_import_ranking_must_be_not_computed');
+  }
   normalizeHash(pack.semanticFingerprint, 'evidence_import_semantic_fingerprint');
   if (JSON.stringify(pack).includes('price_eur')) throw new Error('evidence_import_price_eur_forbidden');
 
@@ -216,25 +237,36 @@ function validatePackStructure(pack) {
   const snapshotIds = new Set();
   for (const [index, source] of pack.sources.entries()) {
     requirePackSourceShape(source, index);
-    if (sourceKeys.has(source.sourceKey)) throw new Error(`evidence_import_source_key_duplicate:${source.sourceKey}`);
-    if (snapshotIds.has(source.snapshotId)) throw new Error(`evidence_import_snapshot_id_duplicate:${source.snapshotId}`);
+    if (sourceKeys.has(source.sourceKey)) {
+      throw new Error(`evidence_import_source_key_duplicate:${source.sourceKey}`);
+    }
+    if (snapshotIds.has(source.snapshotId)) {
+      throw new Error(`evidence_import_snapshot_id_duplicate:${source.snapshotId}`);
+    }
     sourceKeys.add(source.sourceKey);
     snapshotIds.add(source.snapshotId);
   }
 
   for (const offer of pack.offers) {
-    if (!offer || typeof offer.provider !== 'string' || !offer.provider) throw new Error('evidence_import_offer_provider_invalid');
-    if (typeof offer.offerKey !== 'string' || !offer.offerKey) throw new Error('evidence_import_offer_key_invalid');
+    if (!offer || typeof offer.provider !== 'string' || !offer.provider) {
+      throw new Error('evidence_import_offer_provider_invalid');
+    }
+    if (typeof offer.offerKey !== 'string' || !offer.offerKey) {
+      throw new Error('evidence_import_offer_key_invalid');
+    }
     if (!Array.isArray(offer.candidates) || !offer.coverage || typeof offer.coverage !== 'object') {
       throw new Error(`evidence_import_offer_shape_invalid:${offer.offerKey}`);
     }
+
     const candidatesByField = new Map();
     for (const candidate of offer.candidates) {
       if (!candidate || candidate.status !== 'pending') {
         throw new Error(`evidence_import_candidate_status_invalid:${offer.offerKey}`);
       }
       if (candidate.subjectType !== 'scenario_offer' || candidate.subjectKey !== offer.offerKey) {
-        throw new Error(`evidence_import_candidate_subject_invalid:${offer.offerKey}:${candidate.fieldName || 'unknown'}`);
+        throw new Error(
+          `evidence_import_candidate_subject_invalid:${offer.offerKey}:${candidate.fieldName || 'unknown'}`,
+        );
       }
       if (typeof candidate.fieldName !== 'string' || !candidate.fieldName) {
         throw new Error(`evidence_import_candidate_field_invalid:${offer.offerKey}`);
@@ -259,18 +291,30 @@ function validatePackStructure(pack) {
           || typeof candidate.extractorVersion !== 'string' || !candidate.extractorVersion) {
         throw new Error(`evidence_import_candidate_extractor_invalid:${offer.offerKey}:${candidate.fieldName}`);
       }
-      isoDate(candidate.observedAt, `evidence_import_candidate_observed_at:${offer.offerKey}:${candidate.fieldName}`);
+      isoDate(
+        candidate.observedAt,
+        `evidence_import_candidate_observed_at:${offer.offerKey}:${candidate.fieldName}`,
+      );
       if (!Array.isArray(candidate.warnings)) {
         throw new Error(`evidence_import_candidate_warnings_invalid:${offer.offerKey}:${candidate.fieldName}`);
       }
+
       for (const evidence of candidate.evidence) {
         const source = pack.sources.find((entry) => entry.sourceKey === evidence?.sourceKey);
         if (!source || source.snapshotId !== evidence.snapshotId) {
-          throw new Error(`evidence_import_candidate_evidence_source_mismatch:${offer.offerKey}:${candidate.fieldName}`);
+          throw new Error(
+            `evidence_import_candidate_evidence_source_mismatch:${offer.offerKey}:${candidate.fieldName}`,
+          );
         }
-        if (!evidence.locator || typeof evidence.locator !== 'object') {
+        if (!evidence.locator || typeof evidence.locator !== 'object' || Array.isArray(evidence.locator)) {
           throw new Error(`evidence_import_candidate_locator_invalid:${offer.offerKey}:${candidate.fieldName}`);
         }
+      }
+
+      if (candidate.candidateKey !== expectedPackCandidateKey(candidate)) {
+        throw new Error(
+          `evidence_import_candidate_identity_mismatch:${offer.offerKey}:${candidate.fieldName}`,
+        );
       }
       candidatesByField.set(candidate.fieldName, candidate);
     }
@@ -281,10 +325,14 @@ function validatePackStructure(pack) {
       }
       const hasCandidate = candidatesByField.has(fieldName);
       if (CANDIDATE_COVERAGE_STATES.has(coverage.state) && !hasCandidate) {
-        throw new Error(`evidence_import_supported_coverage_missing_candidate:${offer.offerKey}:${fieldName}`);
+        throw new Error(
+          `evidence_import_supported_coverage_missing_candidate:${offer.offerKey}:${fieldName}`,
+        );
       }
       if (!CANDIDATE_COVERAGE_STATES.has(coverage.state) && hasCandidate) {
-        throw new Error(`evidence_import_unsupported_coverage_has_candidate:${offer.offerKey}:${fieldName}`);
+        throw new Error(
+          `evidence_import_unsupported_coverage_has_candidate:${offer.offerKey}:${fieldName}`,
+        );
       }
     }
     for (const fieldName of candidatesByField.keys()) {
@@ -328,7 +376,10 @@ async function verifyArtifacts(pack, packPath) {
   if (typeof pack.artifactLocation !== 'string' || !pack.artifactLocation) {
     throw new Error('evidence_import_artifact_location_missing');
   }
-  const artifactDirectory = requireRepoLocalPath(pack.artifactLocation, 'evidence_import_artifact_location');
+  const artifactDirectory = requireRepoLocalPath(
+    pack.artifactLocation,
+    'evidence_import_artifact_location',
+  );
   if (path.resolve(path.dirname(packPath)) !== path.resolve(artifactDirectory)) {
     throw new Error('evidence_import_artifact_location_pack_directory_mismatch');
   }
@@ -366,7 +417,9 @@ async function verifyArtifacts(pack, packPath) {
 
 export async function loadVerifiedEvidencePack(packFilename) {
   const packPath = requireRepoLocalPath(packFilename, 'evidence_import_pack_path');
-  if (path.basename(packPath) !== 'pack.json') throw new Error('evidence_import_pack_filename_invalid');
+  if (path.basename(packPath) !== 'pack.json') {
+    throw new Error('evidence_import_pack_filename_invalid');
+  }
   const packBytes = await readFile(packPath);
   let pack;
   try {
@@ -397,13 +450,17 @@ function providerSources(pack, provider) {
 }
 
 function buildSourceResolution(pack, reconciliation, registryRows) {
-  const manifestByAuditKey = new Map(reconciliation.sources.map((entry) => [entry.sourceAuditKey, entry]));
+  const manifestByAuditKey = new Map(
+    reconciliation.sources.map((entry) => [entry.sourceAuditKey, entry]),
+  );
   const resolutions = new Map();
   for (const source of pack.sources) {
     const entry = manifestEntryForPackSource(source, manifestByAuditKey);
     const resolution = resolveSourceRegistryEntry(entry, registryRows);
     if (resolution.status !== 'resolved') {
-      throw new Error(`evidence_import_source_resolution_failed:${source.sourceAuditKey}:${resolution.reason}`);
+      throw new Error(
+        `evidence_import_source_resolution_failed:${source.sourceAuditKey}:${resolution.reason}`,
+      );
     }
     resolutions.set(source.sourceKey, Object.freeze({ entry, resolution }));
   }
@@ -485,9 +542,19 @@ function buildSnapshots({ pack, run, resolutions, artifacts }) {
   return Object.freeze({ snapshots: Object.freeze(snapshots), bySourceKey });
 }
 
-function buildObservation({ pack, offer, fieldName, coverage, candidate, snapshotsBySourceKey }) {
+function buildObservation({
+  pack,
+  run,
+  offer,
+  fieldName,
+  coverage,
+  candidate,
+  snapshotsBySourceKey,
+}) {
   const inferredCandidate = offer.candidates[0];
-  if (!inferredCandidate) throw new Error(`evidence_import_offer_has_no_extractor_context:${offer.offerKey}`);
+  if (!inferredCandidate) {
+    throw new Error(`evidence_import_offer_has_no_extractor_context:${offer.offerKey}`);
+  }
 
   const inspectedProviderSources = providerSources(pack, offer.provider);
   if (inspectedProviderSources.length === 0) {
@@ -509,7 +576,9 @@ function buildObservation({ pack, offer, fieldName, coverage, candidate, snapsho
   let packSubjectType = inferredCandidate.subjectType;
 
   if (candidate) {
-    anchorSource = pack.sources.find((source) => source.sourceKey === candidate.evidence[0].sourceKey);
+    anchorSource = pack.sources.find(
+      (source) => source.sourceKey === candidate.evidence[0].sourceKey,
+    );
     rawValue = candidate.rawValue;
     normalizedValue = candidate.normalizedValue;
     extractorId = candidate.extractorId;
@@ -543,16 +612,18 @@ function buildObservation({ pack, offer, fieldName, coverage, candidate, snapsho
     };
   }
 
+  if (!anchorSource) throw new Error(`evidence_import_anchor_source_missing:${offer.offerKey}:${fieldName}`);
   const anchorSnapshot = snapshotsBySourceKey.get(anchorSource.sourceKey);
-  const scopeJson = canonicalJson({
-    ...scope,
-    packSubjectType,
-  });
+  if (!anchorSnapshot) {
+    throw new Error(`evidence_import_anchor_snapshot_missing:${offer.offerKey}:${fieldName}`);
+  }
+
+  const scopeJson = canonicalJson({ ...scope, packSubjectType });
   const locatorJson = canonicalJson(locatorPayload);
   const rawValueJson = canonicalJson(rawValue);
   const normalizedValueJson = canonicalJson(normalizedValue);
   const observationKey = `observation:sha256:${hashCanonical({
-    runKey: snapshotsBySourceKey.get(anchorSource.sourceKey).snapshot_key.split(':').slice(0, 1)[0],
+    runKey: run.run_key,
     anchorSnapshotKey: anchorSnapshot.snapshot_key,
     subjectType: 'plan',
     subjectKey: offer.offerKey,
@@ -591,13 +662,16 @@ function buildObservation({ pack, offer, fieldName, coverage, candidate, snapsho
   });
 }
 
-function buildObservations(pack, snapshotsBySourceKey) {
+function buildObservations(pack, run, snapshotsBySourceKey) {
   const observations = [];
   for (const offer of pack.offers) {
-    const candidatesByField = new Map(offer.candidates.map((candidate) => [candidate.fieldName, candidate]));
+    const candidatesByField = new Map(
+      offer.candidates.map((candidate) => [candidate.fieldName, candidate]),
+    );
     for (const fieldName of Object.keys(offer.coverage).sort()) {
       observations.push(buildObservation({
         pack,
+        run,
         offer,
         fieldName,
         coverage: offer.coverage[fieldName],
@@ -617,19 +691,21 @@ function buildObservations(pack, snapshotsBySourceKey) {
 }
 
 function buildCandidates(observations) {
-  return Object.freeze(observations
-    .filter((observation) => CANDIDATE_COVERAGE_STATES.has(observation.coverage_state))
-    .map((observation) => Object.freeze({
-      candidate_key: `evidence-candidate:sha256:${hashCanonical({
-        observationKey: observation.observation_key,
-        packCandidateKey: observation.pack_candidate_key,
-      })}`,
-      observation_key: observation.observation_key,
-      status: 'pending',
-      decision_actor: null,
-      decision_notes: '',
-      decided_at: null,
-    })));
+  return Object.freeze(
+    observations
+      .filter((observation) => CANDIDATE_COVERAGE_STATES.has(observation.coverage_state))
+      .map((observation) => Object.freeze({
+        candidate_key: `evidence-candidate:sha256:${hashCanonical({
+          observationKey: observation.observation_key,
+          packCandidateKey: observation.pack_candidate_key,
+        })}`,
+        observation_key: observation.observation_key,
+        status: 'pending',
+        decision_actor: null,
+        decision_notes: '',
+        decided_at: null,
+      })),
+  );
 }
 
 export function buildEvidenceImportModel({ verifiedPack, reconciliation, registryRows }) {
@@ -637,7 +713,7 @@ export function buildEvidenceImportModel({ verifiedPack, reconciliation, registr
   const resolutions = buildSourceResolution(pack, reconciliation, registryRows);
   const run = buildRun(pack, packSha256);
   const snapshotModel = buildSnapshots({ pack, run, resolutions, artifacts });
-  const observations = buildObservations(pack, snapshotModel.bySourceKey);
+  const observations = buildObservations(pack, run, snapshotModel.bySourceKey);
   const candidates = buildCandidates(observations);
   return Object.freeze({
     schemaVersion: 1,
@@ -693,13 +769,17 @@ const CANDIDATE_COLUMNS = [
 
 function verifyExistingImport(model, state) {
   const runRows = state.runs.filter((row) => row.run_key === model.run.run_key);
-  if (runRows.length !== 1) throw new Error('evidence_import_existing_run_cardinality_invalid');
+  if (runRows.length !== 1) {
+    throw new Error('evidence_import_existing_run_cardinality_invalid');
+  }
   const runRow = runRows[0];
   assertColumnsExact(runRow, model.run, RUN_COLUMNS, 'evidence_import_existing_run_mismatch');
   const runId = Number(runRow.id);
 
   const snapshotsByKey = rowMap(state.snapshots, 'snapshot_key');
-  const expectedSnapshotKeys = new Set(model.snapshots.map((snapshot) => snapshot.snapshot_key));
+  const expectedSnapshotKeys = new Set(
+    model.snapshots.map((snapshot) => snapshot.snapshot_key),
+  );
   const runSnapshots = state.snapshots.filter((row) => Number(row.capture_run_id) === runId);
   if (runSnapshots.length !== model.snapshots.length
       || runSnapshots.some((row) => !expectedSnapshotKeys.has(row.snapshot_key))) {
@@ -710,7 +790,12 @@ function verifyExistingImport(model, state) {
     if (!row || Number(row.capture_run_id) !== runId) {
       throw new Error(`evidence_import_existing_snapshot_missing:${snapshot.snapshot_key}`);
     }
-    assertColumnsExact(row, snapshot, SNAPSHOT_COLUMNS, `evidence_import_existing_snapshot_mismatch:${snapshot.snapshot_key}`);
+    assertColumnsExact(
+      row,
+      snapshot,
+      SNAPSHOT_COLUMNS,
+      `evidence_import_existing_snapshot_mismatch:${snapshot.snapshot_key}`,
+    );
   }
 
   const snapshotIdByKey = new Map(model.snapshots.map((snapshot) => [
@@ -718,9 +803,13 @@ function verifyExistingImport(model, state) {
     Number(snapshotsByKey.get(snapshot.snapshot_key).id),
   ]));
   const observationByKey = rowMap(state.observations, 'observation_key');
-  const expectedObservationKeys = new Set(model.observations.map((observation) => observation.observation_key));
+  const expectedObservationKeys = new Set(
+    model.observations.map((observation) => observation.observation_key),
+  );
   const runSnapshotIds = new Set(snapshotIdByKey.values());
-  const runObservations = state.observations.filter((row) => runSnapshotIds.has(Number(row.snapshot_id)));
+  const runObservations = state.observations.filter(
+    (row) => runSnapshotIds.has(Number(row.snapshot_id)),
+  );
   if (runObservations.length !== model.observations.length
       || runObservations.some((row) => !expectedObservationKeys.has(row.observation_key))) {
     throw new Error('evidence_import_existing_observation_set_mismatch');
@@ -731,7 +820,12 @@ function verifyExistingImport(model, state) {
     if (!row || Number(row.snapshot_id) !== expectedSnapshotId) {
       throw new Error(`evidence_import_existing_observation_missing:${observation.observation_key}`);
     }
-    assertColumnsExact(row, observation, OBSERVATION_COLUMNS, `evidence_import_existing_observation_mismatch:${observation.observation_key}`);
+    assertColumnsExact(
+      row,
+      observation,
+      OBSERVATION_COLUMNS,
+      `evidence_import_existing_observation_mismatch:${observation.observation_key}`,
+    );
   }
 
   const observationIdByKey = new Map(model.observations.map((observation) => [
@@ -739,9 +833,13 @@ function verifyExistingImport(model, state) {
     Number(observationByKey.get(observation.observation_key).id),
   ]));
   const candidatesByKey = rowMap(state.candidates, 'candidate_key');
-  const expectedCandidateKeys = new Set(model.candidates.map((candidate) => candidate.candidate_key));
+  const expectedCandidateKeys = new Set(
+    model.candidates.map((candidate) => candidate.candidate_key),
+  );
   const runObservationIds = new Set(observationIdByKey.values());
-  const runCandidates = state.candidates.filter((row) => runObservationIds.has(Number(row.observation_id)));
+  const runCandidates = state.candidates.filter(
+    (row) => runObservationIds.has(Number(row.observation_id)),
+  );
   if (runCandidates.length !== model.candidates.length
       || runCandidates.some((row) => !expectedCandidateKeys.has(row.candidate_key))) {
     throw new Error('evidence_import_existing_candidate_set_mismatch');
@@ -751,7 +849,12 @@ function verifyExistingImport(model, state) {
     if (!row || Number(row.observation_id) !== observationIdByKey.get(candidate.observation_key)) {
       throw new Error(`evidence_import_existing_candidate_missing:${candidate.candidate_key}`);
     }
-    assertColumnsExact(row, candidate, CANDIDATE_COLUMNS, `evidence_import_existing_candidate_mismatch:${candidate.candidate_key}`);
+    assertColumnsExact(
+      row,
+      candidate,
+      CANDIDATE_COLUMNS,
+      `evidence_import_existing_candidate_mismatch:${candidate.candidate_key}`,
+    );
   }
 }
 
@@ -759,20 +862,29 @@ export function buildEvidenceImportPlan(model, state) {
   const existingRun = state.runs.find((row) => row.run_key === model.run.run_key) || null;
   if (existingRun) {
     verifyExistingImport(model, state);
-    return Object.freeze({ action: 'existing_exact', inserted: Object.freeze({ runs: 0, snapshots: 0, observations: 0, candidates: 0 }) });
+    return Object.freeze({
+      action: 'existing_exact',
+      inserted: Object.freeze({ runs: 0, snapshots: 0, observations: 0, candidates: 0 }),
+    });
   }
 
   const snapshotKeys = new Set(state.snapshots.map((row) => row.snapshot_key));
   const observationKeys = new Set(state.observations.map((row) => row.observation_key));
   const candidateKeys = new Set(state.candidates.map((row) => row.candidate_key));
   for (const snapshot of model.snapshots) {
-    if (snapshotKeys.has(snapshot.snapshot_key)) throw new Error(`evidence_import_snapshot_key_collision:${snapshot.snapshot_key}`);
+    if (snapshotKeys.has(snapshot.snapshot_key)) {
+      throw new Error(`evidence_import_snapshot_key_collision:${snapshot.snapshot_key}`);
+    }
   }
   for (const observation of model.observations) {
-    if (observationKeys.has(observation.observation_key)) throw new Error(`evidence_import_observation_key_collision:${observation.observation_key}`);
+    if (observationKeys.has(observation.observation_key)) {
+      throw new Error(`evidence_import_observation_key_collision:${observation.observation_key}`);
+    }
   }
   for (const candidate of model.candidates) {
-    if (candidateKeys.has(candidate.candidate_key)) throw new Error(`evidence_import_candidate_key_collision:${candidate.candidate_key}`);
+    if (candidateKeys.has(candidate.candidate_key)) {
+      throw new Error(`evidence_import_candidate_key_collision:${candidate.candidate_key}`);
+    }
   }
   return Object.freeze({
     action: 'insert',
@@ -873,7 +985,9 @@ function executeLocalImportSql(persistTo, sql) {
 }
 
 export async function applyLocalEvidencePackImport({ persistTo, packFilename }) {
-  if (typeof persistTo !== 'string' || !persistTo) throw new Error('evidence_import_persist_path_required');
+  if (typeof persistTo !== 'string' || !persistTo) {
+    throw new Error('evidence_import_persist_path_required');
+  }
   const verifiedPack = await loadVerifiedEvidencePack(packFilename);
   const reconciliation = await loadReconciliationManifest();
   const registryRows = queryLocalRegistry(persistTo);
@@ -898,7 +1012,8 @@ export async function applyLocalEvidencePackImport({ persistTo, packFilename }) 
       observed: model.observations.filter((entry) => entry.coverage_state === 'observed').length,
       partial: model.observations.filter((entry) => entry.coverage_state === 'partial').length,
       unknown: model.observations.filter((entry) => entry.coverage_state === 'unknown').length,
-      notApplicable: model.observations.filter((entry) => entry.coverage_state === 'not_applicable').length,
+      notApplicable: model.observations
+        .filter((entry) => entry.coverage_state === 'not_applicable').length,
     }),
   });
 }
@@ -916,18 +1031,35 @@ function usage() {
 function parseCli(argv) {
   if (argv.includes('--remote')) throw new Error('remote_evidence_import_forbidden');
   if (argv.includes('--help') || argv.includes('-h')) return { help: true };
-  const persistIndex = argv.indexOf('--persist-to');
-  if (!argv.includes('--local') || persistIndex === -1 || !argv[persistIndex + 1]) {
-    throw new Error(usage());
+
+  let local = false;
+  let persistTo = null;
+  const packFilenames = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const value = argv[index];
+    if (value === '--local') {
+      if (local) throw new Error('evidence_import_local_flag_duplicate');
+      local = true;
+      continue;
+    }
+    if (value === '--persist-to') {
+      if (persistTo !== null) throw new Error('evidence_import_persist_path_duplicate');
+      const next = argv[++index];
+      if (!next || next.startsWith('--')) throw new Error('evidence_import_persist_path_required');
+      persistTo = next;
+      continue;
+    }
+    if (value.startsWith('--')) throw new Error(`evidence_import_unknown_argument:${value}`);
+    packFilenames.push(value);
   }
-  const consumed = new Set(['--local', '--persist-to', argv[persistIndex + 1]]);
-  const packFilenames = argv.filter((value, index) => {
-    if (value === '--local' || value === '--persist-to') return false;
-    if (index === persistIndex + 1) return false;
-    return !consumed.has(value) || value.endsWith('pack.json');
-  });
+
+  if (!local || !persistTo) throw new Error(usage());
   if (packFilenames.length === 0) throw new Error('evidence_import_pack_path_required');
-  return { help: false, persistTo: path.resolve(argv[persistIndex + 1]), packFilenames };
+  return {
+    help: false,
+    persistTo: path.resolve(persistTo),
+    packFilenames,
+  };
 }
 
 async function main() {
