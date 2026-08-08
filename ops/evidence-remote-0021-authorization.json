@@ -1,0 +1,6 @@
+{
+  "expectedMainSha": "1bc46e4a49fd0d50c1b4648083ea08a086033918",
+  "confirmation": "APPLY_0021_EVIDENCE_UPSTREAM",
+  "scope": "Apply only 0021_evidence_upstream_storage.sql and verify schema; no evidence ingest, claim verification, deploy, publication, canonical cutover, or affiliate activation.",
+  "authorizedAt": "2026-08-08T14:00:00+02:00"
+}
