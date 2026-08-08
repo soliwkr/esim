@@ -4,7 +4,11 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { packSemanticFingerprint } from './italy-comparison-evidence-pack.mjs';
+import {
+  buildSourceSnapshot as buildItalySourceSnapshot,
+  packSemanticFingerprint,
+} from './italy-comparison-evidence-pack.mjs';
+import { buildSourceSnapshot as buildEuropeSourceSnapshot } from './europe-regional-evidence-pack.mjs';
 import { applyLocalSourceOnboarding } from './evidence-source-registry-onboarding.mjs';
 import { applyLocalEvidencePackImport } from './evidence-pack-importer.mjs';
 
@@ -67,20 +71,20 @@ const ITALY_EXACT_AIRALO = 'https://www.airalo.com/it/italy-esim/mamma-mia-in-10
 
 const SOURCE_SETS = Object.freeze({
   italy: Object.freeze([
-    Object.freeze({ key: 'airalo-italy-plan', provider: 'airalo', role: 'product_catalog', audit: 'candidate-airalo-italy-catalog', url: ITALY_EXACT_AIRALO }),
-    Object.freeze({ key: 'airalo-unlimited-fup', provider: 'airalo', role: 'official_policy', audit: 'candidate-airalo-unlimited-fup', url: 'https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy' }),
-    Object.freeze({ key: 'holafly-italy-plan', provider: 'holafly', role: 'product_page', audit: 'candidate-holafly-italy-product', url: 'https://esim.holafly.com/it/esim-italia/' }),
-    Object.freeze({ key: 'holafly-unlimited-faq', provider: 'holafly', role: 'official_help', audit: 'candidate-holafly-unlimited-faq', url: 'https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/' }),
-    Object.freeze({ key: 'ubigi-italy-plan', provider: 'ubigi', role: 'product_page', audit: 'provider-ubigi-commerce', url: 'https://cellulardata.ubigi.com/rates-and-coverage/italy-data-plans/italy-50gb-30-days/' }),
-    Object.freeze({ key: 'ubigi-activation', provider: 'ubigi', role: 'official_help', audit: 'candidate-ubigi-activation', url: 'https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/' }),
+    Object.freeze({ key: 'airalo-italy-plan', provider: 'airalo', url: ITALY_EXACT_AIRALO }),
+    Object.freeze({ key: 'airalo-unlimited-fup', provider: 'airalo', url: 'https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy' }),
+    Object.freeze({ key: 'holafly-italy-plan', provider: 'holafly', url: 'https://esim.holafly.com/it/esim-italia/' }),
+    Object.freeze({ key: 'holafly-unlimited-faq', provider: 'holafly', url: 'https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/' }),
+    Object.freeze({ key: 'ubigi-italy-plan', provider: 'ubigi', url: 'https://cellulardata.ubigi.com/rates-and-coverage/italy-data-plans/italy-50gb-30-days/' }),
+    Object.freeze({ key: 'ubigi-activation', provider: 'ubigi', url: 'https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/' }),
   ]),
   europe: Object.freeze([
-    Object.freeze({ key: 'airalo-europe-plan', provider: 'airalo', role: 'regional_store_page', audit: 'candidate-airalo-europe-store-unlimited-15d', url: 'https://www.airalo.com/europe-esim' }),
-    Object.freeze({ key: 'airalo-unlimited-fup', provider: 'airalo', role: 'official_policy', audit: 'candidate-airalo-unlimited-fup', url: 'https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy' }),
-    Object.freeze({ key: 'holafly-europe-plan', provider: 'holafly', role: 'regional_product_page', audit: 'candidate-holafly-europe-product', url: 'https://esim.holafly.com/it/esim-europa/' }),
-    Object.freeze({ key: 'holafly-unlimited-faq', provider: 'holafly', role: 'official_help', audit: 'candidate-holafly-unlimited-faq', url: 'https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/' }),
-    Object.freeze({ key: 'ubigi-europe-plan', provider: 'ubigi', role: 'regional_product_page', audit: 'candidate-ubigi-europe-25gb-30d', url: 'https://cellulardata.ubigi.com/rates-and-coverage/europe-data-plans/europe-25gb-30-days/' }),
-    Object.freeze({ key: 'ubigi-activation', provider: 'ubigi', role: 'official_help', audit: 'candidate-ubigi-activation', url: 'https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/' }),
+    Object.freeze({ key: 'airalo-europe-plan', provider: 'airalo', url: 'https://www.airalo.com/europe-esim' }),
+    Object.freeze({ key: 'airalo-unlimited-fup', provider: 'airalo', url: 'https://www.airalo.com/m/resources/unlimited-data-plans-fair-use-policy' }),
+    Object.freeze({ key: 'holafly-europe-plan', provider: 'holafly', url: 'https://esim.holafly.com/it/esim-europa/' }),
+    Object.freeze({ key: 'holafly-unlimited-faq', provider: 'holafly', url: 'https://esim.holafly.com/it/faq/informazioni-sulle-esim/esim-con-traffico-dati-illimitato/' }),
+    Object.freeze({ key: 'ubigi-europe-plan', provider: 'ubigi', url: 'https://cellulardata.ubigi.com/rates-and-coverage/europe-data-plans/europe-25gb-30-days/' }),
+    Object.freeze({ key: 'ubigi-activation', provider: 'ubigi', url: 'https://cellulardata.ubigi.com/help-center/faq/esim-data-plan/when-does-my-ubigi-data-plan-activate/' }),
   ]),
 });
 
@@ -89,38 +93,23 @@ function sourceBody(name, source) {
 }
 
 function buildSources(name, startedAt) {
+  const builder = name === 'italy' ? buildItalySourceSnapshot : buildEuropeSourceSnapshot;
   return SOURCE_SETS[name].map((source, index) => {
     const body = sourceBody(name, source);
-    const bodyHash = sha256(body);
-    const canonicalFinalUrl = new URL(source.url).toString();
-    const snapshotId = `snapshot:sha256:${hashCanonical({
-      sourceAuditKey: source.audit,
-      finalUrl: canonicalFinalUrl,
-      bodySha256: bodyHash,
-    })}`;
-    return {
-      schemaVersion: 1,
+    const snapshot = builder({
       sourceKey: source.key,
-      provider: source.provider,
-      role: source.role,
-      sourceAuditKey: source.audit,
-      snapshotId,
       requestedUrl: source.url,
-      canonicalRequestedUrl: new URL(source.url).toString(),
       finalUrl: source.url,
-      canonicalFinalUrl,
       redirectChain: [],
       fetchedAt: new Date(new Date(startedAt).getTime() + index * 1000).toISOString(),
       httpStatus: 200,
       contentType: 'text/html; charset=utf-8',
-      locale: name === 'italy' ? 'it' : 'en',
       etag: null,
       lastModified: null,
-      bodySha256: `sha256:${bodyHash}`,
-      byteLength: body.length,
-      visibleTextSha256: `sha256:${sha256(`${source.provider} ${source.key} ${source.url}`)}`,
-      _body: body,
-    };
+      body,
+    });
+    const { html, visibleText, ...publicSnapshot } = snapshot;
+    return { ...publicSnapshot, _body: body };
   });
 }
 
@@ -142,7 +131,12 @@ function makeCandidate({ offerKey, provider, scenario, fieldName, rawValue, norm
     subjectType: 'scenario_offer',
     subjectKey: offerKey,
     fieldName,
-    scope: { provider, scenarioId: scenario.id, region: scenario.region ?? null, countries: scenario.countries ?? (scenario.destination ? [scenario.destination] : []) },
+    scope: {
+      provider,
+      scenarioId: scenario.id,
+      region: scenario.region ?? null,
+      countries: scenario.countries ?? (scenario.destination ? [scenario.destination] : []),
+    },
     rawValue,
     normalizedValue,
     evidence,
@@ -160,7 +154,15 @@ function evidenceRef(source, text = 'fixture evidence') {
   return {
     sourceKey: source.sourceKey,
     snapshotId: source.snapshotId,
-    locator: { type: 'document_text', sourceKey: source.sourceKey, snapshotId: source.snapshotId, start: 0, end: text.length, textAnchor: text },
+    locator: {
+      type: 'document_text',
+      sourceKey: source.sourceKey,
+      snapshotId: source.snapshotId,
+      visibleTextSha256: source.visibleTextSha256,
+      start: 0,
+      end: text.length,
+      textAnchor: text,
+    },
   };
 }
 
@@ -172,44 +174,58 @@ function buildFixturePack(name) {
   const sources = sourcesWithBodies.map(({ _body, ...source }) => source);
   const byKey = new Map(sources.map((source) => [source.sourceKey, source]));
   const scenario = isItaly
-    ? { id: 'italy-10d-high-data-hotspot', destination: 'IT', tripDays: 10, dataUse: 'high', hotspotRequired: true }
+    ? { id: 'italy-10d-high-data-hotspot', destination: 'italy', tripDays: 10, dataUse: 'high', hotspotRequired: true }
     : { id: 'europe-14d-multicountry-high-data-hotspot', region: 'europe', countries: ['IT', 'FR', 'ES'], tripDays: 14, dataUse: 'high', hotspotRequired: true };
 
   const airaloPlan = byKey.get(isItaly ? 'airalo-italy-plan' : 'airalo-europe-plan');
-  const holaflyPlan = byKey.get(isItaly ? 'holafly-italy-plan' : 'holafly-europe-plan');
-  const holaflyFup = byKey.get('holafly-unlimited-fup');
+  const holaflyFup = byKey.get('holafly-unlimited-faq');
   const ubigiPlan = byKey.get(isItaly ? 'ubigi-italy-plan' : 'ubigi-europe-plan');
   const ubigiHelp = byKey.get('ubigi-activation');
 
   const airaloOfferKey = isItaly ? 'airalo:italy:unlimited-10d' : 'airalo:europe:unlimited-15d';
   const airaloPrice = makeCandidate({
     offerKey: airaloOfferKey,
-    provider: 'airalo', scenario, fieldName: 'price', rawValue: isItaly ? '29.00 €' : '44.50 €',
+    provider: 'airalo',
+    scenario,
+    fieldName: 'price',
+    rawValue: isItaly ? '29.00 €' : '44.50 €',
     normalizedValue: { amount: isItaly ? 29 : 44.5, currency: 'EUR' },
-    evidence: [evidenceRef(airaloPlan, 'Airalo price')], observedAt: airaloPlan.fetchedAt,
+    evidence: [evidenceRef(airaloPlan, 'Airalo price')],
+    observedAt: airaloPlan.fetchedAt,
     warnings: ['source_currency_preserved'],
   });
 
   const holaflyOfferKey = isItaly ? 'holafly:italy:unlimited-10d' : 'holafly:europe:unlimited-15d';
   const holaflyFupCandidate = makeCandidate({
     offerKey: holaflyOfferKey,
-    provider: 'holafly', scenario, fieldName: 'fair_use_policy', rawValue: 'FUP may reduce speed until next day',
+    provider: 'holafly',
+    scenario,
+    fieldName: 'fair_use_policy',
+    rawValue: 'FUP may reduce speed until next day',
     normalizedValue: { operatorFupMayReduceSpeed: true, exactHighSpeedThreshold: null, recovery: 'next_day' },
-    evidence: [evidenceRef(holaflyFup, 'Holafly FUP')], observedAt: holaflyFup.fetchedAt,
+    evidence: [evidenceRef(holaflyFup, 'Holafly FUP')],
+    observedAt: holaflyFup.fetchedAt,
     warnings: ['exact_threshold_unknown'],
   });
 
   const ubigiOfferKey = isItaly ? 'ubigi:italy:50gb-30d' : 'ubigi:europe:25gb-30d';
   const ubigiPrice = makeCandidate({
     offerKey: ubigiOfferKey,
-    provider: 'ubigi', scenario, fieldName: 'price', rawValue: 'US$29',
+    provider: 'ubigi',
+    scenario,
+    fieldName: 'price',
+    rawValue: 'US$29',
     normalizedValue: { amount: 29, currency: 'USD' },
-    evidence: [evidenceRef(ubigiPlan, 'Ubigi price')], observedAt: ubigiPlan.fetchedAt,
+    evidence: [evidenceRef(ubigiPlan, 'Ubigi price')],
+    observedAt: ubigiPlan.fetchedAt,
     warnings: ['source_currency_preserved'],
   });
   const ubigiActivation = makeCandidate({
     offerKey: ubigiOfferKey,
-    provider: 'ubigi', scenario, fieldName: 'activation_policy', rawValue: 'SmartStart + covered-area activation',
+    provider: 'ubigi',
+    scenario,
+    fieldName: 'activation_policy',
+    rawValue: 'SmartStart + covered-area activation',
     normalizedValue: { trigger: 'covered_area_connection', purchaseWhileCovered: 'immediate' },
     evidence: [evidenceRef(ubigiPlan, 'SmartStart'), evidenceRef(ubigiHelp, 'covered area')],
     observedAt: ubigiHelp.fetchedAt,
@@ -217,7 +233,9 @@ function buildFixturePack(name) {
 
   const offers = [
     {
-      provider: 'airalo', offerKey: airaloOfferKey, label: 'Airalo fixture',
+      provider: 'airalo',
+      offerKey: airaloOfferKey,
+      label: 'Airalo fixture',
       candidates: [airaloPrice],
       coverage: {
         price: { state: 'observed', reason: null },
@@ -226,7 +244,9 @@ function buildFixturePack(name) {
       },
     },
     {
-      provider: 'holafly', offerKey: holaflyOfferKey, label: 'Holafly fixture',
+      provider: 'holafly',
+      offerKey: holaflyOfferKey,
+      label: 'Holafly fixture',
       candidates: [holaflyFupCandidate],
       coverage: {
         fair_use_policy: { state: 'partial', reason: 'FUP behavior is proven but exact threshold is unknown.' },
@@ -234,7 +254,9 @@ function buildFixturePack(name) {
       },
     },
     {
-      provider: 'ubigi', offerKey: ubigiOfferKey, label: 'Ubigi fixture',
+      provider: 'ubigi',
+      offerKey: ubigiOfferKey,
+      label: 'Ubigi fixture',
       candidates: [ubigiPrice, ubigiActivation],
       coverage: {
         price: { state: 'observed', reason: null },
@@ -245,7 +267,10 @@ function buildFixturePack(name) {
     },
   ];
 
-  const packId = `pack:sha256:${hashCanonical({ scenario, sourceSnapshotIds: sources.map((source) => source.snapshotId) })}`;
+  const packId = `pack:sha256:${hashCanonical({
+    scenario,
+    sourceSnapshotIds: sources.map((source) => source.snapshotId),
+  })}`;
   const pack = {
     schemaVersion: 1,
     packId,
@@ -285,7 +310,8 @@ function countPackObservations(pack) {
 
 function countPackCandidates(pack) {
   return pack.offers.reduce(
-    (total, offer) => total + Object.values(offer.coverage).filter((entry) => entry.state === 'observed' || entry.state === 'partial').length,
+    (total, offer) => total + Object.values(offer.coverage)
+      .filter((entry) => entry.state === 'observed' || entry.state === 'partial').length,
     0,
   );
 }
@@ -313,8 +339,14 @@ try {
   const verificationCountBefore = Number(query(persistTo, 'SELECT COUNT(*) AS count FROM claim_verifications;')[0].count);
   const plansCountBefore = Number(query(persistTo, 'SELECT COUNT(*) AS count FROM plans;')[0].count);
 
-  const italyFirst = await applyLocalEvidencePackImport({ persistTo, packFilename: path.relative(process.cwd(), italy.packPath) });
-  const europeFirst = await applyLocalEvidencePackImport({ persistTo, packFilename: path.relative(process.cwd(), europe.packPath) });
+  const italyFirst = await applyLocalEvidencePackImport({
+    persistTo,
+    packFilename: path.relative(process.cwd(), italy.packPath),
+  });
+  const europeFirst = await applyLocalEvidencePackImport({
+    persistTo,
+    packFilename: path.relative(process.cwd(), europe.packPath),
+  });
   assert.equal(italyFirst.action, 'insert');
   assert.equal(europeFirst.action, 'insert');
   assert.deepEqual(italyFirst.inserted, {
@@ -330,19 +362,37 @@ try {
     candidates: countPackCandidates(europe.pack),
   });
 
-  const italySecond = await applyLocalEvidencePackImport({ persistTo, packFilename: path.relative(process.cwd(), italy.packPath) });
-  const europeSecond = await applyLocalEvidencePackImport({ persistTo, packFilename: path.relative(process.cwd(), europe.packPath) });
+  const italySecond = await applyLocalEvidencePackImport({
+    persistTo,
+    packFilename: path.relative(process.cwd(), italy.packPath),
+  });
+  const europeSecond = await applyLocalEvidencePackImport({
+    persistTo,
+    packFilename: path.relative(process.cwd(), europe.packPath),
+  });
   for (const result of [italySecond, europeSecond]) {
     assert.equal(result.action, 'existing_exact');
     assert.deepEqual(result.inserted, { runs: 0, snapshots: 0, observations: 0, candidates: 0 });
   }
 
   assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_capture_runs;')[0].count), 2);
-  assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_snapshots;')[0].count), italy.pack.sources.length + europe.pack.sources.length);
-  assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_field_observations;')[0].count), countPackObservations(italy.pack) + countPackObservations(europe.pack));
-  assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_claim_candidates;')[0].count), countPackCandidates(italy.pack) + countPackCandidates(europe.pack));
+  assert.equal(
+    Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_snapshots;')[0].count),
+    italy.pack.sources.length + europe.pack.sources.length,
+  );
+  assert.equal(
+    Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_field_observations;')[0].count),
+    countPackObservations(italy.pack) + countPackObservations(europe.pack),
+  );
+  assert.equal(
+    Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_claim_candidates;')[0].count),
+    countPackCandidates(italy.pack) + countPackCandidates(europe.pack),
+  );
 
-  const coverageRows = query(persistTo, 'SELECT coverage_state, COUNT(*) AS count FROM evidence_field_observations GROUP BY coverage_state ORDER BY coverage_state;');
+  const coverageRows = query(
+    persistTo,
+    'SELECT coverage_state, COUNT(*) AS count FROM evidence_field_observations GROUP BY coverage_state ORDER BY coverage_state;',
+  );
   assert.equal(coverageRows.some((row) => row.coverage_state === 'partial' && Number(row.count) > 0), true);
   assert.equal(coverageRows.some((row) => row.coverage_state === 'unknown' && Number(row.count) > 0), true);
   assert.equal(coverageRows.some((row) => row.coverage_state === 'not_applicable' && Number(row.count) > 0), true);
@@ -364,10 +414,19 @@ try {
   `).map((row) => row.currency);
   assert.deepEqual(currencies, ['EUR', 'USD']);
 
-  const subjectRows = query(persistTo, 'SELECT DISTINCT subject_type FROM evidence_field_observations ORDER BY subject_type;');
+  const subjectRows = query(
+    persistTo,
+    'SELECT DISTINCT subject_type FROM evidence_field_observations ORDER BY subject_type;',
+  );
   assert.deepEqual(subjectRows.map((row) => row.subject_type), ['plan']);
-  const scopeRows = query(persistTo, `SELECT COUNT(*) AS count FROM evidence_field_observations WHERE json_extract(scope_json, '$.packSubjectType')='scenario_offer';`);
-  assert.equal(Number(scopeRows[0].count), countPackObservations(italy.pack) + countPackObservations(europe.pack));
+  const scopeRows = query(
+    persistTo,
+    `SELECT COUNT(*) AS count FROM evidence_field_observations WHERE json_extract(scope_json, '$.packSubjectType')='scenario_offer';`,
+  );
+  assert.equal(
+    Number(scopeRows[0].count),
+    countPackObservations(italy.pack) + countPackObservations(europe.pack),
+  );
 
   const multiSourceRows = query(persistTo, `
     SELECT evidence_locator_json
@@ -378,7 +437,12 @@ try {
   const multiSourceLocator = JSON.parse(multiSourceRows[0].evidence_locator_json);
   assert.equal(multiSourceLocator.kind, 'pack_candidate');
   assert.equal(multiSourceLocator.refs.length, 2);
-  assert.equal(multiSourceLocator.refs.every((entry) => typeof entry.snapshotKey === 'string' && entry.snapshotKey.startsWith('snapshot-import:sha256:')), true);
+  assert.equal(
+    multiSourceLocator.refs.every(
+      (entry) => typeof entry.snapshotKey === 'string' && entry.snapshotKey.startsWith('snapshot-import:sha256:'),
+    ),
+    true,
+  );
 
   assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM source_registry;')[0].count), sourceCountBefore);
   assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM claim_verifications;')[0].count), verificationCountBefore);
@@ -387,16 +451,25 @@ try {
   const tamperedSource = path.join(path.dirname(italy.packPath), 'sources', 'airalo-italy-plan.html');
   await writeFile(tamperedSource, Buffer.from('tampered'));
   await assert.rejects(
-    () => applyLocalEvidencePackImport({ persistTo, packFilename: path.relative(process.cwd(), italy.packPath) }),
+    () => applyLocalEvidencePackImport({
+      persistTo,
+      packFilename: path.relative(process.cwd(), italy.packPath),
+    }),
     /evidence_import_artifact_hash_mismatch:airalo-italy-plan/,
   );
   assert.equal(Number(query(persistTo, 'SELECT COUNT(*) AS count FROM evidence_capture_runs;')[0].count), 2);
 
   await assert.rejects(
-    () => applyLocalEvidencePackImport({ missingSourcePersistTo, packFilename: path.relative(process.cwd(), europe.packPath) }),
+    () => applyLocalEvidencePackImport({
+      persistTo: missingSourcePersistTo,
+      packFilename: path.relative(process.cwd(), europe.packPath),
+    }),
     /evidence_import_source_resolution_failed:/,
   );
-  assert.equal(Number(query(missingSourcePersistTo, 'SELECT COUNT(*) AS count FROM evidence_capture_runs;')[0].count), 0);
+  assert.equal(
+    Number(query(missingSourcePersistTo, 'SELECT COUNT(*) AS count FROM evidence_capture_runs;')[0].count),
+    0,
+  );
 
   const remoteAttempt = run(
     process.execPath,
@@ -406,7 +479,7 @@ try {
   assert.notEqual(remoteAttempt.status, 0);
   assert.match(remoteAttempt.stderr, /remote_evidence_import_forbidden/);
 
-  console.log('Evidence pack importer smoke passed: two fixture packs imported idempotently into isolated D1; hashes, source resolution, coverage states, native currencies and multi-source provenance are fail-closed/preserved.');
+  console.log('Evidence pack importer smoke passed: canonical fixture snapshots + two-pack idempotent isolated-D1 import; source resolution, hashes, coverage states, native currencies and multi-source provenance are preserved/fail-closed.');
 } finally {
   await Promise.all([
     rm(artifactRoot, { recursive: true, force: true }),
