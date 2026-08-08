@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { SOURCE_CONFIG as ITALY_SOURCE_CONFIG } from './italy-comparison-evidence-pack.mjs';
+import { LIVE_SOURCE_CONFIG as ITALY_LIVE_SOURCE_CONFIG } from './run-italy-comparison-evidence-pack.mjs';
 import { SOURCE_CONFIG as EUROPE_SOURCE_CONFIG } from './europe-regional-evidence-pack.mjs';
 import {
   canonicalizeRegistryUrl,
@@ -22,14 +23,24 @@ assert.equal(manifest.rules.allowRedirectAutoRemap, false);
 assert.equal(manifest.rules.allowImporterAutoRegistration, false);
 
 const packCoverage = validateManifestAgainstPackSources(manifest, {
-  italy: ITALY_SOURCE_CONFIG,
+  italyFixture: ITALY_SOURCE_CONFIG,
+  italyLive: ITALY_LIVE_SOURCE_CONFIG,
   europe: EUROPE_SOURCE_CONFIG,
 });
 assert.deepEqual(packCoverage, {
-  packCount: 2,
-  packSourceReferences: 12,
+  packCount: 3,
+  packSourceReferences: 18,
   uniqueSourceIdentities: 9,
 });
+
+const airaloItalyManifest = manifest.sources.find((entry) => entry.sourceAuditKey === 'candidate-airalo-italy-catalog');
+assert.ok(airaloItalyManifest);
+assert.equal(
+  airaloItalyManifest.packRequestedUrls.includes('https://www.airalo.com/it/italy-esim/mamma-mia-in-10days-unlimited'),
+  true,
+);
+assert.equal(ITALY_LIVE_SOURCE_CONFIG[0].sourceAuditKey, 'candidate-airalo-italy-catalog');
+assert.equal(ITALY_LIVE_SOURCE_CONFIG[0].role, 'product_catalog');
 
 const driftedItalySources = structuredClone(ITALY_SOURCE_CONFIG);
 driftedItalySources[0].url = 'https://www.airalo.com/it/italy-esim/unapproved-drift';
