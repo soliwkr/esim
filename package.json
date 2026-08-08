@@ -30,7 +30,7 @@
     "smoke:evidence-d1-schema": "node scripts/smoke-evidence-d1-schema.mjs",
     "smoke:evidence-source-reconciliation": "node scripts/smoke-evidence-source-reconciliation.mjs",
     "smoke:evidence-source-onboarding": "node scripts/smoke-evidence-source-registry-onboarding.mjs",
-    "smoke:evidence-pack-importer": "node scripts/smoke-evidence-pack-importer.mjs",
+    "smoke:evidence-pack-importer": "node scripts/smoke-evidence-pack-importer.mjs && node scripts/smoke-evidence-pack-importer-integrity.mjs",
     "smoke:seo-gsc-export": "node scripts/smoke-search-console-export.mjs",
     "smoke:seo-demand-expand": "python3 scripts/seo-demand-expand.py --self-test",
     "smoke:evidence-snapshot-spike": "node scripts/smoke-evidence-snapshot-spike.mjs",
