@@ -21,8 +21,12 @@
       "entityKey": "airalo",
       "sourceKind": "official_provider",
       "registryCanonicalUrl": "https://www.airalo.com/it/italy-esim/",
-      "packRequestedUrls": ["https://www.airalo.com/it/italy-esim/"],
-      "onboardingState": "required"
+      "packRequestedUrls": [
+        "https://www.airalo.com/it/italy-esim/",
+        "https://www.airalo.com/it/italy-esim/mamma-mia-in-10days-unlimited"
+      ],
+      "onboardingState": "required",
+      "mappingNote": "The approved canonical source remains the Italy commerce surface; the exact 10-day package URL is an explicitly approved requested URL used by the live bounded runner and remains snapshot provenance."
     },
     {
       "sourceAuditKey": "candidate-airalo-unlimited-fup",

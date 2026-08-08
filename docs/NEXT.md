@@ -1,12 +1,12 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **7 agosto 2026**.
+Ultimo aggiornamento: **8 agosto 2026**.
 
 Questa lista contiene soltanto lavoro immediatamente eseguibile e gate già definiti. Non è un changelog.
 
-## Gate corrente — importer idempotente local/fixture
+## Gate corrente — explicit remote `0021`
 
-La catena source identity è ora chiusa anche nel target production.
+La catena source identity e il gate importer local/fixture sono chiusi.
 
 Checkpoint chiusi:
 
@@ -14,10 +14,11 @@ Checkpoint chiusi:
 PR #119  fail-closed source reconciliation
 PR #121  target D1 read-only verification
 PR #122  local idempotent source onboarding gate
-remote run 31205724615  production source onboarding
+remote run 31205724615  production source onboarding 9/9
+PR #124  idempotent evidence importer local/fixture
 ```
 
-Stato target verificato dopo la mutation:
+Production source state verificato:
 
 ```text
 source_registry rows inspected: 15
@@ -28,61 +29,30 @@ source_registry_ambiguous:       0
 readyForImporter:                true
 ```
 
-Il source gate production è quindi chiuso:
+Importer local/fixture verificato:
 
 ```text
-8 approved D1 registry identities
-→ 9/9 reconciliation identities exactly-one
+first import:
+  2 runs
+  12 snapshots
+  18 observations
+  8 pending candidates
+
+exact rerun:
+  0 runs
+  0 snapshots
+  0 observations
+  0 candidates
 ```
 
-Documento risultato:
+Documenti risultato:
 
 ```text
 docs/research/EVIDENCE-SOURCE-REGISTRY-REMOTE-ONBOARDING-RESULT-2026-08-07.md
+docs/research/EVIDENCE-PACK-IMPORTER-LOCAL-RESULT-2026-08-08.md
 ```
 
-### Obiettivo della prossima branch tecnica
-
-Costruire e provare **solo localmente / su fixture** un importer idempotente:
-
-```text
-pack.json + immutable artifacts
-→ resolved environment source IDs
-→ evidence_capture_runs
-→ evidence_snapshots
-→ evidence_field_observations
-→ pending evidence_claim_candidates
-```
-
-Requisiti non negoziabili:
-
-- input limitato ai pack/artifact già approvati;
-- artifact hash verificato prima di importare;
-- source IDs risolti tramite il resolver e l'ambiente/fixture, mai hardcodati nei pack;
-- idempotency/content-addressed identity esplicita;
-- rerun dello stesso pack → zero duplicati;
-- `observed` può alimentare candidate;
-- `partial` alimenta soltanto il sotto-fatto realmente supportato;
-- `unknown` e `not_applicable` non diventano factual candidate;
-- conflict resta conflict;
-- source-native currency resta source-native, nessun FX implicito;
-- nessun `claim_verifications` write;
-- nessun ranking/provider winner;
-- nessuna publication mutation;
-- nessun deploy;
-- nessuna remote `0021` apply come effetto collaterale;
-- nessun ingest D1 remoto in questa branch.
-
-Il gate importer locale si chiude soltanto con fixture/migration locale che dimostri almeno:
-
-```text
-first import  → expected upstream rows
-second import → zero duplicate semantic rows
-hash/source mismatch → fail closed
-unknown/partial guards → preserved
-```
-
-## Remote D1 schema — gate separato successivo
+## Remote D1 schema — prossimo gate separato
 
 D1 remoto resta a:
 
@@ -92,34 +62,60 @@ D1 remoto resta a:
 
 `0021_evidence_upstream_storage.sql` è versionata e local-tested ma **non applicata al remoto**.
 
-Dopo l'importer local/fixture verde:
+Il prossimo passo richiede una nuova autorizzazione esplicita:
 
 ```text
-explicit remote 0021 authorization
-→ verify migration apply
-→ controlled evidence ingest
-→ post-ingest verification
-→ verification provenance bridge
+read-only remote migration preflight
+→ explicit remote 0021 apply
+→ verify remote migration state
+→ verify upstream tables/constraints
 ```
 
 Non applicare `0021` come effetto collaterale dell'importer, del deploy o di altri workflow.
 
-La precedente autorizzazione dell'8-source onboarding **non autorizza** la migration `0021` né l'evidence ingest remoto.
+Le autorizzazioni precedenti per source onboarding e importer locale **non autorizzano** la migration `0021`.
 
-## Controlled evidence ingest — dopo `0021`
+### Condizioni di stop
+
+Prima della mutation remota:
+
+- rileggere main e i canonici aggiornati;
+- verificare che il target D1 sia ancora a `0020`;
+- verificare la migration `0021` esatta versionata in main;
+- verificare che non esistano migration remote inattese;
+- se lo stato differisce dalle precondizioni, fermarsi senza mutation.
+
+Dopo l'apply:
+
+- rileggere lo stato migration remoto;
+- verificare esistenza e schema delle quattro tabelle upstream;
+- non importare pack nello stesso gate;
+- documentare il risultato remoto separatamente.
+
+## Controlled evidence ingest — gate successivo a `0021`
 
 Solo dopo migration remota esplicitamente autorizzata e verificata:
 
 ```text
 approved Italy/Europe packs
-→ importer contro target
+→ separately authorized importer run contro target
 → upstream evidence rows
 → deterministic post-ingest audit
 ```
 
 Il controlled ingest deve essere una mutation separata, bounded e auditabile.
 
-Non scrive automaticamente `claim_verifications` e non pubblica pagine.
+Requisiti:
+
+- soltanto i pack Italy/Europe già approvati;
+- source resolution 9/9 prima delle write;
+- artifact/candidate identity fail-closed;
+- idempotency preflight;
+- nessun auto-registration;
+- nessun `claim_verifications` write;
+- nessun ranking/publication;
+- post-ingest count/identity audit;
+- rerun eventuale soltanto se semanticamente exact.
 
 ## Verification provenance bridge
 
@@ -135,6 +131,8 @@ pending evidence candidate
 ```
 
 Un evidence candidate non equivale a un claim verificato.
+
+`partial` resta partial; `unknown` resta unknown; conflict non viene nascosto.
 
 ## First Money UI — pronta a ricevere facts
 
@@ -191,13 +189,13 @@ source reconciliation            ✅
 target source verification       ✅
 local source onboarding          ✅
 production source onboarding 9/9 ✅
+local/fixture evidence importer  ✅
 ```
 
 Percorso restante:
 
 ```text
-importer local/fixture
-→ explicit remote 0021
+explicit remote 0021
 → controlled evidence ingest
 → verification provenance
 → bounded verified commercial facts
@@ -285,7 +283,6 @@ per refresh e priorità.
 
 ## Checkpoint aperti
 
-- importer idempotente local/fixture;
 - explicit remote `0021` gate;
 - controlled evidence ingest;
 - verification provenance bridge;

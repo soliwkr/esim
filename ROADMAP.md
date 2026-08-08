@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **7 agosto 2026**.
+Ultimo aggiornamento: **8 agosto 2026**.
 
 Questa è la roadmap canonica di `soliwkr/esim`. Lo storico dettagliato vive nel versionamento Git e nei documenti risultato.
 
@@ -136,7 +136,7 @@ clicks: 0
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato: demand intelligence completata; First Money UI pronta come preview; Truth Engine oltre il source gate production.**
+**Stato: demand intelligence completata; First Money UI pronta come preview; Truth Engine pronto al gate remoto `0021`.**
 
 ### M7.0 — SEO foundation
 
@@ -209,13 +209,7 @@ CI post-merge #627: success
 
 La canonical `/migliore-esim` resta invariata.
 
-La preview non contiene:
-
-- link affiliate `/go/*`;
-- provider ranking/winner;
-- nuovi claim commerciali provider-specifici;
-- publication mutation;
-- deploy.
+La preview non contiene link affiliate `/go/*`, provider ranking/winner, claim provider-specifici non verificati, publication mutation o deploy.
 
 I facts commerciali sono il punto di convergenza con la Truth Engine.
 
@@ -251,7 +245,7 @@ Metodo/governance restano trust assets su `/metodo` e `/trasparenza`.
 
 ## Evidence Truth Engine — track parallela
 
-**Stato: reconciliation, target verification e source onboarding production completati; importer idempotente local/fixture è il gate corrente.**
+**Stato: source reconciliation + onboarding production + importer local/fixture chiusi; prossimo gate `0021` remoto separato.**
 
 Completati:
 
@@ -267,7 +261,8 @@ Completati:
 #119 fail-closed source reconciliation
 #121 target source_registry read-only verification
 #122 local idempotent source onboarding gate
-remote run 31205724615 production source onboarding
+remote run 31205724615 production source onboarding 9/9
+#124 idempotent evidence importer local/fixture
 ```
 
 ### Upstream schema
@@ -289,12 +284,13 @@ evidence_claim_candidates
 
 **D1 remoto resta a `0020`.**
 
-### Source reconciliation
+### Source reconciliation / onboarding — chiuso
 
 ```text
 2 evidence pack
 12 source references
 9 reconciliation identities
+8 unique production registry identities
 ```
 
 Contratto:
@@ -313,43 +309,7 @@ Fail closed:
 
 Nessun auto-registration, provider-root fallback, redirect auto-remap o ID D1 environment-specific versionato.
 
-### Target verification — PR #121
-
-Due read remote indipendenti avevano osservato:
-
-```text
-source_registry rows inspected: 7
-manifest identities:             9
-resolved:                        0
-source_not_registered:           9
-source_registry_ambiguous:       0
-readyForImporter:                false
-```
-
-Le 9 identity deduplicano a **8 registry identity D1 uniche**.
-
-### Local onboarding — PR #122
-
-Intent versionati e revisionabili:
-
-```text
-research/evidence/source-registry-onboarding-intents.json
-```
-
-Local D1 smoke:
-
-```text
-first run:  8 inserts → 9/9 resolved
-second run: 0 inserts → 9/9 resolved
-```
-
-Metadata conflict blocca; la CLI rifiuta `--remote`; nessun metadata overwrite automatico.
-
-### Production source onboarding — chiuso
-
-Autorizzazione remota separata eseguita il 7 agosto 2026.
-
-Run riuscito:
+Production onboarding autorizzato e verificato:
 
 ```text
 run:                  31205724615
@@ -361,14 +321,12 @@ missing:              0
 ambiguous:            0
 ```
 
-La verifica read-only indipendente immediata ha confermato:
+Verifica read-only indipendente:
 
 ```text
 verified_at: 2026-08-07T18:11:04.432Z
 readyForImporter: true
 ```
-
-Il primo tentativo con `BEGIN TRANSACTION` era stato rifiutato da Cloudflare code 7500; un recheck read-only aveva certificato zero write prima del retry. Il retry ha usato una singola `INSERT` multi-row, preceduta da nuovo dry run/read-only preflight.
 
 Documento risultato:
 
@@ -376,35 +334,64 @@ Documento risultato:
 docs/research/EVIDENCE-SOURCE-REGISTRY-REMOTE-ONBOARDING-RESULT-2026-08-07.md
 ```
 
-### Gate corrente — importer idempotente local/fixture
+### Importer idempotente local/fixture — PR #124
+
+Contratto:
 
 ```text
 approved pack + immutable artifacts
-→ resolved fixture/environment source IDs
+→ resolved environment source IDs
 → evidence_capture_runs
 → evidence_snapshots
 → evidence_field_observations
 → pending evidence_claim_candidates
 ```
 
-Requisiti:
+CI tecnica #651 ha provato su D1 locale isolato:
 
-- content-addressed/idempotent;
-- artifact hash verificato;
-- rerun senza duplicati semantici;
-- `unknown`, `partial` e conflict preservati;
-- source-native currency preservata;
-- nessun `claim_verifications` write;
-- nessun ranking/publication;
-- nessun ingest remoto;
-- nessuna remote `0021` implicita.
+```text
+Italy first:  1 run / 6 snapshot / 9 observation / 4 candidate
+Europe first: 1 run / 6 snapshot / 9 observation / 4 candidate
+Totale:       2 / 12 / 18 / 8
+
+exact rerun:
+0 run / 0 snapshot / 0 observation / 0 candidate
+```
+
+Guardrail provati:
+
+- artifact hash e candidate content-address fail-closed;
+- source resolution fail-closed;
+- `unknown|not_applicable` non diventano candidate;
+- `partial` resta bounded;
+- EUR/USD source-native preservati;
+- provenance multi-source preservata;
+- `source_registry`, `claim_verifications`, `plans` invariati;
+- `--remote` rifiutato.
+
+Documento risultato:
+
+```text
+docs/research/EVIDENCE-PACK-IMPORTER-LOCAL-RESULT-2026-08-08.md
+```
+
+### Gate corrente — explicit remote `0021`
+
+```text
+read-only remote preflight
+→ explicit remote 0021 authorization
+→ migration apply
+→ migration/schema verification
+```
+
+La migration remota non è autorizzata dal source onboarding né dal checkpoint importer.
 
 Gate successivi:
 
 ```text
-importer local/fixture
-→ explicit remote 0021 authorization
-→ controlled evidence ingest
+explicit remote 0021
+→ separately authorized controlled evidence ingest
+→ post-ingest audit
 → verification provenance bridge
 → bounded commercial fact materialization
 ```
@@ -415,7 +402,7 @@ Non costruire un terzo exploratory evidence pack senza un nuovo blocker struttur
 
 ## M8 — Monetizzazione controllata
 
-**Stato: non attiva; First Money UI pronta come preview; source gate production chiuso.**
+**Stato: non attiva; First Money UI pronta come preview; Truth Engine local importer chiuso.**
 
 Obiettivo:
 
@@ -438,7 +425,7 @@ Percorso corrente:
 
 ```text
 source gate 9/9 ✅
-→ importer local/fixture
+local/fixture importer ✅
 → explicit remote 0021
 → controlled evidence ingest
 → verified commercial facts
@@ -499,7 +486,7 @@ First Money preview merged
 ```text
 source reconciliation ✅
 → source onboarding production 9/9 ✅
-→ importer local/fixture
+→ importer local/fixture ✅
 → explicit remote 0021
 → controlled ingest
 → verification provenance
