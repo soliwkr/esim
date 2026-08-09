@@ -62,6 +62,9 @@ export function evidenceArtifactRef(objectKey) {
 
 export function rawEvidenceArtifactDescriptor(source) {
   if (!source || typeof source !== 'object') throw new Error('artifact_source_invalid');
+  if (!Number.isInteger(source.byteLength) || source.byteLength < 1) {
+    throw new Error('artifact_raw_byte_length_invalid');
+  }
   const objectKey = rawEvidenceObjectKey({
     bodySha256: source.bodySha256,
     contentType: source.contentType,
@@ -103,7 +106,10 @@ export function verifyArtifactBytes(bytes, descriptor) {
   if (actual !== descriptor.sha256) {
     throw new Error(`artifact_integrity_mismatch:${descriptor.kind || 'unknown'}`);
   }
-  if (Number.isInteger(descriptor.byteLength) && Buffer.byteLength(bytes) !== descriptor.byteLength) {
+  if (!Number.isInteger(descriptor.byteLength) || descriptor.byteLength < 1) {
+    throw new Error(`artifact_byte_length_invalid:${descriptor.kind || 'unknown'}`);
+  }
+  if (Buffer.byteLength(bytes) !== descriptor.byteLength) {
     throw new Error(`artifact_byte_length_mismatch:${descriptor.kind || 'unknown'}`);
   }
   return true;
