@@ -4,6 +4,12 @@ export const EVIDENCE_ARTIFACT_STORE = 'evidence-artifacts';
 export const EVIDENCE_ARTIFACT_REF_SCHEME = `r2://${EVIDENCE_ARTIFACT_STORE}/`;
 export const EVIDENCE_ARTIFACT_KEY_VERSION = 'v1';
 export const EVIDENCE_ARTIFACT_WRITE_CONDITION = Object.freeze({ ifNoneMatch: '*' });
+export const EVIDENCE_ARTIFACT_BUCKET_LOCK_RULE = Object.freeze({
+  id: 'evidence-v1-indefinite',
+  prefix: 'v1/',
+  enabled: true,
+  condition: Object.freeze({ type: 'Indefinite' }),
+});
 
 const SHA256_PATTERN = /^sha256:([0-9a-f]{64})$/;
 const CONTENT_TYPE_EXTENSION = Object.freeze({
