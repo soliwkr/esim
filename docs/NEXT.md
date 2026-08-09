@@ -1,8 +1,8 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **8 agosto 2026**.
+Ultimo aggiornamento: **9 agosto 2026**.
 
-## Gate corrente — controlled evidence ingest
+## Gate corrente — durable evidence artifact provenance
 
 La catena source identity, importer locale e schema remoto è chiusa.
 
@@ -16,6 +16,8 @@ run 31205724615  production source onboarding 9/9
 PR #124  idempotent evidence importer local/fixture
 PR #125  explicit remote 0021 migration gate
 run 31260773468  remote 0021 apply + schema verification
+PR #126  remote 0021 canonical closeout
+CI #660  post-merge main green
 ```
 
 Production state:
@@ -30,36 +32,90 @@ remote migration:    0021
 upstream tables:     4/4
 indexes:             7/7
 triggers:            9/9
+upstream evidence:   not ingested
 ```
 
-Nessun evidence pack è stato ancora importato nel D1 remoto.
+## Blocker scoperto prima del controlled ingest
 
-Documenti risultato:
+`evidence_snapshots.artifact_ref` deve puntare a raw bytes persistenti e verificabili. Il mapping #108 aveva lasciato deliberatamente aperta la scelta dello storage.
+
+I bundle originali Italy/Europe #106/#107 erano inoltre locali e ignorati da Git. Non risultano presenti nel repository o negli artifact delle CI storiche.
+
+Recovery read-only tentato il 9 agosto 2026:
 
 ```text
-docs/research/EVIDENCE-SOURCE-REGISTRY-REMOTE-ONBOARDING-RESULT-2026-08-07.md
-docs/research/EVIDENCE-PACK-IMPORTER-LOCAL-RESULT-2026-08-08.md
-docs/research/EVIDENCE-REMOTE-0021-RESULT-2026-08-08.md
+run: 31313829528
+Italy capture: fail-closed
+reason: ubigi-italy-plan HTTP 403
+complete pack artifact: none
+remote D1 mutation: none
 ```
 
-## Controlled ingest — prossimo gate separato
+Non ricostruire i pack dalla documentazione e non usare diagnostici parziali come raw evidence.
 
-Richiede nuova autorizzazione esplicita.
+## Artifact storage foundation — gate corrente
 
-Sequenza:
+Decisione:
 
 ```text
-read-only remote preflight
+private Cloudflare R2
++ SHA-256 content-addressed keys
++ create-only conditional writes
++ no overwrite/delete nel percorso operativo
+```
+
+Contratto:
+
+```text
+raw:  v1/raw/sha256/<prefix>/<digest>.<extension>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
+```
+
+R2 non viene dichiarato WORM/Object Lock; l'immutabilità è applicativa/content-addressed.
+
+Documento:
+
+```text
+docs/research/EVIDENCE-ARTIFACT-STORAGE.md
+research/evidence/artifact-storage-policy.json
+```
+
+### Prossimi passi immediati
+
+```text
+artifact storage contract CI
+→ merge design gate
+→ explicit remote R2 provisioning authorization
+→ provision private evidence bucket/config
+→ verify create-only upload/read/checksum path
+→ recover original bundle OR approve replacement captures
+```
+
+Il provisioning R2 è una mutation infrastrutturale separata e non è autorizzato dalla branch di design.
+
+## Controlled ingest — gate successivo, ancora bloccato
+
+Il controlled ingest è già definito ma non può essere eseguito finché non esistono artifact raw approvati e persistenti.
+
+Sequenza futura:
+
+```text
+read-only remote D1 preflight
 → source resolution 9/9
-→ verify approved Italy/Europe artifacts
+→ exact approved Italy/Europe pack verification
+→ stage exact pack + raw bytes in R2
+→ verify every artifact_ref/hash
 → idempotency/drift preflight
-→ bounded remote ingest
+→ atomic bounded D1 batch
 → deterministic post-ingest audit
 ```
 
+Cloudflare D1 batch è il percorso previsto per l'atomicità multi-statement; non usare `BEGIN TRANSACTION` remoto, già incompatibile con il percorso Wrangler sperimentato.
+
 Scope:
 
-- soltanto i pack Italy e Europe già approvati;
+- una coppia Italy/Europe esplicitamente approvata;
 - write soltanto in `evidence_capture_runs`, `evidence_snapshots`, `evidence_field_observations`, `evidence_claim_candidates`;
 - nessuna source auto-registration;
 - nessun metadata overwrite;
@@ -67,20 +123,22 @@ Scope:
 - nessun `plans` write;
 - nessun ranking o provider winner;
 - nessuna pubblicazione, canonical cutover, affiliate activation o deploy;
-- rerun soltanto se semanticamente exact e a zero insert.
+- rerun soltanto exact/idempotent.
 
-### Stop conditions
+### Stop conditions ingest
 
-Fermarsi prima delle write se:
+Fermarsi prima delle write D1 se:
 
+- artifact storage non è persistente/risolvibile;
+- pack/raw bytes non sono disponibili integralmente;
+- pack identity non è esplicitamente approvata;
 - source resolution non è 9/9;
 - artifact hash o candidate content-address non coincidono;
-- il target contiene uno stato parziale o una chiave esistente driftata;
-- i pack differiscono da quelli approvati;
+- il target contiene stato parziale o chiave driftata;
 - esistono righe upstream inattese;
 - lo scope richiede una mutation fuori dalle quattro tabelle upstream.
 
-Dopo le write verificare:
+I conteggi fixture attesi sono:
 
 ```text
 2 capture runs
@@ -89,7 +147,7 @@ Dopo le write verificare:
 8 pending candidates
 ```
 
-I numeri sono attesi dal fixture gate, ma devono essere confermati dai pack reali e non assunti.
+ma il gate production deve confermarli dai pack reali, non assumerli.
 
 ## Gate successivo — verification provenance bridge
 
@@ -150,10 +208,18 @@ local/fixture importer ✅
 remote 0021 ✅
 ```
 
+Corrente:
+
+```text
+durable artifact provenance
+```
+
 Restante:
 
 ```text
-controlled evidence ingest
+R2 provenance gate
+→ approved raw pack availability
+→ controlled evidence ingest
 → verification provenance
 → bounded verified commercial facts
 → materialize First Money UI
@@ -162,8 +228,6 @@ controlled evidence ingest
 → explicit production deploy
 → first real affiliate click
 ```
-
-Il progetto è nella corsia finale, ma il click affiliate non è ancora sbloccato.
 
 ## First affiliate activation gate
 
@@ -202,7 +266,10 @@ Canonical cutover, affiliate activation e deploy restano gate distinti.
 
 ## Freeze
 
-- niente controlled ingest remoto senza nuova autorizzazione esplicita;
+- niente R2 provisioning remoto senza autorizzazione esplicita;
+- niente controlled ingest con artifact effimeri/non risolvibili;
+- niente ricostruzione dei pack storici da documentazione;
+- niente replacement capture approvata implicitamente;
 - niente claim verification automatica;
 - niente source auto-registration;
 - niente metadata overwrite automatico;
