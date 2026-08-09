@@ -1,0 +1,96 @@
+name: Evidence Pack Recovery Capture
+
+on:
+  push:
+    branches:
+      - ops/evidence-pack-recovery-capture
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Capture Italy approved-scenario replacement candidate
+        run: node scripts/run-italy-comparison-evidence-pack.mjs --out research/evidence/recovery/italy
+
+      - name: Capture Europe approved-scenario replacement candidate
+        run: node scripts/europe-regional-evidence-pack.mjs --out research/evidence/recovery/europe
+
+      - name: Verify historical semantic continuity and write summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node --input-type=module <<'NODE'
+          import { readdir, readFile, writeFile } from 'node:fs/promises';
+          import path from 'node:path';
+
+          const expected = {
+            italy: {
+              root: 'research/evidence/recovery/italy',
+              scenarioId: 'italy-10d-high-data-hotspot',
+              semanticFingerprint: 'sha256:ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8',
+            },
+            europe: {
+              root: 'research/evidence/recovery/europe',
+              scenarioId: 'europe-14d-multicountry-high-data-hotspot',
+              semanticFingerprint: 'sha256:efb5924eee13f0c2f2a17381cf823c7e78873ab53925842949525982e96dbb89',
+            },
+          };
+
+          const results = {};
+          for (const [name, spec] of Object.entries(expected)) {
+            const dirs = (await readdir(spec.root, { withFileTypes: true }))
+              .filter((entry) => entry.isDirectory())
+              .map((entry) => entry.name);
+            if (dirs.length !== 1) throw new Error(`${name}: expected exactly one artifact directory, found ${dirs.length}`);
+            const artifactDirectory = path.join(spec.root, dirs[0]);
+            const packPath = path.join(artifactDirectory, 'pack.json');
+            const pack = JSON.parse(await readFile(packPath, 'utf8'));
+            if (pack.scenario?.id !== spec.scenarioId) throw new Error(`${name}: scenario mismatch`);
+            if (pack.semanticFingerprint !== spec.semanticFingerprint) {
+              throw new Error(`${name}: historical semantic fingerprint drift: ${pack.semanticFingerprint}`);
+            }
+            if (!Array.isArray(pack.sources) || pack.sources.length !== 6) throw new Error(`${name}: expected six sources`);
+            if (pack.ranking?.status !== 'not_computed') throw new Error(`${name}: ranking must remain not_computed`);
+            results[name] = {
+              scenarioId: pack.scenario.id,
+              packId: pack.packId,
+              semanticFingerprint: pack.semanticFingerprint,
+              historicalSemanticMatch: true,
+              sourceCount: pack.sources.length,
+              captureWindowMs: pack.captureWindowMs,
+              artifactDirectory,
+              packPath,
+            };
+          }
+
+          await writeFile(
+            'artifacts/evidence-pack-recovery-summary.json',
+            `${JSON.stringify({ schemaVersion: 1, capturedAt: new Date().toISOString(), results }, null, 2)}\n`,
+            'utf8',
+          );
+          console.log(JSON.stringify(results, null, 2));
+          NODE
+
+      - name: Upload immutable recovery candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-pack-recovery-candidates
+          path: |
+            research/evidence/recovery/
+            artifacts/evidence-pack-recovery-summary.json
+          if-no-files-found: error
+          retention-days: 30
