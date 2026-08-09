@@ -60,12 +60,24 @@ assert.throws(
   /artifact_body_sha256_invalid/,
 );
 assert.throws(
+  () => storage.rawEvidenceArtifactDescriptor({ bodySha256, byteLength: 0, contentType: 'text/html' }),
+  /artifact_raw_byte_length_invalid/,
+);
+assert.throws(
+  () => storage.rawEvidenceArtifactDescriptor({ bodySha256, contentType: 'text/html' }),
+  /artifact_raw_byte_length_invalid/,
+);
+assert.throws(
   () => storage.rawEvidenceArtifactDescriptor({ bodySha256, byteLength: body.length, contentType: 'text/plain' }),
   /artifact_content_type_unsupported/,
 );
 assert.throws(
   () => storage.verifyArtifactBytes(Buffer.from('tampered'), raw),
   /artifact_integrity_mismatch/,
+);
+assert.throws(
+  () => storage.verifyArtifactBytes(body, { ...raw, byteLength: 0 }),
+  /artifact_byte_length_invalid/,
 );
 assert.throws(
   () => storage.evidenceArtifactRef('../escape'),
