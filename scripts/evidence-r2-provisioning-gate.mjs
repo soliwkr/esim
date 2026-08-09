@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const API_BASE = 'https://api.cloudflare.com/client/v4';
 const DEFAULT_POLICY_PATH = 'research/evidence/r2-provisioning-policy.json';
@@ -78,6 +79,7 @@ async function parseResponse(response) {
 }
 
 export async function cloudflareRequest(fetchImpl, { accountId, apiToken, method = 'GET', suffix = '', body, headers = {}, allowStatus = [] }) {
+  if (typeof fetchImpl !== 'function') throw new Error('cloudflare_fetch_invalid');
   const response = await fetchImpl(endpoint(accountId, suffix), {
     method,
     headers: {
@@ -260,7 +262,7 @@ export async function preflightR2Provisioning(options) {
   };
 }
 
-async function createBucket({ fetchImpl, accountId, apiToken, policy }) {
+async function createBucket({ fetchImpl = fetch, accountId, apiToken, policy }) {
   return cloudflareRequest(fetchImpl, {
     accountId,
     apiToken,
@@ -274,7 +276,7 @@ async function createBucket({ fetchImpl, accountId, apiToken, policy }) {
   });
 }
 
-async function setBucketLock({ fetchImpl, accountId, apiToken, policy }) {
+async function setBucketLock({ fetchImpl = fetch, accountId, apiToken, policy }) {
   return cloudflareRequest(fetchImpl, {
     accountId,
     apiToken,
@@ -366,9 +368,13 @@ async function main() {
       : await verifyR2Provisioning(options);
   await writeResult(outputPath, result);
   console.log(JSON.stringify(result, null, 2));
+  if (mode === 'preflight' && result.status === 'blocked_existing_state') {
+    throw new Error(`r2_preflight_blocked:${result.issues.join(',')}`);
+  }
 }
 
-const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+const invokedAsScript = process.argv[1]
+  && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (invokedAsScript) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
