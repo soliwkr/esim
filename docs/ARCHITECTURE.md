@@ -1,12 +1,23 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **6 agosto 2026**.
+Data di riferimento: **9 agosto 2026**.
 
-## Scopo
+Questo documento descrive l'architettura corrente di `soliwkr/esim`. Lo storico dettagliato delle fasi e delle decisioni resta nel versionamento Git e in `docs/DECISIONS.md`.
 
-Senza Roaming è un execution project autonomo per contenuti eSIM. Raccoglie domanda, conserva fonti e claim, governa il ciclo editoriale e serve pagine pubbliche. Non è il sistema operativo generale dello studio.
+## Principi
 
-## Architettura applicativa
+- Astro è il frontend pubblico principale.
+- React è confinato alle interfacce realmente interattive della Control Room.
+- Il browser non accede direttamente a D1.
+- Il custom Cloudflare Worker resta l'unico entrypoint applicativo production.
+- Cloudflare Access protegge la Control Room privata.
+- Brief, claim, verification, readiness, draft, materializzazione e pubblicazione restano gate distinti.
+- L'AI non pubblica autonomamente.
+- Evidence, verità verificata e copy pubblico sono layer distinti.
+- Ogni mutation production è esplicita, auditabile e separata dal deploy frontend.
+- I raw evidence artifact production devono essere persistenti, risolvibili e protetti dal contratto di retention canonico.
+
+## Topologia runtime
 
 ```text
 Utente / crawler
@@ -15,167 +26,47 @@ Utente / crawler
 Cloudflare Assets + custom Worker
       ├── /_astro/* → asset statici
       └── /*         → Worker
-                         ├── route policy active/current/target
+                         ├── public route policy
                          ├── Astro handler
-                         ├── backend legacy
+                         ├── backend legacy / execution plane
                          ├── Cloudflare Access
-                         ├── API e redirect provider
+                         ├── API e /go/*
                          ├── D1
-                         ├── Workflows e Container
+                         ├── Workflows + Container
                          └── AI Gateway → Vertex AI
+
+Truth Engine
+      │
+      ├── source_registry → D1
+      ├── raw evidence    → private R2
+      └── evidence state  → D1 upstream tables
 ```
 
-Il deploy usa un solo Worker. La migrazione del frontend non duplica D1, Workflow, Container, AI o gate editoriali.
+Il deploy usa un solo Worker. Frontend, API, D1, Workflow, Container e AI non vengono duplicati per la migrazione Astro.
 
-## Responsabilità
+## Frontend pubblico
 
 ### Astro
 
+Responsabilità:
+
 - HTML pubblico content-first;
-- homepage, listing, trust pages e articoli;
+- homepage, hub, trust pages e articoli;
 - metadata, Open Graph e JSON-LD;
-- sitemap, robots e 404 pubblica nel target;
+- sitemap, robots e 404;
 - shell della Control Room;
-- nessun JavaScript applicativo pubblico generale; eccezioni deliberate sono JSON-LD inerte, embed CMP e bootstrap measurement consent-gated;
-- React soltanto nell’isola privata realmente interattiva.
+- progressive enhancement;
+- CMP e measurement consent-gated sulle sole route canoniche pertinenti.
 
-### React island
+Il sito pubblico non è una SPA generale.
 
-- snapshot e risorse private validate;
-- loading, error, retry e guasti parziali;
-- tabelle, filtri, form e dialog;
-- mutation soltanto nelle fasi autorizzate.
+### React
 
-### Backend ed execution plane
+React è usato per la Control Room e altre eventuali superfici future soltanto quando l'interazione lo richiede realmente.
 
-- D1 e migrazioni;
-- claim, fonti e verifiche;
-- Page Readiness ed evidence bundle;
-- draft e stati editoriali;
-- queue, Workflow, Container e AI;
-- API protette;
-- redirect provider;
-- publication guardrails.
+Non è owner di D1, publication policy o evidence truth.
 
-Il browser non accede direttamente a D1.
-
-## Evidence supply chain
-
-Il layer upstream della verità commerciale è separato dai gate editoriali già esistenti.
-
-Contratto già verificato live:
-
-```text
-SOURCE
-→ immutable EVIDENCE SNAPSHOT
-→ deterministic field extraction
-→ NORMALIZED DATUM
-→ PENDING CLAIM CANDIDATE
-→ claim verification / conflict / freshness
-→ evidence bundle
-→ Page Readiness
-→ draft grounded
-→ eventuale publication gate umano
-```
-
-PR #104 ha provato snapshot immutabile e raw-vs-semantic drift su una source Ubigi reale. PR #106 e #107 hanno generalizzato il contratto a pack multi-provider locale e regionale, con due capture consecutive per pack e `Provider semantic changes: 0`.
-
-### Upstream D1 evidence — ADR-039 / PR #108
-
-PR #108 ha definito e fatto accettare il mapping canonico, senza materializzarlo ancora nel database:
-
-```text
-source_registry
-      ↓
-evidence_capture_runs
-      ↓
-evidence_snapshots
-      ↓
-evidence_field_observations
-      ↓
-evidence_claim_candidates
-      ↓
-verification gate separato
-      ↓
-claim_verifications
-      ↓
-editorial evidence bundle / readiness / draft
-```
-
-**Stato:** design accettato e mergiato con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`), CI main #587 `success`; non ancora materializzato. Il D1 remoto resta a `0020`.
-
-Confini della decisione:
-
-- `source_registry` resta l'unico registro canonico delle fonti;
-- ogni future snapshot D1 richiede una source reconciliation univoca prima dell'import;
-- l'importer non auto-registra URL e non usa la provider root come fallback;
-- `evidence_capture_runs` conserva scenario bounded, same capture window, pack identity e semantic fingerprint;
-- `evidence_snapshots` conserva requested/final URL, redirect chain, capture context, raw hash e artifact reference;
-- `evidence_field_observations` conserva raw/normalized datum, locator, scope, extractor identity e `coverage_state`;
-- `coverage_state` è first-class: `observed`, `partial`, `unknown`, `not_applicable`;
-- `unknown` non equivale a `false`, `0` o lista vuota;
-- `partial` può sostenere soltanto il sotto-fatto realmente provato e deve preservare qualifier/completeness;
-- `evidence_claim_candidates` resta separata da `editorial_claim_candidates`, che è brief-scoped;
-- una evidence candidate nasce upstream e non è un `claim_verification`;
-- `claim_verifications` resta il current verified factual state downstream;
-- extraction confidence non equivale a verità commerciale;
-- locale, destination e currency context non vengono inferiti l'uno dall'altro;
-- price upstream conserva amount + source currency; `price_eur` non viene valorizzato implicitamente;
-- hotspot allowed e share limit/period restano separati;
-- network/operator statement, radio technology e observed performance restano concetti distinti;
-- network regionale country-scoped non viene appiattito;
-- URL, raw hash e prezzo non sono identità del piano;
-- `plan_type=local` non viene dedotto automaticamente dal solo `destination_coverage.scope=local`;
-- conflict ufficiali restano separati per product type, scenario, canale ed effective date;
-- performance e routing/VPN richiedono un protocollo osservativo appropriato;
-- demand source, monitor e partner API non vengono promossi automaticamente a factual source indipendente.
-
-### `plans` v1 boundary
-
-`plans` v1 non è un ingest target del nuovo evidence layer.
-
-Il contratto attuale è single-destination e richiede `price_eur`; usarlo direttamente perderebbe informazioni osservate nei pack regionali e source-native.
-
-Qualsiasi commercial materialization o `plans-v2` resta una fase separata dopo evidence storage e verification bridge.
-
-### Verification provenance boundary
-
-Prima di automatizzare candidate → `claim_verifications`, una fase separata deve definire una relazione auditabile e append-only/revisioned:
-
-```text
-verification decision/revision
-↔ evidence candidate(s)
-↔ supports | contradicts
-```
-
-Una verification `verified` non può promuovere un sotto-fatto partial a completezza non provata.
-
-### Implementation boundary
-
-La prima slice implementativa successiva al design accettato è soltanto schema upstream local-only:
-
-```text
-evidence_capture_runs
-evidence_snapshots
-evidence_field_observations
-evidence_claim_candidates
-
-+ CHECK/FK/index
-+ immutability smoke
-+ local migrated-fixture validation
-```
-
-Non include source onboarding, importer, runtime ingest, remote migration, claim verification mutation, scheduler, ranking, publication o deploy.
-
-Documenti di dettaglio:
-
-```text
-docs/research/EVIDENCE-D1-SCHEMA-MAPPING.md
-docs/research/EVIDENCE-SOURCE-RECONCILIATION.md
-docs/research/evidence-d1-field-mapping.csv
-```
-
-## Entrypoint e routing
+## Entrypoint e route ownership
 
 Entrypoint reale:
 
@@ -189,7 +80,7 @@ Composizione:
 createPublicWorker(activePublicRouteDecision)
 ```
 
-Cloudflare Assets nella branch M5.7:
+Assets:
 
 ```json
 {
@@ -197,134 +88,43 @@ Cloudflare Assets nella branch M5.7:
 }
 ```
 
-Conseguenze:
-
-- ogni route dinamica raggiunge il custom Worker;
-- gli asset compilati Astro restano asset-first;
-- il Worker decide Astro o backend tramite la route policy;
-- non esistono flag, header o query string capaci di cambiare renderer.
-
-## Matrici di ownership
-
-### Current matrix storica e rollback
+### Astro-owned
 
 ```text
-Astro:
-  /astro-foundation*
-  /control-room-foundation*
-
-Backend:
-  route canoniche
-  /sitemap.xml
-  /robots.txt
-  /go/*
-  /api/*
-  legacy Control Room
-  asset tecnici e 404
+/
+/destinazioni
+/guide
+/confronti
+/metodo
+/trasparenza
+/privacy
+/{slug-published}
+/sitemap.xml
+/robots.txt
+404 pubblica
+/astro-foundation*
+/control-room-foundation* shell
 ```
 
-Funzione:
-
-```ts
-currentPublicRouteDecision(pathname)
-```
-
-### Target matrix M5.7
+### Backend / execution-plane owned
 
 ```text
-Astro:
-  /
-  /destinazioni
-  /guide
-  /confronti
-  /metodo
-  /trasparenza
-  /privacy
-  /{slug-published}
-  /sitemap.xml
-  /robots.txt
-  404 pubblica
-  /astro-foundation*
-  /control-room-foundation*
-
-Backend:
-  /api/*
-  /go/*
-  /control-room
-  /control-room.js
-  /favicon.svg
-  /_astro/* come asset diretto
-  /astro/* tecniche
-  execution plane
+/api/*
+/go/*
+/control-room legacy fallback
+asset tecnici backend
+D1
+Workflows
+Container
+AI Gateway
+publication capability
 ```
 
-Funzione:
+API e `/go/*` prevalgono sempre sul catch-all pubblico.
 
-```ts
-targetPublicRouteDecision(pathname)
-```
+## Preview e canonical
 
-### Cutover M5.7 storico — PR #81
-
-```ts
-export const activePublicRouteDecision = targetPublicRouteDecision;
-```
-
-Lo stato è stato verificato dalla CI applicativa #397, poi mergiato e certificato live con PR #82. La matrice target è l'owner corrente dell'apice.
-
-### Rollback
-
-```ts
-export const activePublicRouteDecision = currentPublicRouteDecision;
-```
-
-Il rollback è versionato e richiede nuovo deploy. Non è una scorciatoia runtime.
-
-## Classificazione delle route
-
-`src/public-route-policy.ts` distingue:
-
-```text
-preview
-control-room-foundation
-api
-provider-redirect
-legacy-control-room
-canonical-static
-canonical-article
-seo-endpoint
-technical-asset
-public-404
-```
-
-Regole di sicurezza:
-
-- namespace preview e Control Room mantengono semantica di prefisso stretta;
-- doppi slash iniziali non acquisiscono ownership privilegiata;
-- slug articoli sono single-segment, lowercase e validati;
-- route riservate non diventano articoli;
-- file probe e path tecnici falliscono chiusi;
-- `/api/*` e `/go/*` prevalgono sul catch-all pubblico.
-
-## Read model pubblico
-
-D1 viene letto soltanto server-side.
-
-Contratti:
-
-- righe `pages.status='published'` soltanto;
-- ordine e limiti deterministici;
-- validazione runtime;
-- 404 per assente, `review`, `draft` e archived;
-- fail-closed per righe published invalide;
-- related links published-only;
-- nessun dato operativo interno esposto.
-
-La pagina remota `esim-cina-senza-vpn` è `review` e deve quindi restare 404 anche dopo M5.7.
-
-## Render mode condiviso
-
-Componenti pubblici condivisi:
+Renderer condiviso:
 
 ```text
 preview | canonical
@@ -333,211 +133,397 @@ preview | canonical
 ### Preview
 
 ```text
-namespace /astro-foundation*
-robots noindex,nofollow
-cache no-store
-canonical self-referencing namespaced
-banner di isolamento
-link namespaced
+/astro-foundation*
+robots: noindex,nofollow
+cache: no-store
+canonical namespaced
+nessuna CMP/GTM/GA4
+nessuna publication mutation
 ```
 
 ### Canonical
 
 ```text
 route apex
-robots index,follow,max-image-preview:large
-cache public,max-age=300
+robots: index,follow quando eleggibile
+cache pubblica breve
 canonical apex
-link apex
-nessun banner preview
+CMP reale
+measurement inerte fino al consenso previsto
 ```
 
-La modalità di rendering non cambia la publication eligibility e non può esporre righe non published.
-
-## Contratti SEO
-
-### Metadata e schema
-
-```text
-src/public-seo.ts
-```
-
-Produce:
-
-- title e description;
-- Open Graph;
-- `WebSite`;
-- `Article`;
-- `FAQPage` quando presente;
-- serializer JSON-LD sicuro contro terminazione dello script.
-
-### Sitemap e robots
-
-```text
-src/public-seo-endpoints.ts
-```
-
-Contratti:
-
-- route statiche dalla policy;
-- articoli published-only;
-- ordine deterministico;
-- `lastmod` normalizzato;
-- escaping XML;
-- GET, HEAD, query string e trailing slash;
-- fail-closed senza XML parziale;
-- `/go/*`, API, Control Room, preview e 404 esclusi dalla sitemap.
+Entrambe leggono soltanto contenuto pubblicabile secondo i gate correnti. `review`, `draft`, archived e slug invalidi restano nascosti.
 
 ## Control Room privata
 
 ```text
 browser autenticato
 → Cloudflare Access
-→ validazione JWT nell’origine
+→ validazione JWT nell'origine
 → Astro shell
 → React island
 → route server-side
 → D1
 ```
 
-Nessun maintenance token vive nel browser. Ogni mutation autorizzata deriva l’attore dal JWT e usa state machine e audit D1.
+Invarianti:
 
-Route private attuali:
+- noindex;
+- no-store;
+- nessun maintenance token nel browser;
+- attore delle mutation derivato dall'identità verificata;
+- state machine D1;
+- audit append-only;
+- legacy privata mantenuta soltanto come fallback finché necessario.
 
-```text
-/control-room-foundation/api/snapshot
-/control-room-foundation/api/draft-detail
-/control-room-foundation/api/brief-decision
-/control-room-foundation/api/catalog-pilot-audit
-```
+## Backend ed execution plane
 
-Tutte applicano no-store, noindex e nosniff.
+Responsabilità:
 
-## Catalogo pilot
+- D1 e migration;
+- source registry;
+- evidence upstream state;
+- claim e verifiche;
+- Page Readiness ed evidence bundle;
+- draft e stati editoriali;
+- queue, Workflow, Container e AI;
+- API protette;
+- redirect provider;
+- publication guardrails.
 
-```text
-candidate
-≠ release candidate
-≠ published page
-```
+Il browser non legge o muta direttamente D1.
 
-Pipeline read-only:
+## Evidence Truth Engine
 
-```text
-D1
-→ loadPublicCatalogPilotSnapshot
-→ auditPublicCatalogPilot
-→ selected/excluded report
-→ create/validate manifest
-```
-
-Manifest:
+### Supply chain canonica
 
 ```text
-data/public-catalog-pilot.json
+official source
+→ source_registry identity
+→ raw immutable evidence artifact
+→ evidence_capture_runs
+→ evidence_snapshots
+→ evidence_field_observations
+→ pending evidence_claim_candidates
+→ verification / contradiction / expiry
+→ claim_verifications
+→ evidence bundle
+→ Page Readiness
+→ grounded materialization
+→ publication gate separato
 ```
 
-Stato verificato:
+Un evidence candidate non equivale a un claim verificato.
 
-```json
-{
-  "schemaVersion": 1,
-  "generatedAt": null,
-  "entries": []
-}
-```
+`unknown` non equivale a `false`, `0` o lista vuota. `partial` sostiene soltanto il sotto-fatto realmente provato.
 
-Audit remoto live:
+### Source registry
+
+Production state verificato:
 
 ```text
-candidateCount: 1
-eligibleCount: 0
-selectedCount: 0
-excludedCount: 1
+rows:       15
+identities: 9
+resolved:   9/9
+missing:    0
+ambiguous:  0
 ```
 
-Il manifest vuoto non modifica routing o runtime e non blocca il cutover visuale.
+L'importer non auto-registra fonti, non usa provider-root fallback e non remappa redirect implicitamente.
 
-## Publication boundary
+### Upstream D1
 
-M5.7 non introduce:
+Migration production corrente:
 
-- mutation D1;
-- endpoint o pulsante publish;
-- transizione `review → published`;
-- allentamento dei gate;
-- analytics;
-- affiliazioni;
-- sitemap submission;
-- rimozione del renderer legacy.
+```text
+0021_evidence_upstream_storage.sql
+```
 
-La pubblicazione richiede branch separata, identità verificata, conferma, state machine, audit append-only, idempotenza, freshness recheck e rollback.
+Tabelle:
 
-## Verifica M5.7
+```text
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
+evidence_claim_candidates
+```
 
-La CI applicativa #397 prova il Worker compilato di produzione con matrice target attiva:
+Remote `0021` è stata applicata e verificata l'8 agosto 2026.
 
-- canonical homepage, listing, trust e articoli;
-- metadata e JSON-LD;
-- sitemap e robots;
-- 404, file probe, review e draft hidden;
-- API health e maintenance;
-- provider redirect;
-- preview;
-- Control Room e audit privato;
-- asset Astro;
-- desktop, mobile, tastiera e overflow;
-- tutte le suite private.
+Schema verificato:
 
-## Boundary del deploy production
+```text
+21 migration
+4 tabelle upstream
+7 indici
+9 trigger
+```
 
-Il contratto canonico attivo è:
+Il controlled evidence ingest production **non è ancora stato eseguito**.
+
+### Importer boundary
+
+L'importer local/fixture è idempotente e fail-closed.
+
+Contratto:
+
+```text
+approved pack.json + raw artifacts
+→ verify raw/semantic/candidate identity
+→ resolve environment source IDs
+→ deterministic upstream rows
+```
+
+Guardrail:
+
+- source IDs environment-specific, mai hardcodati nei pack;
+- artifact hash e byte length verificati;
+- candidate content-address verificata;
+- existing-key drift blocca;
+- `unknown|not_applicable` restano observation-only;
+- `observed|partial` soltanto possono generare pending candidate;
+- source-native currency preservata;
+- nessun FX implicito;
+- nessun write in `plans` o `claim_verifications`.
+
+## Durable raw evidence storage
+
+### Logical store
+
+```text
+evidence-artifacts
+```
+
+### R2 production target
+
+```text
+senza-roaming-evidence-artifacts
+```
+
+Il bucket reale non è ancora provisionato dal progetto.
+
+### Content addressing
+
+```text
+raw:
+  v1/raw/sha256/<prefix>/<digest>.<extension>
+
+pack:
+  v1/packs/sha256/<prefix>/<digest>.json
+
+artifact_ref:
+  r2://evidence-artifacts/<object-key>
+```
+
+La chiave dipende dai byte, non da provider, URL, prezzo o ambiente.
+
+### Retention contract
+
+Cloudflare R2 usa native Bucket Locks per il namespace evidence.
+
+Regola canonica:
+
+```text
+id:        evidence-v1-indefinite
+prefix:    v1/
+enabled:   true
+condition: Indefinite
+```
+
+Production richiede inoltre:
+
+```text
+r2.dev: disabled
+custom domains: 0
+storage class: Standard
+jurisdiction: default
+no lifecycle delete overlapping v1/
+```
+
+Il progetto non dichiara legal hold o WORM irrevocabile: un amministratore Cloudflare con privilegi sufficienti può modificare la configurazione della Bucket Lock.
+
+### Provisioning boundary
+
+Il provisioning R2 è una mutation infrastrutturale separata.
+
+Workflow canonico preparato:
+
+```text
+.github/workflows/evidence-r2-provisioning.yml
+```
+
+Contratto:
+
+```text
+workflow_dispatch only
++ exact main SHA
++ confirmation PROVISION_EVIDENCE_R2
+```
+
+Preflight:
+
+```text
+bucket absent
+→ create path eligible
+
+bucket exact-compatible
+→ verified no-op
+
+bucket existing but drifted
+→ stop read-only
+```
+
+Il create path ammesso è soltanto:
+
+```text
+POST bucket
+→ read-only verify private/default/Standard/no domains/no delete lifecycle
+→ PUT exact Bucket Lock
+→ read-only final verify
+```
+
+Il provisioning gate non carica artifact, non muta D1 e non fa deploy.
+
+## Historical pack recovery boundary
+
+I bundle raw originari dei pack Italy/Europe #106/#107 non erano versionati e non risultano recuperabili dagli artifact CI storici.
+
+Recovery read-only del 9 agosto 2026:
+
+```text
+run 31313829528
+Ubigi Italy: HTTP 403
+complete pack: non creato
+remote mutation: nessuna
+```
+
+Non è consentito ricostruire raw evidence dalla documentazione o promuovere automaticamente una replacement capture soltanto perché conserva lo stesso semantic fingerprint.
+
+Prima del controlled ingest serve:
+
+```text
+original approved bundle recovery
+OR
+new complete capture
+→ raw review
+→ semantic comparison
+→ explicit replacement approval
+```
+
+## Verification provenance boundary
+
+Prima di automatizzare:
+
+```text
+evidence_claim_candidates
+→ claim_verifications
+```
+
+serve un bridge auditabile e revisioned/append-only che distingua:
+
+```text
+supports
+contradicts
+supersedes/expires
+```
+
+Una verification non può trasformare un partial in un fatto completo.
+
+## `plans` boundary
+
+`plans` v1 non è ingest target dell'evidence layer.
+
+Il modello attuale è troppo loss-prone per pack regionali/source-native perché è single-destination e ha assunzioni commerciali non adatte al raw evidence layer.
+
+Un eventuale redesign `plans` resta separato da evidence storage e verification.
+
+## Consent e measurement
+
+Production usa iubenda + Consent Mode Basic.
+
+Default:
+
+```text
+analytics_storage = denied
+ad_storage = denied
+ad_user_data = denied
+ad_personalization = denied
+```
+
+GTM/GA4 restano completamente bloccati prima del consenso Misurazione previsto dal contratto M6.
+
+Preview, Control Room, API, `/go/*`, sitemap, robots e 404 non ricevono il bootstrap analytics pubblico.
+
+Ads e affiliate tracking restano disabilitati.
+
+## Production deploy boundary
+
+Deploy canonico:
 
 ```text
 workflow_dispatch
 → npm ci
-→ preflight M6 + AFFILIATE_MODE=disabled
+→ production preflight
 → npm run deploy
 → build Astro
-→ preparazione CMP e measurement dal contesto Actions
-→ risoluzione read-only del binding D1 compilato
+→ CMP/measurement config
+→ read-only D1 binding resolution
 → wrangler deploy
-→ smoke live
+→ live smoke
 ```
 
-Il workflow production non crea D1 e non applica migration remote. La risoluzione del binding usa soltanto `d1 list`; l'UUID non viene stampato né versionato. Le migration remote, quando esplicitamente autorizzate, restano una procedura separata dal deploy.
+Il deploy frontend:
 
-Il post-deploy verifica le cinque route M7, preview con `noindex`/`no-store`, sitemap, robots, published-only, CMP, bootstrap measurement inerte fino al consenso e Control Room foundation protetta. La legacy `/control-room` resta verificata separatamente come fallback operativo v3.
+- non crea D1;
+- non applica migration remote;
+- non provisiona R2;
+- non carica evidence artifact;
+- non esegue controlled ingest;
+- non attiva automaticamente affiliazioni.
 
-La pipeline è stata resa manual-only con PR #99, il contratto Control Room dello smoke è stato corretto con PR #100 e lo stub consent browser con PR #101. Il recovery run `30439227471` sul commit `f2df5cd6ef4bf4784205911e80786f55c28f3dd0` è terminato `success` e non ha eseguito creazione, migration o mutation D1 remote.
+## Publication boundary
 
-La verifica browser reale successiva ha ricertificato:
+La pubblicazione richiede una capacità separata con:
+
+- identità verificata;
+- conferma umana;
+- state machine;
+- audit append-only;
+- freshness recheck;
+- idempotenza;
+- rollback/deindicizzazione;
+- test end-to-end.
+
+Evidence, draft approval e pubblicazione restano distinti.
+
+## Gate operativo corrente
 
 ```text
-pre-consenso: Google requests=0
-rifiuto + reload: Google requests=0
-consenso: GTM-W3LSK9RZ attivato
-reload con consenso: GA4 collect HTTP 204, en=page_view
-revoca + reload: Google requests=0
+R2 provisioning gate CI/merge
+→ explicit remote R2 provisioning authorization
+→ private locked artifact store verification
+→ approved raw Italy/Europe bundle availability
+→ controlled evidence ingest
+→ verification provenance bridge
+→ bounded verified commercial facts
+→ First Money UI materialization
+→ canonical /migliore-esim cutover
+→ affiliate + measurement gate
+→ explicit production deploy
 ```
 
-## Stato verificato
+## Stop conditions
 
-```text
-M5.5 SEO/routing parity:       completata
-M5.6 remote audit:             verificato live
-manifest entries:              0
-M5.7 apex cutover:             verificato live
-M7 five-route slice:           live
-Evidence snapshot #104:        verificato live
-Claims Coverage #105:          chiuso
-Italy evidence pack #106:      merged; two live captures; semantic changes=0
-Europe evidence pack #107:     merged; two live captures; semantic changes=0
-Evidence D1 design #108:       merged; accepted; not materialized
-D1 remote schema:              fino a 0020
-production workflow:           manual-only e verificato end-to-end
-CMP/measurement live:          ripristinati e ricertificati
-AFFILIATE_MODE:                 disabled
-D1 deploy mutations:           nessuna
-publication mutation:          non autorizzata
-```
+Non fare senza gate esplicito:
+
+- provisioning R2 remoto;
+- object upload evidence;
+- controlled D1 ingest;
+- replacement capture approval;
+- automatic claim verification;
+- `review → published`;
+- affiliate activation;
+- production deploy;
+- FX implicito;
+- source auto-registration;
+- provider winner universale.
