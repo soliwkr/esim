@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "provider": "cloudflare_r2",
   "logicalStore": "evidence-artifacts",
   "publicAccess": false,
@@ -12,7 +12,18 @@
   "conditionalCreate": "If-None-Match: *",
   "overwriteAllowed": false,
   "deleteInOperationalPath": false,
-  "objectLockSupported": false,
+  "s3ObjectLockSupported": false,
+  "nativeBucketLockSupported": true,
+  "nativeBucketLockRequired": true,
+  "immutabilityModel": "native_bucket_lock_plus_content_addressing",
+  "bucketLockRule": {
+    "id": "evidence-v1-indefinite",
+    "prefix": "v1/",
+    "enabled": true,
+    "condition": {
+      "type": "Indefinite"
+    }
+  },
   "verificationRule": "artifact bytes must hash to the digest encoded in the object key and D1 metadata before verification use",
   "remoteProvisioningAuthorized": false
 }
