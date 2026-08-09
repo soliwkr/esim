@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **8 agosto 2026**.
+Ultimo aggiornamento: **9 agosto 2026**.
 
 ## Principi non negoziabili
 
@@ -16,6 +16,7 @@ Ultimo aggiornamento: **8 agosto 2026**.
 10. Tracking non essenziale soltanto con il consenso previsto.
 11. GitHub è la memoria canonica.
 12. Domanda SEO e monetizzazione non autorizzano claim senza evidence.
+13. Evidence production non è completa se il raw artifact referenziato non è persistente e risolvibile.
 
 ## M0–M6
 
@@ -29,7 +30,7 @@ Ultimo aggiornamento: **8 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI pronta come preview; Truth Engine pronto al controlled ingest.
+**Stato:** demand intelligence completata; First Money UI pronta come preview; Truth Engine al gate durable artifact provenance prima del controlled ingest.
 
 ### SEO e demand
 
@@ -76,6 +77,8 @@ run 31205724615 production source onboarding 9/9
 #124 idempotent evidence importer local/fixture
 #125 explicit remote 0021 migration gate
 run 31260773468 remote 0021 apply + schema verification
+#126 remote 0021 canonical closeout
+CI #660 post-merge main green
 ```
 
 ### Production source state
@@ -125,18 +128,73 @@ docs/research/EVIDENCE-REMOTE-0021-RESULT-2026-08-08.md
 
 Nessun evidence pack è stato importato nello stesso gate.
 
-### Gate corrente — controlled evidence ingest
+### Gate emerso — durable artifact provenance
+
+Il design #108 richiede che `evidence_snapshots.artifact_ref` sia risolvibile insieme al raw hash, ma non aveva ancora scelto lo storage persistente. I pack #106/#107 erano inoltre artifact locali ignorati da Git.
+
+Decisione:
+
+```text
+private Cloudflare R2
++ content-addressed SHA-256 keys
++ create-only conditional writes
++ no overwrite/delete nel percorso operativo
+```
+
+Forma:
+
+```text
+raw:  r2://evidence-artifacts/v1/raw/sha256/<prefix>/<digest>.<ext>
+pack: r2://evidence-artifacts/v1/packs/sha256/<prefix>/<digest>.json
+```
+
+R2 non viene dichiarato WORM/Object Lock: l'immutabilità è applicativa/content-addressed.
+
+Questa fase è locale/design-only. Bucket, credenziali e oggetti R2 richiedono un gate remoto separato.
+
+Documento:
+
+```text
+docs/research/EVIDENCE-ARTIFACT-STORAGE.md
+```
+
+### Artifact recovery
+
+I bundle originali `pack.json + sources/` Italia/Europa non risultano presenti nel repository o negli artifact CI storici.
+
+Recovery read-only tentato il 9 agosto 2026:
+
+```text
+run 31313829528
+Italy: ubigi-italy-plan HTTP 403
+complete recovery artifact: none
+D1 mutation: none
+```
+
+Il 403 non viene bypassato con scraping alternativo. Un nuovo pack con raw identity differente non è automaticamente approvato anche se il semantic fingerprint storico coincide.
+
+### Gate corrente
+
+```text
+artifact storage contract CI
+→ explicit remote R2 provisioning authorization
+→ private/create-only R2 verification
+→ recover original Italy/Europe bundles OR approve replacement captures
+→ stage exact pack + raw bytes in R2
+```
+
+### Gate successivo — controlled evidence ingest
+
+Solo dopo artifact provenance completa:
 
 ```text
 approved Italy + Europe packs
-→ read-only remote preflight
+→ read-only remote D1 preflight
 → source resolution 9/9
 → artifact/candidate identity verification
-→ bounded idempotent ingest
+→ atomic bounded D1 ingest
 → deterministic post-ingest audit
 ```
-
-Richiede nuova autorizzazione esplicita.
 
 Non deve scrivere `claim_verifications`, `plans` o altre tabelle fuori dalle quattro upstream evidence tables. Nessun ranking, publication, canonical cutover, affiliate activation o deploy.
 
@@ -170,6 +228,7 @@ Percorso:
 source gate 9/9 ✅
 local importer ✅
 remote 0021 ✅
+→ durable artifact provenance
 → controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
@@ -212,6 +271,7 @@ source reconciliation ✅
 → production onboarding 9/9 ✅
 → local importer ✅
 → remote 0021 ✅
+→ durable artifact provenance
 → controlled ingest
 → verification provenance
 → facts per First Money UI
@@ -229,10 +289,13 @@ M4 mutation residue
 
 Non fare adesso:
 
-- controlled ingest senza autorizzazione separata;
+- provisioning R2 remoto senza autorizzazione separata;
+- controlled ingest con artifact effimeri/non risolvibili;
+- ricostruzione dei pack storici da documentazione o diagnostici parziali;
+- replacement capture promossa implicitamente ad approved pack;
 - claim verification automatica;
 - mass pSEO;
-- terzo evidence pack senza blocker strutturale;
+- terzo scenario evidence senza blocker strutturale;
 - ranking/provider winner universale;
 - affiliate activation senza disclosure/evidence/measurement;
 - deploy automatico;
