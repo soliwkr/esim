@@ -4,7 +4,7 @@ import * as storage from './evidence-artifact-storage.mjs';
 
 const policy = JSON.parse(await readFile('research/evidence/artifact-storage-policy.json', 'utf8'));
 
-assert.equal(policy.schemaVersion, 1);
+assert.equal(policy.schemaVersion, 2);
 assert.equal(policy.provider, 'cloudflare_r2');
 assert.equal(policy.logicalStore, storage.EVIDENCE_ARTIFACT_STORE);
 assert.equal(policy.artifactRefScheme, storage.EVIDENCE_ARTIFACT_REF_SCHEME);
@@ -13,7 +13,17 @@ assert.equal(policy.writePolicy, 'create_only_content_addressed');
 assert.equal(policy.conditionalCreate, 'If-None-Match: *');
 assert.equal(policy.overwriteAllowed, false);
 assert.equal(policy.deleteInOperationalPath, false);
-assert.equal(policy.objectLockSupported, false);
+assert.equal(policy.s3ObjectLockSupported, false);
+assert.equal(policy.nativeBucketLockSupported, true);
+assert.equal(policy.nativeBucketLockRequired, true);
+assert.equal(policy.immutabilityModel, 'native_bucket_lock_plus_content_addressing');
+assert.deepEqual(policy.bucketLockRule, storage.EVIDENCE_ARTIFACT_BUCKET_LOCK_RULE);
+assert.deepEqual(storage.EVIDENCE_ARTIFACT_BUCKET_LOCK_RULE, {
+  id: 'evidence-v1-indefinite',
+  prefix: 'v1/',
+  enabled: true,
+  condition: { type: 'Indefinite' },
+});
 assert.equal(policy.remoteProvisioningAuthorized, false);
 
 const body = Buffer.from('<!doctype html><html><body>fixture</body></html>');
