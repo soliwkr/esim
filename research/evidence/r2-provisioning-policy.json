@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "logicalStore": "evidence-artifacts",
+  "bucketName": "senza-roaming-evidence-artifacts",
+  "jurisdiction": "default",
+  "storageClass": "Standard",
+  "managedPublicAccess": false,
+  "customDomainsAllowed": 0,
+  "protectedPrefix": "v1/",
+  "bucketLockRule": {
+    "id": "evidence-v1-indefinite",
+    "prefix": "v1/",
+    "enabled": true,
+    "condition": {
+      "type": "Indefinite"
+    }
+  },
+  "lifecycleDeleteOnProtectedPrefixAllowed": false,
+  "objectUploadInProvisioningGate": false,
+  "remoteProvisioningAuthorized": false,
+  "authorizationConfirmation": "PROVISION_EVIDENCE_R2"
+}
