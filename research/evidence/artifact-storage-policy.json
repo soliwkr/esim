@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "provider": "cloudflare_r2",
+  "logicalStore": "evidence-artifacts",
+  "publicAccess": false,
+  "objectKeyVersion": "v1",
+  "integrityAlgorithm": "sha256",
+  "rawObjectKeyTemplate": "v1/raw/sha256/{prefix}/{digest}.{extension}",
+  "packObjectKeyTemplate": "v1/packs/sha256/{prefix}/{digest}.json",
+  "artifactRefScheme": "r2://evidence-artifacts/",
+  "writePolicy": "create_only_content_addressed",
+  "conditionalCreate": "If-None-Match: *",
+  "overwriteAllowed": false,
+  "deleteInOperationalPath": false,
+  "objectLockSupported": false,
+  "verificationRule": "artifact bytes must hash to the digest encoded in the object key and D1 metadata before verification use",
+  "remoteProvisioningAuthorized": false
+}
