@@ -380,7 +380,7 @@ Regole iniziali:
 
 ## ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
 
-**Stato:** accettata e mergiata con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`); CI main #587 `success`. Non ancora implementata in D1.
+**Stato:** accettata e mergiata con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`); schema upstream implementato con `0021` e applicato/verificato in produzione l’8 agosto 2026; controlled evidence ingest non ancora eseguito.
 
 **Decisione:** materializzare il layer evidence con oggetti upstream dedicati:
 
@@ -413,11 +413,11 @@ Vincoli della decisione:
 - `claim_verifications` resta il current verified state downstream;
 - il bridge fra verification decision e evidence candidate deve avere provenance append-only/revisioned prima di essere automatizzato.
 
-**Conseguenza:** la prima implementation slice può essere soltanto una migration locale/versionata e additiva per le tabelle upstream, con constraint/index/immutability smoke e senza runtime ingest o migration remota. Source onboarding, importer, verification bridge e qualsiasi redesign `plans` restano gate separati.
+**Conseguenza:** la migration upstream `0021` è ora production; source onboarding e importer local/fixture sono chiusi. Controlled ingest, verification bridge e qualsiasi redesign `plans` restano gate separati.
 
-## ADR-040 — Raw evidence artifact in R2 privato e content-addressed
+## ADR-040 — Raw evidence artifact in R2 privato, content-addressed e protetto da Bucket Lock nativo
 
-**Stato:** accettata come fondazione locale; provisioning remoto non ancora autorizzato.
+**Stato:** accettata come fondazione locale; corretta il 9 agosto 2026 prima del provisioning remoto; provisioning remoto non ancora autorizzato.
 
 **Decisione:** `evidence_snapshots.artifact_ref` deve risolvere a raw bytes persistenti in un logical store R2 privato `evidence-artifacts`. Raw source e `pack.json` usano chiavi content-addressed SHA-256; il percorso operativo crea soltanto oggetti assenti con condizione equivalente a `If-None-Match: *`, non sovrascrive e non cancella.
 
@@ -429,8 +429,17 @@ pack: v1/packs/sha256/<prefix>/<digest>.json
 ref:  r2://evidence-artifacts/<object-key>
 ```
 
-R2 non viene dichiarato WORM: Object Lock non è disponibile nel contratto usato. L'immutabilità è applicativa/content-addressed e un attore amministrativo Cloudflare resta capace di alterazioni fuori dal percorso operativo.
+Cloudflare R2 non implementa S3 Object Lock nella API S3-compatible, ma offre Bucket Locks nativi. Il namespace `v1/` deve essere protetto dalla regola provider-enforced canonica:
 
-Prima dell'ingest D1 production i byte devono essere verificati localmente, creati o riconciliati in R2, riletti/HEAD-checkati e soltanto allora trasformati in `artifact_ref` D1. Il browser non accede al bucket e credential/endpoint environment-specific non vengono versionati.
+```text
+id:        evidence-v1-indefinite
+prefix:    v1/
+enabled:   true
+condition: Indefinite
+```
 
-**Conseguenza:** il controlled evidence ingest è preceduto da un gate storage separato. La branch di design non crea bucket, credential, oggetti R2 o righe evidence D1. I pack storici #106/#107 restano inoltre non ingeribili finché i bundle raw originali non vengono recuperati oppure nuove capture vengono approvate esplicitamente come replacement.
+Il gate production richiede inoltre `r2.dev` disabilitato e zero custom domain. L'immutabilità attesa combina content addressing, conditional create, native Bucket Lock e divieto operativo di overwrite/delete. Non viene dichiarata equivalenza con legal hold o WORM irrevocabile: un amministratore Cloudflare autorizzato può modificare la configurazione della lock rule.
+
+Prima dell'ingest D1 production i byte devono essere verificati localmente, la lock rule deve essere verificata remota, gli oggetti devono essere creati o riconciliati in R2, riletti/HEAD-checkati e soltanto allora trasformati in `artifact_ref` D1. Il browser non accede al bucket e credential/endpoint environment-specific non vengono versionati.
+
+**Conseguenza:** il controlled evidence ingest è preceduto da un gate storage separato. La branch di design/correzione non crea bucket, credential, oggetti R2 o righe evidence D1. I pack storici #106/#107 restano inoltre non ingeribili finché i bundle raw originali non vengono recuperati oppure nuove capture vengono approvate esplicitamente come replacement.
