@@ -16,7 +16,7 @@ Ultimo aggiornamento: **9 agosto 2026**.
 10. Tracking non essenziale soltanto con il consenso previsto.
 11. GitHub è la memoria canonica.
 12. Domanda SEO e monetizzazione non autorizzano claim senza evidence.
-13. Evidence production non è completa se il raw artifact referenziato non è persistente e risolvibile.
+13. Evidence production non è completa se il raw artifact referenziato non è persistente, risolvibile e protetto dal contratto di retention previsto.
 
 ## M0–M6
 
@@ -30,7 +30,7 @@ Ultimo aggiornamento: **9 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI pronta come preview; Truth Engine al gate durable artifact provenance prima del controlled ingest.
+**Stato:** demand intelligence completata; First Money UI pronta come preview; Truth Engine al gate durable locked artifact provenance prima del controlled ingest.
 
 ### SEO e demand
 
@@ -79,6 +79,7 @@ run 31205724615 production source onboarding 9/9
 run 31260773468 remote 0021 apply + schema verification
 #126 remote 0021 canonical closeout
 CI #660 post-merge main green
+#127 durable artifact storage foundation
 ```
 
 ### Production source state
@@ -104,7 +105,7 @@ Fail-closed su source resolution, artifact hash, candidate content-address, exis
 
 ### Upstream schema production
 
-Remote D1 è ora allineato a:
+Remote D1 è allineato a:
 
 ```text
 0021_evidence_upstream_storage.sql
@@ -128,16 +129,19 @@ docs/research/EVIDENCE-REMOTE-0021-RESULT-2026-08-08.md
 
 Nessun evidence pack è stato importato nello stesso gate.
 
-### Gate emerso — durable artifact provenance
+### Gate emerso — durable locked artifact provenance
 
 Il design #108 richiede che `evidence_snapshots.artifact_ref` sia risolvibile insieme al raw hash, ma non aveva ancora scelto lo storage persistente. I pack #106/#107 erano inoltre artifact locali ignorati da Git.
 
-Decisione:
+PR #127 ha scelto Cloudflare R2 privato con content addressing. Una verifica successiva della documentazione Cloudflare corrente ha chiarito che, pur non essendo implementato S3 Object Lock nella API S3-compatible, R2 offre **Bucket Locks nativi** che possono impedire overwrite/delete anche indefinitamente.
+
+Contratto corretto:
 
 ```text
 private Cloudflare R2
 + content-addressed SHA-256 keys
 + create-only conditional writes
++ native R2 Bucket Lock Indefinite su v1/
 + no overwrite/delete nel percorso operativo
 ```
 
@@ -148,9 +152,25 @@ raw:  r2://evidence-artifacts/v1/raw/sha256/<prefix>/<digest>.<ext>
 pack: r2://evidence-artifacts/v1/packs/sha256/<prefix>/<digest>.json
 ```
 
-R2 non viene dichiarato WORM/Object Lock: l'immutabilità è applicativa/content-addressed.
+Lock canonica:
 
-Questa fase è locale/design-only. Bucket, credenziali e oggetti R2 richiedono un gate remoto separato.
+```text
+id:        evidence-v1-indefinite
+prefix:    v1/
+enabled:   true
+condition: Indefinite
+```
+
+Il gate production deve inoltre richiedere:
+
+```text
+r2.dev disabled
+zero custom domains
+```
+
+Non viene dichiarata equivalenza con legal hold/WORM irrevocabile: un amministratore Cloudflare autorizzato può modificare la configurazione della lock rule.
+
+Questa fase resta locale/design-only finché non viene autorizzato il provisioning remoto del bucket.
 
 Documento:
 
@@ -173,12 +193,20 @@ D1 mutation: none
 
 Il 403 non viene bypassato con scraping alternativo. Un nuovo pack con raw identity differente non è automaticamente approvato anche se il semantic fingerprint storico coincide.
 
+Documento:
+
+```text
+docs/research/EVIDENCE-PACK-RECOVERY-RESULT-2026-08-09.md
+```
+
 ### Gate corrente
 
 ```text
-artifact storage contract CI
+correct native-bucket-lock contract CI
 → explicit remote R2 provisioning authorization
-→ private/create-only R2 verification
+→ create/verify private bucket
+→ disable/verify r2.dev + zero custom domains
+→ install/verify indefinite native bucket lock on v1/
 → recover original Italy/Europe bundles OR approve replacement captures
 → stage exact pack + raw bytes in R2
 ```
@@ -191,6 +219,7 @@ Solo dopo artifact provenance completa:
 approved Italy + Europe packs
 → read-only remote D1 preflight
 → source resolution 9/9
+→ verify exact R2 lock/provenance
 → artifact/candidate identity verification
 → atomic bounded D1 ingest
 → deterministic post-ingest audit
@@ -228,7 +257,7 @@ Percorso:
 source gate 9/9 ✅
 local importer ✅
 remote 0021 ✅
-→ durable artifact provenance
+→ durable locked artifact provenance
 → controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
@@ -271,7 +300,7 @@ source reconciliation ✅
 → production onboarding 9/9 ✅
 → local importer ✅
 → remote 0021 ✅
-→ durable artifact provenance
+→ durable locked artifact provenance
 → controlled ingest
 → verification provenance
 → facts per First Money UI
@@ -290,6 +319,7 @@ M4 mutation residue
 Non fare adesso:
 
 - provisioning R2 remoto senza autorizzazione separata;
+- artifact production senza native Bucket Lock canonica;
 - controlled ingest con artifact effimeri/non risolvibili;
 - ricostruzione dei pack storici da documentazione o diagnostici parziali;
 - replacement capture promossa implicitamente ad approved pack;
