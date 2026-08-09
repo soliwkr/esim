@@ -195,6 +195,24 @@ for (const [label, state, expectedIssue] of [
   assert.deepEqual(verify.state.lockRules, [policy.bucketLockRule]);
 }
 
+// Exercise the same default-global-fetch path used by the CLI/workflow, not only injected test fetch.
+{
+  const fake = fakeCloudflare({ exists: false });
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = fake.fetchImpl;
+    const result = await provisionR2({
+      accountId: 'test-account',
+      apiToken: 'test-token',
+      policy,
+    });
+    assert.equal(result.mutation, 'created_bucket_and_set_lock');
+    assert.equal(result.verified, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
 // If the newly created bucket is unexpectedly public before the lock write, fail closed.
 {
   const fake = fakeCloudflare({ exists: false });
@@ -222,5 +240,9 @@ assert.match(workflow, /expected_main_sha/);
 assert.doesNotMatch(workflow, /r2 object/i);
 assert.doesNotMatch(workflow, /\bDELETE\b/);
 assert.doesNotMatch(workflow, /domains\/managed.*PUT/i);
+
+const gateSource = await readFile('scripts/evidence-r2-provisioning-gate.mjs', 'utf8');
+assert.match(gateSource, /r2_preflight_blocked:/);
+assert.match(gateSource, /fetchImpl = fetch/);
 
 console.log('Evidence R2 provisioning gate smoke: ok');
