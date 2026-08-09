@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **6 agosto 2026**.
+Ultimo aggiornamento: **9 agosto 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -414,3 +414,23 @@ Vincoli della decisione:
 - il bridge fra verification decision e evidence candidate deve avere provenance append-only/revisioned prima di essere automatizzato.
 
 **Conseguenza:** la prima implementation slice può essere soltanto una migration locale/versionata e additiva per le tabelle upstream, con constraint/index/immutability smoke e senza runtime ingest o migration remota. Source onboarding, importer, verification bridge e qualsiasi redesign `plans` restano gate separati.
+
+## ADR-040 — Raw evidence artifact in R2 privato e content-addressed
+
+**Stato:** accettata come fondazione locale; provisioning remoto non ancora autorizzato.
+
+**Decisione:** `evidence_snapshots.artifact_ref` deve risolvere a raw bytes persistenti in un logical store R2 privato `evidence-artifacts`. Raw source e `pack.json` usano chiavi content-addressed SHA-256; il percorso operativo crea soltanto oggetti assenti con condizione equivalente a `If-None-Match: *`, non sovrascrive e non cancella.
+
+Il contratto v1 è:
+
+```text
+raw:  v1/raw/sha256/<prefix>/<digest>.<extension>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
+```
+
+R2 non viene dichiarato WORM: Object Lock non è disponibile nel contratto usato. L'immutabilità è applicativa/content-addressed e un attore amministrativo Cloudflare resta capace di alterazioni fuori dal percorso operativo.
+
+Prima dell'ingest D1 production i byte devono essere verificati localmente, creati o riconciliati in R2, riletti/HEAD-checkati e soltanto allora trasformati in `artifact_ref` D1. Il browser non accede al bucket e credential/endpoint environment-specific non vengono versionati.
+
+**Conseguenza:** il controlled evidence ingest è preceduto da un gate storage separato. La branch di design non crea bucket, credential, oggetti R2 o righe evidence D1. I pack storici #106/#107 restano inoltre non ingeribili finché i bundle raw originali non vengono recuperati oppure nuove capture vengono approvate esplicitamente come replacement.
