@@ -19,8 +19,8 @@ Data di riferimento: **9 agosto 2026**.
 | Source registry | Production-ready | 15 righe; 9/9 identity risolte |
 | Evidence importer | Local/fixture verificato | idempotente e fail-closed |
 | Upstream evidence schema | Production-ready | `0021` applicata; 4 tabelle, 7 indici, 9 trigger |
-| Evidence artifact storage | Design/local gate | R2 privato content-addressed; provisioning remoto non autorizzato |
-| Controlled evidence ingest | Bloccato | richiede artifact storage persistente + bundle raw approvati |
+| Evidence artifact storage | Design/local gate | R2 privato, content-addressed + native Bucket Lock richiesto; provisioning remoto non autorizzato |
+| Controlled evidence ingest | Bloccato | richiede R2 verificato + bundle raw approvati |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
@@ -40,7 +40,7 @@ Contratto:
 
 ```text
 source_registry
-→ durable raw artifact
+→ durable locked raw artifact
 → evidence_capture_runs
 → evidence_snapshots
 → evidence_field_observations
@@ -146,16 +146,23 @@ Documento:
 docs/research/EVIDENCE-REMOTE-0021-RESULT-2026-08-08.md
 ```
 
-## Evidence artifact storage — gate emerso prima dell'ingest
+## Evidence artifact storage — fondazione mergiata, contratto lock corretto
+
+PR #127 ha introdotto la fondazione durable artifact storage e il relativo smoke local/CI. Merge:
+
+```text
+7640773bb8b5cae63ff7a7e9c9919cfbf03e4a5c
+```
 
 Il mapping D1 richiede che `evidence_snapshots.artifact_ref` sia risolvibile insieme a `body_sha256`. I pack storici #106/#107 erano stati salvati come artifact locali create-only, ignorati da Git; il design #108 non aveva ancora scelto lo storage persistente.
 
-Decisione della branch corrente:
+Contratto corretto:
 
 ```text
 private Cloudflare R2
 + content-addressed SHA-256 keys
 + create-only conditional write
++ native R2 Bucket Lock indefinito su v1/
 + no overwrite/delete nel percorso operativo
 ```
 
@@ -166,9 +173,26 @@ raw:  r2://evidence-artifacts/v1/raw/sha256/<prefix>/<digest>.<ext>
 pack: r2://evidence-artifacts/v1/packs/sha256/<prefix>/<digest>.json
 ```
 
-R2 non viene dichiarato WORM/Object Lock. L'immutabilità è applicativa/content-addressed.
+Cloudflare R2 non implementa S3 Object Lock nella API S3-compatible, ma offre Bucket Locks nativi che impediscono overwrite/delete finché la regola resta attiva. Il progetto richiede la regola canonica:
 
-Questa branch non crea bucket, credential o oggetti remoti.
+```text
+id:        evidence-v1-indefinite
+prefix:    v1/
+enabled:   true
+condition: Indefinite
+```
+
+Non viene dichiarata equivalenza con legal hold/WORM irrevocabile: un amministratore Cloudflare autorizzato può modificare la configurazione della lock rule.
+
+Il provisioning remoto deve inoltre verificare:
+
+```text
+r2.dev:        disabled
+custom domains: 0
+bucket lock:   exact canonical rule
+```
+
+Nessun bucket, credential o oggetto remoto è stato creato finora.
 
 Documento:
 
@@ -180,7 +204,7 @@ docs/research/EVIDENCE-ARTIFACT-STORAGE.md
 
 I result Italia/Europa conservano pack ID e semantic fingerprint, ma i bundle completi `pack.json + sources/` non risultano recuperabili dal repository o dagli artifact CI storici.
 
-È stato tentato un recovery read-only il 9 agosto 2026 con gli stessi runner canonici su GitHub Actions:
+Recovery read-only tentato il 9 agosto 2026:
 
 ```text
 run: 31313829528
@@ -194,14 +218,22 @@ Non vengono usati workaround di scraping, dati ricostruiti dalla documentazione 
 
 Una nuova cattura semanticamente equivalente non è automaticamente l'identity raw storica approvata.
 
-## Gate corrente
-
-Il percorso immediato è ora:
+Documento:
 
 ```text
-artifact storage contract CI
+docs/research/EVIDENCE-PACK-RECOVERY-RESULT-2026-08-09.md
+```
+
+## Gate corrente
+
+Il percorso immediato è:
+
+```text
+correct native-bucket-lock contract CI
 → explicit remote R2 provisioning authorization
-→ private/create-only storage verification
+→ create/verify private bucket
+→ disable/verify r2.dev + zero custom domains
+→ install/verify indefinite native bucket lock on v1/
 → recover original Italy/Europe bundles OR approve replacement captures
 → stage pack + raw bytes in R2
 → separately controlled D1 evidence ingest
@@ -221,10 +253,10 @@ local/fixture importer ✅
 remote 0021 ✅
 ```
 
-Gate emerso:
+Gate corrente:
 
 ```text
-durable artifact provenance ← current
+durable locked artifact provenance
 ```
 
 Percorso restante:
@@ -245,6 +277,7 @@ R2 artifact gate
 ## Freeze
 
 - niente R2 provisioning remoto senza autorizzazione esplicita;
+- niente evidence artifact production senza native Bucket Lock canonica;
 - niente controlled ingest con `artifact_ref` effimero o non risolvibile;
 - niente ricostruzione dei pack storici da documentazione o diagnostici parziali;
 - niente replacement capture promossa automaticamente a pack approvato;
