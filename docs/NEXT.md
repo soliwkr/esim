@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **9 agosto 2026**.
 
-## Gate corrente — durable evidence artifact provenance
+## Gate corrente — durable locked evidence artifact provenance
 
 La catena source identity, importer locale e schema remoto è chiusa.
 
@@ -18,6 +18,7 @@ PR #125  explicit remote 0021 migration gate
 run 31260773468  remote 0021 apply + schema verification
 PR #126  remote 0021 canonical closeout
 CI #660  post-merge main green
+PR #127  durable artifact storage foundation
 ```
 
 Production state:
@@ -33,6 +34,7 @@ upstream tables:     4/4
 indexes:             7/7
 triggers:            9/9
 upstream evidence:   not ingested
+R2 evidence bucket:  not provisioned
 ```
 
 ## Blocker scoperto prima del controlled ingest
@@ -53,7 +55,13 @@ remote D1 mutation: none
 
 Non ricostruire i pack dalla documentazione e non usare diagnostici parziali come raw evidence.
 
-## Artifact storage foundation — gate corrente
+Documento:
+
+```text
+docs/research/EVIDENCE-PACK-RECOVERY-RESULT-2026-08-09.md
+```
+
+## Artifact storage foundation — contratto corretto
 
 Decisione:
 
@@ -61,6 +69,7 @@ Decisione:
 private Cloudflare R2
 + SHA-256 content-addressed keys
 + create-only conditional writes
++ native R2 Bucket Lock indefinito sul prefix v1/
 + no overwrite/delete nel percorso operativo
 ```
 
@@ -72,9 +81,20 @@ pack: v1/packs/sha256/<prefix>/<digest>.json
 ref:  r2://evidence-artifacts/<object-key>
 ```
 
-R2 non viene dichiarato WORM/Object Lock; l'immutabilità è applicativa/content-addressed.
+Cloudflare R2 non implementa S3 Object Lock nella API S3-compatible, ma dispone di Bucket Locks nativi. La protezione production richiesta è:
 
-Documento:
+```text
+lock id:     evidence-v1-indefinite
+prefix:      v1/
+enabled:     true
+condition:   Indefinite
+r2.dev:      disabled
+custom domains: 0
+```
+
+Non dichiarare legal hold o WORM irrevocabile: un amministratore Cloudflare autorizzato può modificare/rimuovere una bucket lock rule.
+
+Documenti:
 
 ```text
 docs/research/EVIDENCE-ARTIFACT-STORAGE.md
@@ -84,19 +104,22 @@ research/evidence/artifact-storage-policy.json
 ### Prossimi passi immediati
 
 ```text
-artifact storage contract CI
-→ merge design gate
+corrected bucket-lock contract CI
+→ merge correction
 → explicit remote R2 provisioning authorization
-→ provision private evidence bucket/config
+→ provision private evidence bucket
+→ ensure r2.dev disabled
+→ verify zero custom domains
+→ install exact indefinite native lock on v1/
 → verify create-only upload/read/checksum path
 → recover original bundle OR approve replacement captures
 ```
 
-Il provisioning R2 è una mutation infrastrutturale separata e non è autorizzato dalla branch di design.
+Il provisioning R2 è una mutation infrastrutturale separata e richiede una nuova autorizzazione esplicita.
 
 ## Controlled ingest — gate successivo, ancora bloccato
 
-Il controlled ingest è già definito ma non può essere eseguito finché non esistono artifact raw approvati e persistenti.
+Il controlled ingest è già definito ma non può essere eseguito finché non esistono artifact raw approvati, persistenti e protetti dalla lock rule canonica.
 
 Sequenza futura:
 
@@ -104,6 +127,7 @@ Sequenza futura:
 read-only remote D1 preflight
 → source resolution 9/9
 → exact approved Italy/Europe pack verification
+→ verify exact R2 bucket lock
 → stage exact pack + raw bytes in R2
 → verify every artifact_ref/hash
 → idempotency/drift preflight
@@ -130,6 +154,8 @@ Scope:
 Fermarsi prima delle write D1 se:
 
 - artifact storage non è persistente/risolvibile;
+- native Bucket Lock canonica non è attiva sul namespace evidence;
+- `r2.dev` è pubblico o esistono custom domains;
 - pack/raw bytes non sono disponibili integralmente;
 - pack identity non è esplicitamente approvata;
 - source resolution non è 9/9;
@@ -211,13 +237,13 @@ remote 0021 ✅
 Corrente:
 
 ```text
-durable artifact provenance
+durable locked artifact provenance
 ```
 
 Restante:
 
 ```text
-R2 provenance gate
+R2 provisioning + native lock gate
 → approved raw pack availability
 → controlled evidence ingest
 → verification provenance
@@ -267,6 +293,7 @@ Canonical cutover, affiliate activation e deploy restano gate distinti.
 ## Freeze
 
 - niente R2 provisioning remoto senza autorizzazione esplicita;
+- niente evidence artifact production senza exact native Bucket Lock;
 - niente controlled ingest con artifact effimeri/non risolvibili;
 - niente ricostruzione dei pack storici da documentazione;
 - niente replacement capture approvata implicitamente;
