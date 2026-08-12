@@ -1,0 +1,21 @@
+{
+  "operation": "airalo_europe_source_diagnostic",
+  "authorizedByUser": true,
+  "authorizedAt": "2026-08-12",
+  "expectedMainSha": "1312ab5cd241c94a2eab72fb9698706292776c24",
+  "sourceKey": "airalo-europe-plan",
+  "scope": {
+    "officialSourceNetworkRead": true,
+    "diagnosticArtifactRetention": true,
+    "extractorMutation": false,
+    "sourceIdentityMutation": false,
+    "replacementApproval": false,
+    "r2ObjectUpload": false,
+    "r2Mutation": false,
+    "d1Mutation": false,
+    "claimVerificationWrites": false,
+    "publication": false,
+    "affiliateActivation": false,
+    "productionDeploy": false
+  }
+}
