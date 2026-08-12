@@ -128,9 +128,32 @@ Review completa:
 docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
 ```
 
+## Availability gate prima dell'approval
+
+L'artifact GitHub è temporaneo. Prima di accettare una replacement approval o aprire lo staging R2 va ricontrollato:
+
+```text
+artifact id: 9152309259
+expired: false
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+```
+
+Se l'artifact è scaduto, cancellato o non scaricabile:
+
+```text
+BLOCK
+→ non approvare dai soli documenti
+→ non ricostruire i byte
+→ new complete capture
+→ raw/provenance review
+→ explicit replacement approval
+```
+
+La retention corrente termina il **2026-09-11T17:41:12Z**. GitHub Actions non viene trattato come durable production storage; quello inizia soltanto dopo lo staging verificato nel bucket R2 locked.
+
 ## Decisione immediata richiesta
 
-La coppia è **ready for explicit replacement approval**.
+La coppia è **ready for explicit replacement approval** soltanto mentre l'artifact esatto resta disponibile e verificabile.
 
 L'approvazione deve identificare esattamente:
 
@@ -158,7 +181,8 @@ Replacement approval non equivale ad autorizzazione object upload R2.
 Con approval replacement già registrata, aprire un nuovo gate esplicitamente autorizzato per:
 
 ```text
-stage exact pack + raw bytes create-only in locked R2
+recheck artifact availability + exact ZIP digest
+→ stage exact pack + raw bytes create-only in locked R2
 → verify object key / sha256 / byte length / artifact_ref
 ```
 
@@ -234,6 +258,7 @@ artifact storage contract          ✅
 R2 provisioning                    ✅
 replacement complete pair          ✅
 raw/provenance review              ✅
+→ artifact availability recheck
 → explicit replacement approval   ← current
 → separately authorized R2 staging
 → controlled evidence ingest
@@ -248,6 +273,8 @@ raw/provenance review              ✅
 
 ## Freeze
 
+- niente replacement approval se l'artifact esatto non è più disponibile/verificabile;
+- niente ricostruzione del replacement dai soli documenti dopo expiry;
 - niente replacement approval implicita;
 - niente evidence upload senza approval + authorization separata;
 - niente controlled ingest senza locked/resolvable raw artifacts;
