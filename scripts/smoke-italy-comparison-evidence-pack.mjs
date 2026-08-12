@@ -54,10 +54,11 @@ const FIXTURES = Object.freeze({
   </body></html>`,
 });
 
-function buildSnapshots({ holaflyPrice = '30,50 €EUR', noise = '', ubigiNetworkDetails = true } = {}) {
+function buildSnapshots({ airaloPrice = '29.00 €', holaflyPrice = '30,50 €EUR', noise = '', ubigiNetworkDetails = true } = {}) {
   const snapshots = new Map();
   for (const [index, source] of SOURCE_CONFIG.entries()) {
     let html = FIXTURES[source.key];
+    if (source.key === 'airalo-italy-plan') html = html.replace('29.00 €', airaloPrice);
     if (source.key === 'holafly-italy-plan') html = html.replace('30,50 €EUR', holaflyPrice);
     if (source.key === 'airalo-italy-plan' && noise) html = html.replace('</body>', `<footer>${noise}</footer></body>`);
     if (source.key === 'ubigi-italy-plan' && !ubigiNetworkDetails) {
@@ -108,6 +109,16 @@ assert.deepEqual(candidate('airalo', 'hotspot_share_limit').normalizedValue, { s
 assert.equal(byProvider.get('airalo').coverage.activation_policy.state, 'unknown');
 assert.equal(byProvider.get('airalo').coverage.network.state, 'partial');
 assert.equal(byProvider.get('airalo').coverage.radio_technology.state, 'unknown');
+
+const currentAiraloUsd = buildComparisonPack({ snapshots: buildSnapshots({ airaloPrice: '$32.00 USD' }), startedAt: STARTED_AT, completedAt: COMPLETED_AT });
+const currentAiraloOffer = currentAiraloUsd.offers.find((offer) => offer.provider === 'airalo');
+assert.deepEqual(currentAiraloOffer.candidates.find((entry) => entry.fieldName === 'price').normalizedValue, { amount: 32, currency: 'USD' });
+assert.equal(currentAiraloOffer.candidates.find((entry) => entry.fieldName === 'price').rawValue, '$32.00 USD');
+const currentAiraloChanges = packSemanticDiff(first, currentAiraloUsd);
+assert.equal(currentAiraloChanges.length, 1);
+assert.equal(currentAiraloChanges[0].provider, 'airalo');
+assert.equal(currentAiraloOffer.candidates.every((entry) => entry.status === 'pending'), true);
+assert.equal(currentAiraloUsd.ranking.status, 'not_computed');
 
 assert.deepEqual(candidate('holafly', 'price').normalizedValue, { amount: 30.5, currency: 'EUR' });
 assert.deepEqual(candidate('holafly', 'validity_days').normalizedValue, { duration: 10, unit: 'day' });
