@@ -1,0 +1,22 @@
+{
+  "operation": "evidence_replacement_capture_candidate",
+  "authorizedByUser": true,
+  "authorizedAt": "2026-08-12",
+  "expectedMainSha": "7ded3c2bdd4b61e8c09e490e485d5c5c091475bb",
+  "scope": {
+    "officialSourceNetworkReads": true,
+    "italyCapture": true,
+    "europeCapture": true,
+    "semanticFingerprintComparison": true,
+    "githubArtifactRetention": true,
+    "replacementApproval": false,
+    "r2ObjectUpload": false,
+    "r2Mutation": false,
+    "d1Mutation": false,
+    "claimVerificationWrites": false,
+    "sourceRegistryMutation": false,
+    "publication": false,
+    "affiliateActivation": false,
+    "productionDeploy": false
+  }
+}
