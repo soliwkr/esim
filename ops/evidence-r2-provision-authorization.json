@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "operation": "r2_provision_exact",
+  "authorizedByUser": true,
+  "authorizationMessage": "procedi",
+  "authorizedDate": "2026-08-12",
+  "expectedMainSha": "4e3dd85db37eb464c8337149c77cb73dfedf3880",
+  "confirmation": "PROVISION_EVIDENCE_R2",
+  "targetBucket": "senza-roaming-evidence-artifacts",
+  "scope": {
+    "r2Provisioning": true,
+    "createBucketIfAbsent": true,
+    "setExactBucketLock": true,
+    "readOnlyVerification": true,
+    "repairExistingDrift": false,
+    "r2ObjectUpload": false,
+    "d1Mutation": false,
+    "claimVerificationWrites": false,
+    "publication": false,
+    "affiliateActivation": false,
+    "productionDeploy": false
+  }
+}
