@@ -16,22 +16,22 @@ assert.equal(airalo.url, AIRALO_EXACT_PACKAGE_URL);
 assert.equal(airalo.url.includes('mamma-mia-in-10days-unlimited'), true);
 
 const fixture = `<!doctype html><html lang="it"><head>
-  <title>eSIM Italia, da 4.00 € | Il primo negozio di eSIM al mondo · Airalo</title>
+  <title>eSIM Italia, da $4.00 USD | Il primo negozio di eSIM al mondo · Airalo</title>
 </head><body>
   <h1>eSIM per Italia</h1>
   <p>Italia Wind Tre</p>
   <p>+altri 2</p>
   <div>Scegli il tuo pacchetto</div>
-  <div>7 giorni Illimitato GB 21.00 €</div>
+  <div>7 giorni Illimitato GB $23.00 USD</div>
   <div data-testid="package-grouped-packages_duration-title">10 giorni</div>
-  <button aria-label="Seleziona Illimitato - 10 Giorni a 29.00 €.">
+  <button aria-label="Seleziona Illimitato - 10 Giorni a $32.00 USD.">
     <span data-testid="card-package_spec-value">Illimitato</span>
     <span data-testid="card-package_spec-unit">GB</span>
-    <span data-testid="price_amount">29.00 €</span>
+    <span data-testid="price_amount">$32.00 USD</span>
   </button>
   <p>Velocità ridotta a 1 Mbps dopo il consumo giornaliero di 3 GB.</p>
-  <div>15 giorni Illimitato GB 40.00 €</div>
-  <script id="__NUXT_DATA__" type="application/json">["Mamma Mia","mamma-mia-in-10days-unlimited","29.00 €","Illimitato - 10 Giorni"]</script>
+  <div>15 giorni Illimitato GB $44.00 USD</div>
+  <script id="__NUXT_DATA__" type="application/json">["Mamma Mia","mamma-mia-in-10days-unlimited","$32.00 USD","Illimitato - 10 Giorni"]</script>
 </body></html>`;
 
 const fupFixture = `<!doctype html><html lang="en"><body>
@@ -49,7 +49,7 @@ const captured = await captureLiveSource(airalo, {
       headers: { 'content-type': 'text/html; charset=UTF-8' },
     });
   },
-  now: () => new Date('2026-08-05T13:20:00.000Z'),
+  now: () => new Date('2026-08-12T16:33:02.000Z'),
 });
 
 assert.equal(requestedUrl, AIRALO_EXACT_PACKAGE_URL);
@@ -67,7 +67,7 @@ const capturedFup = await captureLiveSource(airaloFup, {
     status: 200,
     headers: { 'content-type': 'text/html; charset=UTF-8' },
   }),
-  now: () => new Date('2026-08-05T13:20:01.000Z'),
+  now: () => new Date('2026-08-12T16:33:03.000Z'),
 });
 
 const offer = extractAiralo(new Map([
@@ -77,8 +77,8 @@ const offer = extractAiralo(new Map([
 const price = offer.candidates.find((candidate) => candidate.fieldName === 'price');
 const validity = offer.candidates.find((candidate) => candidate.fieldName === 'validity_days');
 const unlimited = offer.candidates.find((candidate) => candidate.fieldName === 'unlimited_policy');
-assert.deepEqual(price.normalizedValue, { amount: 29, currency: 'EUR' });
-assert.equal(price.rawValue, '29.00 €');
+assert.deepEqual(price.normalizedValue, { amount: 32, currency: 'USD' });
+assert.equal(price.rawValue, '$32.00 USD');
 assert.deepEqual(validity.normalizedValue, { duration: 10, unit: 'day' });
 assert.deepEqual(unlimited.normalizedValue, { unlimitedLabel: true });
 assert.equal(offer.candidates.every((candidate) => candidate.status === 'pending'), true);
@@ -91,7 +91,7 @@ const second = await captureLiveSource(airalo, {
     status: 200,
     headers: { 'content-type': 'text/html; charset=UTF-8' },
   }),
-  now: () => new Date('2026-08-05T13:21:00.000Z'),
+  now: () => new Date('2026-08-12T16:34:02.000Z'),
 });
 assert.equal(
   second.snapshot.snapshotId,
