@@ -21,7 +21,8 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 | Evidence importer | Local/fixture verificato | idempotente e fail-closed |
 | Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
 | Evidence artifact storage | **Provisionato e verificato** | R2 privato, Standard/default, native Bucket Lock su `v1/` |
-| Controlled evidence ingest | Bloccato | manca ancora un bundle raw approvato e disponibile |
+| Replacement evidence | **Candidate completo e revisionato** | Italy + Europe; attende approvazione replacement esplicita |
+| Controlled evidence ingest | Bloccato | richiede approval replacement + staging R2 separatamente autorizzato |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
@@ -38,14 +39,18 @@ Il sito è live e indicizzabile, ma non ancora money-ready:
 ## Truth Engine — checkpoint chiusi
 
 ```text
-source reconciliation                 ✅
-production source onboarding 9/9      ✅
-local/fixture evidence importer       ✅
-remote 0021 schema                    ✅
-durable artifact storage contract     ✅
-native R2 Bucket Lock contract        ✅
-R2 remote read-only preflight         ✅
-R2 production provisioning            ✅
+source reconciliation                    ✅
+production source onboarding 9/9         ✅
+local/fixture evidence importer          ✅
+remote 0021 schema                       ✅
+durable artifact storage contract        ✅
+native R2 Bucket Lock contract           ✅
+R2 remote read-only preflight            ✅
+R2 production provisioning               ✅
+Airalo Italy currency drift hardening    ✅
+Airalo Europe currency drift hardening   ✅
+replacement complete-pair capture        ✅
+raw/provenance candidate review          ✅
 ```
 
 Production source state:
@@ -78,14 +83,6 @@ Target:
 senza-roaming-evidence-artifacts
 ```
 
-Read-only preflight:
-
-```text
-run: 31588635704
-status: absent
-issues: []
-```
-
 Provisioning autorizzato e verificato:
 
 ```text
@@ -114,15 +111,7 @@ enabled:   true
 condition: Indefinite
 ```
 
-Audit artifact:
-
-```text
-id: 9142838561
-zip sha256: 4981c73e1f2fe8f3b40ffd9254e54058ff8db90eab331cb6511aa30e1da3772a
-retention: 30 giorni
-```
-
-Risultato versionato:
+Result document:
 
 ```text
 docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
@@ -130,62 +119,104 @@ docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
 
 Il provisioning non ha caricato oggetti evidence, non ha scritto D1 e non ha eseguito deploy.
 
-## Durable evidence artifact architecture
+## Replacement evidence candidate — review completata
 
-Logical store:
+I bundle raw originari #106/#107 non sono recuperabili dal repository o dagli artifact CI storici. Il percorso replacement ha ora prodotto una coppia completa e revisionata.
+
+Capture:
 
 ```text
-evidence-artifacts
+main base: 7ded3c2bdd4b61e8c09e490e485d5c5c091475bb
+run:       31623841563
+ops head:  a4197ef10108f6762606eb9c270e2a354143cc23
+result:    success
 ```
 
-Content addressing:
+Artifact:
 
 ```text
-raw:  v1/raw/sha256/<prefix>/<digest>.<extension>
-pack: v1/packs/sha256/<prefix>/<digest>.json
-ref:  r2://evidence-artifacts/<object-key>
+id:         9152309259
+files:      15
+raw HTML:   12
+pack.json:  2
+summary:    1
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+expires:    2026-09-11T17:41:12Z
 ```
 
-Il progetto non dichiara legal hold/WORM irrevocabile: la configurazione amministrativa Cloudflare resta modificabile da un attore con privilegi sufficienti.
-
-## Blocker corrente — approved raw artifacts
-
-I bundle raw originari #106/#107 erano locali e ignorati da Git; non risultano recuperabili dagli artifact CI storici.
-
-Recovery read-only già tentata:
+Review integrità:
 
 ```text
-run 31313829528
-Ubigi Italy: HTTP 403
-complete pack: non creato
-remote mutation: nessuna
+raw sha256:             12/12 match
+raw byte length:        12/12 match
+HTTP status:            12/12 = 200
+redirect chain:         12/12 = 0
+visibleText sha256:     12/12 match
+field-level locators:   verified with JS UTF-16 semantics
+candidate status:       all pending
+ranking:                not_computed
+R2 uploaded:            no
+D1 mutated:             no
+replacement approved:  no
 ```
 
-Sono ammessi soltanto due percorsi:
+Italy candidate:
 
 ```text
-A. recuperare i bundle originali approvati
+pack: pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+semantic: sha256:2e3d9aaa7e3540d92ff9752721980cd1f4bd2380530578e671e572061952b517
+historical semantic: sha256:ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8
+historicalSemanticMatch: false
 ```
 
-oppure:
+Europe candidate:
 
 ```text
-B. nuova cattura completa
-→ raw review
-→ semantic comparison
-→ explicit replacement approval
+pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+semantic: sha256:f8e617f3e7f659edaddc121ec6df50cc50238308ebf5315c779b41a497c9eb11
+historical semantic: sha256:efb5924eee13f0c2f2a17381cf823c7e78873ab53925842949525982e96dbb89
+historicalSemanticMatch: false
 ```
 
-Non vengono ricostruiti raw artifact dalla documentazione e una replacement capture non è approvata implicitamente dal solo semantic fingerprint.
-
-## Gate immediatamente successivo
-
-Solo dopo la disponibilità di un bundle raw approvato:
+Delta commerciale documentato rispetto ai result storici versionati:
 
 ```text
-stage exact pack + raw bytes in locked R2
-→ verify artifact_ref/hash/size
-→ D1 read-only preflight
+Airalo Italy:  29 EUR   → 32 USD
+Airalo Europe: 44.5 EUR → 49 USD
+```
+
+Holafly e Ubigi restano allineati ai valori/coverage documentati nei checkpoint storici #106/#107. I vecchi raw pack non sono disponibili, quindi non viene dichiarato un byte-level diff o un `packSemanticDiff` diretto contro i vecchi `pack.json`.
+
+Review canonica:
+
+```text
+docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
+```
+
+## Gate corrente — explicit replacement approval
+
+La coppia è **ready for explicit replacement approval**, non ancora approved.
+
+L'approval deve riferirsi esattamente a:
+
+```text
+run: 31623841563
+artifact id: 9152309259
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+```
+
+L'approvazione replacement **non autorizza** automaticamente object upload R2, controlled ingest, claim verification, publication, affiliate activation o deploy.
+
+## Gate dopo replacement approval
+
+Aprire un gate separato per:
+
+```text
+stage exact pack + raw bytes create-only in locked R2
+→ verify object key / sha256 / byte length / artifact_ref
+→ read-only D1 preflight
 → source resolution 9/9
 → idempotency/drift preflight
 → separately authorized controlled D1 batch
@@ -219,8 +250,10 @@ local importer                     ✅
 remote 0021                        ✅
 artifact storage contract          ✅
 R2 provisioning                    ✅
-→ approved raw pack availability
-→ stage locked raw artifacts
+replacement complete pair          ✅
+raw/provenance review              ✅
+→ explicit replacement approval   ← current
+→ separately authorized R2 staging
 → controlled evidence ingest
 → verification provenance bridge
 → bounded verified facts
@@ -233,10 +266,10 @@ R2 provisioning                    ✅
 
 ## Freeze
 
-- niente evidence object upload senza bundle raw approvato;
+- niente replacement approval implicita;
+- niente evidence object upload prima di approval + autorizzazione upload separata;
 - niente controlled ingest senza locked/resolvable raw artifacts;
 - niente ricostruzione dei pack storici da documentazione;
-- niente replacement capture promossa implicitamente;
 - niente claim verification automatica;
 - niente source auto-registration o metadata overwrite;
 - niente FX implicito;
