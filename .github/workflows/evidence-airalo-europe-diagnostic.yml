@@ -1,0 +1,109 @@
+name: Evidence Airalo Europe Diagnostic
+
+on:
+  push:
+    branches:
+      - ops/evidence-airalo-europe-diagnostic
+
+permissions:
+  contents: read
+
+env:
+  AUTHORIZED_MAIN_SHA: 1312ab5cd241c94a2eab72fb9698706292776c24
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout operational branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact diagnostic boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/ops/evidence-airalo-europe-diagnostic"
+          git fetch origin main --no-tags
+          test "$(git rev-parse origin/main)" = "$AUTHORIZED_MAIN_SHA"
+          git merge-base --is-ancestor "$AUTHORIZED_MAIN_SHA" HEAD
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const marker = JSON.parse(readFileSync('ops/evidence-airalo-europe-diagnostic-authorization.json', 'utf8'));
+          if (marker.operation !== 'airalo_europe_source_diagnostic') throw new Error('authorization_operation_invalid');
+          if (marker.authorizedByUser !== true) throw new Error('authorization_missing');
+          if (marker.expectedMainSha !== process.env.AUTHORIZED_MAIN_SHA) throw new Error('authorization_main_sha_mismatch');
+          if (marker.sourceKey !== 'airalo-europe-plan') throw new Error('authorization_source_invalid');
+          const scope = marker.scope ?? {};
+          for (const key of ['officialSourceNetworkRead', 'diagnosticArtifactRetention']) {
+            if (scope[key] !== true) throw new Error(`authorization_scope_missing:${key}`);
+          }
+          for (const key of ['extractorMutation', 'sourceIdentityMutation', 'replacementApproval', 'r2ObjectUpload', 'r2Mutation', 'd1Mutation', 'claimVerificationWrites', 'publication', 'affiliateActivation', 'productionDeploy']) {
+            if (scope[key] !== false) throw new Error(`authorization_scope_invalid:${key}`);
+          }
+          NODE
+
+          printf '%s\n' \
+            '.github/workflows/evidence-airalo-europe-diagnostic.yml' \
+            'ops/evidence-airalo-europe-diagnostic-authorization.json' \
+            | sort > /tmp/expected-files
+          git diff --name-only "$AUTHORIZED_MAIN_SHA"..HEAD | sort > /tmp/actual-files
+          diff -u /tmp/expected-files /tmp/actual-files
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Capture exact Airalo Europe source without extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/airalo-europe-diagnostic
+          node --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+          import { SOURCE_CONFIG, captureSource } from './scripts/europe-regional-evidence-pack.mjs';
+
+          const source = SOURCE_CONFIG.find((entry) => entry.key === 'airalo-europe-plan');
+          if (!source) throw new Error('airalo_europe_source_missing');
+
+          const captured = await captureSource(source);
+          const { snapshot } = captured;
+          const lines = snapshot.visibleText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+          const interesting = lines.filter((line) => /europe|countries|unlimited|illimit|15\s*(?:days|gior)|gb|€|eur|usd|\$/i.test(line)).slice(0, 160);
+          const summary = {
+            schemaVersion: 1,
+            diagnosticOnly: true,
+            sourceKey: source.key,
+            sourceAuditKey: source.sourceAuditKey,
+            requestedUrl: source.url,
+            finalUrl: snapshot.finalUrl,
+            canonicalFinalUrl: snapshot.canonicalFinalUrl,
+            httpStatus: snapshot.httpStatus,
+            contentType: snapshot.contentType,
+            locale: snapshot.locale,
+            bodySha256: snapshot.bodySha256,
+            byteLength: snapshot.byteLength,
+            redirectChain: snapshot.redirectChain,
+            interestingVisibleTextLines: interesting,
+            replacementApproved: false,
+            r2Uploaded: false,
+            d1Mutated: false
+          };
+
+          await writeFile('artifacts/airalo-europe-diagnostic/airalo-europe-plan.html', captured.body);
+          await writeFile('artifacts/airalo-europe-diagnostic/summary.json', `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+
+      - name: Upload diagnostic only
+        uses: actions/upload-artifact@v4
+        with:
+          name: airalo-europe-source-diagnostic
+          path: artifacts/airalo-europe-diagnostic/
+          if-no-files-found: error
+          retention-days: 7
