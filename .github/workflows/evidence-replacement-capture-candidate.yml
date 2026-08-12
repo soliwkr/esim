@@ -1,0 +1,151 @@
+name: Evidence Replacement Capture Candidate
+
+on:
+  push:
+    branches:
+      - ops/evidence-replacement-capture-complete-pair
+
+permissions:
+  contents: read
+
+env:
+  AUTHORIZED_MAIN_SHA: 7ded3c2bdd4b61e8c09e490e485d5c5c091475bb
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout operational branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact read-only capture boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/ops/evidence-replacement-capture-complete-pair"
+          git fetch origin main --no-tags
+          test "$(git rev-parse origin/main)" = "$AUTHORIZED_MAIN_SHA"
+          git merge-base --is-ancestor "$AUTHORIZED_MAIN_SHA" HEAD
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const marker = JSON.parse(readFileSync('ops/evidence-replacement-capture-authorization.json', 'utf8'));
+          if (marker.operation !== 'evidence_replacement_capture_candidate') throw new Error('authorization_operation_invalid');
+          if (marker.authorizedByUser !== true) throw new Error('authorization_missing');
+          if (marker.expectedMainSha !== process.env.AUTHORIZED_MAIN_SHA) throw new Error('authorization_main_sha_mismatch');
+          const scope = marker.scope ?? {};
+          for (const key of ['officialSourceNetworkReads', 'italyCapture', 'europeCapture', 'semanticFingerprintComparison', 'githubArtifactRetention']) {
+            if (scope[key] !== true) throw new Error(`authorization_scope_missing:${key}`);
+          }
+          for (const key of ['replacementApproval', 'r2ObjectUpload', 'r2Mutation', 'd1Mutation', 'claimVerificationWrites', 'sourceRegistryMutation', 'publication', 'affiliateActivation', 'productionDeploy']) {
+            if (scope[key] !== false) throw new Error(`authorization_scope_invalid:${key}`);
+          }
+          NODE
+
+          printf '%s\n' \
+            '.github/workflows/evidence-replacement-capture-candidate.yml' \
+            'ops/evidence-replacement-capture-authorization.json' \
+            | sort > /tmp/expected-files
+          git diff --name-only "$AUTHORIZED_MAIN_SHA"..HEAD | sort > /tmp/actual-files
+          diff -u /tmp/expected-files /tmp/actual-files
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Capture Italy replacement candidate
+        run: node scripts/run-italy-comparison-evidence-pack.mjs --out research/evidence/replacement/italy
+
+      - name: Capture Europe replacement candidate
+        run: node scripts/europe-regional-evidence-pack.mjs --out research/evidence/replacement/europe
+
+      - name: Verify complete pair and record semantic continuity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node --input-type=module <<'NODE'
+          import { readdir, readFile, writeFile } from 'node:fs/promises';
+          import path from 'node:path';
+
+          const expected = {
+            italy: {
+              root: 'research/evidence/replacement/italy',
+              scenarioId: 'italy-10d-high-data-hotspot',
+              historicalSemanticFingerprint: 'sha256:ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8',
+            },
+            europe: {
+              root: 'research/evidence/replacement/europe',
+              scenarioId: 'europe-14d-multicountry-high-data-hotspot',
+              historicalSemanticFingerprint: 'sha256:efb5924eee13f0c2f2a17381cf823c7e78873ab53925842949525982e96dbb89',
+            },
+          };
+
+          const allowedCoverage = new Set(['observed', 'partial', 'unknown', 'not_applicable']);
+          const results = {};
+          for (const [name, spec] of Object.entries(expected)) {
+            const dirs = (await readdir(spec.root, { withFileTypes: true }))
+              .filter((entry) => entry.isDirectory())
+              .map((entry) => entry.name);
+            if (dirs.length !== 1) throw new Error(`${name}: expected exactly one artifact directory, found ${dirs.length}`);
+            const artifactDirectory = path.join(spec.root, dirs[0]);
+            const packPath = path.join(artifactDirectory, 'pack.json');
+            const pack = JSON.parse(await readFile(packPath, 'utf8'));
+            if (pack.scenario?.id !== spec.scenarioId) throw new Error(`${name}: scenario mismatch`);
+            if (!Array.isArray(pack.sources) || pack.sources.length !== 6) throw new Error(`${name}: expected six sources`);
+            if (pack.ranking?.status !== 'not_computed') throw new Error(`${name}: ranking must remain not_computed`);
+            if (!Array.isArray(pack.offers) || pack.offers.length !== 3) throw new Error(`${name}: expected three provider offers`);
+            for (const offer of pack.offers) {
+              for (const candidate of offer.candidates ?? []) {
+                if (candidate.status !== 'pending') throw new Error(`${name}/${offer.provider}/${candidate.fieldName}: candidate not pending`);
+              }
+              for (const [fieldName, coverage] of Object.entries(offer.coverage ?? {})) {
+                if (!allowedCoverage.has(coverage?.state)) throw new Error(`${name}/${offer.provider}/${fieldName}: invalid coverage state`);
+              }
+            }
+            const sourceFiles = (await readdir(path.join(artifactDirectory, 'sources'), { withFileTypes: true }))
+              .filter((entry) => entry.isFile());
+            if (sourceFiles.length !== 6) throw new Error(`${name}: expected six raw source files, found ${sourceFiles.length}`);
+
+            results[name] = {
+              scenarioId: pack.scenario.id,
+              packId: pack.packId,
+              semanticFingerprint: pack.semanticFingerprint,
+              historicalSemanticFingerprint: spec.historicalSemanticFingerprint,
+              historicalSemanticMatch: pack.semanticFingerprint === spec.historicalSemanticFingerprint,
+              sourceCount: pack.sources.length,
+              rawSourceFileCount: sourceFiles.length,
+              captureWindowMs: pack.captureWindowMs,
+              rankingStatus: pack.ranking.status,
+              artifactDirectory,
+              packPath,
+            };
+          }
+
+          const summary = {
+            schemaVersion: 1,
+            candidateOnly: true,
+            replacementApproved: false,
+            r2Uploaded: false,
+            d1Mutated: false,
+            capturedAt: new Date().toISOString(),
+            results,
+          };
+          await writeFile('artifacts/evidence-replacement-capture-summary.json', `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+
+      - name: Upload complete replacement candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-replacement-capture-candidates
+          path: |
+            research/evidence/replacement/
+            artifacts/evidence-replacement-capture-summary.json
+          if-no-files-found: error
+          retention-days: 30
