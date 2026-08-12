@@ -1,0 +1,17 @@
+{
+  "operation": "read_only_r2_preflight",
+  "authorizedByUser": true,
+  "authorizationMessage": "ok procedi",
+  "authorizedAt": "2026-08-12",
+  "expectedMainSha": "4e3dd85db37eb464c8337149c77cb73dfedf3880",
+  "scope": {
+    "r2ReadOnlyPreflight": true,
+    "r2Provisioning": false,
+    "r2ObjectUpload": false,
+    "d1Mutation": false,
+    "claimVerificationWrites": false,
+    "publication": false,
+    "affiliateActivation": false,
+    "productionDeploy": false
+  }
+}
