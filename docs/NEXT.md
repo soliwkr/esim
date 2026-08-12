@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **12 agosto 2026**.
 
-## Gate corrente — R2 evidence provisioning readiness
+## Gate corrente — approved raw evidence availability
 
 Checkpoint chiusi:
 
@@ -13,25 +13,29 @@ local/fixture importer                ✅
 remote 0021                           ✅
 durable artifact storage contract     ✅
 native R2 Bucket Lock contract        ✅
+remote R2 read-only preflight          ✅
+remote R2 provisioning                 ✅
 ```
 
 Production evidence upstream resta vuoto: nessun pack è stato ancora ingerito.
 
-## Provisioning gate in chiusura
+## R2 production state
 
-Target reale:
+Target:
 
 ```text
 senza-roaming-evidence-artifacts
 ```
 
-Logical store:
+Provisioning verificato:
 
 ```text
-evidence-artifacts
+run: 31600420207
+mutation: created_bucket_and_set_lock
+verified: true
 ```
 
-Contratto remoto richiesto:
+Stato finale:
 
 ```text
 jurisdiction: default
@@ -51,132 +55,19 @@ enabled:   true
 condition: Indefinite
 ```
 
-Tooling:
+Nessun evidence object è stato caricato durante il provisioning.
+
+Risultato canonico:
 
 ```text
-research/evidence/r2-provisioning-policy.json
-scripts/evidence-r2-provisioning-gate.mjs
-scripts/smoke-evidence-r2-provisioning-gate.mjs
-.github/workflows/evidence-r2-provisioning.yml
-docs/research/EVIDENCE-R2-PROVISIONING-GATE.md
+docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
 ```
 
-Il workflow è manual-only e separa esplicitamente lettura e mutation:
+## Blocker immediato — bundle raw Italy/Europe
 
-```text
-operation = preflight | provision
-expected_main_sha = <exact current main SHA>
+I bundle raw originari #106/#107 non sono presenti nel repository o negli artifact CI storici.
 
-preflight → confirmation vuota
-provision → confirmation = PROVISION_EVIDENCE_R2
-```
-
-Un run `preflight` non può eseguire gli step condizionati di provisioning.
-
-### Invarianti
-
-Bucket assente:
-
-```text
-read-only preflight
-→ create eligible
-```
-
-Bucket già exact-compatible:
-
-```text
-read-only preflight
-→ already provisioned
-→ zero mutation
-```
-
-Bucket già esistente ma driftato:
-
-```text
-read-only preflight
-→ BLOCK
-→ zero repair mutation
-```
-
-Drift bloccanti:
-
-- `r2.dev` enabled;
-- custom domain presente;
-- jurisdiction/storage class diversa;
-- native lock mancante, extra o diversa;
-- lifecycle delete che si sovrappone a `v1/`.
-
-Create path consentito soltanto da `operation=provision` separatamente autorizzata:
-
-```text
-POST bucket
-→ read-only pre-lock verification
-→ PUT exact native Bucket Lock
-→ read-only final verification
-```
-
-Non appartengono al provisioning gate:
-
-```text
-object upload
-DELETE
-managed-domain mutation
-custom-domain mutation
-lifecycle mutation
-D1 mutation
-controlled ingest
-deploy
-```
-
-## Passo immediatamente successivo al merge
-
-Eseguire **soltanto un preflight remoto read-only** del target R2:
-
-```text
-operation = preflight
-expected_main_sha = exact current main SHA
-confirmation = <empty>
-```
-
-Obiettivo:
-
-```text
-bucket absent
-OR exact-compatible
-OR blocked-existing-state
-```
-
-Questo read non autorizza mutation.
-
-### Se il bucket è assente
-
-Fermarsi e richiedere autorizzazione esplicita per:
-
-```text
-operation = provision
-confirmation = PROVISION_EVIDENCE_R2
-
-create private Standard/default bucket
-→ verify r2.dev disabled
-→ verify zero custom domains
-→ verify zero protected lifecycle deletes
-→ set exact Indefinite lock on v1/
-→ read-only final verify
-```
-
-### Se è già compatible
-
-Nessuna create/config mutation è necessaria. Documentare il target e passare al gate artifact availability.
-
-### Se è driftato
-
-Non riparare automaticamente. Documentare le differenze e aprire uno scope amministrativo separato.
-
-## Artifact availability blocker
-
-I bundle raw originari Italy/Europe #106/#107 non sono presenti nel repository o negli artifact CI storici.
-
-Recovery read-only:
+Recovery già tentata:
 
 ```text
 run: 31313829528
@@ -187,26 +78,33 @@ remote mutation: none
 
 Sono ammessi soltanto due percorsi:
 
+### A. Recupero degli originali
+
 ```text
-A. recuperare i bundle originali
+recover original approved bundle
+→ verify exact raw identities
+→ stage in locked R2
 ```
 
-oppure:
+### B. Replacement capture
 
 ```text
-B. nuova cattura completa
+new complete capture
 → raw review
 → semantic comparison
 → explicit replacement approval
+→ stage in locked R2
 ```
+
+Una nuova capture non diventa automaticamente approved soltanto perché conserva lo stesso semantic fingerprint.
 
 Nessun diagnostic parziale viene promosso a raw evidence.
 
-## Gate dopo storage + artifact availability
+## Gate dopo approved raw availability
 
 ```text
 stage exact pack + raw bytes in locked R2
-→ verify artifact_ref/hash/size
+→ verify object key / sha256 / byte length / artifact_ref
 → read-only D1 preflight
 → source resolution 9/9
 → idempotency/drift preflight
@@ -231,8 +129,6 @@ plans
 claim_verifications
 published_pages
 ```
-
-Nessun ranking, canonical cutover, affiliate activation o deploy nello stesso gate.
 
 ## Verification provenance bridge
 
@@ -275,10 +171,9 @@ production source onboarding      ✅
 local importer                     ✅
 remote 0021                        ✅
 artifact storage contract          ✅
-R2 provisioning gate               ← current
-→ remote R2 read-only preflight
-→ if needed: separately authorized R2 provisioning
-→ approved raw pack availability
+R2 provisioning                    ✅
+→ approved raw pack availability  ← current
+→ locked artifact staging
 → controlled evidence ingest
 → verification provenance
 → bounded verified facts
@@ -291,12 +186,10 @@ R2 provisioning gate               ← current
 
 ## Freeze
 
-- niente R2 mutation prima di autorizzazione esplicita quando necessaria;
-- niente upload evidence nello stesso provisioning run;
-- niente auto-repair di bucket driftati;
-- niente controlled ingest senza locked/resolvable raw artifacts;
+- niente evidence upload senza approved raw bundle;
 - niente ricostruzione dei pack storici dalla documentazione;
 - niente replacement capture approvata implicitamente;
+- niente controlled ingest senza locked/resolvable raw artifacts;
 - niente claim verification automatica;
 - niente source auto-registration;
 - niente metadata overwrite;
