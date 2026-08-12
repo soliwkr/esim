@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **9 agosto 2026**.
+Ultimo aggiornamento: **12 agosto 2026**.
 
 ## Principi non negoziabili
 
@@ -30,7 +30,7 @@ Ultimo aggiornamento: **9 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; Truth Engine al gate R2 provisioning/preflight.
+**Stato:** demand intelligence completata; First Money UI in preview; storage Truth Engine production provisionato; gate corrente = approved raw evidence availability.
 
 Completati:
 
@@ -40,7 +40,13 @@ Completati:
 - GSC exporter read-only;
 - First Euro demand intelligence;
 - priorità #1 `/migliore-esim`, #2 `/esim-europa`;
-- First Money UI preview con evidence slot non materializzati.
+- First Money UI preview con evidence slot non materializzati;
+- source reconciliation e production onboarding 9/9;
+- evidence importer local/fixture;
+- upstream D1 `0021` applicato in produzione;
+- durable artifact contract;
+- native R2 Bucket Lock contract;
+- R2 production target provisionato e verificato.
 
 Preview:
 
@@ -73,6 +79,9 @@ run 31260773468 remote 0021 apply + verification
 #126 remote 0021 closeout
 #127 durable artifact storage foundation
 #128 native R2 Bucket Lock correction
+#129 fail-closed R2 provisioning gate
+run 31588635704 remote R2 read-only preflight
+run 31600420207 R2 create + exact Bucket Lock + verification
 ```
 
 ### Production source state
@@ -97,18 +106,7 @@ triggers:         9
 
 Nessun approved evidence pack è ancora stato importato in production.
 
-### Importer local/fixture
-
-Verificato:
-
-```text
-first import: 2 runs / 12 snapshots / 18 observations / 8 candidates
-exact rerun:  0 / 0 / 0 / 0
-```
-
-Fail-closed su source resolution, artifact identity, candidate identity ed existing-key drift. Nessun FX, auto-registration, claim verification o publication.
-
-### Durable artifact contract
+### Durable artifact storage — production verified
 
 Logical store:
 
@@ -122,23 +120,15 @@ R2 target:
 senza-roaming-evidence-artifacts
 ```
 
-Content addressing:
+Production state verificato il 12 agosto 2026:
 
 ```text
-raw:  v1/raw/sha256/<prefix>/<digest>.<ext>
-pack: v1/packs/sha256/<prefix>/<digest>.json
-ref:  r2://evidence-artifacts/<object-key>
-```
-
-Production storage contract:
-
-```text
-private
-jurisdiction default
-Standard storage class
-r2.dev disabled
-custom domains 0
-no lifecycle delete overlapping v1/
+exists: true
+jurisdiction: default
+storage class: Standard
+r2.dev: disabled
+custom domains: 0
+protected lifecycle deletes: 0
 ```
 
 Native lock:
@@ -150,61 +140,27 @@ enabled:   true
 condition: Indefinite
 ```
 
+Content addressing:
+
+```text
+raw:  v1/raw/sha256/<prefix>/<digest>.<ext>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
+```
+
 Non viene dichiarato legal hold/WORM irrevocabile: la configurazione amministrativa R2 resta modificabile da un attore privilegiato.
 
-### Gate corrente — provisioning readiness
-
-Il repository prepara un gate manual-only:
+Result document:
 
 ```text
-workflow_dispatch
-+ exact main SHA
-+ confirmation PROVISION_EVIDENCE_R2
+docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
 ```
 
-Preflight:
-
-```text
-absent target
-→ create eligible
-
-existing exact-compatible
-→ read-only no-op
-
-existing drifted
-→ fail closed, zero repair mutation
-```
-
-Create path ammesso:
-
-```text
-POST bucket
-→ read-only verify
-→ PUT exact Bucket Lock
-→ read-only final verify
-```
-
-Nello stesso gate sono vietati object upload, delete, domain/lifecycle mutation, D1 write e deploy.
-
-### Gate immediatamente successivo
-
-Dopo merge del provisioning tooling:
-
-```text
-remote R2 read-only preflight
-```
-
-Se il target è assente, la create/config mutation richiede autorizzazione esplicita separata.
-
-Se il target è già compatible, non serve mutation di provisioning.
-
-Se è driftato, niente auto-repair: aprire scope amministrativo separato.
-
-### Historical pack availability
+### Gate corrente — approved raw evidence availability
 
 I bundle raw originari Italy/Europe #106/#107 non risultano recuperabili dal repository o dagli artifact CI storici.
 
-Recovery read-only:
+Recovery read-only precedente:
 
 ```text
 run 31313829528
@@ -216,7 +172,7 @@ remote mutation: none
 Sono ammessi soltanto:
 
 ```text
-original bundle recovery
+original approved bundle recovery
 ```
 
 oppure:
@@ -228,9 +184,11 @@ new complete capture
 → explicit replacement approval
 ```
 
+Una replacement capture non viene approvata implicitamente dal solo semantic fingerprint.
+
 ### Controlled evidence ingest
 
-Solo dopo storage + approved raw bundle availability:
+Solo dopo approved raw bundle availability:
 
 ```text
 stage exact pack/raw artifacts in locked R2
@@ -288,9 +246,9 @@ source gate 9/9 ✅
 local importer ✅
 remote 0021 ✅
 artifact contract ✅
-R2 provisioning gate ← current
-→ R2 preflight/provisioning
+R2 provisioning ✅
 → approved raw pack availability
+→ locked artifact staging
 → controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
@@ -334,8 +292,8 @@ source reconciliation ✅
 → local importer ✅
 → remote 0021 ✅
 → durable artifact contract ✅
-→ R2 provisioning/preflight
-→ approved raw artifacts
+→ R2 provisioning ✅
+→ approved raw artifacts ← current
 → controlled ingest
 → verification provenance
 → money-page facts
@@ -353,8 +311,7 @@ M4 mutation residue
 
 Non fare senza gate esplicito:
 
-- R2 create/config mutation;
-- evidence object upload;
+- evidence object upload senza approved raw bundle;
 - controlled D1 ingest;
 - replacement capture approval;
 - automatic claim verification;
