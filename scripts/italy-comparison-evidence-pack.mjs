@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { extractUbigiPlanCandidates } from './evidence-snapshot-spike.mjs';
 
 export const PACK_SCHEMA_VERSION = 1;
-export const PACK_EXTRACTOR_VERSION = '1.0.3';
+export const PACK_EXTRACTOR_VERSION = '1.0.4';
 export const MAX_RESPONSE_BYTES = 2_500_000;
 export const MAX_REDIRECTS = 5;
 export const MAX_CAPTURE_WINDOW_MS = 10 * 60 * 1000;
@@ -183,6 +183,14 @@ function parseEur(value) {
   return { amount: parseDecimal(match[1]), currency: 'EUR' };
 }
 
+function parseSourcePrice(value) {
+  const eur = value.match(/(\d+(?:[.,]\d{1,2})?)\s*€(?:\s*EUR)?/i);
+  if (eur) return { amount: parseDecimal(eur[1]), currency: 'EUR' };
+  const usd = value.match(/(?:US)?\$\s*(\d+(?:[.,]\d{1,2})?)(?:\s*USD)?/i);
+  if (usd) return { amount: parseDecimal(usd[1]), currency: 'USD' };
+  throw new Error(`Unable to parse source-native price: ${value}`);
+}
+
 function findMatch(text, pattern, label) {
   const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
   const matches = [...text.matchAll(new RegExp(pattern.source, flags))];
@@ -332,12 +340,12 @@ export function extractAiralo(snapshots) {
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'destination_coverage', rawValue: scopeRaw, normalizedValue: { countries: ['IT'], scope: 'local' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, scopeMatch, scopeRaw))], observedAt }));
   coverage.destination_coverage = observedField();
 
-  const row = findMatch(plan.visibleText, /(10\s+(?:giorni|days))\s+(?:Illimitato|Unlimited)\s+GB\s+(\d+(?:[.,]\d{1,2})\s*€(?:\s*EUR)?)/i, 'Airalo 10-day unlimited row');
+  const row = findMatch(plan.visibleText, /(10\s+(?:giorni|days))\s+(?:Illimitato|Unlimited)\s+GB\s+((?:\d+(?:[.,]\d{1,2})\s*€(?:\s*EUR)?)|(?:(?:US)?\$\s*\d+(?:[.,]\d{1,2})(?:\s*USD)?))/i, 'Airalo 10-day unlimited row');
   const validityRaw = row[1];
   const priceRaw = row[2];
   const unlimitedRaw = row[0].match(/(?:Illimitato|Unlimited)\s+GB/i)[0];
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'validity_days', rawValue: validityRaw, normalizedValue: { duration: 10, unit: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, validityRaw))], observedAt }));
-  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'price', rawValue: priceRaw, normalizedValue: parseEur(priceRaw), evidence: [evidenceRef(plan, locatorFromMatch(plan, row, priceRaw))], observedAt, warnings: ['source_currency_preserved'] }));
+  candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'price', rawValue: priceRaw, normalizedValue: parseSourcePrice(priceRaw), evidence: [evidenceRef(plan, locatorFromMatch(plan, row, priceRaw))], observedAt, warnings: ['source_currency_preserved'] }));
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'unlimited_policy', rawValue: unlimitedRaw, normalizedValue: { unlimitedLabel: true }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, unlimitedRaw))], observedAt }));
   coverage.validity_days = observedField();
   coverage.price = observedField();
