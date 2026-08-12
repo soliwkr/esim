@@ -47,10 +47,11 @@ const FIXTURES = Object.freeze({
   </body></html>`,
 });
 
-function buildSnapshots({ holaflyPrice = '46,90 €EUR', noise = '', sparseUbigiNetworks = false } = {}) {
+function buildSnapshots({ airaloPrice = '44.50 €', holaflyPrice = '46,90 €EUR', noise = '', sparseUbigiNetworks = false } = {}) {
   const snapshots = new Map();
   for (const [index, source] of SOURCE_CONFIG.entries()) {
     let html = FIXTURES[source.key];
+    if (source.key === 'airalo-europe-plan') html = html.replace('44.50 €', airaloPrice);
     if (source.key === 'holafly-europe-plan') html = html.replace('46,90 €EUR', holaflyPrice);
     if (source.key === 'airalo-europe-plan' && noise) html = html.replace('</body>', `<footer>${noise}</footer></body>`);
     if (source.key === 'ubigi-europe-plan' && sparseUbigiNetworks) {
@@ -71,7 +72,7 @@ function buildSnapshots({ holaflyPrice = '46,90 €EUR', noise = '', sparseUbigi
 
 const firstSnapshots = buildSnapshots();
 const first = buildComparisonPack({ snapshots: firstSnapshots, startedAt: STARTED_AT, completedAt: COMPLETED_AT });
-assert.equal(PACK_EXTRACTOR_VERSION, '1.0.1');
+assert.equal(PACK_EXTRACTOR_VERSION, '1.0.2');
 assert.equal(first.scenario.id, SCENARIO.id);
 assert.equal(first.scenario.tripDays, 14);
 assert.deepEqual(first.scenario.countries, ['IT', 'FR', 'ES']);
@@ -94,7 +95,18 @@ assert.deepEqual(candidate('airalo', 'unlimited_policy').normalizedValue, { unli
 assert.equal(byProvider.get('airalo').coverage.destination_coverage.state, 'partial');
 assert.equal(byProvider.get('airalo').coverage.activation_policy.state, 'unknown');
 assert.equal(candidate('airalo', 'activation_policy'), undefined);
-assert.equal(candidate('airalo', 'price').extractorVersion, '1.0.1');
+assert.equal(candidate('airalo', 'price').extractorVersion, '1.0.2');
+
+const currentAiraloUsd = buildComparisonPack({ snapshots: buildSnapshots({ airaloPrice: '$49.00 USD' }), startedAt: STARTED_AT, completedAt: COMPLETED_AT });
+const currentAiraloOffer = currentAiraloUsd.offers.find((offer) => offer.provider === 'airalo');
+const currentAiraloPrice = currentAiraloOffer.candidates.find((entry) => entry.fieldName === 'price');
+assert.deepEqual(currentAiraloPrice.normalizedValue, { amount: 49, currency: 'USD' });
+assert.equal(currentAiraloPrice.rawValue, '$49.00 USD');
+assert.equal(currentAiraloOffer.candidates.every((entry) => entry.status === 'pending'), true);
+assert.equal(currentAiraloUsd.ranking.status, 'not_computed');
+const currentAiraloChanges = packSemanticDiff(first, currentAiraloUsd);
+assert.equal(currentAiraloChanges.length, 1);
+assert.equal(currentAiraloChanges[0].provider, 'airalo');
 
 assert.deepEqual(candidate('holafly', 'price').normalizedValue, { amount: 46.9, currency: 'EUR' });
 assert.deepEqual(candidate('holafly', 'validity_days').normalizedValue, { duration: 15, unit: 'day' });
