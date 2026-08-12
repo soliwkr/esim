@@ -14,7 +14,7 @@ import {
 } from './italy-comparison-evidence-pack.mjs';
 
 export const PACK_SCHEMA_VERSION = 1;
-export const PACK_EXTRACTOR_VERSION = '1.0.1';
+export const PACK_EXTRACTOR_VERSION = '1.0.2';
 
 export const SCENARIO = Object.freeze({
   id: 'europe-14d-multicountry-high-data-hotspot',
@@ -341,7 +341,7 @@ function extractAiralo(snapshots) {
 
   const row = findFirstMatch(
     plan.visibleText,
-    /(15\s+days)\s+(Unlimited\s+GB)\s+(\d+(?:[.,]\d{1,2})?\s*€(?:\s*EUR)?)/i,
+    /(15\s+days)\s+(Unlimited\s+GB)\s+((?:\d+(?:[.,]\d{1,2})?\s*€(?:\s*EUR)?)|(?:(?:US)?\$\s*\d+(?:[.,]\d{1,2})?(?:\s*USD)?))/i,
     'Airalo 15-day unlimited price row',
   );
   candidates.push(buildCandidate({ provider: 'airalo', offerKey, fieldName: 'validity_days', rawValue: row[1], normalizedValue: { duration: 15, unit: 'day' }, evidence: [evidenceRef(plan, locatorFromMatch(plan, row, row[1]))], observedAt, warnings: ['selected_observed_store_row_covers_14_day_scenario'] }));
