@@ -75,6 +75,33 @@ La ZIP contiene esattamente **15 file**:
 
 Per ciascun pack sono presenti esattamente sei raw source artifact.
 
+### Retention / expiry gate
+
+GitHub Actions è, in questa fase, l'unica retention verificata dei byte esatti della candidate. L'artifact ha quindi una disponibilità temporale esplicita e non viene trattato come durable production storage prima dello staging R2.
+
+Regola fail-closed:
+
+```text
+artifact disponibile
+→ candidate può essere approvata
+→ staging R2 richiede comunque authorization separata
+
+artifact scaduto / non più scaricabile
+→ candidate non è più approvabile o stageable dai byte registrati
+→ NON ricostruire dai documenti
+→ nuova complete capture
+→ nuova raw/provenance review
+→ nuova explicit replacement approval
+```
+
+La scadenza attuale è:
+
+```text
+2026-09-11T17:41:12Z
+```
+
+Un'approval registrata dopo la perdita dell'artifact non rende magicamente disponibili i byte e non autorizza una ricostruzione. Prima di ogni approval o staging va quindi ricontrollata l'effettiva disponibilità dell'artifact `9152309259` e il digest ZIP.
+
 ## Raw integrity review
 
 Verifiche effettuate sui 12 raw HTML:
@@ -327,7 +354,15 @@ replacement approval: NO
 
 ## Gate successivo
 
-La coppia è **ready for explicit replacement approval**, ma non ancora approved.
+La coppia è **ready for explicit replacement approval** soltanto mentre l'artifact esatto resta disponibile e verificabile.
+
+Prima dell'approvazione vanno riconfermati:
+
+```text
+artifact id: 9152309259
+expired: false
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+```
 
 L'approvazione deve riferirsi esattamente a:
 
@@ -340,5 +375,13 @@ Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e29
 ```
 
 Soltanto dopo l'approvazione replacement si può aprire un **nuovo gate separato** per lo staging create-only dei byte esatti nel bucket R2 locked.
+
+Se l'artifact è scaduto o non più scaricabile, questo gate torna a:
+
+```text
+new complete capture
+→ raw/provenance review
+→ explicit replacement approval
+```
 
 Replacement approval non equivale ad autorizzazione R2 upload, controlled D1 ingest, claim verification, publication, affiliate activation o deploy.
