@@ -5,34 +5,32 @@ Ultimo aggiornamento: **9 agosto 2026**.
 ## Principi non negoziabili
 
 1. L'AI non pubblica direttamente.
-2. Brief, claim, readiness, draft, materializzazione e pubblicazione sono gate distinti.
-3. I fatti commerciali richiedono fonti identificabili e data di verifica.
+2. Brief, claim, verification, readiness, draft, materializzazione e pubblicazione sono gate distinti.
+3. I fatti commerciali richiedono source identity, raw evidence e data di verifica.
 4. Claim insufficienti, contraddetti o scaduti non alimentano testo fattuale.
 5. `partial` e `unknown` restano stati reali.
 6. Il browser non accede direttamente a D1.
-7. Ogni mutation richiede identità verificata, audit e test.
-8. Astro è il frontend pubblico; React resta nelle island interattive.
+7. Ogni mutation production richiede identità, scope, audit e test.
+8. Astro è il frontend pubblico; React resta nelle island realmente interattive.
 9. Preview, release candidate e published restano distinti.
 10. Tracking non essenziale soltanto con il consenso previsto.
 11. GitHub è la memoria canonica.
 12. Domanda SEO e monetizzazione non autorizzano claim senza evidence.
-13. Evidence production non è completa se il raw artifact referenziato non è persistente, risolvibile e protetto dal contratto di retention previsto.
+13. Evidence production richiede raw artifact persistenti, risolvibili e protetti dal retention contract canonico.
 
 ## M0–M6
 
-- **M0 Fondazioni tecniche:** completato salvo checkpoint `www → apex`.
+- **M0 Fondazioni tecniche:** completato salvo checkpoint `www → apex` definitivo.
 - **M1 Qualità e osservabilità:** quality gate operativo.
 - **M2 Motore AI editoriale:** nucleo v1 operativo.
 - **M3 Readiness e draft grounded:** completato e verificato.
 - **M4 Control Room:** read-only completo; mutation residue aperte.
-- **M5 Frontend pubblico Astro:** completato e verificato live.
+- **M5 Frontend pubblico Astro:** completato e live.
 - **M6 Misurazione e indicizzazione:** CMP, GTM, GA4 e GSC live; Ads e affiliate tracking disabilitati.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI pronta come preview; Truth Engine al gate durable locked artifact provenance prima del controlled ingest.
-
-### SEO e demand
+**Stato:** demand intelligence completata; First Money UI in preview; Truth Engine al gate R2 provisioning/preflight.
 
 Completati:
 
@@ -41,11 +39,8 @@ Completati:
 - homepage, hub e `/migliore-esim` riallineati;
 - GSC exporter read-only;
 - First Euro demand intelligence;
-- priorità #1 `/migliore-esim`, #2 `/esim-europa`.
-
-### First Money UI
-
-PR #117 mergiata.
+- priorità #1 `/migliore-esim`, #2 `/esim-europa`;
+- First Money UI preview con evidence slot non materializzati.
 
 Preview:
 
@@ -53,9 +48,7 @@ Preview:
 /astro-foundation/articoli/migliore-esim
 ```
 
-Canonical `/migliore-esim` invariata.
-
-La preview è noindex/no-store e non contiene `/go/*`, ranking universali, claim non verificati, publication mutation o deploy.
+Canonical `/migliore-esim` resta invariata.
 
 ## Evidence Truth Engine
 
@@ -74,12 +67,12 @@ La preview è noindex/no-store e non contiene `/go/*`, ranking universali, claim
 #121 target source_registry verification
 #122 local source onboarding gate
 run 31205724615 production source onboarding 9/9
-#124 idempotent evidence importer local/fixture
+#124 idempotent local/fixture evidence importer
 #125 explicit remote 0021 migration gate
-run 31260773468 remote 0021 apply + schema verification
-#126 remote 0021 canonical closeout
-CI #660 post-merge main green
+run 31260773468 remote 0021 apply + verification
+#126 remote 0021 closeout
 #127 durable artifact storage foundation
+#128 native R2 Bucket Lock correction
 ```
 
 ### Production source state
@@ -92,6 +85,18 @@ missing:             0
 ambiguous:           0
 ```
 
+### Production upstream D1
+
+```text
+latest migration: 0021_evidence_upstream_storage.sql
+migrations:       21
+upstream tables:  4
+indexes:          7
+triggers:         9
+```
+
+Nessun approved evidence pack è ancora stato importato in production.
+
 ### Importer local/fixture
 
 Verificato:
@@ -101,58 +106,42 @@ first import: 2 runs / 12 snapshots / 18 observations / 8 candidates
 exact rerun:  0 / 0 / 0 / 0
 ```
 
-Fail-closed su source resolution, artifact hash, candidate content-address, existing-key drift e partial state. Nessun FX implicito, auto-registration, claim write o publication.
+Fail-closed su source resolution, artifact identity, candidate identity ed existing-key drift. Nessun FX, auto-registration, claim verification o publication.
 
-### Upstream schema production
+### Durable artifact contract
 
-Remote D1 è allineato a:
-
-```text
-0021_evidence_upstream_storage.sql
-```
-
-Run `31260773468` ha verificato:
+Logical store:
 
 ```text
-preflight: 0001–0020 applicate, sole pending 0021
-post-apply: 21 migration
-             4 tabelle
-             7 indici
-             9 trigger
+evidence-artifacts
 ```
 
-Documento:
+R2 target:
 
 ```text
-docs/research/EVIDENCE-REMOTE-0021-RESULT-2026-08-08.md
+senza-roaming-evidence-artifacts
 ```
 
-Nessun evidence pack è stato importato nello stesso gate.
-
-### Gate emerso — durable locked artifact provenance
-
-Il design #108 richiede che `evidence_snapshots.artifact_ref` sia risolvibile insieme al raw hash, ma non aveva ancora scelto lo storage persistente. I pack #106/#107 erano inoltre artifact locali ignorati da Git.
-
-PR #127 ha scelto Cloudflare R2 privato con content addressing. Una verifica successiva della documentazione Cloudflare corrente ha chiarito che, pur non essendo implementato S3 Object Lock nella API S3-compatible, R2 offre **Bucket Locks nativi** che possono impedire overwrite/delete anche indefinitamente.
-
-Contratto corretto:
+Content addressing:
 
 ```text
-private Cloudflare R2
-+ content-addressed SHA-256 keys
-+ create-only conditional writes
-+ native R2 Bucket Lock Indefinite su v1/
-+ no overwrite/delete nel percorso operativo
+raw:  v1/raw/sha256/<prefix>/<digest>.<ext>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
 ```
 
-Forma:
+Production storage contract:
 
 ```text
-raw:  r2://evidence-artifacts/v1/raw/sha256/<prefix>/<digest>.<ext>
-pack: r2://evidence-artifacts/v1/packs/sha256/<prefix>/<digest>.json
+private
+jurisdiction default
+Standard storage class
+r2.dev disabled
+custom domains 0
+no lifecycle delete overlapping v1/
 ```
 
-Lock canonica:
+Native lock:
 
 ```text
 id:        evidence-v1-indefinite
@@ -161,82 +150,123 @@ enabled:   true
 condition: Indefinite
 ```
 
-Il gate production deve inoltre richiedere:
+Non viene dichiarato legal hold/WORM irrevocabile: la configurazione amministrativa R2 resta modificabile da un attore privilegiato.
+
+### Gate corrente — provisioning readiness
+
+Il repository prepara un gate manual-only:
 
 ```text
-r2.dev disabled
-zero custom domains
+workflow_dispatch
++ exact main SHA
++ confirmation PROVISION_EVIDENCE_R2
 ```
 
-Non viene dichiarata equivalenza con legal hold/WORM irrevocabile: un amministratore Cloudflare autorizzato può modificare la configurazione della lock rule.
-
-Questa fase resta locale/design-only finché non viene autorizzato il provisioning remoto del bucket.
-
-Documento:
+Preflight:
 
 ```text
-docs/research/EVIDENCE-ARTIFACT-STORAGE.md
+absent target
+→ create eligible
+
+existing exact-compatible
+→ read-only no-op
+
+existing drifted
+→ fail closed, zero repair mutation
 ```
 
-### Artifact recovery
+Create path ammesso:
 
-I bundle originali `pack.json + sources/` Italia/Europa non risultano presenti nel repository o negli artifact CI storici.
+```text
+POST bucket
+→ read-only verify
+→ PUT exact Bucket Lock
+→ read-only final verify
+```
 
-Recovery read-only tentato il 9 agosto 2026:
+Nello stesso gate sono vietati object upload, delete, domain/lifecycle mutation, D1 write e deploy.
+
+### Gate immediatamente successivo
+
+Dopo merge del provisioning tooling:
+
+```text
+remote R2 read-only preflight
+```
+
+Se il target è assente, la create/config mutation richiede autorizzazione esplicita separata.
+
+Se il target è già compatible, non serve mutation di provisioning.
+
+Se è driftato, niente auto-repair: aprire scope amministrativo separato.
+
+### Historical pack availability
+
+I bundle raw originari Italy/Europe #106/#107 non risultano recuperabili dal repository o dagli artifact CI storici.
+
+Recovery read-only:
 
 ```text
 run 31313829528
-Italy: ubigi-italy-plan HTTP 403
-complete recovery artifact: none
-D1 mutation: none
+Ubigi Italy: HTTP 403
+complete pack: none
+remote mutation: none
 ```
 
-Il 403 non viene bypassato con scraping alternativo. Un nuovo pack con raw identity differente non è automaticamente approvato anche se il semantic fingerprint storico coincide.
-
-Documento:
+Sono ammessi soltanto:
 
 ```text
-docs/research/EVIDENCE-PACK-RECOVERY-RESULT-2026-08-09.md
+original bundle recovery
 ```
 
-### Gate corrente
+oppure:
 
 ```text
-correct native-bucket-lock contract CI
-→ explicit remote R2 provisioning authorization
-→ create/verify private bucket
-→ disable/verify r2.dev + zero custom domains
-→ install/verify indefinite native bucket lock on v1/
-→ recover original Italy/Europe bundles OR approve replacement captures
-→ stage exact pack + raw bytes in R2
+new complete capture
+→ raw review
+→ semantic comparison
+→ explicit replacement approval
 ```
 
-### Gate successivo — controlled evidence ingest
+### Controlled evidence ingest
 
-Solo dopo artifact provenance completa:
+Solo dopo storage + approved raw bundle availability:
 
 ```text
-approved Italy + Europe packs
-→ read-only remote D1 preflight
+stage exact pack/raw artifacts in locked R2
+→ verify artifact_ref/hash/size
+→ D1 read-only preflight
 → source resolution 9/9
-→ verify exact R2 lock/provenance
-→ artifact/candidate identity verification
-→ atomic bounded D1 ingest
+→ idempotency/drift preflight
+→ separately authorized atomic bounded ingest
 → deterministic post-ingest audit
 ```
 
-Non deve scrivere `claim_verifications`, `plans` o altre tabelle fuori dalle quattro upstream evidence tables. Nessun ranking, publication, canonical cutover, affiliate activation o deploy.
-
-### Gate successivi
+Write target esclusivi:
 
 ```text
-controlled evidence ingest
-→ verification provenance bridge
-→ bounded verified commercial facts
-→ First Money UI materialization
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
+evidence_claim_candidates
 ```
 
-Un evidence candidate non equivale a un claim verificato.
+Nessun write in `source_registry`, `plans`, `claim_verifications` o published state.
+
+### Verification provenance
+
+Dopo ingest:
+
+```text
+pending evidence candidate
+→ verification decision
+→ verified / contradicted / expired
+→ evidence bundle
+→ Page Readiness
+→ grounded materialization
+```
+
+Un evidence candidate non equivale a un verified claim.
 
 ## M8 — Monetizzazione controllata
 
@@ -251,13 +281,16 @@ first verified money page
 → first euro
 ```
 
-Percorso:
+Percorso corrente:
 
 ```text
 source gate 9/9 ✅
 local importer ✅
 remote 0021 ✅
-→ durable locked artifact provenance
+artifact contract ✅
+R2 provisioning gate ← current
+→ R2 preflight/provisioning
+→ approved raw pack availability
 → controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
@@ -266,7 +299,7 @@ remote 0021 ✅
 → first affiliate click
 ```
 
-Prima di `AFFILIATE_MODE=enabled` servono facts verified/fresh, account affiliate approvato, redirect `/go/*`, disclosure, measurement design, privacy recheck, secret fuori repo, change esplicito e live smoke.
+Prima di `AFFILIATE_MODE=enabled` servono facts verified/fresh, affiliate approval, `/go/*`, disclosure, measurement design, privacy recheck, secret fuori repo, change esplicito e live smoke.
 
 ## M9 — Crescita e manutenzione
 
@@ -279,7 +312,7 @@ Dopo la prima vertical slice misurata:
 - expansion basata su impressions, click e revenue;
 - pSEO soltanto dopo prova di qualità.
 
-## Ordine operativo corrente
+## Track operativi
 
 ### Track A — Traffic & Money
 
@@ -297,13 +330,15 @@ First Money preview
 
 ```text
 source reconciliation ✅
-→ production onboarding 9/9 ✅
+→ onboarding 9/9 ✅
 → local importer ✅
 → remote 0021 ✅
-→ durable locked artifact provenance
+→ durable artifact contract ✅
+→ R2 provisioning/preflight
+→ approved raw artifacts
 → controlled ingest
 → verification provenance
-→ facts per First Money UI
+→ money-page facts
 ```
 
 ### Track C — Operations
@@ -316,22 +351,20 @@ M4 mutation residue
 
 ## Stop conditions
 
-Non fare adesso:
+Non fare senza gate esplicito:
 
-- provisioning R2 remoto senza autorizzazione separata;
-- artifact production senza native Bucket Lock canonica;
-- controlled ingest con artifact effimeri/non risolvibili;
-- ricostruzione dei pack storici da documentazione o diagnostici parziali;
-- replacement capture promossa implicitamente ad approved pack;
-- claim verification automatica;
-- mass pSEO;
-- terzo scenario evidence senza blocker strutturale;
-- ranking/provider winner universale;
-- affiliate activation senza disclosure/evidence/measurement;
-- deploy automatico;
-- social publishing autonomo;
+- R2 create/config mutation;
+- evidence object upload;
+- controlled D1 ingest;
+- replacement capture approval;
+- automatic claim verification;
+- `review → published`;
+- affiliate activation;
+- production deploy;
 - FX implicito;
-- claim performance da community anecdotes.
+- source auto-registration;
+- provider winner universale;
+- mass pSEO prima della prima vertical slice misurata.
 
 Il valore resta misurabile come:
 

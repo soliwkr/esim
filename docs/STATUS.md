@@ -2,69 +2,53 @@
 
 Data di riferimento: **9 agosto 2026**.
 
+Questo documento fotografa lo stato operativo reale. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato.
+
 ## Stato sintetico
 
 | Area | Stato | Nota |
 |---|---|---|
 | Dominio principale | Operativo | `https://senzaroaming.it` serve Astro |
 | Dominio `www` | Da ricontrollare | redirect implementato; checkpoint definitivo aperto |
-| Worker | Operativo | deploy production manual-only |
+| Worker | Operativo | custom Worker; deploy production manual-only |
 | D1 remoto | Operativo fino a `0021` | upstream evidence schema applicato e verificato |
 | Ciclo editoriale | Operativo fino al draft approvato | nessuna pubblicazione autonoma |
 | Control Room | Operativa | read-only completo + prime mutation; legacy ancora fallback |
-| Frontend pubblico Astro | Live | homepage, hub, trust pages, routing published-only |
+| Frontend pubblico Astro | Live | homepage, hub, trust pages, published-only routing |
 | M7 SEO foundation | Live | ownership e on-page baseline applicate |
 | First Money UI | Preview mergiata | canonical `/migliore-esim` invariata |
-| Evidence packs | Storicamente verificati live | Italy + Europe; raw bundle originali non versionati |
+| Evidence packs | Storicamente verificati live | Italy + Europe; bundle raw originali non versionati |
 | Source registry | Production-ready | 15 righe; 9/9 identity risolte |
 | Evidence importer | Local/fixture verificato | idempotente e fail-closed |
-| Upstream evidence schema | Production-ready | `0021` applicata; 4 tabelle, 7 indici, 9 trigger |
-| Evidence artifact storage | Design/local gate | R2 privato, content-addressed + native Bucket Lock richiesto; provisioning remoto non autorizzato |
-| Controlled evidence ingest | Bloccato | richiede R2 verificato + bundle raw approvati |
+| Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
+| Evidence artifact storage | Provisioning gate in preparazione | R2 privato, content-addressed + Bucket Lock canonica |
+| R2 production target | Stato remoto non ancora preflighted | nessuna mutation R2 eseguita dal progetto in questa fase |
+| Controlled evidence ingest | Bloccato | richiede storage verificato + bundle raw approvati |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
-## Stato commerciale pubblico
+## Frontend pubblico e monetizzazione
 
 Il sito è live e indicizzabile, ma non ancora money-ready:
 
 - `/migliore-esim` canonica resta provider-neutral;
-- la First Money UI vive nella preview noindex/no-store `/astro-foundation/articoli/migliore-esim`;
-- nessun `/go/*`, provider winner o claim commerciale non verificato è live;
-- affiliate tracking resta disabilitato;
-- gli evidence slot non sono ancora materializzati.
+- First Money UI disponibile come preview noindex/no-store `/astro-foundation/articoli/migliore-esim`;
+- nessun `/go/*`, provider winner o claim commerciale non verificato nella preview;
+- affiliate tracking disabilitato;
+- nessun deploy money-ready eseguito.
 
-## Evidence supply chain
-
-Contratto:
+## Truth Engine — gate chiusi
 
 ```text
-source_registry
-→ durable locked raw artifact
-→ evidence_capture_runs
-→ evidence_snapshots
-→ evidence_field_observations
-→ pending evidence_claim_candidates
-→ verification / conflict / freshness
-→ evidence bundle
-→ Page Readiness
-→ grounded page
-→ publication gate separato
+source reconciliation                 ✅
+production source onboarding 9/9      ✅
+local/fixture evidence importer       ✅
+remote 0021 schema                    ✅
+durable artifact storage contract     ✅
+native R2 Bucket Lock contract        ✅
 ```
 
-Invarianti:
-
-- missing evidence non equivale a false;
-- `partial` e `unknown` restano stati reali;
-- nessun FX implicito;
-- hotspot allowed e share limit restano distinti;
-- ranking non appartiene al layer evidence;
-- un pending candidate non è un claim verificato;
-- `artifact_ref` deve essere risolvibile a raw bytes persistenti verificabili con `body_sha256`.
-
-## Source identity e onboarding — chiusi
-
-Production:
+Production source state:
 
 ```text
 source_registry rows: 15
@@ -72,18 +56,23 @@ manifest identities: 9
 resolved:            9
 missing:             0
 ambiguous:           0
-readyForImporter:    true
 ```
 
-Documento:
+Remote D1:
 
 ```text
-docs/research/EVIDENCE-SOURCE-REGISTRY-REMOTE-ONBOARDING-RESULT-2026-08-07.md
+latest migration: 0021_evidence_upstream_storage.sql
+migrations:       21
+upstream tables:  4
+indexes:          7
+triggers:         9
 ```
 
-## Importer local/fixture — chiuso
+Upstream production evidence rows non sono ancora state importate.
 
-PR #124 e CI #651 hanno verificato:
+## Importer local/fixture
+
+PR #124 ha verificato:
 
 ```text
 first import:
@@ -102,78 +91,49 @@ exact rerun:
 Guardrail:
 
 - source IDs risolti dall'ambiente;
-- artifact e candidate identity fail-closed;
+- artifact hash e candidate content-address fail-closed;
 - existing-key drift blocca;
-- `unknown|not_applicable` non producono candidate;
-- EUR/USD source-native preservati;
+- `unknown|not_applicable` non diventano candidate;
+- `partial` resta bounded;
+- EUR/USD restano source-native;
 - provenance multi-source preservata;
-- `source_registry`, `claim_verifications`, `plans` invariati;
-- remote CLI rifiutata.
+- nessun write in `plans` o `claim_verifications`;
+- nessun remote ingest implicito.
 
-Documento:
+## Durable evidence artifact architecture
 
-```text
-docs/research/EVIDENCE-PACK-IMPORTER-LOCAL-RESULT-2026-08-08.md
-```
-
-## Remote `0021` — chiusa
-
-Gate implementato con PR #125:
+Logical store:
 
 ```text
-CI #657: success
-merge: 1bc46e4a49fd0d50c1b4648083ea08a086033918
+evidence-artifacts
 ```
 
-Esecuzione remota:
+Target R2 reale:
 
 ```text
-workflow run: 31260773468
-preflight:    remote 0001–0020, sole pending 0021
-apply:        0021_evidence_upstream_storage.sql ✅
-post-verify:  21 migration, 4 tabelle, 7 indici, 9 trigger
+senza-roaming-evidence-artifacts
 ```
 
-PR #126 ha chiuso il checkpoint canonico; post-merge CI #660 è verde sul main `6fec173d438aa7e4d584acd8092b4f6e42470c4d`.
-
-Source registry ricontrollata 9/9 prima dell'apply.
-
-Nello stesso gate non sono stati eseguiti ingest, claim write, pubblicazione, affiliate activation o deploy.
-
-Documento:
+Content addressing:
 
 ```text
-docs/research/EVIDENCE-REMOTE-0021-RESULT-2026-08-08.md
+raw:  v1/raw/sha256/<prefix>/<digest>.<extension>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
 ```
 
-## Evidence artifact storage — fondazione mergiata, contratto lock corretto
-
-PR #127 ha introdotto la fondazione durable artifact storage e il relativo smoke local/CI. Merge:
+Production contract:
 
 ```text
-7640773bb8b5cae63ff7a7e9c9919cfbf03e4a5c
+private bucket
+jurisdiction: default
+storage class: Standard
+r2.dev: disabled
+custom domains: 0
+no lifecycle delete overlapping v1/
 ```
 
-Il mapping D1 richiede che `evidence_snapshots.artifact_ref` sia risolvibile insieme a `body_sha256`. I pack storici #106/#107 erano stati salvati come artifact locali create-only, ignorati da Git; il design #108 non aveva ancora scelto lo storage persistente.
-
-Contratto corretto:
-
-```text
-private Cloudflare R2
-+ content-addressed SHA-256 keys
-+ create-only conditional write
-+ native R2 Bucket Lock indefinito su v1/
-+ no overwrite/delete nel percorso operativo
-```
-
-Forma logica:
-
-```text
-raw:  r2://evidence-artifacts/v1/raw/sha256/<prefix>/<digest>.<ext>
-pack: r2://evidence-artifacts/v1/packs/sha256/<prefix>/<digest>.json
-```
-
-Cloudflare R2 non implementa S3 Object Lock nella API S3-compatible, ma offre Bucket Locks nativi che impediscono overwrite/delete finché la regola resta attiva. Il progetto richiede la regola canonica:
+Native Bucket Lock canonica:
 
 ```text
 id:        evidence-v1-indefinite
@@ -182,111 +142,128 @@ enabled:   true
 condition: Indefinite
 ```
 
-Non viene dichiarata equivalenza con legal hold/WORM irrevocabile: un amministratore Cloudflare autorizzato può modificare la configurazione della lock rule.
+Il progetto non dichiara legal hold/WORM irrevocabile: la configurazione amministrativa Cloudflare resta modificabile da un attore con privilegi sufficienti.
 
-Il provisioning remoto deve inoltre verificare:
+## R2 provisioning gate
 
-```text
-r2.dev:        disabled
-custom domains: 0
-bucket lock:   exact canonical rule
-```
-
-Nessun bucket, credential o oggetto remoto è stato creato finora.
-
-Documento:
+Il repository sta preparando un workflow manual-only e fail-closed:
 
 ```text
-docs/research/EVIDENCE-ARTIFACT-STORAGE.md
+.github/workflows/evidence-r2-provisioning.yml
 ```
 
-## Recovery dei pack storici — blocker reale
-
-I result Italia/Europa conservano pack ID e semantic fingerprint, ma i bundle completi `pack.json + sources/` non risultano recuperabili dal repository o dagli artifact CI storici.
-
-Recovery read-only tentato il 9 agosto 2026:
+Target policy:
 
 ```text
-run: 31313829528
-Italy capture: failed closed
-reason: ubigi-italy-plan HTTP 403
-artifact completo: non creato
-D1 write: nessuna
+research/evidence/r2-provisioning-policy.json
 ```
 
-Non vengono usati workaround di scraping, dati ricostruiti dalla documentazione o diagnostici parziali.
-
-Una nuova cattura semanticamente equivalente non è automaticamente l'identity raw storica approvata.
-
-Documento:
+Authorization boundary:
 
 ```text
-docs/research/EVIDENCE-PACK-RECOVERY-RESULT-2026-08-09.md
+workflow_dispatch
++ exact main SHA
++ confirmation PROVISION_EVIDENCE_R2
 ```
+
+Preflight behavior:
+
+```text
+bucket absent
+→ eligible for create
+
+bucket existing + exact-compatible
+→ verified no-op
+
+bucket existing + any drift
+→ stop read-only
+```
+
+Create path ammesso:
+
+```text
+POST create bucket
+→ read-only verify private/default/Standard/no domains/no protected delete lifecycle
+→ PUT exact native Bucket Lock
+→ read-only final verification
+```
+
+Il gate non contiene:
+
+```text
+object upload
+DELETE
+public-domain mutation
+lifecycle mutation
+D1 mutation
+deploy
+```
+
+**Nessun provisioning R2 remoto è ancora autorizzato o eseguito da questa fase.**
+
+## Historical evidence pack blocker
+
+I bundle raw originari #106/#107 erano locali e ignorati da Git; non risultano recuperabili dagli artifact CI storici.
+
+Recovery read-only:
+
+```text
+run 31313829528
+Ubigi Italy: HTTP 403
+complete pack: non creato
+remote mutation: nessuna
+```
+
+Non vengono ricostruiti raw artifact dalla documentazione e una replacement capture non è approvata implicitamente dal solo semantic fingerprint.
 
 ## Gate corrente
 
-Il percorso immediato è:
-
 ```text
-correct native-bucket-lock contract CI
-→ explicit remote R2 provisioning authorization
-→ create/verify private bucket
-→ disable/verify r2.dev + zero custom domains
-→ install/verify indefinite native bucket lock on v1/
-→ recover original Italy/Europe bundles OR approve replacement captures
-→ stage pack + raw bytes in R2
-→ separately controlled D1 evidence ingest
-→ deterministic post-ingest audit
+R2 provisioning gate CI + merge
+→ remote R2 read-only preflight
+→ explicit provisioning authorization if mutation is required
+→ private locked store verification
+→ approved raw Italy/Europe bundle availability
+→ stage exact artifacts
+→ controlled evidence ingest
 ```
 
-Il controlled ingest già autorizzato non viene eseguito finché le sue precondizioni di provenance non sono soddisfatte.
+Il preflight R2 remoto successivo è read-only. La create/configuration del bucket resta una mutation separata.
 
 ## Percorso verso il primo click affiliate
 
-Gate chiusi:
-
 ```text
-source reconciliation ✅
-production source onboarding 9/9 ✅
-local/fixture importer ✅
-remote 0021 ✅
-```
-
-Gate corrente:
-
-```text
-durable locked artifact provenance
-```
-
-Percorso restante:
-
-```text
-R2 artifact gate
+source reconciliation             ✅
+production source onboarding      ✅
+local importer                     ✅
+remote 0021                        ✅
+artifact storage contract          ✅
+R2 provisioning gate               ← current
+→ remote storage verification/provisioning
 → approved raw pack availability
 → controlled evidence ingest
-→ verification provenance
-→ bounded verified commercial facts
+→ verification provenance bridge
+→ bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
 → affiliate + measurement gate
-→ manual production deploy
+→ explicit production deploy
 → first real affiliate click
 ```
 
 ## Freeze
 
-- niente R2 provisioning remoto senza autorizzazione esplicita;
-- niente evidence artifact production senza native Bucket Lock canonica;
-- niente controlled ingest con `artifact_ref` effimero o non risolvibile;
-- niente ricostruzione dei pack storici da documentazione o diagnostici parziali;
-- niente replacement capture promossa automaticamente a pack approvato;
-- niente `claim_verifications` automatiche;
-- niente deploy implicito;
+- niente provisioning R2 remoto senza autorizzazione esplicita quando richiede mutation;
+- niente evidence object upload nello stesso provisioning gate;
+- niente controlled ingest con artifact effimeri/non risolvibili;
+- niente ricostruzione dei pack storici da documentazione;
+- niente replacement capture promossa implicitamente;
+- niente claim verification automatica;
 - niente source auto-registration o metadata overwrite;
 - niente FX implicito;
 - niente `unknown → false/0/[]`;
 - niente provider winner universale;
 - niente affiliate secret versionato;
 - niente tracking non consentito;
+- niente deploy implicito;
 - niente pubblicazione autonoma dell'AI.
