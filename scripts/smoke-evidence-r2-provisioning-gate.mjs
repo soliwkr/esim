@@ -231,12 +231,16 @@ for (const [label, state, expectedIssue] of [
   assert.equal(fake.calls.some((call) => call.method === 'PUT' && call.suffix.endsWith('/lock')), false);
 }
 
-// Workflow is manual-only and has no object/delete/public-enable surface.
+// Workflow is manual-only, supports a read-only preflight operation, and has no object/delete/public-enable surface.
 const workflow = await readFile('.github/workflows/evidence-r2-provisioning.yml', 'utf8');
 assert.match(workflow, /workflow_dispatch:/);
 assert.doesNotMatch(workflow, /^\s*push:/m);
+assert.match(workflow, /operation:/);
+assert.match(workflow, /default: preflight/);
 assert.match(workflow, /PROVISION_EVIDENCE_R2/);
 assert.match(workflow, /expected_main_sha/);
+assert.match(workflow, /inputs\.operation == 'provision'/);
+assert.match(workflow, /test -z "\$\{\{ inputs\.confirmation \}\}"/);
 assert.doesNotMatch(workflow, /r2 object/i);
 assert.doesNotMatch(workflow, /\bDELETE\b/);
 assert.doesNotMatch(workflow, /domains\/managed.*PUT/i);
