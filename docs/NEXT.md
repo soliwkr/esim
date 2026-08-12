@@ -1,6 +1,6 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **9 agosto 2026**.
+Ultimo aggiornamento: **12 agosto 2026**.
 
 ## Gate corrente — R2 evidence provisioning readiness
 
@@ -61,12 +61,17 @@ scripts/smoke-evidence-r2-provisioning-gate.mjs
 docs/research/EVIDENCE-R2-PROVISIONING-GATE.md
 ```
 
-Il workflow è manual-only e richiede:
+Il workflow è manual-only e separa esplicitamente lettura e mutation:
 
 ```text
-expected_main_sha
-confirmation = PROVISION_EVIDENCE_R2
+operation = preflight | provision
+expected_main_sha = <exact current main SHA>
+
+preflight → confirmation vuota
+provision → confirmation = PROVISION_EVIDENCE_R2
 ```
+
+Un run `preflight` non può eseguire gli step condizionati di provisioning.
 
 ### Invarianti
 
@@ -81,8 +86,8 @@ Bucket già exact-compatible:
 
 ```text
 read-only preflight
-→ provisioning no-op
-→ verify
+→ already provisioned
+→ zero mutation
 ```
 
 Bucket già esistente ma driftato:
@@ -101,7 +106,7 @@ Drift bloccanti:
 - native lock mancante, extra o diversa;
 - lifecycle delete che si sovrappone a `v1/`.
 
-Create path consentito:
+Create path consentito soltanto da `operation=provision` separatamente autorizzata:
 
 ```text
 POST bucket
@@ -125,7 +130,13 @@ deploy
 
 ## Passo immediatamente successivo al merge
 
-Eseguire **soltanto un preflight remoto read-only** del target R2.
+Eseguire **soltanto un preflight remoto read-only** del target R2:
+
+```text
+operation = preflight
+expected_main_sha = exact current main SHA
+confirmation = <empty>
+```
 
 Obiettivo:
 
@@ -142,6 +153,9 @@ Questo read non autorizza mutation.
 Fermarsi e richiedere autorizzazione esplicita per:
 
 ```text
+operation = provision
+confirmation = PROVISION_EVIDENCE_R2
+
 create private Standard/default bucket
 → verify r2.dev disabled
 → verify zero custom domains
@@ -262,7 +276,8 @@ local importer                     ✅
 remote 0021                        ✅
 artifact storage contract          ✅
 R2 provisioning gate               ← current
-→ remote R2 preflight/provisioning
+→ remote R2 read-only preflight
+→ if needed: separately authorized R2 provisioning
 → approved raw pack availability
 → controlled evidence ingest
 → verification provenance
