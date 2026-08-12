@@ -41,7 +41,7 @@ function baseState(overrides = {}) {
     bucket: {
       name: policy.bucketName,
       jurisdiction: policy.jurisdiction,
-      storage_class: policy.storageClass,
+      storageClass: policy.storageClass,
       location: 'weur',
     },
     managedPublicAccess: false,
