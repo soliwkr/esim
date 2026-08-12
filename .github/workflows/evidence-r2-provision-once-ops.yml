@@ -1,0 +1,117 @@
+name: Evidence R2 Provision Once Ops
+
+on:
+  push:
+    branches:
+      - ops/evidence-r2-provision-once
+    paths:
+      - .github/workflows/evidence-r2-provision-once-ops.yml
+
+permissions:
+  contents: read
+
+env:
+  AUTHORIZED_MAIN_SHA: 4e3dd85db37eb464c8337149c77cb73dfedf3880
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout operational branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact provisioning authorization boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/ops/evidence-r2-provision-once"
+
+          git fetch origin main --no-tags
+          test "$(git rev-parse origin/main)" = "$AUTHORIZED_MAIN_SHA"
+          git merge-base --is-ancestor "$AUTHORIZED_MAIN_SHA" HEAD
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const marker = JSON.parse(readFileSync('ops/evidence-r2-provision-authorization.json', 'utf8'));
+          const expectedMainSha = process.env.AUTHORIZED_MAIN_SHA;
+          if (marker.operation !== 'r2_provision_exact') throw new Error('authorization_operation_invalid');
+          if (marker.authorizedByUser !== true) throw new Error('authorization_missing');
+          if (marker.expectedMainSha !== expectedMainSha) throw new Error('authorization_main_sha_mismatch');
+          if (marker.confirmation !== 'PROVISION_EVIDENCE_R2') throw new Error('authorization_confirmation_invalid');
+          if (marker.targetBucket !== 'senza-roaming-evidence-artifacts') throw new Error('authorization_target_invalid');
+          const scope = marker.scope ?? {};
+          for (const key of ['r2Provisioning', 'createBucketIfAbsent', 'setExactBucketLock', 'readOnlyVerification']) {
+            if (scope[key] !== true) throw new Error(`authorization_scope_missing:${key}`);
+          }
+          for (const key of [
+            'repairExistingDrift',
+            'r2ObjectUpload',
+            'd1Mutation',
+            'claimVerificationWrites',
+            'publication',
+            'affiliateActivation',
+            'productionDeploy',
+          ]) {
+            if (scope[key] !== false) throw new Error(`authorization_scope_invalid:${key}`);
+          }
+          NODE
+
+          printf '%s\n' \
+            '.github/workflows/evidence-r2-provision-once-ops.yml' \
+            'ops/evidence-r2-provision-authorization.json' \
+            | sort > /tmp/expected-files
+          git diff --name-only "$AUTHORIZED_MAIN_SHA"..HEAD | sort > /tmp/actual-files
+          diff -u /tmp/expected-files /tmp/actual-files
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify canonical R2 gate contract
+        run: node scripts/smoke-evidence-r2-provisioning-gate.mjs
+
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "Missing GitHub secret or variable CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          }
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Read-only R2 preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/evidence-r2-provisioning-gate.mjs preflight artifacts/evidence-r2-preflight.json
+
+      - name: Provision exact evidence bucket contract
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/evidence-r2-provisioning-gate.mjs provision artifacts/evidence-r2-provisioning.json
+
+      - name: Verify R2 state read-only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/evidence-r2-provisioning-gate.mjs verify artifacts/evidence-r2-result.json
+
+      - name: Upload provisioning audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-r2-provision-once
+          path: artifacts/evidence-r2-*.json
+          if-no-files-found: warn
+          retention-days: 30
