@@ -3,13 +3,22 @@ name: Evidence R2 Provisioning
 on:
   workflow_dispatch:
     inputs:
+      operation:
+        description: Run read-only preflight or explicitly authorized provisioning
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - provision
       expected_main_sha:
-        description: Exact main SHA authorized for R2 evidence provisioning
+        description: Exact main SHA authorized for this R2 evidence operation
         required: true
         type: string
       confirmation:
-        description: Type PROVISION_EVIDENCE_R2
-        required: true
+        description: Required only for provision; type PROVISION_EVIDENCE_R2
+        required: false
+        default: ''
         type: string
 
 permissions:
@@ -19,7 +28,7 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
 
 jobs:
-  provision:
+  r2-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -35,7 +44,18 @@ jobs:
           set -euo pipefail
           test "${{ github.ref }}" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "${{ inputs.expected_main_sha }}"
-          test "${{ inputs.confirmation }}" = "PROVISION_EVIDENCE_R2"
+          case "${{ inputs.operation }}" in
+            preflight)
+              test -z "${{ inputs.confirmation }}"
+              ;;
+            provision)
+              test "${{ inputs.confirmation }}" = "PROVISION_EVIDENCE_R2"
+              ;;
+            *)
+              echo "Unsupported R2 operation"
+              exit 1
+              ;;
+          esac
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -70,11 +90,13 @@ jobs:
         run: node scripts/evidence-r2-provisioning-gate.mjs preflight artifacts/evidence-r2-preflight.json
 
       - name: Provision exact evidence bucket contract
+        if: ${{ inputs.operation == 'provision' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/evidence-r2-provisioning-gate.mjs provision artifacts/evidence-r2-provisioning.json
 
-      - name: Verify R2 state read-only
+      - name: Verify R2 state read-only after provision
+        if: ${{ inputs.operation == 'provision' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/evidence-r2-provisioning-gate.mjs verify artifacts/evidence-r2-result.json
@@ -83,7 +105,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: evidence-r2-provisioning
+          name: evidence-r2-${{ inputs.operation }}
           path: artifacts/evidence-r2-*.json
           if-no-files-found: warn
           retention-days: 30
