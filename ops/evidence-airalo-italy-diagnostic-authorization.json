@@ -1,0 +1,21 @@
+{
+  "operation": "airalo_italy_source_diagnostic",
+  "authorizedByUser": true,
+  "authorizedAt": "2026-08-12",
+  "expectedMainSha": "066fd6221d500fb54dfbdd6ee72d8115762754d1",
+  "sourceKey": "airalo-italy-plan",
+  "scope": {
+    "officialSourceNetworkRead": true,
+    "diagnosticArtifactRetention": true,
+    "extractorMutation": false,
+    "sourceIdentityMutation": false,
+    "replacementApproval": false,
+    "r2ObjectUpload": false,
+    "r2Mutation": false,
+    "d1Mutation": false,
+    "claimVerificationWrites": false,
+    "publication": false,
+    "affiliateActivation": false,
+    "productionDeploy": false
+  }
+}
