@@ -1,8 +1,8 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **12 agosto 2026**.
+Ultimo aggiornamento: **15 agosto 2026**.
 
-## Gate corrente — explicit replacement approval
+## Gate corrente — staging R2 separatamente autorizzato
 
 Checkpoint chiusi:
 
@@ -19,6 +19,7 @@ Airalo Italy currency drift hardening    ✅
 Airalo Europe currency drift hardening   ✅
 replacement complete-pair capture        ✅
 raw/provenance candidate review          ✅
+explicit replacement approval            ✅
 ```
 
 Production evidence upstream resta vuoto: nessun pack è stato ancora ingerito.
@@ -97,7 +98,7 @@ visibleText hash:     12/12 verified
 field locators:       verified with JS UTF-16 indexing
 all candidates:       pending
 ranking:              not_computed
-replacementApproved: false
+replacementApproved: true
 r2Uploaded:           false
 d1Mutated:            false
 ```
@@ -128,17 +129,21 @@ Review completa:
 docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
 ```
 
-## Availability gate prima dell'approval
+## Availability verificata per l'approval
 
-L'artifact GitHub è temporaneo. Prima di accettare una replacement approval o aprire lo staging R2 va ricontrollato:
+Il 15 agosto 2026 l'artifact GitHub è stato riscaricato prima dell'approval:
 
 ```text
 artifact id: 9152309259
 expired: false
+download: success
 zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+files: 15
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
 ```
 
-Se l'artifact è scaduto, cancellato o non scaricabile:
+Prima dello staging R2 l'availability e il digest devono essere verificati di nuovo. Se l'artifact è scaduto, cancellato, non scaricabile o differente:
 
 ```text
 BLOCK
@@ -151,11 +156,11 @@ BLOCK
 
 La retention corrente termina il **2026-09-11T17:41:12Z**. GitHub Actions non viene trattato come durable production storage; quello inizia soltanto dopo lo staging verificato nel bucket R2 locked.
 
-## Decisione immediata richiesta
+## Approval registrata
 
-La coppia è **ready for explicit replacement approval** soltanto mentre l'artifact esatto resta disponibile e verificabile.
+La coppia è stata approvata esplicitamente il 15 agosto 2026 e soltanto per le identità seguenti:
 
-L'approvazione deve identificare esattamente:
+L'approvazione identifica esattamente:
 
 ```text
 run: 31623841563
@@ -165,16 +170,13 @@ Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915
 Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
 ```
 
-Finché questa approval non esiste:
+Result canonico:
 
 ```text
-no R2 upload
-no controlled ingest
-no claim verification
-no money-page materialization
+docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
 ```
 
-Replacement approval non equivale ad autorizzazione object upload R2.
+Replacement approval non equivale ad autorizzazione object upload R2. Nessun upload, ingest, claim verification o money-page materialization è stato eseguito.
 
 ## Gate dopo approval — R2 staging separato
 
@@ -258,9 +260,9 @@ artifact storage contract          ✅
 R2 provisioning                    ✅
 replacement complete pair          ✅
 raw/provenance review              ✅
-→ artifact availability recheck
-→ explicit replacement approval   ← current
-→ separately authorized R2 staging
+artifact availability recheck      ✅
+explicit replacement approval      ✅
+→ separately authorized R2 staging ← current
 → controlled evidence ingest
 → verification provenance
 → bounded verified facts
@@ -273,9 +275,9 @@ raw/provenance review              ✅
 
 ## Freeze
 
-- niente replacement approval se l'artifact esatto non è più disponibile/verificabile;
+- niente staging se l'artifact esatto non è più disponibile/verificabile;
 - niente ricostruzione del replacement dai soli documenti dopo expiry;
-- niente replacement approval implicita;
+- niente approval implicita per capture differenti;
 - niente evidence upload senza approval + authorization separata;
 - niente controlled ingest senza locked/resolvable raw artifacts;
 - niente claim verification automatica;

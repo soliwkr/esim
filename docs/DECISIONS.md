@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **9 agosto 2026**.
+Ultimo aggiornamento: **15 agosto 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -417,7 +417,7 @@ Vincoli della decisione:
 
 ## ADR-040 — Raw evidence artifact in R2 privato, content-addressed e protetto da Bucket Lock nativo
 
-**Stato:** accettata come fondazione locale; corretta il 9 agosto 2026 prima del provisioning remoto; provisioning remoto non ancora autorizzato.
+**Stato:** accettata; corretta il 9 agosto 2026; bucket e native Bucket Lock provisionati e verificati in produzione il 12 agosto 2026.
 
 **Decisione:** `evidence_snapshots.artifact_ref` deve risolvere a raw bytes persistenti in un logical store R2 privato `evidence-artifacts`. Raw source e `pack.json` usano chiavi content-addressed SHA-256; il percorso operativo crea soltanto oggetti assenti con condizione equivalente a `If-None-Match: *`, non sovrascrive e non cancella.
 
@@ -442,4 +442,24 @@ Il gate production richiede inoltre `r2.dev` disabilitato e zero custom domain. 
 
 Prima dell'ingest D1 production i byte devono essere verificati localmente, la lock rule deve essere verificata remota, gli oggetti devono essere creati o riconciliati in R2, riletti/HEAD-checkati e soltanto allora trasformati in `artifact_ref` D1. Il browser non accede al bucket e credential/endpoint environment-specific non vengono versionati.
 
-**Conseguenza:** il controlled evidence ingest è preceduto da un gate storage separato. La branch di design/correzione non crea bucket, credential, oggetti R2 o righe evidence D1. I pack storici #106/#107 restano inoltre non ingeribili finché i bundle raw originali non vengono recuperati oppure nuove capture vengono approvate esplicitamente come replacement.
+**Conseguenza:** il controlled evidence ingest è preceduto da un gate storage separato. Il provisioning non ha creato credential, caricato oggetti R2 o scritto righe evidence D1. I pack storici #106/#107 restano inoltre non ingeribili; soltanto la coppia replacement approvata in ADR-041 può entrare nel successivo gate di staging.
+
+## ADR-041 — Approval replacement vincolata ai byte e separata dallo staging R2
+
+**Stato:** accettata il 15 agosto 2026.
+
+**Decisione:** approvare come replacement dei bundle raw storici #106/#107 esclusivamente la coppia Italy + Europe identificata da:
+
+```text
+capture run: 31623841563
+artifact id: 9152309259
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+```
+
+L'approval è stata registrata soltanto dopo aver verificato PR #133 contro `main`, CI #693 verde, disponibilità remota dell'artifact, download riuscito, ZIP SHA-256 e identità lette dai due `pack.json`.
+
+L'approval non autorizza upload o mutation R2, D1 ingest, claim verification, publication, affiliate activation o deploy. Lo staging create-only in R2 locked resta una mutation separata che richiede nuova autorizzazione e un nuovo availability/digest recheck.
+
+**Conseguenza:** il gate corrente avanza allo staging R2 separatamente autorizzato. Se prima dello staging i byte esatti non sono più scaricabili o il digest non coincide, il percorso fallisce chiuso e richiede nuova capture, nuova review e nuova approval; i byte non vengono ricostruiti dalla documentazione.

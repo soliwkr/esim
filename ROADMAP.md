@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **12 agosto 2026**.
+Ultimo aggiornamento: **15 agosto 2026**.
 
 ## Principi non negoziabili
 
@@ -30,7 +30,7 @@ Ultimo aggiornamento: **12 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; storage Truth Engine production provisionato; replacement Italy/Europe completo e revisionato; gate corrente = explicit replacement approval.
+**Stato:** demand intelligence completata; First Money UI in preview; storage Truth Engine production provisionato; replacement Italy/Europe approvato esplicitamente; gate corrente = autorizzazione separata allo staging R2.
 
 Completati:
 
@@ -49,7 +49,8 @@ Completati:
 - R2 production target provisionato e verificato;
 - Airalo Italy/Europe currency-drift hardening;
 - nuova coppia replacement Italy/Europe completa;
-- raw/provenance review della coppia replacement.
+- raw/provenance review della coppia replacement;
+- explicit replacement approval byte-identificata.
 
 Preview:
 
@@ -88,6 +89,7 @@ run 31600420207 R2 create + exact Bucket Lock + verification
 #131 Airalo Italy source-native currency drift hardening
 #132 Airalo Europe source-native currency drift hardening
 run 31623841563 complete Italy + Europe replacement candidate
+15 agosto 2026 explicit replacement approval
 ```
 
 ### Production source state
@@ -205,24 +207,35 @@ Result:
 docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
 ```
 
-### Gate corrente — explicit replacement approval
+### Replacement approval — registrata
 
-La coppia è **ready for approval**, ma:
+Il 15 agosto 2026 la coppia è stata approvata esplicitamente dopo aver riscaricato l'artifact e verificato ZIP SHA-256, conteggio file e identità dei due `pack.json`:
 
 ```text
-replacementApproved: false
+run: 31623841563
+artifact id: 9152309259
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+replacementApproved: true
 r2Uploaded: false
 d1Mutated: false
 ```
 
-L'approvazione deve identificare esattamente run, artifact digest e i due pack ID. Approval replacement e R2 object upload restano gate distinti.
+Result:
+
+```text
+docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
+```
+
+Approval replacement e R2 object upload restano gate distinti.
 
 ### Controlled evidence ingest
 
 Solo dopo:
 
 ```text
-explicit replacement approval
+replacement approval ✅
 → separately authorized create-only R2 staging
 → verify artifact_ref/hash/size
 → D1 read-only preflight
@@ -281,7 +294,7 @@ artifact contract ✅
 R2 provisioning ✅
 replacement complete pair ✅
 raw/provenance review ✅
-→ explicit replacement approval
+explicit replacement approval ✅
 → locked artifact staging
 → controlled evidence ingest
 → verified commercial facts
@@ -329,8 +342,8 @@ source reconciliation ✅
 → R2 provisioning ✅
 → replacement complete pair ✅
 → raw/provenance review ✅
-→ explicit replacement approval ← current
-→ locked R2 staging
+→ explicit replacement approval ✅
+→ separately authorized locked R2 staging ← current
 → controlled ingest
 → verification provenance
 → money-page facts
@@ -348,7 +361,7 @@ M4 mutation residue
 
 Non fare senza gate esplicito:
 
-- replacement capture approval;
+- ulteriori replacement capture approval;
 - evidence object upload;
 - controlled D1 ingest;
 - automatic claim verification;

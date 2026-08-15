@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **12 agosto 2026**.
+Data di riferimento: **15 agosto 2026**.
 
 Questo documento fotografa lo stato operativo reale. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato.
 
@@ -21,8 +21,8 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 | Evidence importer | Local/fixture verificato | idempotente e fail-closed |
 | Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
 | Evidence artifact storage | **Provisionato e verificato** | R2 privato, Standard/default, native Bucket Lock su `v1/` |
-| Replacement evidence | **Candidate completo e revisionato** | Italy + Europe; attende approvazione replacement esplicita |
-| Controlled evidence ingest | Bloccato | richiede approval replacement + staging R2 separatamente autorizzato |
+| Replacement evidence | **Approvato esplicitamente** | Italy + Europe; identità vincolata a run, ZIP e due pack ID |
+| Controlled evidence ingest | Bloccato | richiede staging R2 separatamente autorizzato e verificato |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
@@ -51,6 +51,7 @@ Airalo Italy currency drift hardening    ✅
 Airalo Europe currency drift hardening   ✅
 replacement complete-pair capture        ✅
 raw/provenance candidate review          ✅
+explicit replacement approval            ✅
 ```
 
 Production source state:
@@ -157,7 +158,7 @@ candidate status:       all pending
 ranking:                not_computed
 R2 uploaded:            no
 D1 mutated:             no
-replacement approved:  no
+replacement approved:  yes — 15 agosto 2026
 ```
 
 Italy candidate:
@@ -193,11 +194,11 @@ Review canonica:
 docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
 ```
 
-## Gate corrente — explicit replacement approval
+## Explicit replacement approval — registrata
 
-La coppia è **ready for explicit replacement approval**, non ancora approved.
+La coppia è stata approvata esplicitamente il 15 agosto 2026 dopo il nuovo download e la verifica diretta dell'artifact.
 
-L'approval deve riferirsi esattamente a:
+L'approval si riferisce esclusivamente a:
 
 ```text
 run: 31623841563
@@ -207,7 +208,19 @@ Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915
 Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
 ```
 
-L'approvazione replacement **non autorizza** automaticamente object upload R2, controlled ingest, claim verification, publication, affiliate activation o deploy.
+```text
+replacementApproved: true
+r2Uploaded: false
+d1Mutated: false
+```
+
+Result canonico:
+
+```text
+docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
+```
+
+L'approvazione replacement **non autorizza** object upload R2, controlled ingest, claim verification, publication, affiliate activation o deploy.
 
 ## Gate dopo replacement approval
 
@@ -252,8 +265,8 @@ artifact storage contract          ✅
 R2 provisioning                    ✅
 replacement complete pair          ✅
 raw/provenance review              ✅
-→ explicit replacement approval   ← current
-→ separately authorized R2 staging
+explicit replacement approval      ✅
+→ separately authorized R2 staging ← current
 → controlled evidence ingest
 → verification provenance bridge
 → bounded verified facts
@@ -266,7 +279,7 @@ raw/provenance review              ✅
 
 ## Freeze
 
-- niente replacement approval implicita;
+- niente approval implicita per capture differenti;
 - niente evidence object upload prima di approval + autorizzazione upload separata;
 - niente controlled ingest senza locked/resolvable raw artifacts;
 - niente ricostruzione dei pack storici da documentazione;
