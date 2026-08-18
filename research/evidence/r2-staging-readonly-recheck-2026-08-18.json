@@ -3,6 +3,7 @@
   "confirmation": "READ_ONLY_POST_FAILURE_R2_RECHECK",
   "failedRunId": 32154128831,
   "failedHeadSha": "64466a7bacbaf39ab4a4bc5808aa38efe22bb4d9",
+  "probe": "s3-auth-v1",
   "allowWrites": false,
   "d1Authorized": false
 }
