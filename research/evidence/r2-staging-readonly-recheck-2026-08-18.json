@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "confirmation": "READ_ONLY_POST_FAILURE_R2_RECHECK",
+  "failedRunId": 32154128831,
+  "failedHeadSha": "64466a7bacbaf39ab4a4bc5808aa38efe22bb4d9",
+  "allowWrites": false,
+  "d1Authorized": false
+}
