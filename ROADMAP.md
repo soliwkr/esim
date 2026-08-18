@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **12 agosto 2026**.
+Ultimo aggiornamento: **15 agosto 2026**.
 
 ## Principi non negoziabili
 
@@ -30,7 +30,7 @@ Ultimo aggiornamento: **12 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; storage Truth Engine production provisionato; gate corrente = approved raw evidence availability.
+**Stato:** demand intelligence completata; First Money UI in preview; storage Truth Engine production provisionato; replacement Italy/Europe approvato esplicitamente; gate corrente = autorizzazione separata allo staging R2.
 
 Completati:
 
@@ -46,7 +46,11 @@ Completati:
 - upstream D1 `0021` applicato in produzione;
 - durable artifact contract;
 - native R2 Bucket Lock contract;
-- R2 production target provisionato e verificato.
+- R2 production target provisionato e verificato;
+- Airalo Italy/Europe currency-drift hardening;
+- nuova coppia replacement Italy/Europe completa;
+- raw/provenance review della coppia replacement;
+- explicit replacement approval byte-identificata.
 
 Preview:
 
@@ -82,6 +86,10 @@ run 31260773468 remote 0021 apply + verification
 #129 fail-closed R2 provisioning gate
 run 31588635704 remote R2 read-only preflight
 run 31600420207 R2 create + exact Bucket Lock + verification
+#131 Airalo Italy source-native currency drift hardening
+#132 Airalo Europe source-native currency drift hardening
+run 31623841563 complete Italy + Europe replacement candidate
+15 agosto 2026 explicit replacement approval
 ```
 
 ### Production source state
@@ -150,48 +158,85 @@ ref:  r2://evidence-artifacts/<object-key>
 
 Non viene dichiarato legal hold/WORM irrevocabile: la configurazione amministrativa R2 resta modificabile da un attore privilegiato.
 
-Result document:
+### Replacement candidate — complete + reviewed
+
+I bundle raw originari #106/#107 non risultano recuperabili. La replacement capture completa del 12 agosto 2026 ha prodotto:
 
 ```text
-docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
+run: 31623841563
+artifact id: 9152309259
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+files: 15
+raw HTML: 12
+pack.json: 2
 ```
 
-### Gate corrente — approved raw evidence availability
-
-I bundle raw originari Italy/Europe #106/#107 non risultano recuperabili dal repository o dagli artifact CI storici.
-
-Recovery read-only precedente:
+Italy:
 
 ```text
-run 31313829528
-Ubigi Italy: HTTP 403
-complete pack: none
-remote mutation: none
+pack: pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+semantic: sha256:2e3d9aaa7e3540d92ff9752721980cd1f4bd2380530578e671e572061952b517
+Airalo: 29 EUR historical → 32 USD current
 ```
 
-Sono ammessi soltanto:
+Europe:
 
 ```text
-original approved bundle recovery
+pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+semantic: sha256:f8e617f3e7f659edaddc121ec6df50cc50238308ebf5315c779b41a497c9eb11
+Airalo: 44.5 EUR historical → 49 USD current
 ```
 
-oppure:
+Review verificata:
 
 ```text
-new complete capture
-→ raw review
-→ semantic comparison
-→ explicit replacement approval
+12/12 raw sha256 + byte length
+12/12 HTTP 200
+0 redirects
+12/12 visibleText identities
+field-level provenance locators valid
+all factual candidates pending
+ranking not_computed
 ```
 
-Una replacement capture non viene approvata implicitamente dal solo semantic fingerprint.
+Holafly e Ubigi restano allineati ai result storici versionati. I vecchi raw pack non sono disponibili, quindi non viene dichiarato byte-level diff contro i vecchi `pack.json`.
+
+Result:
+
+```text
+docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
+```
+
+### Replacement approval — registrata
+
+Il 15 agosto 2026 la coppia è stata approvata esplicitamente dopo aver riscaricato l'artifact e verificato ZIP SHA-256, conteggio file e identità dei due `pack.json`:
+
+```text
+run: 31623841563
+artifact id: 9152309259
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+replacementApproved: true
+r2Uploaded: false
+d1Mutated: false
+```
+
+Result:
+
+```text
+docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
+```
+
+Approval replacement e R2 object upload restano gate distinti.
 
 ### Controlled evidence ingest
 
-Solo dopo approved raw bundle availability:
+Solo dopo:
 
 ```text
-stage exact pack/raw artifacts in locked R2
+replacement approval ✅
+→ separately authorized create-only R2 staging
 → verify artifact_ref/hash/size
 → D1 read-only preflight
 → source resolution 9/9
@@ -247,7 +292,9 @@ local importer ✅
 remote 0021 ✅
 artifact contract ✅
 R2 provisioning ✅
-→ approved raw pack availability
+replacement complete pair ✅
+raw/provenance review ✅
+explicit replacement approval ✅
 → locked artifact staging
 → controlled evidence ingest
 → verified commercial facts
@@ -293,7 +340,10 @@ source reconciliation ✅
 → remote 0021 ✅
 → durable artifact contract ✅
 → R2 provisioning ✅
-→ approved raw artifacts ← current
+→ replacement complete pair ✅
+→ raw/provenance review ✅
+→ explicit replacement approval ✅
+→ separately authorized locked R2 staging ← current
 → controlled ingest
 → verification provenance
 → money-page facts
@@ -311,9 +361,9 @@ M4 mutation residue
 
 Non fare senza gate esplicito:
 
-- evidence object upload senza approved raw bundle;
+- ulteriori replacement capture approval;
+- evidence object upload;
 - controlled D1 ingest;
-- replacement capture approval;
 - automatic claim verification;
 - `review → published`;
 - affiliate activation;

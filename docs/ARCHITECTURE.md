@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **12 agosto 2026**.
+Data di riferimento: **15 agosto 2026**.
 
 Questo documento descrive l'architettura corrente di `soliwkr/esim`. Lo storico dettagliato delle fasi e delle decisioni resta nel versionamento Git e in `docs/DECISIONS.md`.
 
@@ -336,18 +336,18 @@ complete pack: non creato
 remote mutation: nessuna
 ```
 
-Prima del controlled ingest serve:
+Il percorso replacement è stato completato con:
 
 ```text
-original approved bundle recovery
-OR
-new complete capture
-→ raw review
-→ semantic comparison
-→ explicit replacement approval
+run 31623841563 complete Italy + Europe capture
+→ raw/provenance review
+→ artifact availability + ZIP digest recheck
+→ explicit replacement approval del 15 agosto 2026
 ```
 
-Non è consentito ricostruire raw evidence dalla documentazione o promuovere automaticamente una replacement capture soltanto perché conserva lo stesso semantic fingerprint.
+L'approval è vincolata al ZIP SHA-256 `f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84` e agli exact pack ID registrati in `docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md`.
+
+Non è consentito ricostruire raw evidence dalla documentazione, riusare l'approval per una capture differente o procedere allo staging se i byte approvati non sono più scaricabili e verificabili.
 
 ## Verification provenance boundary
 
@@ -424,8 +424,8 @@ Evidence, draft approval e pubblicazione restano distinti.
 
 ```text
 R2 production provisioning ✅
-→ approved raw Italy/Europe bundle availability ← current
-→ locked R2 artifact staging
+replacement Italy/Europe approval ✅
+→ separately authorized locked R2 artifact staging ← current
 → controlled evidence ingest
 → verification provenance bridge
 → bounded verified commercial facts
@@ -439,9 +439,9 @@ R2 production provisioning ✅
 
 Non fare senza gate esplicito:
 
-- evidence object upload senza approved raw bundle;
+- evidence object upload senza autorizzazione staging separata;
 - controlled D1 ingest;
-- replacement capture approval;
+- approval implicita di capture differenti;
 - automatic claim verification;
 - `review → published`;
 - affiliate activation;
