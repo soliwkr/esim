@@ -1,0 +1,257 @@
+name: Evidence R2 S3 Create-only Retry
+
+on:
+  pull_request:
+    paths:
+      - scripts/evidence-r2-s3-create-only.mjs
+      - scripts/smoke-evidence-r2-s3-create-only.mjs
+      - .github/workflows/evidence-r2-s3-staging-retry.yml
+  push:
+    branches:
+      - ops/evidence-r2-staging-approved-pair
+    paths:
+      - research/evidence/r2-s3-staging-retry-execute-2026-08-18.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-r2-s3-staging-retry-approved-pair
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  contract-smoke:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify S3 create-only writer smoke
+        run: node scripts/smoke-evidence-r2-s3-create-only.mjs
+      - name: Verify runner AWS CLI supports conditional PutObject
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v aws >/dev/null
+          aws s3api put-object --generate-cli-skeleton input | grep -q '"IfNoneMatch"'
+
+  stage-approved-evidence-s3:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+      - name: Publish S3 staging status pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload="$(printf '%s' '{"state":"pending","target_url":"'"$RUN_URL"'","description":"Approved evidence S3 create-only staging retry","context":"evidence-r2-s3-staging"}')"
+          curl --fail --silent --show-error --location -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$payload" >/dev/null
+
+      - name: Checkout authorized staging branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify retry authorization boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = "refs/heads/ops/evidence-r2-staging-approved-pair"
+          git merge-base --is-ancestor 9da108680e2b050b485151a0f211eee1e33fc347 HEAD
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const authorization = JSON.parse(readFileSync('research/evidence/r2-s3-staging-retry-execute-2026-08-18.json', 'utf8'));
+          const expected = {
+            schemaVersion: 1,
+            confirmation: 'RETRY_APPROVED_EVIDENCE_R2_S3_CREATE_ONLY',
+            authorizedBaseSha: '9da108680e2b050b485151a0f211eee1e33fc347',
+            captureRunId: 31623841563,
+            artifactId: 9152309259,
+            zipSha256: 'sha256:f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84',
+            failedRunId: 32154128831,
+            postFailureRecheckRunId: 32154558001,
+            s3AuthProbeRunId: 32154868752,
+            d1Authorized: false,
+          };
+          for (const [key, value] of Object.entries(expected)) {
+            if (authorization[key] !== value) throw new Error(`s3_retry_authorization_mismatch:${key}`);
+          }
+          NODE
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify S3 create-only writer smoke
+        run: node scripts/smoke-evidence-r2-s3-create-only.mjs
+      - name: Verify runner AWS CLI supports conditional PutObject
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v aws >/dev/null
+          aws s3api put-object --generate-cli-skeleton input | grep -q '"IfNoneMatch"'
+
+      - name: Check Cloudflare credentials and derive R2 S3 credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+          token_json="$(curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Accept: application/json" \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify" || true)"
+          access_key_id="$(TOKEN_JSON="$token_json" node --input-type=module <<'NODE'
+          const payload = JSON.parse(process.env.TOKEN_JSON || '{}');
+          process.stdout.write(payload?.success === true && payload?.result?.status === 'active' ? (payload.result.id || '') : '');
+          NODE
+          )"
+          if [ -z "$access_key_id" ]; then
+            token_json="$(curl --fail --silent --show-error --location \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Accept: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify")"
+            access_key_id="$(TOKEN_JSON="$token_json" node --input-type=module <<'NODE'
+          const payload = JSON.parse(process.env.TOKEN_JSON || '{}');
+          if (payload?.success !== true || payload?.result?.status !== 'active' || !payload?.result?.id) process.exit(1);
+          process.stdout.write(payload.result.id);
+          NODE
+            )"
+          fi
+          secret_access_key="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          echo "::add-mask::$access_key_id"
+          echo "::add-mask::$secret_access_key"
+          echo "AWS_ACCESS_KEY_ID=$access_key_id" >> "$GITHUB_ENV"
+          echo "AWS_SECRET_ACCESS_KEY=$secret_access_key" >> "$GITHUB_ENV"
+          echo "AWS_REGION=auto" >> "$GITHUB_ENV"
+
+      - name: Recheck exact approved GitHub artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/evidence-r2-approved
+          curl --fail --silent --show-error --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/9152309259" \
+            -o artifacts/evidence-r2-artifact-metadata.json
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const metadata = JSON.parse(readFileSync('artifacts/evidence-r2-artifact-metadata.json', 'utf8'));
+          const checks = [
+            ['id', metadata.id, 9152309259],
+            ['name', metadata.name, 'evidence-replacement-capture-candidates'],
+            ['size_in_bytes', metadata.size_in_bytes, 1202934],
+            ['expired', metadata.expired, false],
+            ['digest', metadata.digest, 'sha256:f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84'],
+            ['workflow_run.id', metadata.workflow_run?.id, 31623841563],
+            ['workflow_run.head_sha', metadata.workflow_run?.head_sha, 'a4197ef10108f6762606eb9c270e2a354143cc23'],
+          ];
+          for (const [label, actual, expected] of checks) {
+            if (actual !== expected) throw new Error(`approved_artifact_metadata_mismatch:${label}`);
+          }
+          NODE
+          curl --fail --silent --show-error --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/9152309259/zip" \
+            -o artifacts/evidence-replacement-capture-candidates.zip
+          echo "f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84  artifacts/evidence-replacement-capture-candidates.zip" | sha256sum --check --strict
+          unzip -q artifacts/evidence-replacement-capture-candidates.zip -d artifacts/evidence-r2-approved/unpacked
+          test "$(find artifacts/evidence-r2-approved/unpacked -type f | wc -l | tr -d ' ')" = "15"
+
+      - name: Read-only zero-collision preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node scripts/evidence-r2-staging-gate.mjs \
+            preflight \
+            artifacts/evidence-r2-approved/unpacked \
+            artifacts/evidence-r2-s3-preflight.json
+
+      - name: Stage exact approved evidence via S3 conditional PutObject
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node scripts/evidence-r2-s3-create-only.mjs \
+            stage \
+            artifacts/evidence-r2-approved/unpacked \
+            artifacts/evidence-r2-s3-staging-result.json
+
+      - name: Verify exact R2 objects after S3 staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node scripts/evidence-r2-staging-gate.mjs \
+            verify \
+            artifacts/evidence-r2-approved/unpacked \
+            artifacts/evidence-r2-s3-staging-verify.json
+
+      - name: Upload deterministic S3 staging audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-r2-approved-s3-staging-audit
+          path: |
+            artifacts/evidence-r2-artifact-metadata.json
+            artifacts/evidence-r2-s3-preflight.json
+            artifacts/evidence-r2-s3-staging-result.json
+            artifacts/evidence-r2-s3-staging-verify.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Publish S3 staging status success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          payload="$(printf '%s' '{"state":"success","target_url":"'"$RUN_URL"'","description":"13 locked R2 evidence objects verified via S3","context":"evidence-r2-s3-staging"}')"
+          curl --fail --silent --show-error --location -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" -d "$payload" >/dev/null
+
+      - name: Publish S3 staging status failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          payload="$(printf '%s' '{"state":"failure","target_url":"'"$RUN_URL"'","description":"Approved evidence S3 staging failed closed","context":"evidence-r2-s3-staging"}')"
+          curl --fail --silent --show-error --location -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" -d "$payload" >/dev/null

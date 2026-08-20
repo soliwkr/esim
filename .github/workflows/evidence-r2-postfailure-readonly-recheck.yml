@@ -1,0 +1,174 @@
+name: Evidence R2 Post-failure Read-only Recheck
+
+on:
+  push:
+    branches:
+      - ops/evidence-r2-staging-approved-pair
+    paths:
+      - research/evidence/r2-staging-readonly-recheck-2026-08-18.json
+
+permissions:
+  contents: read
+  actions: read
+  statuses: write
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  recheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Publish read-only status pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload="$(printf '%s' '{"state":"pending","target_url":"'"$RUN_URL"'","description":"Post-failure R2 read-only recheck","context":"evidence-r2-postfailure-recheck"}')"
+          curl --fail --silent --show-error --location -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$payload" >/dev/null
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify read-only marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const marker = JSON.parse(readFileSync('research/evidence/r2-staging-readonly-recheck-2026-08-18.json', 'utf8'));
+          if (marker.schemaVersion !== 1) throw new Error('readonly_recheck_schema_mismatch');
+          if (marker.confirmation !== 'READ_ONLY_POST_FAILURE_R2_RECHECK') throw new Error('readonly_recheck_confirmation_mismatch');
+          if (marker.failedRunId !== 32154128831) throw new Error('readonly_recheck_run_mismatch');
+          if (marker.failedHeadSha !== '64466a7bacbaf39ab4a4bc5808aa38efe22bb4d9') throw new Error('readonly_recheck_head_mismatch');
+          if (marker.probe !== 's3-auth-v1') throw new Error('readonly_recheck_probe_mismatch');
+          if (marker.allowWrites !== false || marker.d1Authorized !== false) throw new Error('readonly_recheck_write_boundary_invalid');
+          NODE
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Verify derived R2 S3 authentication read-only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v aws >/dev/null
+          aws --version
+
+          token_json="$(curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Accept: application/json" \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify" || true)"
+          access_key_id="$(TOKEN_JSON="$token_json" node --input-type=module <<'NODE'
+          const payload = JSON.parse(process.env.TOKEN_JSON || '{}');
+          process.stdout.write(payload?.success === true && payload?.result?.status === 'active' ? (payload.result.id || '') : '');
+          NODE
+          )"
+          if [ -z "$access_key_id" ]; then
+            token_json="$(curl --fail --silent --show-error --location \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Accept: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify")"
+            access_key_id="$(TOKEN_JSON="$token_json" node --input-type=module <<'NODE'
+          const payload = JSON.parse(process.env.TOKEN_JSON || '{}');
+          if (payload?.success !== true || payload?.result?.status !== 'active' || !payload?.result?.id) process.exit(1);
+          process.stdout.write(payload.result.id);
+          NODE
+            )"
+          fi
+          secret_access_key="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          echo "::add-mask::$access_key_id"
+          echo "::add-mask::$secret_access_key"
+
+          AWS_ACCESS_KEY_ID="$access_key_id" \
+          AWS_SECRET_ACCESS_KEY="$secret_access_key" \
+          AWS_REGION=auto \
+          aws s3api list-objects-v2 \
+            --endpoint-url "https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com" \
+            --bucket senza-roaming-evidence-artifacts \
+            --prefix v1/ \
+            --max-items 1 \
+            --output json >/dev/null
+
+      - name: Download exact approved artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/evidence-r2-approved
+          curl --fail --silent --show-error --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/9152309259/zip" \
+            -o artifacts/evidence-replacement-capture-candidates.zip
+          echo "f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84  artifacts/evidence-replacement-capture-candidates.zip" | sha256sum --check --strict
+          unzip -q artifacts/evidence-replacement-capture-candidates.zip -d artifacts/evidence-r2-approved/unpacked
+
+      - name: Read-only post-failure target recheck
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node scripts/evidence-r2-staging-gate.mjs \
+            preflight \
+            artifacts/evidence-r2-approved/unpacked \
+            artifacts/evidence-r2-postfailure-recheck.json
+
+      - name: Upload read-only audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-r2-postfailure-readonly-recheck
+          path: artifacts/evidence-r2-postfailure-recheck.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Publish read-only status success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          payload="$(printf '%s' '{"state":"success","target_url":"'"$RUN_URL"'","description":"13 keys absent; R2 S3 auth read-only verified","context":"evidence-r2-postfailure-recheck"}')"
+          curl --fail --silent --show-error --location -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" -d "$payload" >/dev/null
+
+      - name: Publish read-only status failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          payload="$(printf '%s' '{"state":"failure","target_url":"'"$RUN_URL"'","description":"Post-failure R2/S3 read-only probe requires review","context":"evidence-r2-postfailure-recheck"}')"
+          curl --fail --silent --show-error --location -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" -d "$payload" >/dev/null

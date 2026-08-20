@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **15 agosto 2026**.
+Ultimo aggiornamento: **20 agosto 2026**.
 
 ## Principi non negoziabili
 
@@ -30,7 +30,7 @@ Ultimo aggiornamento: **15 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; storage Truth Engine production provisionato; replacement Italy/Europe approvato esplicitamente; gate corrente = autorizzazione separata allo staging R2.
+**Stato:** demand intelligence completata; First Money UI in preview; Truth Engine storage provisionato e popolato con la coppia approved Italy/Europe; gate corrente = controlled evidence ingest.
 
 Completati:
 
@@ -49,8 +49,10 @@ Completati:
 - R2 production target provisionato e verificato;
 - Airalo Italy/Europe currency-drift hardening;
 - nuova coppia replacement Italy/Europe completa;
-- raw/provenance review della coppia replacement;
-- explicit replacement approval byte-identificata.
+- raw/provenance review;
+- explicit replacement approval;
+- exact approved raw + pack staging in locked R2;
+- post-write verification di tutti i 13 content-addressed objects.
 
 Preview:
 
@@ -90,6 +92,10 @@ run 31600420207 R2 create + exact Bucket Lock + verification
 #132 Airalo Europe source-native currency drift hardening
 run 31623841563 complete Italy + Europe replacement candidate
 15 agosto 2026 explicit replacement approval
+run 32154128831 first R2 write attempt failed closed
+run 32154558001 post-failure read-only recheck
+run 32154868752 read-only S3 auth probe
+run 32156353642 S3 create-only staging + 13/13 verification
 ```
 
 ### Production source state
@@ -112,7 +118,7 @@ indexes:          7
 triggers:         9
 ```
 
-Nessun approved evidence pack è ancora stato importato in production.
+Nessun approved evidence pack è ancora stato importato nelle tabelle upstream production.
 
 ### Durable artifact storage — production verified
 
@@ -128,24 +134,14 @@ R2 target:
 senza-roaming-evidence-artifacts
 ```
 
-Production state verificato il 12 agosto 2026:
+Contract remoto verificato:
 
 ```text
-exists: true
 jurisdiction: default
 storage class: Standard
-r2.dev: disabled
+r2.dev / managed public access: disabled
 custom domains: 0
-protected lifecycle deletes: 0
-```
-
-Native lock:
-
-```text
-id:        evidence-v1-indefinite
-prefix:    v1/
-enabled:   true
-condition: Indefinite
+native lock: evidence-v1-indefinite / v1/ / Indefinite
 ```
 
 Content addressing:
@@ -158,58 +154,7 @@ ref:  r2://evidence-artifacts/<object-key>
 
 Non viene dichiarato legal hold/WORM irrevocabile: la configurazione amministrativa R2 resta modificabile da un attore privilegiato.
 
-### Replacement candidate — complete + reviewed
-
-I bundle raw originari #106/#107 non risultano recuperabili. La replacement capture completa del 12 agosto 2026 ha prodotto:
-
-```text
-run: 31623841563
-artifact id: 9152309259
-zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
-files: 15
-raw HTML: 12
-pack.json: 2
-```
-
-Italy:
-
-```text
-pack: pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
-semantic: sha256:2e3d9aaa7e3540d92ff9752721980cd1f4bd2380530578e671e572061952b517
-Airalo: 29 EUR historical → 32 USD current
-```
-
-Europe:
-
-```text
-pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
-semantic: sha256:f8e617f3e7f659edaddc121ec6df50cc50238308ebf5315c779b41a497c9eb11
-Airalo: 44.5 EUR historical → 49 USD current
-```
-
-Review verificata:
-
-```text
-12/12 raw sha256 + byte length
-12/12 HTTP 200
-0 redirects
-12/12 visibleText identities
-field-level provenance locators valid
-all factual candidates pending
-ranking not_computed
-```
-
-Holafly e Ubigi restano allineati ai result storici versionati. I vecchi raw pack non sono disponibili, quindi non viene dichiarato byte-level diff contro i vecchi `pack.json`.
-
-Result:
-
-```text
-docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
-```
-
-### Replacement approval — registrata
-
-Il 15 agosto 2026 la coppia è stata approvata esplicitamente dopo aver riscaricato l'artifact e verificato ZIP SHA-256, conteggio file e identità dei due `pack.json`:
+### Approved replacement
 
 ```text
 run: 31623841563
@@ -217,31 +162,67 @@ artifact id: 9152309259
 zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
 Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
 Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
-replacementApproved: true
-r2Uploaded: false
-d1Mutated: false
+```
+
+Commercial delta documentato:
+
+```text
+Airalo Italy:  29 EUR   → 32 USD
+Airalo Europe: 44.5 EUR → 49 USD
+```
+
+Holafly e Ubigi restano allineati ai result storici versionati. I vecchi raw pack sono assenti, quindi non viene dichiarato un byte-level diff contro i vecchi `pack.json`.
+
+### Locked R2 staging — verificato
+
+Il primo create attempt `32154128831` ha fallito chiuso con `cloudflare_object_create_failed:10028`. Dopo read-only recheck e S3 auth probe, un retry separatamente autorizzato ha usato il contratto create-only equivalente previsto da ADR-040:
+
+```text
+run:                32156353642
+head:               5d099010c703ea78622cd161f36705e45d3d91f2
+transport:          r2-s3-sigv4
+conditional write:  If-None-Match: *
+collisions:         0
+created:            13
+verified:           13
+```
+
+Inventory:
+
+```text
+12 logical raw references
+11 unique raw objects
+2 pack objects
+13 total objects
+```
+
+Audit artifact:
+
+```text
+id: 9331865182
+sha256: b91a432cdde585997b271f472a67fdfb16fa088adb11435657054d3e127fdd54
 ```
 
 Result:
 
 ```text
-docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
+docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
 ```
 
-Approval replacement e R2 object upload restano gate distinti.
+R2 staging non ha mutato D1, verificato claim, attivato affiliazioni, pubblicato o deployato.
 
-### Controlled evidence ingest
+### Controlled evidence ingest — gate corrente
 
-Solo dopo:
+Prima di qualsiasi D1 write:
 
 ```text
-replacement approval ✅
-→ separately authorized create-only R2 staging
-→ verify artifact_ref/hash/size
-→ D1 read-only preflight
+exact R2 artifact_ref/hash/size verification
+→ read-only remote D1 state preflight
 → source resolution 9/9
+→ deterministic import plan
 → idempotency/drift preflight
-→ separately authorized atomic bounded ingest
+→ explicit controlled-ingest authorization
+→ atomic bounded ingest
 → deterministic post-ingest audit
 ```
 
@@ -254,7 +235,14 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-Nessun write in `source_registry`, `plans`, `claim_verifications` o published state.
+Nessun write in:
+
+```text
+source_registry
+plans
+claim_verifications
+published_pages
+```
 
 ### Verification provenance
 
@@ -295,7 +283,7 @@ R2 provisioning ✅
 replacement complete pair ✅
 raw/provenance review ✅
 explicit replacement approval ✅
-→ locked artifact staging
+locked R2 staging + verify ✅
 → controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
@@ -343,8 +331,8 @@ source reconciliation ✅
 → replacement complete pair ✅
 → raw/provenance review ✅
 → explicit replacement approval ✅
-→ separately authorized locked R2 staging ← current
-→ controlled ingest
+→ locked R2 staging + verify ✅
+→ controlled ingest ← current
 → verification provenance
 → money-page facts
 ```
@@ -361,8 +349,6 @@ M4 mutation residue
 
 Non fare senza gate esplicito:
 
-- ulteriori replacement capture approval;
-- evidence object upload;
 - controlled D1 ingest;
 - automatic claim verification;
 - `review → published`;

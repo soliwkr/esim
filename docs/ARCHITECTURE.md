@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **15 agosto 2026**.
+Data di riferimento: **20 agosto 2026**.
 
 Questo documento descrive l'architettura corrente di `soliwkr/esim`. Lo storico dettagliato delle fasi e delle decisioni resta nel versionamento Git e in `docs/DECISIONS.md`.
 
@@ -15,7 +15,7 @@ Questo documento descrive l'architettura corrente di `soliwkr/esim`. Lo storico 
 - L'AI non pubblica autonomamente.
 - Evidence, verità verificata e copy pubblico sono layer distinti.
 - Ogni mutation production è esplicita, auditabile e separata dal deploy frontend.
-- I raw evidence artifact production devono essere persistenti, risolvibili e protetti dal contratto di retention canonico.
+- I raw evidence artifact production devono essere persistenti, risolvibili e protetti dal retention contract canonico.
 
 ## Topologia runtime
 
@@ -56,53 +56,13 @@ Entrypoint reale:
 apps/web/src/worker.ts
 ```
 
-Composizione:
-
-```text
-createPublicWorker(activePublicRouteDecision)
-```
-
 Assets:
 
 ```json
-{
-  "run_worker_first": ["/*", "!/_astro/*"]
-}
+{"run_worker_first":["/*","!/_astro/*"]}
 ```
 
-### Astro-owned
-
-```text
-/
-/destinazioni
-/guide
-/confronti
-/metodo
-/trasparenza
-/privacy
-/{slug-published}
-/sitemap.xml
-/robots.txt
-404 pubblica
-/astro-foundation*
-/control-room-foundation* shell
-```
-
-### Backend / execution-plane owned
-
-```text
-/api/*
-/go/*
-/control-room legacy fallback
-asset tecnici backend
-D1
-Workflows
-Container
-AI Gateway
-publication capability
-```
-
-API e `/go/*` prevalgono sempre sul catch-all pubblico.
+Astro possiede le route pubbliche canoniche e preview; API, `/go/*`, Control Room legacy fallback ed execution plane restano backend-owned. API e `/go/*` prevalgono sempre sul catch-all pubblico.
 
 ## Preview e canonical
 
@@ -148,15 +108,7 @@ browser autenticato
 → D1
 ```
 
-Invarianti:
-
-- noindex;
-- no-store;
-- nessun maintenance token nel browser;
-- attore delle mutation derivato dall'identità verificata;
-- state machine D1;
-- audit append-only;
-- legacy privata mantenuta soltanto come fallback finché necessario.
+Invarianti: noindex, no-store, nessun maintenance token nel browser, attore mutation derivato dall'identità verificata, state machine D1, audit append-only e legacy privata soltanto come fallback finché necessario.
 
 ## Evidence Truth Engine
 
@@ -178,9 +130,7 @@ official source
 → publication gate separato
 ```
 
-Un evidence candidate non equivale a un claim verificato.
-
-`unknown` non equivale a `false`, `0` o lista vuota. `partial` sostiene soltanto il sotto-fatto realmente provato.
+Un evidence candidate non equivale a un claim verificato. `unknown` non equivale a `false`, `0` o lista vuota. `partial` sostiene soltanto il sotto-fatto realmente provato.
 
 ### Source registry
 
@@ -213,22 +163,9 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-Remote `0021` è stata applicata e verificata l'8 agosto 2026.
-
-Schema verificato:
-
-```text
-21 migration
-4 tabelle upstream
-7 indici
-9 trigger
-```
-
-Il controlled evidence ingest production **non è ancora stato eseguito**.
+Remote `0021` è applicata e verificata. Il controlled evidence ingest production **non è ancora stato eseguito**.
 
 ### Importer boundary
-
-Contratto:
 
 ```text
 approved pack.json + raw artifacts
@@ -251,49 +188,36 @@ Guardrail:
 
 ## Durable raw evidence storage
 
-### Logical store
+Logical store:
 
 ```text
 evidence-artifacts
 ```
 
-### R2 production target
+R2 production target:
 
 ```text
 senza-roaming-evidence-artifacts
 ```
 
-Il bucket è stato provisionato e verificato il **12 agosto 2026** tramite run `31600420207`.
-
-Stato production:
+State:
 
 ```text
-exists: true
 jurisdiction: default
 storage class: Standard
 r2.dev / managed public access: disabled
 custom domains: 0
-protected lifecycle deletes: 0
 ```
 
-### Content addressing
+Content addressing:
 
 ```text
-raw:
-  v1/raw/sha256/<prefix>/<digest>.<extension>
-
-pack:
-  v1/packs/sha256/<prefix>/<digest>.json
-
-artifact_ref:
-  r2://evidence-artifacts/<object-key>
+raw:  v1/raw/sha256/<prefix>/<digest>.<extension>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
 ```
 
-La chiave dipende dai byte, non da provider, URL, prezzo o ambiente.
-
-### Retention contract
-
-Regola native Bucket Lock production verificata:
+Native Bucket Lock:
 
 ```text
 id:        evidence-v1-indefinite
@@ -302,52 +226,58 @@ enabled:   true
 condition: Indefinite
 ```
 
-L'immutabilità attesa combina content addressing, conditional create, Bucket Lock e divieto operativo di overwrite/delete.
+L'immutabilità attesa combina content addressing, conditional create, Bucket Lock e divieto operativo di overwrite/delete. Non viene dichiarato legal hold o WORM irrevocabile.
 
-Il progetto non dichiara legal hold o WORM irrevocabile: un amministratore Cloudflare con privilegi sufficienti può modificare la configurazione della Bucket Lock.
+### Approved artifact staging
 
-### Provisioning result
+La coppia replacement approvata è materializzata in R2.
 
-```text
-docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
-```
-
-Il provisioning ha eseguito soltanto:
+Anchor:
 
 ```text
-POST bucket
-→ read-only verify
-→ PUT exact native Bucket Lock
-→ read-only final verify
+capture run: 31623841563
+artifact id: 9152309259
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
 ```
 
-Non ha caricato artifact, non ha mutato D1 e non ha fatto deploy.
+Il primo remote create attempt `32154128831` ha fallito chiuso con Cloudflare error `10028`; i successivi probe read-only `32154558001` e `32154868752` hanno confermato zero target objects e autenticazione S3 valida.
+
+Il retry autorizzato `32156353642` ha usato il trasporto R2 S3 SigV4 con semantica create-only:
+
+```text
+If-None-Match: *
+```
+
+Risultato:
+
+```text
+preflight collisions: 0
+created objects:      13
+verified objects:     13
+post-write verified:  true
+```
+
+Inventory:
+
+```text
+12 logical raw references
+11 unique raw objects
+2 pack objects
+13 total content-addressed objects
+```
+
+Audit canonico:
+
+```text
+docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
+```
+
+L'uso di S3 SigV4 non cambia il contratto ADR-040: il requisito architetturale resta conditional create equivalente a `If-None-Match: *`, content addressing, exact read-back verification e Bucket Lock. Nessun credential o endpoint environment-specific viene versionato.
 
 ## Historical pack recovery boundary
 
-I bundle raw originari dei pack Italy/Europe #106/#107 non erano versionati e non risultano recuperabili dagli artifact CI storici.
-
-Recovery read-only del 9 agosto 2026:
-
-```text
-run 31313829528
-Ubigi Italy: HTTP 403
-complete pack: non creato
-remote mutation: nessuna
-```
-
-Il percorso replacement è stato completato con:
-
-```text
-run 31623841563 complete Italy + Europe capture
-→ raw/provenance review
-→ artifact availability + ZIP digest recheck
-→ explicit replacement approval del 15 agosto 2026
-```
-
-L'approval è vincolata al ZIP SHA-256 `f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84` e agli exact pack ID registrati in `docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md`.
-
-Non è consentito ricostruire raw evidence dalla documentazione, riusare l'approval per una capture differente o procedere allo staging se i byte approvati non sono più scaricabili e verificabili.
+I raw originari #106/#107 restano non recuperabili. Il percorso replacement è stato completato con capture completa, raw/provenance review, availability/digest recheck, explicit approval e staging dei byte esatti approvati. Non è consentito ricostruire raw evidence dalla documentazione o riusare l'approval per capture differenti.
 
 ## Verification provenance boundary
 
@@ -358,75 +288,32 @@ evidence_claim_candidates
 → claim_verifications
 ```
 
-serve un bridge auditabile e revisioned/append-only che distingua:
-
-```text
-supports
-contradicts
-supersedes/expires
-```
-
-Una verification non può trasformare un partial in un fatto completo.
+serve un bridge auditabile e revisioned/append-only che distingua supports, contradicts e supersedes/expires. Una verification non può trasformare un partial in un fatto completo.
 
 ## `plans` boundary
 
-`plans` v1 non è ingest target dell'evidence layer perché il modello attuale è troppo loss-prone per pack regionali/source-native.
-
-Un eventuale redesign `plans` resta separato da evidence storage e verification.
+`plans` v1 non è ingest target dell'evidence layer perché il modello attuale è troppo loss-prone per pack regionali/source-native. Un eventuale redesign resta separato da evidence storage e verification.
 
 ## Consent e measurement
 
-Production usa iubenda + Consent Mode Basic.
-
-Default:
-
-```text
-analytics_storage = denied
-ad_storage = denied
-ad_user_data = denied
-ad_personalization = denied
-```
-
-GTM/GA4 restano bloccati prima del consenso Misurazione previsto dal contratto M6. Ads e affiliate tracking restano disabilitati.
+Production usa iubenda + Consent Mode Basic. GTM/GA4 restano bloccati prima del consenso Misurazione previsto dal contratto M6. Ads e affiliate tracking restano disabilitati.
 
 ## Production deploy boundary
 
-Deploy canonico:
-
-```text
-workflow_dispatch
-→ npm ci
-→ production preflight
-→ npm run deploy
-→ build Astro
-→ CMP/measurement config
-→ read-only D1 binding resolution
-→ wrangler deploy
-→ live smoke
-```
-
-Il deploy frontend:
-
-- non crea D1;
-- non applica migration remote;
-- non provisiona R2;
-- non carica evidence artifact;
-- non esegue controlled ingest;
-- non attiva automaticamente affiliazioni.
+Il deploy frontend è manual-only e non crea D1, non applica migration remote, non provisiona R2, non carica evidence artifact, non esegue controlled ingest e non attiva automaticamente affiliazioni.
 
 ## Publication boundary
 
-La pubblicazione richiede una capacità separata con identità verificata, conferma umana, state machine, audit append-only, freshness recheck, idempotenza, rollback/deindicizzazione e test end-to-end.
-
-Evidence, draft approval e pubblicazione restano distinti.
+La pubblicazione richiede capacità separata con identità verificata, conferma umana, state machine, audit append-only, freshness recheck, idempotenza, rollback/deindicizzazione e test end-to-end. Evidence, draft approval e pubblicazione restano distinti.
 
 ## Gate operativo corrente
 
 ```text
 R2 production provisioning ✅
 replacement Italy/Europe approval ✅
-→ separately authorized locked R2 artifact staging ← current
-→ controlled evidence ingest
+locked R2 staging + verification ✅
+→ controlled evidence ingest preflight ← current
+→ separately authorized D1 ingest
 → verification provenance bridge
 → bounded verified commercial facts
 → First Money UI materialization
@@ -439,9 +326,7 @@ replacement Italy/Europe approval ✅
 
 Non fare senza gate esplicito:
 
-- evidence object upload senza autorizzazione staging separata;
 - controlled D1 ingest;
-- approval implicita di capture differenti;
 - automatic claim verification;
 - `review → published`;
 - affiliate activation;
