@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "confirmation": "APPLY_APPROVED_EVIDENCE_CONTROLLED_INGEST",
+  "authorizedBaseSha": "678cf831e6bd5cbe98a5f3581f0c18a1b02d1374",
+  "canonicalPreflightHead": "704b50cf82588c6fcde6d288f54e9392c1f64865",
+  "canonicalPreflightRunId": 32391428886,
+  "canonicalPreflightArtifactId": 9415005079,
+  "canonicalPreflightArtifactSha256": "sha256:b4c09892790c94af2dabf256e882b829cc816f318b7b1c124cad0e2fc6ba24b9",
+  "captureRunId": 31623841563,
+  "artifactId": 9152309259,
+  "zipSha256": "sha256:f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84",
+  "approvedPackIds": [
+    "pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf",
+    "pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae"
+  ],
+  "expectedExistingRows": {
+    "runs": 0,
+    "snapshots": 0,
+    "observations": 0,
+    "candidates": 0
+  },
+  "expectedInsertTotals": {
+    "runs": 2,
+    "snapshots": 12,
+    "observations": 72,
+    "candidates": 52
+  },
+  "remoteWriteAuthorized": true,
+  "sourceRegistryWriteAuthorized": false,
+  "claimVerificationAuthorized": false,
+  "affiliateActivationAuthorized": false,
+  "publicationAuthorized": false,
+  "deployAuthorized": false
+}

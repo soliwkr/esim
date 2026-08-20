@@ -338,7 +338,7 @@ export async function loadApprovedEvidenceFromR2({ fetchImpl = fetch, accountId,
   });
 }
 
-export async function runControlledIngestPreflight(options = {}) {
+export async function loadControlledIngestContext(options = {}) {
   const fetchImpl = options.fetchImpl || fetch;
   const accountId = requireString(options.accountId || process.env.CLOUDFLARE_ACCOUNT_ID, 'cloudflare_account_id');
   const apiToken = requireString(options.apiToken || process.env.CLOUDFLARE_API_TOKEN, 'cloudflare_api_token');
@@ -355,6 +355,32 @@ export async function runControlledIngestPreflight(options = {}) {
   const migration = validateRemoteMigrationState(options.migrationRows || queryRemoteMigrationState());
   const remoteState = options.remoteState || queryRemoteEvidenceState();
   const plan = buildControlledIngestPreflight({ models, remoteState });
+
+  return Object.freeze({
+    stagingPolicy,
+    bucket,
+    r2,
+    reconciliation,
+    registryRows,
+    models,
+    migration,
+    remoteState,
+    plan,
+  });
+}
+
+export async function runControlledIngestPreflight(options = {}) {
+  const context = await loadControlledIngestContext(options);
+  const {
+    stagingPolicy,
+    bucket,
+    r2,
+    reconciliation,
+    registryRows,
+    migration,
+    remoteState,
+    plan,
+  } = context;
 
   return Object.freeze({
     schemaVersion: 1,

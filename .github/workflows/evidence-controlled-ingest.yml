@@ -1,0 +1,123 @@
+name: Evidence Controlled Ingest
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact main SHA authorized for the bounded ingest
+        required: true
+        type: string
+      confirmation:
+        description: Type APPLY_APPROVED_EVIDENCE_CONTROLLED_INGEST
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-controlled-ingest-approved-pair
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact authorized main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+          fetch-depth: 0
+
+      - name: Verify authorization boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = "refs/heads/main"
+          test "${{ inputs.confirmation }}" = "APPLY_APPROVED_EVIDENCE_CONTROLLED_INGEST"
+          test "$(git rev-parse HEAD)" = "${{ inputs.expected_main_sha }}"
+          git merge-base --is-ancestor 678cf831e6bd5cbe98a5f3581f0c18a1b02d1374 HEAD
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          import { validateControlledIngestAuthorization } from './scripts/evidence-controlled-ingest.mjs';
+          const authorization = JSON.parse(
+            await readFile('research/evidence/controlled-ingest-authorization-2026-08-20.json', 'utf8'),
+          );
+          validateControlledIngestAuthorization(authorization);
+          NODE
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify bounded ingest contract
+        run: node scripts/smoke-evidence-controlled-ingest.mjs
+
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Build compiled Wrangler configuration
+        run: npm run build
+
+      - name: Resolve exact target D1 binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/prepare-production-d1-binding.mjs apps/web/dist/server/wrangler.json
+
+      - name: Verify complete source registry universe read-only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/verify-evidence-source-registry-remote.mjs artifacts/evidence-source-registry-pre-ingest.json
+
+      - name: Fresh generic read-only preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_CONTROLLED_INGEST_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-controlled-ingest-preflight.mjs artifacts/evidence-controlled-ingest-fresh-preflight.json
+
+      - name: Verify exact authorization and empty-state insert plan
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_CONTROLLED_INGEST_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-controlled-ingest.mjs preflight artifacts/evidence-controlled-ingest-authorized-preflight.json
+
+      - name: Execute one bounded transactional D1 batch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_CONTROLLED_INGEST_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-controlled-ingest.mjs execute artifacts/evidence-controlled-ingest-result.json
+
+      - name: Verify exact post-ingest state
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_CONTROLLED_INGEST_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-controlled-ingest.mjs verify artifacts/evidence-controlled-ingest-postverify.json
+
+      - name: Upload bounded ingest audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-controlled-ingest-audit
+          path: artifacts/evidence-*.json
+          if-no-files-found: warn
+          retention-days: 90

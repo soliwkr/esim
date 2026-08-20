@@ -908,9 +908,9 @@ function sqlNumber(value) {
   return String(Number(value));
 }
 
-export function buildEvidenceImportSql(model, plan) {
-  if (plan.action !== 'insert') return '';
-  const statements = ['BEGIN TRANSACTION;'];
+function buildEvidenceImportStatements(model, plan) {
+  if (plan.action !== 'insert') return [];
+  const statements = [];
   const run = model.run;
   statements.push([
     'INSERT INTO evidence_capture_runs(',
@@ -972,7 +972,20 @@ export function buildEvidenceImportSql(model, plan) {
     ].join('\n'));
   }
 
-  statements.push('COMMIT;');
+  return statements;
+}
+
+export function buildEvidenceImportSql(model, plan) {
+  const statements = buildEvidenceImportStatements(model, plan);
+  if (statements.length === 0) return '';
+  return ['BEGIN TRANSACTION;', ...statements, 'COMMIT;'].join('\n');
+}
+
+export function buildEvidenceImportBatchSql(entries) {
+  if (!Array.isArray(entries) || entries.length < 1) {
+    throw new Error('evidence_import_batch_entries_missing');
+  }
+  const statements = entries.flatMap(({ model, plan }) => buildEvidenceImportStatements(model, plan));
   return statements.join('\n');
 }
 
