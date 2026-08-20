@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **15 agosto 2026**.
+Data di riferimento: **20 agosto 2026**.
 
 Questo documento fotografa lo stato operativo reale. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato.
 
@@ -20,9 +20,9 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 | Source registry | Production-ready | 15 righe; 9/9 identity risolte |
 | Evidence importer | Local/fixture verificato | idempotente e fail-closed |
 | Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
-| Evidence artifact storage | **Provisionato e verificato** | R2 privato, Standard/default, native Bucket Lock su `v1/` |
-| Replacement evidence | **Approvato esplicitamente** | Italy + Europe; identità vincolata a run, ZIP e due pack ID |
-| Controlled evidence ingest | Bloccato | richiede staging R2 separatamente autorizzato e verificato |
+| Evidence artifact storage | **Staged e verificato** | 13 object content-addressed in R2 locked |
+| Replacement evidence | **Approvato esplicitamente** | Italy + Europe byte-identificati |
+| Controlled evidence ingest | **Prossimo gate** | preflight read-only prima di qualsiasi D1 write |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
@@ -31,8 +31,8 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 Il sito è live e indicizzabile, ma non ancora money-ready:
 
 - `/migliore-esim` canonica resta provider-neutral;
-- First Money UI disponibile come preview noindex/no-store `/astro-foundation/articoli/migliore-esim`;
-- nessun `/go/*`, provider winner o claim commerciale non verificato nella preview;
+- First Money UI resta preview noindex/no-store `/astro-foundation/articoli/migliore-esim`;
+- nessun `/go/*`, provider winner o claim commerciale non verificato è live;
 - affiliate tracking disabilitato;
 - nessun deploy money-ready eseguito.
 
@@ -45,13 +45,13 @@ local/fixture evidence importer          ✅
 remote 0021 schema                       ✅
 durable artifact storage contract        ✅
 native R2 Bucket Lock contract           ✅
-R2 remote read-only preflight            ✅
 R2 production provisioning               ✅
 Airalo Italy currency drift hardening    ✅
 Airalo Europe currency drift hardening   ✅
 replacement complete-pair capture        ✅
 raw/provenance candidate review          ✅
 explicit replacement approval            ✅
+approved R2 staging + post-write verify  ✅
 ```
 
 Production source state:
@@ -76,163 +76,124 @@ triggers:         9
 
 Upstream production evidence rows non sono ancora state importate.
 
-## R2 production state
-
-Target:
+## Approved replacement anchor
 
 ```text
-senza-roaming-evidence-artifacts
-```
-
-Provisioning autorizzato e verificato:
-
-```text
-run: 31600420207
-mutation: created_bucket_and_set_lock
-verified: true
-```
-
-Stato remoto finale:
-
-```text
-exists: true
-jurisdiction: default
-storage class: Standard
-r2.dev / managed public access: disabled
-custom domains: 0
-protected lifecycle deletes: 0
-```
-
-Lock canonica:
-
-```text
-id:        evidence-v1-indefinite
-prefix:    v1/
-enabled:   true
-condition: Indefinite
-```
-
-Result document:
-
-```text
-docs/research/EVIDENCE-R2-PROVISIONING-RESULT-2026-08-12.md
-```
-
-Il provisioning non ha caricato oggetti evidence, non ha scritto D1 e non ha eseguito deploy.
-
-## Replacement evidence candidate — review completata
-
-I bundle raw originari #106/#107 non sono recuperabili dal repository o dagli artifact CI storici. Il percorso replacement ha ora prodotto una coppia completa e revisionata.
-
-Capture:
-
-```text
-main base: 7ded3c2bdd4b61e8c09e490e485d5c5c091475bb
-run:       31623841563
-ops head:  a4197ef10108f6762606eb9c270e2a354143cc23
-result:    success
-```
-
-Artifact:
-
-```text
-id:         9152309259
-files:      15
-raw HTML:   12
-pack.json:  2
-summary:    1
-zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
-expires:    2026-09-11T17:41:12Z
-```
-
-Review integrità:
-
-```text
-raw sha256:             12/12 match
-raw byte length:        12/12 match
-HTTP status:            12/12 = 200
-redirect chain:         12/12 = 0
-visibleText sha256:     12/12 match
-field-level locators:   verified with JS UTF-16 semantics
-candidate status:       all pending
-ranking:                not_computed
-R2 uploaded:            no
-D1 mutated:             no
-replacement approved:  yes — 15 agosto 2026
-```
-
-Italy candidate:
-
-```text
-pack: pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
-semantic: sha256:2e3d9aaa7e3540d92ff9752721980cd1f4bd2380530578e671e572061952b517
-historical semantic: sha256:ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8
-historicalSemanticMatch: false
-```
-
-Europe candidate:
-
-```text
-pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
-semantic: sha256:f8e617f3e7f659edaddc121ec6df50cc50238308ebf5315c779b41a497c9eb11
-historical semantic: sha256:efb5924eee13f0c2f2a17381cf823c7e78873ab53925842949525982e96dbb89
-historicalSemanticMatch: false
-```
-
-Delta commerciale documentato rispetto ai result storici versionati:
-
-```text
-Airalo Italy:  29 EUR   → 32 USD
-Airalo Europe: 44.5 EUR → 49 USD
-```
-
-Holafly e Ubigi restano allineati ai valori/coverage documentati nei checkpoint storici #106/#107. I vecchi raw pack non sono disponibili, quindi non viene dichiarato un byte-level diff o un `packSemanticDiff` diretto contro i vecchi `pack.json`.
-
-Review canonica:
-
-```text
-docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
-```
-
-## Explicit replacement approval — registrata
-
-La coppia è stata approvata esplicitamente il 15 agosto 2026 dopo il nuovo download e la verifica diretta dell'artifact.
-
-L'approval si riferisce esclusivamente a:
-
-```text
-run: 31623841563
+capture run: 31623841563
 artifact id: 9152309259
 zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
 Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
 Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
 ```
 
+Commercial delta documentato rispetto ai checkpoint storici:
+
 ```text
-replacementApproved: true
-r2Uploaded: false
-d1Mutated: false
+Airalo Italy:  29 EUR   → 32 USD
+Airalo Europe: 44.5 EUR → 49 USD
+```
+
+Holafly e Ubigi restano allineati ai valori/coverage documentati nei result storici. I vecchi raw pack non sono disponibili, quindi non viene dichiarato un byte-level diff contro i vecchi `pack.json`.
+
+## R2 production state
+
+Bucket:
+
+```text
+senza-roaming-evidence-artifacts
+```
+
+Contract:
+
+```text
+jurisdiction: default
+storage class: Standard
+r2.dev / managed public access: disabled
+custom domains: 0
+lock id: evidence-v1-indefinite
+lock prefix: v1/
+lock condition: Indefinite
+```
+
+Content addressing:
+
+```text
+raw:  v1/raw/sha256/<prefix>/<digest>.<extension>
+pack: v1/packs/sha256/<prefix>/<digest>.json
+ref:  r2://evidence-artifacts/<object-key>
+```
+
+### Verified staging result
+
+Il primo write attempt, run `32154128831`, ha fallito chiuso sul primo create con `cloudflare_object_create_failed:10028`. Nessuna mutation downstream è stata eseguita.
+
+Read-only recovery/probe:
+
+```text
+32154558001  post-failure recheck          success
+32154868752  R2 S3 authentication probe    success
+```
+
+Retry separatamente autorizzato:
+
+```text
+head:                  5d099010c703ea78622cd161f36705e45d3d91f2
+run:                   32156353642
+transport:             r2-s3-sigv4
+conditional create:    If-None-Match: *
+preflight collisions:  0
+created objects:       13
+verified objects:      13
+post-write verified:   true
+```
+
+Inventory:
+
+```text
+logical raw references: 12
+unique raw objects:      11
+pack objects:             2
+total objects:           13
+```
+
+Audit artifact:
+
+```text
+id: 9331865182
+sha256: b91a432cdde585997b271f472a67fdfb16fa088adb11435657054d3e127fdd54
+retention: through 2026-11-16
 ```
 
 Result canonico:
 
 ```text
-docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
+docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
 ```
 
-L'approvazione replacement **non autorizza** object upload R2, controlled ingest, claim verification, publication, affiliate activation o deploy.
-
-## Gate dopo replacement approval
-
-Aprire un gate separato per:
+Boundary verificato:
 
 ```text
-stage exact pack + raw bytes create-only in locked R2
-→ verify object key / sha256 / byte length / artifact_ref
-→ read-only D1 preflight
+replacementApproved: true
+r2Staged:            true
+r2Verified:          true
+d1Mutated:           false
+claimsVerified:      false
+affiliateEnabled:    false
+published:           false
+deployed:            false
+```
+
+## Gate corrente — controlled evidence ingest preflight
+
+Lo staging R2 è chiuso. Prima di qualsiasi D1 write il prossimo workstream deve essere separato e iniziare read-only:
+
+```text
+verify exact locked artifact_ref/hash/size
+→ D1 read-only state preflight
 → source resolution 9/9
 → idempotency/drift preflight
-→ separately authorized controlled D1 batch
+→ explicit controlled-ingest authorization
+→ bounded atomic D1 batch
 → deterministic post-ingest audit
 ```
 
@@ -266,8 +227,8 @@ R2 provisioning                    ✅
 replacement complete pair          ✅
 raw/provenance review              ✅
 explicit replacement approval      ✅
-→ separately authorized R2 staging ← current
-→ controlled evidence ingest
+locked R2 staging + verification   ✅
+→ controlled evidence ingest      ← current
 → verification provenance bridge
 → bounded verified facts
 → First Money UI materialization
@@ -279,10 +240,7 @@ explicit replacement approval      ✅
 
 ## Freeze
 
-- niente approval implicita per capture differenti;
-- niente evidence object upload prima di approval + autorizzazione upload separata;
-- niente controlled ingest senza locked/resolvable raw artifacts;
-- niente ricostruzione dei pack storici da documentazione;
+- niente controlled ingest senza nuovo gate esplicito;
 - niente claim verification automatica;
 - niente source auto-registration o metadata overwrite;
 - niente FX implicito;
