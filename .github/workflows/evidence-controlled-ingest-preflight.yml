@@ -35,7 +35,12 @@ jobs:
         run: node scripts/smoke-evidence-controlled-ingest-preflight.mjs
 
   remote-readonly-preflight:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.head_ref == 'chore/evidence-controlled-ingest-preflight' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     needs: contract-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -75,6 +80,22 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/prepare-production-d1-binding.mjs apps/web/dist/server/wrangler.json
 
+      - name: Verify complete source registry universe read-only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-evidence-source-registry-remote.mjs artifacts/evidence-source-registry-preflight.json
+          node --input-type=module - <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const result = JSON.parse(await readFile('artifacts/evidence-source-registry-preflight.json', 'utf8'));
+          if (!result.readyForImporter || result.counts?.resolved !== result.manifestSourceCount) {
+            throw new Error('controlled_ingest_source_registry_not_fully_resolved');
+          }
+          NODE
+
       - name: Run controlled ingest read-only preflight
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -87,6 +108,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evidence-controlled-ingest-readonly-preflight
-          path: artifacts/evidence-controlled-ingest-preflight.json
+          path: |
+            artifacts/evidence-controlled-ingest-preflight.json
+            artifacts/evidence-source-registry-preflight.json
           if-no-files-found: warn
           retention-days: 30
