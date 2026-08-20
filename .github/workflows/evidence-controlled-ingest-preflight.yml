@@ -1,0 +1,92 @@
+name: Evidence Controlled Ingest Read-only Preflight
+
+on:
+  push:
+    branches:
+      - chore/evidence-controlled-ingest-preflight
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  contract-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify read-only preflight contract
+        run: node scripts/smoke-evidence-controlled-ingest-preflight.mjs
+
+  remote-readonly-preflight:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: contract-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check read-only credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "Missing GitHub secret or variable CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          }
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Build compiled Wrangler configuration
+        run: npm run build
+
+      - name: Resolve temporary target D1 binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/prepare-production-d1-binding.mjs apps/web/dist/server/wrangler.json
+
+      - name: Run controlled ingest read-only preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EVIDENCE_CONTROLLED_INGEST_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+          EVIDENCE_SOURCE_REGISTRY_WRANGLER_CONFIG: apps/web/dist/server/wrangler.json
+        run: node scripts/evidence-controlled-ingest-preflight.mjs artifacts/evidence-controlled-ingest-preflight.json
+
+      - name: Upload preflight audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-controlled-ingest-readonly-preflight
+          path: artifacts/evidence-controlled-ingest-preflight.json
+          if-no-files-found: warn
+          retention-days: 30
