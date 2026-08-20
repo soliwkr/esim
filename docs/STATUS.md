@@ -229,7 +229,7 @@ Result canonico:
 docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
 ```
 
-## Gate corrente — verification provenance bridge
+## Gate corrente — formalizzazione migration `0022`
 
 Il bounded ingest è chiuso e verificato:
 
@@ -260,7 +260,18 @@ published:         false
 deployed:          false
 ```
 
-Il prossimo gate deve progettare e verificare il bridge append-only/revisioned fra pending evidence candidate e decisione di verification. Nessun candidate è ancora un claim verificato.
+Il bridge append-only/revisioned v1 è stato progettato e verificato con fixture locale. Il prototipo è fuori da `migrations/`, quindi D1 production resta a `0021` e nessun candidate è ancora un claim verificato. Il gate corrente è una proposta formale `0022`, da sottoporre a review e autorizzazione separata prima di qualsiasi apply remoto.
+
+Contratto locale:
+
+```text
+human-audited candidate intake
+→ immutable revisioned decision
+→ supports / contradicts / context links
+→ deterministic current head
+```
+
+Lo smoke locale conferma che `partial` non diventa `verified` e che `claim_verifications`, `plans` ed editorial candidates restano invariati.
 
 ## Percorso verso il primo click affiliate
 
@@ -278,7 +289,8 @@ locked R2 staging + verification   ✅
 → controlled-ingest read-only preflight ✅
 → explicit bounded-ingest authorization ✅
 → controlled evidence ingest ✅
-→ verification provenance bridge ← current
+→ verification provenance bridge design ✅
+→ formal 0022 migration proposal ← current
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover

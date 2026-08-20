@@ -380,7 +380,7 @@ Regole iniziali:
 
 ## ADR-039 — Upstream evidence D1 separato da catalogo e workflow editoriale
 
-**Stato:** accettata e mergiata con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`); schema upstream implementato con `0021` e applicato/verificato in produzione l’8 agosto 2026; controlled evidence ingest non ancora eseguito.
+**Stato:** accettata e mergiata con PR #108 (`9689dd20e1a5b477a16a7cd938788a4200fe0baf`); schema upstream implementato con `0021` e applicato/verificato in produzione l’8 agosto 2026; bounded controlled evidence ingest eseguito e verificato il 20 agosto 2026.
 
 **Decisione:** materializzare il layer evidence con oggetti upstream dedicati:
 
@@ -413,7 +413,7 @@ Vincoli della decisione:
 - `claim_verifications` resta il current verified state downstream;
 - il bridge fra verification decision e evidence candidate deve avere provenance append-only/revisioned prima di essere automatizzato.
 
-**Conseguenza:** la migration upstream `0021` è ora production; source onboarding e importer local/fixture sono chiusi. Controlled ingest, verification bridge e qualsiasi redesign `plans` restano gate separati.
+**Conseguenza:** la migration upstream `0021` è production; source onboarding, importer local/fixture e bounded ingest della coppia approved sono chiusi. Verification bridge e qualsiasi redesign `plans` restano gate separati.
 
 ## ADR-040 — Raw evidence artifact in R2 privato, content-addressed e protetto da Bucket Lock nativo
 
@@ -499,4 +499,23 @@ Il workflow deve fallire chiuso salvo che R2 contenga ancora i 13 oggetti esatti
 
 Il run `32396193444` ha soddisfatto il contratto. Il post-check ha verificato `2 / 12 / 72 / 52`; i 52 candidate restano `pending`. L'audit artifact `9416760749` ha digest `sha256:4886495527e4b6aeacf6f425c7227345e18ba1ece5f8887fdb6a0f00816b8daa`.
 
-**Conseguenza:** l'upstream evidence production non è più vuoto, ma non esiste ancora alcun verified commercial fact. Il gate corrente passa al verification provenance bridge. `source_registry`, `plans`, `claim_verifications` e `published_pages` non sono stati mutati; affiliazioni, pubblicazione e deploy restano disabilitati e richiedono autorizzazioni separate.
+**Conseguenza:** l'upstream evidence production non è più vuoto, ma non esiste ancora alcun verified commercial fact. Il gate successivo era il verification provenance bridge. `source_registry`, `plans`, `claim_verifications` e `published_pages` non sono stati mutati; affiliazioni, pubblicazione e deploy restano disabilitati e richiedono autorizzazioni separate.
+
+## ADR-044 — Verification provenance append-only prima della projection corrente
+
+**Stato:** accettata come design v1 e verificata con fixture locale il 20 agosto 2026; non è ancora una migration production.
+
+**Decisione:** non scrivere direttamente i pending evidence candidate in `claim_verifications`, perché quella tabella rappresenta uno stato corrente mutabile e non conserva l'intera provenance decisionale. Introdurre prima un bridge che separi:
+
+```text
+candidate intake event append-only
+→ human verification decision revision
+→ supports / contradicts / context evidence links
+→ unsuperseded current projection
+```
+
+Le transizioni candidate richiedono attore, nota e timestamp. Decisioni ed evidence link sono immutabili; le revisioni formano una catena lineare tramite `supersedes_decision_id`; `partial` non può produrre `verified`; un claim verificato richiede una scadenza esplicita; expiry è una nuova decisione. La v1 accetta soltanto decisioni umane e non materializza `claim_verifications` o `plans`.
+
+Il contratto è verificato dal prototipo locale `research/evidence/verification-provenance-bridge-v1.sql` e dallo smoke `scripts/smoke-evidence-verification-provenance.mjs`. Il prototipo resta intenzionalmente fuori da `migrations/`.
+
+**Conseguenza:** il merge del design non crea una migration pending e non muta D1 remoto. Il gate successivo è una proposta `0022` separata, seguita da read-only preflight e autorizzazione esplicita prima dell'apply. Candidate intake e claim verification production restano gate ulteriori; affiliazioni, pubblicazione e deploy restano disabilitati.
