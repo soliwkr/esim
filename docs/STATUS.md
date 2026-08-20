@@ -18,11 +18,11 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 | M7 SEO foundation | Live | ownership e on-page baseline applicate |
 | First Money UI | Preview mergiata | canonical `/migliore-esim` invariata |
 | Source registry | Production-ready | 15 righe; 9/9 identity risolte |
-| Evidence importer | Local/fixture verificato | idempotente e fail-closed |
+| Evidence importer | Production bounded ingest verificato | local/fixture + one-shot insert-only fail-closed |
 | Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
 | Evidence artifact storage | **Staged e verificato** | 13 object content-addressed in R2 locked |
 | Replacement evidence | **Approvato esplicitamente** | Italy + Europe byte-identificati |
-| Controlled evidence ingest | **Preflight remoto verde** | prossimo gate: autorizzazione esplicita al bounded D1 ingest |
+| Controlled evidence ingest | **Production verificato** | 2 run, 12 snapshot, 72 observation, 52 pending candidate |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
@@ -53,6 +53,8 @@ raw/provenance candidate review          ✅
 explicit replacement approval            ✅
 approved R2 staging + post-write verify  ✅
 controlled-ingest read-only preflight    ✅
+explicit bounded-ingest authorization   ✅
+bounded D1 ingest + exact post-verify   ✅
 ```
 
 Production source state:
@@ -75,7 +77,16 @@ indexes:          7
 triggers:         9
 ```
 
-Upstream production evidence rows non sono ancora state importate. Il preflight remoto ha verificato `0` capture run, `0` snapshot, `0` observation e `0` candidate.
+Upstream production contiene esclusivamente la coppia approved Italy/Europe, importata e verificata dal run `32396193444`:
+
+```text
+capture runs:  2
+snapshots:    12
+observations: 72
+candidates:   52 (pending)
+```
+
+`source_registry` è rimasto a 15 righe; `plans` e `claim_verifications` non sono stati scritti.
 
 ## Approved replacement anchor
 
@@ -218,34 +229,38 @@ Result canonico:
 docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
 ```
 
-## Gate corrente — autorizzazione controlled ingest
+## Gate corrente — verification provenance bridge
 
-Il prossimo workstream resta separato:
-
-```text
-fresh read-only preflight
-→ explicit controlled-ingest authorization
-→ bounded atomic D1 batch
-→ deterministic post-ingest audit
-```
-
-Controlled ingest può scrivere soltanto:
+Il bounded ingest è chiuso e verificato:
 
 ```text
-evidence_capture_runs
-evidence_snapshots
-evidence_field_observations
-evidence_claim_candidates
+run:                 32396193444
+main:                55f0228c03b6604ac6858b0a4d987e0cec3ebe7c
+pre-write rows:      0 / 0 / 0 / 0
+inserted + verified: 2 / 12 / 72 / 52
+post-write plans:    existing_exact
+pending inserts:     0 / 0 / 0 / 0
 ```
 
-Non può scrivere:
+Audit artifact:
 
 ```text
-source_registry
-plans
-claim_verifications
-published_pages
+id:      9416760749
+sha256:  4886495527e4b6aeacf6f425c7227345e18ba1ece5f8887fdb6a0f00816b8daa
+expires: 2026-11-18T17:11:12Z
+result:  docs/research/EVIDENCE-CONTROLLED-INGEST-RESULT-2026-08-20.md
 ```
+
+Boundary confermato:
+
+```text
+claims verified:   false
+affiliate enabled: false
+published:         false
+deployed:          false
+```
+
+Il prossimo gate deve progettare e verificare il bridge append-only/revisioned fra pending evidence candidate e decisione di verification. Nessun candidate è ancora un claim verificato.
 
 ## Percorso verso il primo click affiliate
 
@@ -261,9 +276,9 @@ raw/provenance review              ✅
 explicit replacement approval      ✅
 locked R2 staging + verification   ✅
 → controlled-ingest read-only preflight ✅
-→ explicit bounded-ingest authorization ← current
-→ controlled evidence ingest
-→ verification provenance bridge
+→ explicit bounded-ingest authorization ✅
+→ controlled evidence ingest ✅
+→ verification provenance bridge ← current
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
@@ -274,7 +289,7 @@ locked R2 staging + verification   ✅
 
 ## Freeze
 
-- niente controlled ingest senza nuovo gate esplicito;
+- niente ulteriore D1 mutation senza nuovo gate esplicito;
 - niente claim verification automatica;
 - niente source auto-registration o metadata overwrite;
 - niente FX implicito;
