@@ -1,8 +1,8 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **15 agosto 2026**.
+Ultimo aggiornamento: **20 agosto 2026**.
 
-## Gate corrente — staging R2 separatamente autorizzato
+## Gate corrente — controlled evidence ingest preflight
 
 Checkpoint chiusi:
 
@@ -13,18 +13,28 @@ local/fixture importer                   ✅
 remote 0021                              ✅
 durable artifact storage contract        ✅
 native R2 Bucket Lock contract           ✅
-remote R2 read-only preflight            ✅
 remote R2 provisioning                   ✅
 Airalo Italy currency drift hardening    ✅
 Airalo Europe currency drift hardening   ✅
 replacement complete-pair capture        ✅
 raw/provenance candidate review          ✅
 explicit replacement approval            ✅
+approved R2 staging + verification       ✅
 ```
 
-Production evidence upstream resta vuoto: nessun pack è stato ancora ingerito.
+Production evidence upstream resta vuoto: nessun approved pack è ancora stato ingerito in D1.
 
-## R2 production state
+## Approved replacement anchor
+
+```text
+capture run: 31623841563
+artifact id: 9152309259
+zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
+Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
+Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+```
+
+## R2 staging — chiuso e verificato
 
 Target:
 
@@ -32,15 +42,30 @@ Target:
 senza-roaming-evidence-artifacts
 ```
 
-Provisioning verificato:
+Il primo create attempt `32154128831` ha fallito chiuso con `cloudflare_object_create_failed:10028`. Dopo due probe read-only verdi (`32154558001`, `32154868752`), il retry S3 create-only separatamente autorizzato ha completato lo staging.
+
+Verified run:
 
 ```text
-run: 31600420207
-mutation: created_bucket_and_set_lock
-verified: true
+run:                   32156353642
+head:                  5d099010c703ea78622cd161f36705e45d3d91f2
+transport:             r2-s3-sigv4
+conditional create:    If-None-Match: *
+preflight collisions:  0
+created:               13
+verified:              13
 ```
 
-Stato finale:
+Inventory:
+
+```text
+logical raw references: 12
+unique raw objects:      11
+pack objects:             2
+total objects:           13
+```
+
+Bucket contract verificato durante la stessa run:
 
 ```text
 jurisdiction: default
@@ -48,157 +73,45 @@ storage class: Standard
 r2.dev: disabled
 custom domains: 0
 protected prefix: v1/
-no lifecycle delete overlapping v1/
+lock: evidence-v1-indefinite / Indefinite
 ```
 
-Lock canonica:
+Audit:
 
 ```text
-id:        evidence-v1-indefinite
-prefix:    v1/
-enabled:   true
-condition: Indefinite
-```
-
-Nessun evidence object è ancora stato caricato nel bucket.
-
-## Replacement candidate disponibile e revisionato
-
-I raw originari #106/#107 restano non recuperabili, ma il percorso replacement ha prodotto una nuova coppia completa.
-
-Capture:
-
-```text
-main base: 7ded3c2bdd4b61e8c09e490e485d5c5c091475bb
-run:       31623841563
-ops head:  a4197ef10108f6762606eb9c270e2a354143cc23
-result:    success
-```
-
-Artifact:
-
-```text
-id:         9152309259
-files:      15
-raw HTML:   12
-pack.json:  2
-summary:    1
-zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
-expires:    2026-09-11T17:41:12Z
-```
-
-Integrity review:
-
-```text
-raw hash:             12/12 verified
-raw byte length:      12/12 verified
-HTTP 200:             12/12
-redirects:            0/12
-visibleText hash:     12/12 verified
-field locators:       verified with JS UTF-16 indexing
-all candidates:       pending
-ranking:              not_computed
-replacementApproved: true
-r2Uploaded:           false
-d1Mutated:            false
-```
-
-Italy:
-
-```text
-pack: pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
-semantic: sha256:2e3d9aaa7e3540d92ff9752721980cd1f4bd2380530578e671e572061952b517
-historical: sha256:ba819d051bb73a1690c64520c537579b04c0ad2d73cdb6626a2e6c655bf678f8
-Airalo documented delta: 29 EUR → 32 USD
-```
-
-Europe:
-
-```text
-pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
-semantic: sha256:f8e617f3e7f659edaddc121ec6df50cc50238308ebf5315c779b41a497c9eb11
-historical: sha256:efb5924eee13f0c2f2a17381cf823c7e78873ab53925842949525982e96dbb89
-Airalo documented delta: 44.5 EUR → 49 USD
-```
-
-Holafly e Ubigi restano allineati ai valori/coverage documentati nei checkpoint storici #106/#107. Poiché i vecchi raw pack sono assenti, non viene dichiarato un byte-level diff contro i vecchi `pack.json`.
-
-Review completa:
-
-```text
-docs/research/EVIDENCE-REPLACEMENT-CANDIDATE-REVIEW-2026-08-12.md
-```
-
-## Availability verificata per l'approval
-
-Il 15 agosto 2026 l'artifact GitHub è stato riscaricato prima dell'approval:
-
-```text
-artifact id: 9152309259
-expired: false
-download: success
-zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
-files: 15
-Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
-Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
-```
-
-Prima dello staging R2 l'availability e il digest devono essere verificati di nuovo. Se l'artifact è scaduto, cancellato, non scaricabile o differente:
-
-```text
-BLOCK
-→ non approvare dai soli documenti
-→ non ricostruire i byte
-→ new complete capture
-→ raw/provenance review
-→ explicit replacement approval
-```
-
-La retention corrente termina il **2026-09-11T17:41:12Z**. GitHub Actions non viene trattato come durable production storage; quello inizia soltanto dopo lo staging verificato nel bucket R2 locked.
-
-## Approval registrata
-
-La coppia è stata approvata esplicitamente il 15 agosto 2026 e soltanto per le identità seguenti:
-
-L'approvazione identifica esattamente:
-
-```text
-run: 31623841563
-artifact id: 9152309259
-zip sha256: f539220dccb16ad5b66b67755f2447127e80b10a4e6697a4161b92b4f1af4d84
-Italy pack:  pack:sha256:90f364863edc735072a7793278f02faa2600ccf441374e6209e4915abc9cf2bf
-Europe pack: pack:sha256:fe81e66c376a318b3f3ee35da2f81c49a433d5c141726225dc98e297c09935ae
+artifact id: 9331865182
+sha256: b91a432cdde585997b271f472a67fdfb16fa088adb11435657054d3e127fdd54
 ```
 
 Result canonico:
 
 ```text
-docs/research/EVIDENCE-REPLACEMENT-APPROVAL-2026-08-15.md
+docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
 ```
 
-Replacement approval non equivale ad autorizzazione object upload R2. Nessun upload, ingest, claim verification o money-page materialization è stato eseguito.
+Nessuna D1 mutation, claim verification, affiliate activation, publication o deploy è avvenuta durante staging.
 
-## Gate dopo approval — R2 staging separato
+## Prossimo workstream — controlled ingest gate
 
-Con approval replacement già registrata, aprire un nuovo gate esplicitamente autorizzato per:
+Creare una branch separata da `main` **solo dopo il merge del checkpoint R2**.
+
+La prima fase deve essere read-only:
 
 ```text
-recheck artifact availability + exact ZIP digest
-→ stage exact pack + raw bytes create-only in locked R2
-→ verify object key / sha256 / byte length / artifact_ref
+1. verify exact R2 artifact refs / hashes / sizes
+2. verify remote D1 schema state = 0021
+3. reconcile source_registry 9/9
+4. compute deterministic import plan
+5. idempotency/drift preflight against current upstream rows
+6. produce audit/preflight result
+7. STOP
 ```
 
-Solo dopo staging verificato:
+Soltanto dopo un preflight verde e una nuova autorizzazione esplicita può essere creato il marker/call che abilita il bounded production write.
 
-```text
-read-only D1 preflight
-→ source resolution 9/9
-→ idempotency/drift preflight
-→ separately authorized controlled D1 batch
-→ deterministic post-ingest audit
-```
+## Controlled ingest write boundary
 
-Controlled ingest può scrivere soltanto:
+Il batch autorizzato potrà scrivere esclusivamente:
 
 ```text
 evidence_capture_runs
@@ -207,7 +120,7 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-Non può scrivere:
+È vietato scrivere:
 
 ```text
 source_registry
@@ -216,13 +129,25 @@ claim_verifications
 published_pages
 ```
 
-## Verification provenance bridge
+Invarianti:
 
-Dopo ingest:
+- atomic/bounded batch;
+- deterministic IDs;
+- exact source resolution;
+- locked/resolvable `artifact_ref` obbligatori;
+- existing-key drift blocca;
+- exact rerun idempotente;
+- `unknown|not_applicable` observation-only;
+- `observed|partial` possono soltanto produrre pending candidates;
+- source-native currency preservata;
+- nessun FX implicito;
+- nessuna verification automatica.
+
+## Dopo ingest verificato
 
 ```text
 pending evidence candidate
-→ verification gate
+→ verification provenance gate
 → verified / contradicted / expired
 → evidence bundle
 → Page Readiness
@@ -230,8 +155,6 @@ pending evidence candidate
 ```
 
 Un pending candidate non è un verified claim.
-
-`partial` resta partial e `unknown` resta unknown.
 
 ## First Money UI
 
@@ -260,26 +183,22 @@ artifact storage contract          ✅
 R2 provisioning                    ✅
 replacement complete pair          ✅
 raw/provenance review              ✅
-artifact availability recheck      ✅
 explicit replacement approval      ✅
-→ separately authorized R2 staging ← current
-→ controlled evidence ingest
+locked R2 staging + verification   ✅
+→ controlled evidence ingest      ← current
 → verification provenance
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
 → affiliate + measurement gate
 → explicit production deploy
-→ first real affiliate click
+→ first affiliate click
 ```
 
 ## Freeze
 
-- niente staging se l'artifact esatto non è più disponibile/verificabile;
-- niente ricostruzione del replacement dai soli documenti dopo expiry;
-- niente approval implicita per capture differenti;
-- niente evidence upload senza approval + authorization separata;
-- niente controlled ingest senza locked/resolvable raw artifacts;
+- niente D1 write in questo R2 closeout;
+- niente controlled ingest senza preflight e autorizzazione separata;
 - niente claim verification automatica;
 - niente source auto-registration;
 - niente metadata overwrite;
