@@ -22,7 +22,7 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 | Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
 | Evidence artifact storage | **Staged e verificato** | 13 object content-addressed in R2 locked |
 | Replacement evidence | **Approvato esplicitamente** | Italy + Europe byte-identificati |
-| Controlled evidence ingest | **Prossimo gate** | preflight read-only prima di qualsiasi D1 write |
+| Controlled evidence ingest | **Preflight remoto verde** | prossimo gate: autorizzazione esplicita al bounded D1 ingest |
 | CMP / GTM / GA4 | Live e consent-gated | Consent Mode Basic |
 | Affiliazioni | Disabilitate | `AFFILIATE_MODE=disabled` |
 
@@ -52,6 +52,7 @@ replacement complete-pair capture        ✅
 raw/provenance candidate review          ✅
 explicit replacement approval            ✅
 approved R2 staging + post-write verify  ✅
+controlled-ingest read-only preflight    ✅
 ```
 
 Production source state:
@@ -74,7 +75,7 @@ indexes:          7
 triggers:         9
 ```
 
-Upstream production evidence rows non sono ancora state importate.
+Upstream production evidence rows non sono ancora state importate. Il preflight remoto ha verificato `0` capture run, `0` snapshot, `0` observation e `0` candidate.
 
 ## Approved replacement anchor
 
@@ -183,15 +184,46 @@ published:           false
 deployed:            false
 ```
 
-## Gate corrente — controlled evidence ingest preflight
+## Controlled evidence ingest — preflight remoto chiuso
 
-Lo staging R2 è chiuso. Prima di qualsiasi D1 write il prossimo workstream deve essere separato e iniziare read-only:
+Il workflow read-only ha verificato lo stato production senza eseguire mutation:
 
 ```text
-verify exact locked artifact_ref/hash/size
-→ D1 read-only state preflight
-→ source resolution 9/9
-→ idempotency/drift preflight
+run:                   32387491600
+head:                  e636535684a31c409c456b0d1668e3e9bcd32ce9
+checked at:            2026-08-20T15:41:16.614Z
+R2 objects verified:   13
+source registry:       15 rows / 9 identities resolved
+D1 migration:          21 / 0021_evidence_upstream_storage.sql
+existing D1 rows:      0 runs / 0 snapshots / 0 observations / 0 candidates
+planned inserts:       2 runs / 12 snapshots / 72 observations / 52 candidates
+D1 mutated:            false
+claims verified:       false
+affiliate enabled:     false
+published:             false
+deployed:              false
+```
+
+Audit artifact:
+
+```text
+id: 9413529042
+sha256: fb0d96291e4d8b09312744d8ce46130c375a496dde46120f88a3ce857dc2de94
+retention: through 2026-09-19
+```
+
+Result canonico:
+
+```text
+docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
+```
+
+## Gate corrente — autorizzazione controlled ingest
+
+Il prossimo workstream resta separato:
+
+```text
+fresh read-only preflight
 → explicit controlled-ingest authorization
 → bounded atomic D1 batch
 → deterministic post-ingest audit
@@ -228,7 +260,9 @@ replacement complete pair          ✅
 raw/provenance review              ✅
 explicit replacement approval      ✅
 locked R2 staging + verification   ✅
-→ controlled evidence ingest      ← current
+→ controlled-ingest read-only preflight ✅
+→ explicit bounded-ingest authorization ← current
+→ controlled evidence ingest
 → verification provenance bridge
 → bounded verified facts
 → First Money UI materialization

@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **15 agosto 2026**.
+Ultimo aggiornamento: **20 agosto 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -463,3 +463,28 @@ L'approval è stata registrata soltanto dopo aver verificato PR #133 contro `mai
 L'approval non autorizza upload o mutation R2, D1 ingest, claim verification, publication, affiliate activation o deploy. Lo staging create-only in R2 locked resta una mutation separata che richiede nuova autorizzazione e un nuovo availability/digest recheck.
 
 **Conseguenza:** il gate corrente avanza allo staging R2 separatamente autorizzato. Se prima dello staging i byte esatti non sono più scaricabili o il digest non coincide, il percorso fallisce chiuso e richiede nuova capture, nuova review e nuova approval; i byte non vengono ricostruiti dalla documentazione.
+
+## ADR-042 — Controlled-ingest preflight remoto separato dal D1 write
+
+**Stato:** accettata e verificata remotamente il 20 agosto 2026.
+
+**Decisione:** prima di introdurre qualsiasi capacità di controlled ingest, eseguire un workflow production strettamente read-only che:
+
+```text
+verifica bucket e Bucket Lock
+→ legge i 13 object R2 approvati
+→ verifica hash e byte length
+→ ricostruisce i modelli dai byte approvati
+→ risolve source_registry 9/9
+→ verifica d1_migrations = 0021
+→ legge le quattro tabelle upstream con SELECT
+→ calcola il piano deterministico
+→ emette audit
+→ STOP
+```
+
+Il modello production usa esclusivamente provenance `r2://evidence-artifacts/...`. Il percorso remoto rifiuta query non `SELECT`, non genera o esegue import SQL, non effettua R2 write e non tocca `source_registry`, `plans`, `claim_verifications` o `published_pages`.
+
+La verifica canonica è il run `32387491600` sull'head `e636535684a31c409c456b0d1668e3e9bcd32ce9`: 13 object verificati, 15 source rows, 9/9 identity risolte, 21 migration fino a `0021`, upstream `0 / 0 / 0 / 0` e piano atteso `2 runs / 12 snapshots / 72 observations / 52 candidates`. L'audit artifact `9413529042` ha digest `sha256:fb0d96291e4d8b09312744d8ce46130c375a496dde46120f88a3ce857dc2de94`.
+
+**Conseguenza:** il preflight verde chiude soltanto il gate di lettura e pianificazione. Il D1 write richiede una branch e un'autorizzazione separata, vincolata a expected head e pack approvati, più un preflight fresco immediatamente prima di un batch atomicamente bounded. Claim verification, affiliate activation, publication e deploy restano gate successivi e indipendenti.

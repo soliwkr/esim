@@ -30,7 +30,7 @@ Ultimo aggiornamento: **20 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; Truth Engine storage provisionato e popolato con la coppia approved Italy/Europe; gate corrente = controlled evidence ingest.
+**Stato:** demand intelligence completata; First Money UI in preview; R2 popolato con la coppia approved Italy/Europe; controlled-ingest preflight remoto completato; gate corrente = autorizzazione esplicita del bounded D1 ingest.
 
 Completati:
 
@@ -52,7 +52,8 @@ Completati:
 - raw/provenance review;
 - explicit replacement approval;
 - exact approved raw + pack staging in locked R2;
-- post-write verification di tutti i 13 content-addressed objects.
+- post-write verification di tutti i 13 content-addressed objects;
+- controlled evidence ingest read-only preflight remoto verde.
 
 Preview:
 
@@ -96,6 +97,7 @@ run 32154128831 first R2 write attempt failed closed
 run 32154558001 post-failure read-only recheck
 run 32154868752 read-only S3 auth probe
 run 32156353642 S3 create-only staging + 13/13 verification
+run 32387491600 controlled ingest read-only preflight
 ```
 
 ### Production source state
@@ -118,7 +120,7 @@ indexes:          7
 triggers:         9
 ```
 
-Nessun approved evidence pack è ancora stato importato nelle tabelle upstream production.
+Nessun approved evidence pack è ancora stato importato nelle tabelle upstream production. Il preflight remoto `32387491600` ha verificato zero righe in tutte e quattro le tabelle.
 
 ### Durable artifact storage — production verified
 
@@ -211,19 +213,36 @@ docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
 
 R2 staging non ha mutato D1, verificato claim, attivato affiliazioni, pubblicato o deployato.
 
-### Controlled evidence ingest — gate corrente
+### Controlled evidence ingest — preflight chiuso
 
 Prima di qualsiasi D1 write:
 
 ```text
-exact R2 artifact_ref/hash/size verification
-→ read-only remote D1 state preflight
-→ source resolution 9/9
-→ deterministic import plan
-→ idempotency/drift preflight
-→ explicit controlled-ingest authorization
+exact R2 artifact_ref/hash/size verification ✅
+→ read-only remote D1 state preflight ✅
+→ source resolution 9/9 ✅
+→ deterministic import plan ✅
+→ idempotency/drift preflight ✅
+→ explicit controlled-ingest authorization ← current
 → atomic bounded ingest
 → deterministic post-ingest audit
+```
+
+Remote result:
+
+```text
+run:                   32387491600
+head:                  e636535684a31c409c456b0d1668e3e9bcd32ce9
+R2 objects verified:   13
+existing D1 rows:      0 / 0 / 0 / 0
+planned inserts:       2 runs / 12 snapshots / 72 observations / 52 candidates
+D1 mutated:            false
+```
+
+Audit canonico:
+
+```text
+docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
 ```
 
 Write target esclusivi:
@@ -284,6 +303,8 @@ replacement complete pair ✅
 raw/provenance review ✅
 explicit replacement approval ✅
 locked R2 staging + verify ✅
+→ read-only controlled-ingest preflight ✅
+→ explicit bounded-ingest authorization
 → controlled evidence ingest
 → verified commercial facts
 → canonical /migliore-esim
@@ -332,7 +353,9 @@ source reconciliation ✅
 → raw/provenance review ✅
 → explicit replacement approval ✅
 → locked R2 staging + verify ✅
-→ controlled ingest ← current
+→ controlled-ingest read-only preflight ✅
+→ explicit bounded-ingest authorization ← current
+→ controlled ingest
 → verification provenance
 → money-page facts
 ```

@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **20 agosto 2026**.
 
-## Gate corrente — controlled evidence ingest preflight
+## Gate corrente — autorizzazione controlled ingest
 
 Checkpoint chiusi:
 
@@ -20,9 +20,10 @@ replacement complete-pair capture        ✅
 raw/provenance candidate review          ✅
 explicit replacement approval            ✅
 approved R2 staging + verification       ✅
+controlled-ingest read-only preflight    ✅
 ```
 
-Production evidence upstream resta vuoto: nessun approved pack è ancora stato ingerito in D1.
+Production evidence upstream resta vuoto: nessun approved pack è ancora stato ingerito in D1. Il prossimo D1 write richiede un'autorizzazione nuova, esplicita e vincolata.
 
 ## Approved replacement anchor
 
@@ -91,23 +92,64 @@ docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
 
 Nessuna D1 mutation, claim verification, affiliate activation, publication o deploy è avvenuta durante staging.
 
-## Prossimo workstream — controlled ingest gate
+## Read-only preflight — chiuso e verificato
 
-Creare una branch separata da `main` **solo dopo il merge del checkpoint R2**.
-
-La prima fase deve essere read-only:
+Remote run:
 
 ```text
-1. verify exact R2 artifact refs / hashes / sizes
-2. verify remote D1 schema state = 0021
-3. reconcile source_registry 9/9
-4. compute deterministic import plan
-5. idempotency/drift preflight against current upstream rows
-6. produce audit/preflight result
-7. STOP
+workflow:               Evidence Controlled Ingest Read-only Preflight
+run:                    32387491600
+head:                   e636535684a31c409c456b0d1668e3e9bcd32ce9
+checked at:             2026-08-20T15:41:16.614Z
+R2 objects verified:    13
+source_registry rows:   15
+identities resolved:    9/9
+D1 migration:           21 / 0021_evidence_upstream_storage.sql
+existing upstream rows: 0 / 0 / 0 / 0
 ```
 
-Soltanto dopo un preflight verde e una nuova autorizzazione esplicita può essere creato il marker/call che abilita il bounded production write.
+Deterministic insert plan:
+
+```text
+runs:         2
+snapshots:   12
+observations: 72
+candidates:  52
+```
+
+Audit:
+
+```text
+artifact id: 9413529042
+sha256: fb0d96291e4d8b09312744d8ce46130c375a496dde46120f88a3ce857dc2de94
+result: docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
+```
+
+Boundary:
+
+```text
+D1 mutated:         false
+claims verified:    false
+affiliate enabled:  false
+published:          false
+deployed:           false
+```
+
+## Prossimo workstream — bounded ingest authorization
+
+Creare una branch separata da `main` **solo dopo il merge del checkpoint preflight**.
+
+Prima di introdurre qualsiasi capacità di write:
+
+1. vincolare l'autorizzazione ai due pack approvati e a un expected head esatto;
+2. rifare un preflight remoto read-only immediatamente prima del batch;
+3. richiedere ancora `0021`, source resolution 9/9 e zero drift/collision;
+4. limitare il batch alle quattro tabelle upstream e ai totali attesi;
+5. eseguire il batch atomicamente e fallire chiuso;
+6. produrre una verifica post-ingest deterministica e un audit separato;
+7. STOP prima di claim verification, affiliate activation, publication o deploy.
+
+Il preflight verde non autorizza da solo il bounded production write.
 
 ## Controlled ingest write boundary
 
@@ -185,7 +227,9 @@ replacement complete pair          ✅
 raw/provenance review              ✅
 explicit replacement approval      ✅
 locked R2 staging + verification   ✅
-→ controlled evidence ingest      ← current
+→ controlled-ingest read-only preflight ✅
+→ explicit bounded-ingest authorization ← current
+→ controlled evidence ingest
 → verification provenance
 → bounded verified facts
 → First Money UI materialization
@@ -197,8 +241,8 @@ locked R2 staging + verification   ✅
 
 ## Freeze
 
-- niente D1 write in questo R2 closeout;
-- niente controlled ingest senza preflight e autorizzazione separata;
+- niente D1 write in questo preflight closeout;
+- niente controlled ingest senza preflight fresco e autorizzazione separata;
 - niente claim verification automatica;
 - niente source auto-registration;
 - niente metadata overwrite;
