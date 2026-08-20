@@ -30,7 +30,7 @@ Ultimo aggiornamento: **20 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; R2 popolato con la coppia approved Italy/Europe; controlled-ingest preflight remoto completato; gate corrente = autorizzazione esplicita del bounded D1 ingest.
+**Stato:** demand intelligence completata; First Money UI in preview; coppia approved Italy/Europe persistita in R2 e ingerita nelle tabelle upstream D1; gate corrente = verification provenance bridge.
 
 Completati:
 
@@ -53,7 +53,9 @@ Completati:
 - explicit replacement approval;
 - exact approved raw + pack staging in locked R2;
 - post-write verification di tutti i 13 content-addressed objects;
-- controlled evidence ingest read-only preflight remoto verde.
+- controlled evidence ingest read-only preflight remoto verde;
+- autorizzazione bounded-ingest versionata;
+- ingest D1 insert-only della coppia approved e post-verifica esatta `2 / 12 / 72 / 52`.
 
 Preview:
 
@@ -98,6 +100,9 @@ run 32154558001 post-failure read-only recheck
 run 32154868752 read-only S3 auth probe
 run 32156353642 S3 create-only staging + 13/13 verification
 run 32387491600 controlled ingest read-only preflight
+run 32391428886 final controlled-ingest read-only preflight on approved head
+#136 bounded controlled-ingest authorization + runner
+run 32396193444 bounded D1 ingest + exact post-write verification
 ```
 
 ### Production source state
@@ -120,7 +125,16 @@ indexes:          7
 triggers:         9
 ```
 
-Nessun approved evidence pack è ancora stato importato nelle tabelle upstream production. Il preflight remoto `32387491600` ha verificato zero righe in tutte e quattro le tabelle.
+La coppia approved Italy/Europe è stata importata dal run `32396193444` e verificata contro i byte R2 approvati. Stato upstream production:
+
+```text
+capture runs:  2
+snapshots:    12
+observations: 72
+candidates:   52 (pending)
+```
+
+`source_registry` è rimasto invariato a 15 righe. Nessun claim è stato verificato e nessuna riga `plans` è stata scritta.
 
 ### Durable artifact storage — production verified
 
@@ -213,9 +227,9 @@ docs/research/EVIDENCE-R2-STAGING-RESULT-2026-08-18.md
 
 R2 staging non ha mutato D1, verificato claim, attivato affiliazioni, pubblicato o deployato.
 
-### Controlled evidence ingest — preflight chiuso
+### Controlled evidence ingest — chiuso e verificato
 
-Prima di qualsiasi D1 write:
+Gate completato:
 
 ```text
 exact R2 artifact_ref/hash/size verification ✅
@@ -223,26 +237,27 @@ exact R2 artifact_ref/hash/size verification ✅
 → source resolution 9/9 ✅
 → deterministic import plan ✅
 → idempotency/drift preflight ✅
-→ explicit controlled-ingest authorization ← current
-→ atomic bounded ingest
-→ deterministic post-ingest audit
+→ explicit controlled-ingest authorization ✅
+→ atomic bounded ingest ✅
+→ deterministic post-ingest audit ✅
 ```
 
-Remote result:
+Fresh preflight e write result:
 
 ```text
-run:                   32387491600
-head:                  e636535684a31c409c456b0d1668e3e9bcd32ce9
+canonical preflight:   32391428886
+ingest run:            32396193444
+main:                  55f0228c03b6604ac6858b0a4d987e0cec3ebe7c
 R2 objects verified:   13
-existing D1 rows:      0 / 0 / 0 / 0
-planned inserts:       2 runs / 12 snapshots / 72 observations / 52 candidates
-D1 mutated:            false
+pre-write D1 rows:     0 / 0 / 0 / 0
+inserted + verified:   2 runs / 12 snapshots / 72 observations / 52 candidates
+post-write plan:       existing_exact / 0 pending inserts
 ```
 
 Audit canonico:
 
 ```text
-docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
+docs/research/EVIDENCE-CONTROLLED-INGEST-RESULT-2026-08-20.md
 ```
 
 Write target esclusivi:
@@ -262,6 +277,8 @@ plans
 claim_verifications
 published_pages
 ```
+
+Il run ha lasciato `claimsVerified`, `affiliateEnabled`, `published` e `deployed` a `false`.
 
 ### Verification provenance
 
@@ -304,8 +321,9 @@ raw/provenance review ✅
 explicit replacement approval ✅
 locked R2 staging + verify ✅
 → read-only controlled-ingest preflight ✅
-→ explicit bounded-ingest authorization
-→ controlled evidence ingest
+→ explicit bounded-ingest authorization ✅
+→ controlled evidence ingest ✅
+→ verification provenance bridge ← current
 → verified commercial facts
 → canonical /migliore-esim
 → affiliate + measurement gate
@@ -354,9 +372,9 @@ source reconciliation ✅
 → explicit replacement approval ✅
 → locked R2 staging + verify ✅
 → controlled-ingest read-only preflight ✅
-→ explicit bounded-ingest authorization ← current
-→ controlled ingest
-→ verification provenance
+→ explicit bounded-ingest authorization ✅
+→ controlled ingest ✅
+→ verification provenance ← current
 → money-page facts
 ```
 
@@ -372,7 +390,7 @@ M4 mutation residue
 
 Non fare senza gate esplicito:
 
-- controlled D1 ingest;
+- ulteriori controlled D1 mutation;
 - automatic claim verification;
 - `review → published`;
 - affiliate activation;

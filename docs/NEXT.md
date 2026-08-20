@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **20 agosto 2026**.
 
-## Gate corrente — autorizzazione controlled ingest
+## Gate corrente — verification provenance bridge
 
 Checkpoint chiusi:
 
@@ -21,9 +21,11 @@ raw/provenance candidate review          ✅
 explicit replacement approval            ✅
 approved R2 staging + verification       ✅
 controlled-ingest read-only preflight    ✅
+explicit bounded-ingest authorization   ✅
+bounded D1 ingest + exact post-verify   ✅
 ```
 
-Production evidence upstream resta vuoto: nessun approved pack è ancora stato ingerito in D1. Il prossimo D1 write richiede un'autorizzazione nuova, esplicita e vincolata.
+Production evidence upstream contiene ora esclusivamente la coppia approved Italy/Europe: `2` capture run, `12` snapshot, `72` observation e `52` pending candidate. Il prossimo gate è il bridge di verification provenance; non autorizza verifica automatica, materializzazione, affiliazioni, pubblicazione o deploy.
 
 ## Approved replacement anchor
 
@@ -135,25 +137,32 @@ published:          false
 deployed:           false
 ```
 
-## Prossimo workstream — bounded ingest authorization
+## Bounded ingest — chiuso e verificato
 
-Creare una branch separata da `main` **solo dopo il merge del checkpoint preflight**.
+```text
+workflow:             Evidence Controlled Ingest
+run:                  32396193444
+main:                 55f0228c03b6604ac6858b0a4d987e0cec3ebe7c
+fresh pre-write rows: 0 / 0 / 0 / 0
+inserted + verified:  2 / 12 / 72 / 52
+post-write action:    existing_exact
+pending inserts:      0 / 0 / 0 / 0
+```
 
-Prima di introdurre qualsiasi capacità di write:
+Audit:
 
-1. vincolare l'autorizzazione ai due pack approvati e a un expected head esatto;
-2. rifare un preflight remoto read-only immediatamente prima del batch;
-3. richiedere ancora `0021`, source resolution 9/9 e zero drift/collision;
-4. limitare il batch alle quattro tabelle upstream e ai totali attesi;
-5. eseguire il batch atomicamente e fallire chiuso;
-6. produrre una verifica post-ingest deterministica e un audit separato;
-7. STOP prima di claim verification, affiliate activation, publication o deploy.
+```text
+artifact id: 9416760749
+sha256: 4886495527e4b6aeacf6f425c7227345e18ba1ece5f8887fdb6a0f00816b8daa
+expires: 2026-11-18T17:11:12Z
+result: docs/research/EVIDENCE-CONTROLLED-INGEST-RESULT-2026-08-20.md
+```
 
-Il preflight verde non autorizza da solo il bounded production write.
+Il run ha preservato R2 a 13 oggetti, `source_registry` a 15 righe e source resolution 9/9. Non ha scritto `plans` o `claim_verifications` e ha lasciato disabilitati claim verification, affiliazioni, pubblicazione e deploy.
 
-## Controlled ingest write boundary
+## Controlled ingest write boundary applicato
 
-Il batch autorizzato potrà scrivere esclusivamente:
+Il batch eseguito ha scritto esclusivamente:
 
 ```text
 evidence_capture_runs
@@ -162,7 +171,7 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-È vietato scrivere:
+Non ha scritto:
 
 ```text
 source_registry
@@ -185,7 +194,7 @@ Invarianti:
 - nessun FX implicito;
 - nessuna verification automatica.
 
-## Dopo ingest verificato
+## Prossimo workstream — verification provenance
 
 ```text
 pending evidence candidate
@@ -228,9 +237,9 @@ raw/provenance review              ✅
 explicit replacement approval      ✅
 locked R2 staging + verification   ✅
 → controlled-ingest read-only preflight ✅
-→ explicit bounded-ingest authorization ← current
-→ controlled evidence ingest
-→ verification provenance
+→ explicit bounded-ingest authorization ✅
+→ controlled evidence ingest ✅
+→ verification provenance ← current
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
@@ -241,8 +250,7 @@ locked R2 staging + verification   ✅
 
 ## Freeze
 
-- niente D1 write in questo preflight closeout;
-- niente controlled ingest senza preflight fresco e autorizzazione separata;
+- niente ulteriore D1 write senza preflight fresco e autorizzazione separata;
 - niente claim verification automatica;
 - niente source auto-registration;
 - niente metadata overwrite;

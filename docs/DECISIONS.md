@@ -488,3 +488,15 @@ Il modello production usa esclusivamente provenance `r2://evidence-artifacts/...
 La verifica canonica è il run `32387491600` sull'head `e636535684a31c409c456b0d1668e3e9bcd32ce9`: 13 object verificati, 15 source rows, 9/9 identity risolte, 21 migration fino a `0021`, upstream `0 / 0 / 0 / 0` e piano atteso `2 runs / 12 snapshots / 72 observations / 52 candidates`. L'audit artifact `9413529042` ha digest `sha256:fb0d96291e4d8b09312744d8ce46130c375a496dde46120f88a3ce857dc2de94`.
 
 **Conseguenza:** il preflight verde chiude soltanto il gate di lettura e pianificazione. Il D1 write richiede una branch e un'autorizzazione separata, vincolata a expected head e pack approvati, più un preflight fresco immediatamente prima di un batch atomicamente bounded. Claim verification, affiliate activation, publication e deploy restano gate successivi e indipendenti.
+
+## ADR-043 — Bounded D1 ingest della sola coppia approved
+
+**Stato:** accettata ed eseguita con verifica production il 20 agosto 2026.
+
+**Decisione:** autorizzare un solo controlled ingest della coppia Italy/Europe approvata in ADR-041, vincolato al preflight canonico finale `32391428886`, al merge commit `55f0228c03b6604ac6858b0a4d987e0cec3ebe7c` e alla confirmation `APPLY_APPROVED_EVIDENCE_CONTROLLED_INGEST`.
+
+Il workflow deve fallire chiuso salvo che R2 contenga ancora i 13 oggetti esatti, `source_registry` resti a 15 righe con resolution 9/9, D1 sia a migration `0021`, le quattro tabelle upstream siano vuote e il piano sia esattamente `2 runs / 12 snapshots / 72 observations / 52 candidates`. Il batch ammette soltanto `INSERT` nelle quattro tabelle upstream e viene seguito da una ricostruzione completa dai byte R2 che deve produrre `existing_exact` per entrambi i pack e zero insert residui.
+
+Il run `32396193444` ha soddisfatto il contratto. Il post-check ha verificato `2 / 12 / 72 / 52`; i 52 candidate restano `pending`. L'audit artifact `9416760749` ha digest `sha256:4886495527e4b6aeacf6f425c7227345e18ba1ece5f8887fdb6a0f00816b8daa`.
+
+**Conseguenza:** l'upstream evidence production non è più vuoto, ma non esiste ancora alcun verified commercial fact. Il gate corrente passa al verification provenance bridge. `source_registry`, `plans`, `claim_verifications` e `published_pages` non sono stati mutati; affiliazioni, pubblicazione e deploy restano disabilitati e richiedono autorizzazioni separate.

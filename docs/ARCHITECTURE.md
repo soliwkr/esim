@@ -204,7 +204,22 @@ Il runner ricostruisce il modello direttamente dai byte R2 approvati e sostituis
 
 Il run remoto `32387491600`, sull'head `e636535684a31c409c456b0d1668e3e9bcd32ce9`, ha verificato 13 object R2, 15 righe source registry, 9/9 identity risolte, migration `0021`, upstream vuoto e un piano `2 / 12 / 72 / 52`. Tutti i boundary flag di mutation, verification, affiliate, publication e deploy sono rimasti `false`.
 
-Il risultato verde non abilita il write: prima di un batch serve un nuovo gate con autorizzazione esplicita e un preflight fresco contro lo stato remoto.
+Il risultato verde non abilitava da solo il write: il batch successivo ha richiesto un gate versionato separato, autorizzazione esplicita e un preflight fresco contro lo stato remoto.
+
+### Bounded controlled ingest production
+
+Il workflow manual-only `Evidence Controlled Ingest` è vincolato a un SHA esatto di `main`, alla coppia approved e alla confirmation versionata. Prima del write ripete i controlli R2, source reconciliation, migration e stato vuoto. Genera quindi un unico file SQL insert-only per:
+
+```text
+evidence_capture_runs
+evidence_snapshots
+evidence_field_observations
+evidence_claim_candidates
+```
+
+L'esecuzione D1 `--file` applica il batch come unità transazionale; il contratto locale rifiuta DDL, `UPDATE`, `DELETE`, `REPLACE`, target diversi e conteggi non esatti. Il post-check ricostruisce di nuovo i modelli dai byte R2 e richiede `existing_exact` per entrambi i pack, con zero insert residui.
+
+Il run production `32396193444` sul merge commit `55f0228c03b6604ac6858b0a4d987e0cec3ebe7c` ha portato le quattro tabelle a `2 / 12 / 72 / 52`. `source_registry`, `plans`, `claim_verifications` e `published_pages` sono rimasti fuori dal write. Claim verification, affiliate activation, publication e deploy restano gate distinti.
 
 ## Durable raw evidence storage
 
@@ -333,9 +348,9 @@ R2 production provisioning ✅
 replacement Italy/Europe approval ✅
 locked R2 staging + verification ✅
 → controlled evidence ingest preflight ✅
-→ explicit bounded-ingest authorization ← current
-→ separately authorized D1 ingest
-→ verification provenance bridge
+→ explicit bounded-ingest authorization ✅
+→ separately authorized D1 ingest ✅
+→ verification provenance bridge ← current
 → bounded verified commercial facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
