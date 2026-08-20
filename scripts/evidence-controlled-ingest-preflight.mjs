@@ -10,7 +10,6 @@ import {
 import {
   buildEvidenceImportModel,
   buildEvidenceImportPlan,
-  loadVerifiedEvidencePack,
 } from './evidence-pack-importer.mjs';
 import {
   loadProvisioningPolicy,
@@ -28,6 +27,7 @@ const TARGET_D1_DATABASE = 'senza-roaming';
 const TARGET_D1_BINDING = 'DB';
 const EXPECTED_LATEST_MIGRATION = '0021_evidence_upstream_storage.sql';
 const EXPECTED_MIGRATION_COUNT = 21;
+const ALLOWED_COVERAGE_STATES = new Set(['observed', 'partial', 'unknown', 'not_applicable']);
 const READ_ONLY_TABLES = Object.freeze([
   'evidence_capture_runs',
   'evidence_snapshots',
@@ -38,21 +38,6 @@ const READ_ONLY_TABLES = Object.freeze([
 function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`${label}_invalid`);
   return value.trim();
-}
-
-function requireRepoLocalPath(value, label) {
-  const normalized = requireString(value, label);
-  if (path.isAbsolute(normalized)) throw new Error(`${label}_must_be_repository_local`);
-  const absolute = path.resolve(normalized);
-  const relative = path.relative(process.cwd(), absolute);
-  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
-    throw new Error(`${label}_must_stay_inside_repository`);
-  }
-  return absolute;
-}
-
-function repoRelative(absolute) {
-  return path.relative(process.cwd(), absolute).split(path.sep).join('/');
 }
 
 function parseJsonOutput(stdout, errorCode) {
@@ -191,13 +176,54 @@ async function readExactR2Object(fetchImpl, { accountId, apiToken, bucketName, d
   return remote.bytes;
 }
 
+export function assertNoForbiddenPriceEurKey(value, location = 'pack') {
+  if (Array.isArray(value)) {
+    for (const [index, item] of value.entries()) assertNoForbiddenPriceEurKey(item, `${location}[${index}]`);
+    return true;
+  }
+  if (!value || typeof value !== 'object') return true;
+  for (const [key, nested] of Object.entries(value)) {
+    if (key === 'price_eur') throw new Error(`controlled_ingest_price_eur_key_forbidden:${location}.${key}`);
+    assertNoForbiddenPriceEurKey(nested, `${location}.${key}`);
+  }
+  return true;
+}
+
+export function validateApprovedPackForControlledIngest(pack, approvedPack) {
+  if (!pack || pack.schemaVersion !== 1) throw new Error('controlled_ingest_pack_schema_invalid');
+  if (pack.packId !== approvedPack.packId) throw new Error(`controlled_ingest_pack_id_mismatch:${pack?.packId ?? 'missing'}`);
+  if (!Array.isArray(pack.sources) || pack.sources.length < 1) throw new Error('controlled_ingest_pack_sources_missing');
+  if (!Array.isArray(pack.offers) || pack.offers.length < 1) throw new Error('controlled_ingest_pack_offers_missing');
+  if (pack.ranking?.status !== 'not_computed') throw new Error('controlled_ingest_pack_ranking_must_be_not_computed');
+  assertNoForbiddenPriceEurKey(pack);
+
+  for (const offer of pack.offers) {
+    if (!offer || typeof offer.offerKey !== 'string' || !offer.offerKey) {
+      throw new Error('controlled_ingest_offer_shape_invalid');
+    }
+    if (!offer.coverage || typeof offer.coverage !== 'object' || Array.isArray(offer.coverage)) {
+      throw new Error(`controlled_ingest_offer_coverage_invalid:${offer.offerKey}`);
+    }
+    if (!Array.isArray(offer.candidates)) throw new Error(`controlled_ingest_offer_candidates_invalid:${offer.offerKey}`);
+    for (const [fieldName, coverage] of Object.entries(offer.coverage)) {
+      if (!coverage || !ALLOWED_COVERAGE_STATES.has(coverage.state)) {
+        throw new Error(`controlled_ingest_coverage_state_invalid:${offer.offerKey}:${fieldName}`);
+      }
+    }
+    for (const candidate of offer.candidates) {
+      if (candidate?.status !== 'pending') throw new Error(`controlled_ingest_candidate_not_pending:${offer.offerKey}`);
+      if (candidate.fieldName === 'price_eur') throw new Error(`controlled_ingest_price_eur_candidate_forbidden:${offer.offerKey}`);
+      if (!Array.isArray(candidate.warnings)) throw new Error(`controlled_ingest_candidate_warnings_invalid:${offer.offerKey}`);
+    }
+  }
+  return true;
+}
+
 export function materializeProductionArtifactRefs(model, pack) {
   const sources = new Map(pack.sources.map((source) => [source.sourceKey, source]));
   const snapshots = model.snapshots.map((snapshot) => {
     const source = sources.get(snapshot.pack_source_key);
-    if (!source) {
-      throw new Error(`controlled_ingest_snapshot_source_missing:${snapshot.pack_source_key}`);
-    }
+    if (!source) throw new Error(`controlled_ingest_snapshot_source_missing:${snapshot.pack_source_key}`);
     const descriptor = rawEvidenceArtifactDescriptor(source);
     return Object.freeze({ ...snapshot, artifact_ref: descriptor.artifactRef });
   });
@@ -205,12 +231,7 @@ export function materializeProductionArtifactRefs(model, pack) {
 }
 
 export function validateCrossModelIdentity(models) {
-  const sets = {
-    run: new Set(),
-    snapshot: new Set(),
-    observation: new Set(),
-    candidate: new Set(),
-  };
+  const sets = { run: new Set(), snapshot: new Set(), observation: new Set(), candidate: new Set() };
   for (const model of models) {
     if (sets.run.has(model.run.run_key)) throw new Error(`controlled_ingest_cross_pack_run_collision:${model.run.run_key}`);
     sets.run.add(model.run.run_key);
@@ -277,31 +298,27 @@ export async function loadApprovedEvidenceFromR2({ fetchImpl = fetch, accountId,
     } catch (error) {
       throw new Error(`controlled_ingest_pack_json_invalid:${error.message}`);
     }
-    if (pack.packId !== approvedPack.packId) {
-      throw new Error(`controlled_ingest_pack_id_mismatch:${pack.packId ?? 'missing'}`);
-    }
+    validateApprovedPackForControlledIngest(pack, approvedPack);
 
-    const artifactDirectory = requireRepoLocalPath(
-      pack.artifactLocation,
-      'controlled_ingest_pack_artifact_location',
-    );
-    const packPath = path.join(artifactDirectory, 'pack.json');
-    await mkdir(path.join(artifactDirectory, 'sources'), { recursive: true });
-    await writeFile(packPath, packBytes);
-
+    const artifactsBySourceKey = new Map();
     for (const source of pack.sources) {
       const descriptor = rawEvidenceArtifactDescriptor(source);
-      const rawBytes = await readExactR2Object(fetchImpl, {
+      await readExactR2Object(fetchImpl, {
         accountId,
         apiToken,
         bucketName: stagingPolicy.bucketName,
         descriptor,
       });
       uniqueObjects.set(descriptor.objectKey, descriptor);
-      await writeFile(path.join(artifactDirectory, 'sources', `${source.sourceKey}.html`), rawBytes);
+      artifactsBySourceKey.set(source.sourceKey, Object.freeze({ path: null, ref: descriptor.artifactRef }));
     }
 
-    const verifiedPack = await loadVerifiedEvidencePack(repoRelative(packPath));
+    const verifiedPack = Object.freeze({
+      pack,
+      packPath: null,
+      packSha256: packDescriptor.sha256,
+      artifacts: Object.freeze({ artifactDirectory: null, artifactsBySourceKey }),
+    });
     packs.push(Object.freeze({ approvedPack, pack, verifiedPack, packDescriptor }));
   }
 
