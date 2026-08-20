@@ -163,7 +163,7 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-Remote `0021` è applicata e verificata. Il controlled evidence ingest production **non è ancora stato eseguito**.
+Remote `0021` è applicata e verificata. Il preflight remoto ha confermato che le quattro tabelle sono ancora vuote; il controlled evidence ingest production **non è ancora stato eseguito**.
 
 ### Importer boundary
 
@@ -185,6 +185,26 @@ Guardrail:
 - source-native currency preservata;
 - nessun FX implicito;
 - nessun write in `plans` o `claim_verifications`.
+
+### Controlled-ingest read-only preflight
+
+Il gate production separa la pianificazione dal write:
+
+```text
+locked R2 GET + exact hash/size verification
+→ source_registry SELECT + reconciliation 9/9
+→ d1_migrations SELECT + exact 0021 state
+→ four upstream table SELECTs
+→ deterministic import plan
+→ audit artifact
+→ STOP
+```
+
+Il runner ricostruisce il modello direttamente dai byte R2 approvati e sostituisce ogni provenance locale con `r2://evidence-artifacts/...`. Le query remote ammesse devono iniziare con `SELECT` e vengono rifiutate se contengono keyword di mutation o DDL. Il workflow non genera import SQL, non esegue R2 PUT/overwrite/delete e dichiara soltanto `contents: read` nei permessi GitHub.
+
+Il run remoto `32387491600`, sull'head `e636535684a31c409c456b0d1668e3e9bcd32ce9`, ha verificato 13 object R2, 15 righe source registry, 9/9 identity risolte, migration `0021`, upstream vuoto e un piano `2 / 12 / 72 / 52`. Tutti i boundary flag di mutation, verification, affiliate, publication e deploy sono rimasti `false`.
+
+Il risultato verde non abilita il write: prima di un batch serve un nuovo gate con autorizzazione esplicita e un preflight fresco contro lo stato remoto.
 
 ## Durable raw evidence storage
 
@@ -312,7 +332,8 @@ La pubblicazione richiede capacità separata con identità verificata, conferma 
 R2 production provisioning ✅
 replacement Italy/Europe approval ✅
 locked R2 staging + verification ✅
-→ controlled evidence ingest preflight ← current
+→ controlled evidence ingest preflight ✅
+→ explicit bounded-ingest authorization ← current
 → separately authorized D1 ingest
 → verification provenance bridge
 → bounded verified commercial facts
