@@ -4,7 +4,7 @@ Data: **20 agosto 2026**
 
 ## Esito
 
-Il contratto del bridge è stato progettato e verificato con fixture esclusivamente locale. La production D1 resta a `21 / 0021_evidence_upstream_storage.sql`: questo lavoro non aggiunge una migration production, non modifica candidate remoti e non crea claim verificati.
+Il contratto del bridge è stato progettato e verificato con fixture esclusivamente locale, poi mergiato con PR #138. La successiva migration candidate `0022_evidence_verification_provenance.sql` formalizza il design senza essere stata applicata in production. D1 remoto resta a `21 / 0021_evidence_upstream_storage.sql`: nessun candidate remoto è stato modificato e nessun claim è stato verificato.
 
 ## Problema
 
@@ -64,7 +64,7 @@ npm run smoke:evidence-verification-provenance
 
 ## Confine production
 
-Il file SQL resta intenzionalmente fuori da `migrations/`. Il merge del design non rende alcuna migration applicabile e non autorizza:
+Il prototipo SQL resta intenzionalmente fuori da `migrations/` come design artifact. La formalizzazione successiva in `0022` non autorizza:
 
 - mutation D1 remota;
 - intake dei 52 candidate production;
@@ -74,4 +74,4 @@ Il file SQL resta intenzionalmente fuori da `migrations/`. Il merge del design n
 
 ## Gate successivo
 
-Il prossimo gate deve trasformare il contratto verificato in una proposta di migration `0022`, con review separata, preflight remoto read-only e autorizzazione esplicita prima di qualsiasi apply production. L'eventuale intake/verification dei candidate resta un gate ulteriore e distinto dall'installazione dello schema.
+La migration `0022` è ora proposta e verificata localmente. Il prossimo gate è la sua review/merge, seguito da un preflight remoto read-only e da un'autorizzazione esplicita prima di qualsiasi apply production. L'eventuale intake/verification dei candidate resta un gate ulteriore e distinto dall'installazione dello schema.

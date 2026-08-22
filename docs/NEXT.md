@@ -1,8 +1,8 @@
 # Prossime azioni
 
-Ultimo aggiornamento: **20 agosto 2026**.
+Ultimo aggiornamento: **22 agosto 2026**.
 
-## Gate corrente — formalizzazione migration `0022`
+## Gate corrente — review migration `0022`
 
 Checkpoint chiusi:
 
@@ -24,9 +24,10 @@ controlled-ingest read-only preflight    ✅
 explicit bounded-ingest authorization   ✅
 bounded D1 ingest + exact post-verify   ✅
 local verification provenance bridge   ✅
+formal 0022 local migration smoke      ✅
 ```
 
-Production evidence upstream contiene ora esclusivamente la coppia approved Italy/Europe: `2` capture run, `12` snapshot, `72` observation e `52` pending candidate. Il bridge v1 è verificato soltanto in locale; il prossimo gate è trasformarlo in una proposta migration `0022`. Non autorizza apply remoto, intake production, verifica automatica, materializzazione, affiliazioni, pubblicazione o deploy.
+Production evidence upstream contiene ora esclusivamente la coppia approved Italy/Europe: `2` capture run, `12` snapshot, `72` observation e `52` pending candidate. Il design bridge è mergiato con PR #138 e la migration `0022` proposta è verde soltanto in locale. Il prossimo gate è review/merge della proposta, seguito da un preflight remoto read-only separato. Non autorizza apply remoto, intake production, verifica automatica, materializzazione, affiliazioni, pubblicazione o deploy.
 
 ## Approved replacement anchor
 
@@ -195,11 +196,11 @@ Invarianti:
 - nessun FX implicito;
 - nessuna verification automatica.
 
-## Prossimo workstream — migration package del verification provenance bridge
+## Prossimo workstream — review e preflight della migration `0022`
 
 ```text
 pending evidence candidate
-→ separately reviewed 0022 migration proposal
+→ reviewed/merged 0022 migration proposal
 → read-only remote preflight
 → explicit remote migration authorization
 → separate human verification gate
@@ -211,7 +212,7 @@ pending evidence candidate
 
 Un pending candidate non è un verified claim.
 
-Il contratto locale verificato è documentato in `docs/research/EVIDENCE-VERIFICATION-PROVENANCE-BRIDGE-DESIGN-2026-08-20.md`. Il file SQL prototipo resta fuori da `migrations/`; non esiste ancora una migration production pending.
+Il contratto è documentato in `docs/research/EVIDENCE-VERIFICATION-PROVENANCE-BRIDGE-DESIGN-2026-08-20.md`; la verifica della migration candidate è registrata in `docs/research/EVIDENCE-VERIFICATION-PROVENANCE-0022-PROPOSAL-2026-08-22.md`. La presenza della migration nel repository non equivale ad apply production.
 
 ## First Money UI
 
@@ -246,7 +247,7 @@ locked R2 staging + verification   ✅
 → explicit bounded-ingest authorization ✅
 → controlled evidence ingest ✅
 → verification provenance design ✅
-→ formal 0022 migration proposal ← current
+→ formal 0022 migration proposal + review ← current
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover

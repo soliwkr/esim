@@ -1,6 +1,6 @@
 # Decisioni architetturali
 
-Ultimo aggiornamento: **20 agosto 2026**.
+Ultimo aggiornamento: **22 agosto 2026**.
 
 Questo registro conserva le decisioni che cambiano il modo in cui Senza Roaming viene costruito. Le formulazioni estese e lo storico completo restano nel versionamento Git.
 
@@ -503,7 +503,7 @@ Il run `32396193444` ha soddisfatto il contratto. Il post-check ha verificato `2
 
 ## ADR-044 — Verification provenance append-only prima della projection corrente
 
-**Stato:** accettata come design v1 e verificata con fixture locale il 20 agosto 2026; non è ancora una migration production.
+**Stato:** design v1 accettato, verificato e mergiato con PR #138 (`66c2e1f36022473dbc546eceefdb84cb675608c4`); migration `0022` proposta e verificata soltanto in locale il 22 agosto 2026, non applicata in production.
 
 **Decisione:** non scrivere direttamente i pending evidence candidate in `claim_verifications`, perché quella tabella rappresenta uno stato corrente mutabile e non conserva l'intera provenance decisionale. Introdurre prima un bridge che separi:
 
@@ -516,6 +516,6 @@ candidate intake event append-only
 
 Le transizioni candidate richiedono attore, nota e timestamp. Decisioni ed evidence link sono immutabili; le revisioni formano una catena lineare tramite `supersedes_decision_id`; `partial` non può produrre `verified`; un claim verificato richiede una scadenza esplicita; expiry è una nuova decisione. La v1 accetta soltanto decisioni umane e non materializza `claim_verifications` o `plans`.
 
-Il contratto è verificato dal prototipo locale `research/evidence/verification-provenance-bridge-v1.sql` e dallo smoke `scripts/smoke-evidence-verification-provenance.mjs`. Il prototipo resta intenzionalmente fuori da `migrations/`.
+Il contratto è verificato dal design `research/evidence/verification-provenance-bridge-v1.sql`, dalla migration candidate `migrations/0022_evidence_verification_provenance.sql` e dallo smoke `scripts/smoke-evidence-verification-provenance.mjs`. La migration formalizza il bridge e aggiunge guard fail-closed contro candidate creati fuori dallo stato pending, cancellazione dei candidate e inserimento diretto di eventi audit non canonici.
 
-**Conseguenza:** il merge del design non crea una migration pending e non muta D1 remoto. Il gate successivo è una proposta `0022` separata, seguita da read-only preflight e autorizzazione esplicita prima dell'apply. Candidate intake e claim verification production restano gate ulteriori; affiliazioni, pubblicazione e deploy restano disabilitati.
+**Conseguenza:** il merge del design non ha mutato D1 remoto. La proposta `0022` deve essere revisionata e mergiata prima di un read-only preflight separato; l'apply richiede poi autorizzazione esplicita. Candidate intake e claim verification production restano gate ulteriori; affiliazioni, pubblicazione e deploy restano disabilitati.

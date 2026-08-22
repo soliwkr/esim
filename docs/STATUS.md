@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Data di riferimento: **20 agosto 2026**.
+Data di riferimento: **22 agosto 2026**.
 
 Questo documento fotografa lo stato operativo reale. Lo storico dettagliato resta nel versionamento Git e nei documenti risultato.
 
@@ -20,6 +20,7 @@ Questo documento fotografa lo stato operativo reale. Lo storico dettagliato rest
 | Source registry | Production-ready | 15 righe; 9/9 identity risolte |
 | Evidence importer | Production bounded ingest verificato | local/fixture + one-shot insert-only fail-closed |
 | Upstream evidence schema | Production-ready | `0021`; 4 tabelle, 7 indici, 9 trigger |
+| Verification provenance schema | Proposta locale | `0022`; 3 tabelle, 4 indici, 19 trigger, 1 view; non applicata remota |
 | Evidence artifact storage | **Staged e verificato** | 13 object content-addressed in R2 locked |
 | Replacement evidence | **Approvato esplicitamente** | Italy + Europe byte-identificati |
 | Controlled evidence ingest | **Production verificato** | 2 run, 12 snapshot, 72 observation, 52 pending candidate |
@@ -55,6 +56,8 @@ approved R2 staging + post-write verify  ✅
 controlled-ingest read-only preflight    ✅
 explicit bounded-ingest authorization   ✅
 bounded D1 ingest + exact post-verify   ✅
+verification provenance design #138   ✅
+local 0022 migration smoke             ✅
 ```
 
 Production source state:
@@ -229,7 +232,7 @@ Result canonico:
 docs/research/EVIDENCE-CONTROLLED-INGEST-PREFLIGHT-RESULT-2026-08-20.md
 ```
 
-## Gate corrente — formalizzazione migration `0022`
+## Gate corrente — review migration `0022`
 
 Il bounded ingest è chiuso e verificato:
 
@@ -260,7 +263,7 @@ published:         false
 deployed:          false
 ```
 
-Il bridge append-only/revisioned v1 è stato progettato e verificato con fixture locale. Il prototipo è fuori da `migrations/`, quindi D1 production resta a `0021` e nessun candidate è ancora un claim verificato. Il gate corrente è una proposta formale `0022`, da sottoporre a review e autorizzazione separata prima di qualsiasi apply remoto.
+Il bridge append-only/revisioned v1 è stato mergiato con PR #138. La migration candidate `0022_evidence_verification_provenance.sql` è stata applicata e verificata soltanto su D1 locale: production resta a `21 / 0021` e nessun candidate è ancora un claim verificato. Il gate corrente è la review della proposta; preflight e apply remoti richiedono gate e autorizzazioni separati.
 
 Contratto locale:
 
@@ -272,6 +275,8 @@ human-audited candidate intake
 ```
 
 Lo smoke locale conferma che `partial` non diventa `verified` e che `claim_verifications`, `plans` ed editorial candidates restano invariati.
+
+La migration impone candidate inizialmente pending, aggiunge un guard delete sui candidate storici e impedisce eventi audit forgiati fuori dalla transizione di stato canonica.
 
 ## Percorso verso il primo click affiliate
 
@@ -290,7 +295,7 @@ locked R2 staging + verification   ✅
 → explicit bounded-ingest authorization ✅
 → controlled evidence ingest ✅
 → verification provenance bridge design ✅
-→ formal 0022 migration proposal ← current
+→ formal 0022 migration proposal + review ← current
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
