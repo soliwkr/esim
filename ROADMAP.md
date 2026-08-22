@@ -30,7 +30,7 @@ Ultimo aggiornamento: **20 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; coppia approved Italy/Europe persistita in R2 e ingerita nelle tabelle upstream D1; gate corrente = verification provenance bridge.
+**Stato:** demand intelligence completata; First Money UI in preview; coppia approved Italy/Europe persistita in R2 e ingerita nelle tabelle upstream D1; verification provenance bridge v1 verificato localmente; gate corrente = proposta migration `0022` separata.
 
 Completati:
 
@@ -56,6 +56,7 @@ Completati:
 - controlled evidence ingest read-only preflight remoto verde;
 - autorizzazione bounded-ingest versionata;
 - ingest D1 insert-only della coppia approved e post-verifica esatta `2 / 12 / 72 / 52`.
+- verification provenance bridge v1 progettato e verificato con fixture locale, senza migration production.
 
 Preview:
 
@@ -103,6 +104,7 @@ run 32387491600 controlled ingest read-only preflight
 run 32391428886 final controlled-ingest read-only preflight on approved head
 #136 bounded controlled-ingest authorization + runner
 run 32396193444 bounded D1 ingest + exact post-write verification
+local verification provenance bridge v1 smoke
 ```
 
 ### Production source state
@@ -295,6 +297,8 @@ pending evidence candidate
 
 Un evidence candidate non equivale a un verified claim.
 
+Il bridge v1 locale aggiunge intake events, decisioni revisionate e link evidence append-only. Impedisce `partial → verified`, richiede decisioni umane e lascia `claim_verifications` come projection downstream non ancora materializzata. Il prototipo è intenzionalmente fuori da `migrations/`; production resta a `0021`.
+
 ## M8 — Monetizzazione controllata
 
 **Stato:** non attiva.
@@ -323,7 +327,8 @@ locked R2 staging + verify ✅
 → read-only controlled-ingest preflight ✅
 → explicit bounded-ingest authorization ✅
 → controlled evidence ingest ✅
-→ verification provenance bridge ← current
+→ verification provenance bridge design ✅
+→ formal 0022 migration proposal ← current
 → verified commercial facts
 → canonical /migliore-esim
 → affiliate + measurement gate
@@ -374,7 +379,8 @@ source reconciliation ✅
 → controlled-ingest read-only preflight ✅
 → explicit bounded-ingest authorization ✅
 → controlled ingest ✅
-→ verification provenance ← current
+→ verification provenance design ✅
+→ formal 0022 migration proposal ← current
 → money-page facts
 ```
 

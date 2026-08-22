@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: **20 agosto 2026**.
 
-## Gate corrente — verification provenance bridge
+## Gate corrente — formalizzazione migration `0022`
 
 Checkpoint chiusi:
 
@@ -23,9 +23,10 @@ approved R2 staging + verification       ✅
 controlled-ingest read-only preflight    ✅
 explicit bounded-ingest authorization   ✅
 bounded D1 ingest + exact post-verify   ✅
+local verification provenance bridge   ✅
 ```
 
-Production evidence upstream contiene ora esclusivamente la coppia approved Italy/Europe: `2` capture run, `12` snapshot, `72` observation e `52` pending candidate. Il prossimo gate è il bridge di verification provenance; non autorizza verifica automatica, materializzazione, affiliazioni, pubblicazione o deploy.
+Production evidence upstream contiene ora esclusivamente la coppia approved Italy/Europe: `2` capture run, `12` snapshot, `72` observation e `52` pending candidate. Il bridge v1 è verificato soltanto in locale; il prossimo gate è trasformarlo in una proposta migration `0022`. Non autorizza apply remoto, intake production, verifica automatica, materializzazione, affiliazioni, pubblicazione o deploy.
 
 ## Approved replacement anchor
 
@@ -194,11 +195,14 @@ Invarianti:
 - nessun FX implicito;
 - nessuna verification automatica.
 
-## Prossimo workstream — verification provenance
+## Prossimo workstream — migration package del verification provenance bridge
 
 ```text
 pending evidence candidate
-→ verification provenance gate
+→ separately reviewed 0022 migration proposal
+→ read-only remote preflight
+→ explicit remote migration authorization
+→ separate human verification gate
 → verified / contradicted / expired
 → evidence bundle
 → Page Readiness
@@ -206,6 +210,8 @@ pending evidence candidate
 ```
 
 Un pending candidate non è un verified claim.
+
+Il contratto locale verificato è documentato in `docs/research/EVIDENCE-VERIFICATION-PROVENANCE-BRIDGE-DESIGN-2026-08-20.md`. Il file SQL prototipo resta fuori da `migrations/`; non esiste ancora una migration production pending.
 
 ## First Money UI
 
@@ -239,7 +245,8 @@ locked R2 staging + verification   ✅
 → controlled-ingest read-only preflight ✅
 → explicit bounded-ingest authorization ✅
 → controlled evidence ingest ✅
-→ verification provenance ← current
+→ verification provenance design ✅
+→ formal 0022 migration proposal ← current
 → bounded verified facts
 → First Money UI materialization
 → canonical /migliore-esim cutover

@@ -163,7 +163,7 @@ evidence_field_observations
 evidence_claim_candidates
 ```
 
-Remote `0021` è applicata e verificata. Il preflight remoto ha confermato che le quattro tabelle sono ancora vuote; il controlled evidence ingest production **non è ancora stato eseguito**.
+Remote `0021` è applicata e verificata. Il bounded controlled ingest production ha portato le quattro tabelle a `2 / 12 / 72 / 52`; i 52 candidate restano `pending`.
 
 ### Importer boundary
 
@@ -325,6 +325,19 @@ evidence_claim_candidates
 
 serve un bridge auditabile e revisioned/append-only che distingua supports, contradicts e supersedes/expires. Una verification non può trasformare un partial in un fatto completo.
 
+Il design locale v1 separa quattro responsabilità:
+
+```text
+candidate status transition → immutable intake event
+accepted candidate → immutable verification decision revision
+decision ↔ candidates → supports / contradicts / context
+unsuperseded decision → current read projection
+```
+
+Le decisioni v1 richiedono un attore umano; `partial` può risultare `insufficient` ma non `verified`; `verified` richiede `valid_until`; expiry e supersede generano nuove revisioni senza riscrivere la storia. `claim_verifications` resta una projection downstream separata e non viene scritta dal bridge.
+
+Il prototipo verificato è `research/evidence/verification-provenance-bridge-v1.sql`, intenzionalmente fuori da `migrations/`. Production resta a `0021`; schema apply, candidate intake e claim verification richiedono gate e autorizzazioni separati.
+
 ## `plans` boundary
 
 `plans` v1 non è ingest target dell'evidence layer perché il modello attuale è troppo loss-prone per pack regionali/source-native. Un eventuale redesign resta separato da evidence storage e verification.
@@ -350,7 +363,8 @@ locked R2 staging + verification ✅
 → controlled evidence ingest preflight ✅
 → explicit bounded-ingest authorization ✅
 → separately authorized D1 ingest ✅
-→ verification provenance bridge ← current
+→ verification provenance bridge design ✅
+→ formal 0022 migration proposal ← current
 → bounded verified commercial facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
