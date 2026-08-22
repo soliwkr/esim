@@ -26,7 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_evidence_claim_candidate_events_candidate
 
 CREATE TRIGGER IF NOT EXISTS trg_evidence_candidate_initial_state_valid
 BEFORE INSERT ON evidence_claim_candidates
-WHEN NEW.status<>'pending'
+WHEN NEW.status IN ('accepted_for_verification','rejected_extraction','superseded')
   OR NEW.decision_actor IS NOT NULL
   OR length(trim(NEW.decision_notes))>0
   OR NEW.decided_at IS NOT NULL
