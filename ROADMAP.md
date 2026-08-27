@@ -1,6 +1,6 @@
 # Senza Roaming — Roadmap
 
-Ultimo aggiornamento: **20 agosto 2026**.
+Ultimo aggiornamento: **22 agosto 2026**.
 
 ## Principi non negoziabili
 
@@ -30,7 +30,7 @@ Ultimo aggiornamento: **20 agosto 2026**.
 
 ## M7 — Intelligence SEO, Demand e First Euro
 
-**Stato:** demand intelligence completata; First Money UI in preview; coppia approved Italy/Europe persistita in R2 e ingerita nelle tabelle upstream D1; verification provenance bridge v1 verificato localmente; gate corrente = proposta migration `0022` separata.
+**Stato:** demand intelligence completata; First Money UI in preview; coppia approved Italy/Europe persistita in R2 e ingerita nelle tabelle upstream D1; verification provenance bridge v1 mergiato e migration `0022` proposta/verificata localmente; gate corrente = review della migration, senza apply remoto.
 
 Completati:
 
@@ -57,6 +57,7 @@ Completati:
 - autorizzazione bounded-ingest versionata;
 - ingest D1 insert-only della coppia approved e post-verifica esatta `2 / 12 / 72 / 52`.
 - verification provenance bridge v1 progettato e verificato con fixture locale, senza migration production.
+- migration candidate `0022_evidence_verification_provenance.sql` verificata localmente, non applicata in production.
 
 Preview:
 
@@ -105,6 +106,8 @@ run 32391428886 final controlled-ingest read-only preflight on approved head
 #136 bounded controlled-ingest authorization + runner
 run 32396193444 bounded D1 ingest + exact post-write verification
 local verification provenance bridge v1 smoke
+#138 verification provenance bridge design
+local 0022 verification provenance migration smoke
 ```
 
 ### Production source state
@@ -297,7 +300,7 @@ pending evidence candidate
 
 Un evidence candidate non equivale a un verified claim.
 
-Il bridge v1 locale aggiunge intake events, decisioni revisionate e link evidence append-only. Impedisce `partial → verified`, richiede decisioni umane e lascia `claim_verifications` come projection downstream non ancora materializzata. Il prototipo è intenzionalmente fuori da `migrations/`; production resta a `0021`.
+Il bridge v1 aggiunge intake events, decisioni revisionate e link evidence append-only. Impedisce `partial → verified`, richiede candidate inizialmente pending e decisioni umane, e lascia `claim_verifications` come projection downstream non ancora materializzata. Il design è mergiato con PR #138; la migration candidate `0022` è verificata soltanto in locale/CI proposal. Production resta a `0021`.
 
 ## M8 — Monetizzazione controllata
 
@@ -328,7 +331,7 @@ locked R2 staging + verify ✅
 → explicit bounded-ingest authorization ✅
 → controlled evidence ingest ✅
 → verification provenance bridge design ✅
-→ formal 0022 migration proposal ← current
+→ formal 0022 migration proposal + review ← current
 → verified commercial facts
 → canonical /migliore-esim
 → affiliate + measurement gate
@@ -380,7 +383,7 @@ source reconciliation ✅
 → explicit bounded-ingest authorization ✅
 → controlled ingest ✅
 → verification provenance design ✅
-→ formal 0022 migration proposal ← current
+→ formal 0022 migration proposal + review ← current
 → money-page facts
 ```
 

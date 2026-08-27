@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-const prototypePath = 'research/evidence/verification-provenance-bridge-v1.sql';
+const migrationPath = 'migrations/0022_evidence_verification_provenance.sql';
 const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'senza-roaming-verification-provenance-'));
 const persistTo = path.join(temporaryRoot, 'd1');
 
@@ -113,20 +113,32 @@ function acceptCandidate(candidateKey, decidedAt) {
 }
 
 try {
-  const prototypeSql = await readFile(prototypePath, 'utf8');
-  assert.match(prototypeSql, /Local-only schema prototype/);
-  assert.doesNotMatch(prototypePath, /^migrations\//);
+  const migrationSql = await readFile(migrationPath, 'utf8');
+  assert.match(migrationSql, /Append-only audit trail/);
+  assert.match(migrationPath, /^migrations\/0022_/);
 
   runWrangler([
     'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persistTo,
   ]);
-  runWrangler([
-    'd1', 'execute', 'DB', '--local', '--persist-to', persistTo,
-    '--file', prototypePath, '--json',
-  ]);
 
   const migrationState = query('SELECT COUNT(*) AS count, MAX(name) AS latest FROM d1_migrations;')[0];
-  assert.deepEqual(migrationState, { count: 21, latest: '0021_evidence_upstream_storage.sql' });
+  assert.deepEqual(migrationState, { count: 22, latest: '0022_evidence_verification_provenance.sql' });
+  assert.equal(Number(query(`
+    SELECT COUNT(*) AS count FROM sqlite_master
+    WHERE type='table' AND name IN (
+      'evidence_claim_candidate_events',
+      'evidence_verification_decisions',
+      'evidence_verification_decision_candidates'
+    );
+  `)[0].count), 3);
+  assert.equal(Number(query(`
+    SELECT COUNT(*) AS count FROM sqlite_master
+    WHERE type='view' AND name='evidence_verification_current';
+  `)[0].count), 1);
+  assert.equal(Number(query(`
+    SELECT COUNT(*) AS count FROM sqlite_master
+    WHERE type='trigger' AND name LIKE 'trg_evidence_%';
+  `)[0].count), 28);
 
   const claimVerificationsBefore = Number(query('SELECT COUNT(*) AS count FROM claim_verifications;')[0].count);
   const plansBefore = Number(query('SELECT COUNT(*) AS count FROM plans;')[0].count);
@@ -199,6 +211,20 @@ try {
   `);
 
   expectFailure(
+    'candidate must start pending without decision metadata',
+    `
+      INSERT INTO evidence_claim_candidates(
+        candidate_key,observation_id,status,decision_actor,decision_notes,decided_at
+      ) VALUES(
+        'fixture:candidate:accepted-at-insert',
+        (SELECT id FROM evidence_field_observations WHERE observation_key='fixture:observation:price:32'),
+        'accepted_for_verification','fixture-human-reviewer','Invalid direct acceptance.',
+        '2026-08-20T10:20:00.000Z'
+      );
+    `,
+    'evidence_candidate_initial_state_invalid',
+  );
+  expectFailure(
     'pending candidate cannot be verified',
     decisionSql({
       decisionKey: 'fixture:decision:pending',
@@ -229,6 +255,26 @@ try {
   );
 
   acceptCandidate('fixture:candidate:price:32', '2026-08-20T10:40:00.000Z');
+  expectFailure(
+    'candidate audit event cannot be forged directly',
+    `
+      INSERT INTO evidence_claim_candidate_events(
+        event_key,candidate_id,from_status,to_status,actor,notes,decided_at
+      ) VALUES(
+        'fixture:forged-event',
+        (SELECT id FROM evidence_claim_candidates WHERE candidate_key='fixture:candidate:price:32'),
+        'pending','accepted_for_verification','fixture-human-reviewer',
+        'Accepted explicitly for local provenance verification.',
+        '2026-08-20T10:40:00.000Z'
+      );
+    `,
+    'evidence_claim_candidate_event_invalid',
+  );
+  expectFailure(
+    'candidate is immutable on delete',
+    "DELETE FROM evidence_claim_candidates WHERE candidate_key='fixture:candidate:price:32';",
+    'evidence_claim_candidates_immutable',
+  );
   expectFailure(
     'decision metadata cannot be rewritten without a transition',
     `
@@ -439,7 +485,7 @@ try {
     editorialCandidatesBefore,
   );
 
-  console.log('Evidence verification provenance smoke passed: human intake is audited, decisions/evidence are append-only and revisioned, partial cannot become verified, current heads are deterministic, and claim_verifications/plans remain unchanged.');
+  console.log('Evidence verification provenance migration smoke passed: 0022 applies locally, candidates start pending, human intake is audited, forged events and candidate deletion fail closed, decisions/evidence are append-only and revisioned, partial cannot become verified, current heads are deterministic, and claim_verifications/plans remain unchanged.');
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
 }

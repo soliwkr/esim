@@ -684,7 +684,7 @@ try {
   assert.equal(result.plansV1Unchanged, true);
   assert.equal(response.headers.get('cache-control'), 'no-store');
 
-  console.log('Evidence D1 schema smoke passed: 0021 migrates locally, preserves evidence states/currencies, enforces immutability and leaves source_registry, claim_verifications and plans v1 untouched.');
+  console.log('Evidence D1 schema smoke passed: 0022 migrates locally, preserves evidence states/currencies, enforces pending candidate intake and immutability, and leaves source_registry, claim_verifications and plans v1 untouched.');
 } finally {
   if (runtime) await stopRuntime(runtime);
   await Promise.all([

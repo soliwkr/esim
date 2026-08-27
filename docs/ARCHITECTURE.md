@@ -1,6 +1,6 @@
 # Architettura di Senza Roaming
 
-Data di riferimento: **20 agosto 2026**.
+Data di riferimento: **22 agosto 2026**.
 
 Questo documento descrive l'architettura corrente di `soliwkr/esim`. Lo storico dettagliato delle fasi e delle decisioni resta nel versionamento Git e in `docs/DECISIONS.md`.
 
@@ -336,7 +336,9 @@ unsuperseded decision → current read projection
 
 Le decisioni v1 richiedono un attore umano; `partial` può risultare `insufficient` ma non `verified`; `verified` richiede `valid_until`; expiry e supersede generano nuove revisioni senza riscrivere la storia. `claim_verifications` resta una projection downstream separata e non viene scritta dal bridge.
 
-Il prototipo verificato è `research/evidence/verification-provenance-bridge-v1.sql`, intenzionalmente fuori da `migrations/`. Production resta a `0021`; schema apply, candidate intake e claim verification richiedono gate e autorizzazioni separati.
+Il design verificato è conservato in `research/evidence/verification-provenance-bridge-v1.sql`. La sua formalizzazione è proposta come `migrations/0022_evidence_verification_provenance.sql`: 3 tabelle, 4 indici, 19 trigger e una current-head view. La migration impone lo stato iniziale pending, aggiunge immutabilità delete dei candidate e verifica che ogni audit event corrisponda alla transizione canonica.
+
+`0022` è stata applicata soltanto a D1 locale. Production resta a `21 / 0021`; remote preflight, schema apply, candidate intake e claim verification richiedono gate e autorizzazioni separati.
 
 ## `plans` boundary
 
@@ -364,7 +366,7 @@ locked R2 staging + verification ✅
 → explicit bounded-ingest authorization ✅
 → separately authorized D1 ingest ✅
 → verification provenance bridge design ✅
-→ formal 0022 migration proposal ← current
+→ formal 0022 migration proposal + review ← current
 → bounded verified commercial facts
 → First Money UI materialization
 → canonical /migliore-esim cutover
